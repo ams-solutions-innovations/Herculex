@@ -28,10 +28,7 @@ void main() {
 
   test('sign-in persists the session to the local cache', () async {
     await build();
-    final session = await repo.loginWithEmail(
-      email: 'a@b.c',
-      password: 'pw',
-    );
+    final session = await repo.loginWithEmail(email: 'a@b.c', password: 'pw');
 
     expect(session.uid, 'login');
     expect(local.currentSession?.uid, 'login');
@@ -94,25 +91,31 @@ void main() {
     expect(local.currentSession?.uid, 'restored');
   });
 
-  test('hydrate() clears a stale cache when the provider has no user', () async {
-    await build();
-    await repo.loginWithEmail(email: 'a@b.c', password: 'pw');
-    service.current = null;
+  test(
+    'hydrate() clears a stale cache when the provider has no user',
+    () async {
+      await build();
+      await repo.loginWithEmail(email: 'a@b.c', password: 'pw');
+      service.current = null;
 
-    await repo.hydrate();
+      await repo.hydrate();
 
-    expect(local.currentSession, isNull);
-  });
+      expect(local.currentSession, isNull);
+    },
+  );
 
-  test('provider errors propagate unchanged for the onboarding error UI', () async {
-    await build(throwOnSignIn: StateError('invalid credentials'));
+  test(
+    'provider errors propagate unchanged for the onboarding error UI',
+    () async {
+      await build(throwOnSignIn: StateError('invalid credentials'));
 
-    await expectLater(
-      repo.loginWithEmail(email: 'a@b.c', password: 'wrong'),
-      throwsA(isA<StateError>()),
-    );
-    expect(local.currentSession, isNull);
-  });
+      await expectLater(
+        repo.loginWithEmail(email: 'a@b.c', password: 'wrong'),
+        throwsA(isA<StateError>()),
+      );
+      expect(local.currentSession, isNull);
+    },
+  );
 
   test('dispose cancels the auth-state subscription', () async {
     await build();

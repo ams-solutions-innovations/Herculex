@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'training_snapshot.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 
 /// One day's accumulated CNS load (raw units: Σ cnsScore/10 × rpeFactor ×
 /// setTypeFactor per working set).
@@ -85,15 +85,19 @@ class CnsTrends {
           : 1.0;
       final setLoad = intensity * rpeFactor * rs.setType.cnsFactor;
 
-      final day =
-          DateTime(completedAt.year, completedAt.month, completedAt.day);
+      final day = DateTime(
+        completedAt.year,
+        completedAt.month,
+        completedAt.day,
+      );
       if (dailyLoads.containsKey(day)) {
         dailyLoads[day] = dailyLoads[day]! + setLoad;
       }
 
       final hours = asOf.difference(completedAt).inHours;
       if (hours >= 0 && hours <= _gaugeWindowHours) {
-        gauge += _perSetBase * setLoad * exp(-hours * ln2 / _gaugeHalfLifeHours);
+        gauge +=
+            _perSetBase * setLoad * exp(-hours * ln2 / _gaugeHalfLifeHours);
       }
     }
 
@@ -107,14 +111,17 @@ class CnsTrends {
 
     // Calculate active training span in the window to avoid dividing by 4 on newer accounts
     final earliestTrainingIndex = daily.indexWhere((d) => d.load > 0);
-    final daysSinceFirstTraining = earliestTrainingIndex == -1 ? 0 : daily.length - earliestTrainingIndex;
+    final daysSinceFirstTraining = earliestTrainingIndex == -1
+        ? 0
+        : daily.length - earliestTrainingIndex;
     final weeksOfHistory = max(1, (daysSinceFirstTraining / 7.0).ceil());
     final chronic = daily.fold(0.0, (sum, d) => sum + d.load) / weeksOfHistory;
 
     // A true deload week requires at least 3 weeks (21 days) of training history
     // and meaningful chronic load, so new users don't get premature deload alerts.
     final hasSufficientHistory = daysSinceFirstTraining >= 21;
-    final deloadSuggested = hasSufficientHistory && chronic > 1.5 && acute > 1.4 * chronic;
+    final deloadSuggested =
+        hasSufficientHistory && chronic > 1.5 && acute > 1.4 * chronic;
 
     return CnsTrendsResult(
       daily: daily,

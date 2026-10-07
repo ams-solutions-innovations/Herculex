@@ -11,8 +11,12 @@ project_id = "ldzgyzigvbwofbswitrv"
 [functions.gemini-analyze]
 verify_jwt = true
 
-[functions.product-catalogue-publish]
-verify_jwt = true
+# `product-catalogue-publish` je bila odstranjena 2026-09-02. Ni nosila
+# nobene svoje skrivnosti — service-role kljuc je rabila samo zato, da obide
+# RLS na `product_catalogue`, kar SECURITY DEFINER rutina
+# `product_catalogue_submit()` (migracija 0018) naredi bolj varno, atomarno
+# in brez hladnega zagona. Klient jo klice neposredno prek `rpc()`.
+# Glej docs/edge-functions-prod-arhitektura.md.
 
 # Never false: the function derives the account to delete from the verified
 # JWT alone, so an unverified caller could delete an arbitrary user.

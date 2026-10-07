@@ -1,10 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../theme/colors.dart';
-import '../../domain/daily_totals.dart';
-import '../../domain/macro_targets.dart';
 
 /// Shared macro-trend helpers, extracted from the dashboard's LiveMacrosGrid
 /// so the weekly-calories stats page and future trend surfaces render the
@@ -90,7 +89,12 @@ class MacroTrendChart extends StatelessWidget {
       final iso = DateFormat('yyyy-MM-dd').format(date);
       final totals = historyMap[iso] ?? DailyTotals.empty;
       final val = macroValueForTotals(totals, macro);
-      spots.add(FlSpot((days - 1 - i).toDouble(), (val.isNaN || val.isInfinite) ? 0 : val));
+      spots.add(
+        FlSpot(
+          (days - 1 - i).toDouble(),
+          (val.isNaN || val.isInfinite) ? 0 : val,
+        ),
+      );
     }
 
     final hasAnyData = spots.any((s) => s.y > 0);
@@ -101,19 +105,24 @@ class MacroTrendChart extends StatelessWidget {
         child: Center(
           child: Text(
             'No logged nutrition entries in the selected timeframe.',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: AppColors.secondary),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.secondary,
+            ),
           ),
         ),
       );
     }
 
     final maxYValue = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
-    final topBound = (targetValue != null && !targetValue.isNaN && !targetValue.isInfinite && targetValue > maxYValue)
+    final topBound =
+        (targetValue != null &&
+            !targetValue.isNaN &&
+            !targetValue.isInfinite &&
+            targetValue > maxYValue)
         ? targetValue * 1.15
         : maxYValue > 0
-            ? maxYValue * 1.2
-            : 100.0;
+        ? maxYValue * 1.2
+        : 100.0;
 
     return SizedBox(
       height: height,
@@ -126,7 +135,10 @@ class MacroTrendChart extends StatelessWidget {
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
-            horizontalInterval: (topBound / 4 > 0 && !topBound.isNaN && !topBound.isInfinite) ? topBound / 4 : 1,
+            horizontalInterval:
+                (topBound / 4 > 0 && !topBound.isNaN && !topBound.isInfinite)
+                ? topBound / 4
+                : 1,
             getDrawingHorizontalLine: (val) => FlLine(
               color: AppColors.outlineVariant.withValues(alpha: 0.15),
               strokeWidth: 1,
@@ -134,9 +146,15 @@ class MacroTrendChart extends StatelessWidget {
           ),
           titlesData: FlTitlesData(
             show: true,
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            leftTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -144,7 +162,8 @@ class MacroTrendChart extends StatelessWidget {
                 interval: (days / 4).clamp(1.0, 30.0),
                 getTitlesWidget: (value, meta) {
                   final idx = value.toInt();
-                  if (idx < 0 || idx >= dates.length) return const SizedBox.shrink();
+                  if (idx < 0 || idx >= dates.length)
+                    return const SizedBox.shrink();
                   final d = dates[idx];
                   final label = days <= 7
                       ? DateFormat('E').format(d)
@@ -164,7 +183,11 @@ class MacroTrendChart extends StatelessWidget {
             ),
           ),
           borderData: FlBorderData(show: false),
-          extraLinesData: targetValue == null || targetValue <= 0 || targetValue.isNaN || targetValue.isInfinite
+          extraLinesData:
+              targetValue == null ||
+                  targetValue <= 0 ||
+                  targetValue.isNaN ||
+                  targetValue.isInfinite
               ? null
               : ExtraLinesData(
                   horizontalLines: [
@@ -220,11 +243,11 @@ class MacroTrendChart extends StatelessWidget {
                 show: days <= 14,
                 getDotPainter: (spot, percent, barData, index) =>
                     FlDotCirclePainter(
-                  radius: 3,
-                  color: color,
-                  strokeWidth: 1,
-                  strokeColor: Colors.white,
-                ),
+                      radius: 3,
+                      color: color,
+                      strokeWidth: 1,
+                      strokeColor: Colors.white,
+                    ),
               ),
               belowBarData: BarAreaData(
                 show: true,

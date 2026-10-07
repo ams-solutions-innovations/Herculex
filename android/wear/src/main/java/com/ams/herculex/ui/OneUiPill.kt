@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -131,10 +132,14 @@ fun OneUiPill(
     rightContent: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
 ) {
+    val hasLeading = iconComposable != null || iconVector != null || icon != null
+    val hasTrailing = rightContent != null
+    val isSimpleButton = !hasLeading && !hasTrailing && subtitle == null && statValue == null
+
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 52.dp)
+            .heightIn(min = if (isSimpleButton) 44.dp else 52.dp)
             .background(style.containerColor, shape = CircleShape)
             .then(
                 if (style.borderColor != Color.Transparent) {
@@ -144,11 +149,15 @@ fun OneUiPill(
             .then(
                 if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
             )
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .padding(
+                horizontal = 14.dp,
+                vertical = if (isSimpleButton) 8.dp else 10.dp,
+            ),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = if (isSimpleButton) Arrangement.Center else Arrangement.Start,
     ) {
         // Left Circular Icon Badge
-        if (iconComposable != null || iconVector != null || icon != null) {
+        if (hasLeading) {
             Box(
                 modifier = Modifier
                     .size(38.dp)
@@ -196,7 +205,8 @@ fun OneUiPill(
 
         // Center Content
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = if (isSimpleButton) Modifier else Modifier.weight(1f),
+            horizontalAlignment = if (isSimpleButton) Alignment.CenterHorizontally else Alignment.Start,
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
@@ -206,6 +216,7 @@ fun OneUiPill(
                 fontSize = 14.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = if (isSimpleButton) TextAlign.Center else TextAlign.Start,
             )
 
             if (statValue != null && statLabel != null) {
@@ -246,9 +257,9 @@ fun OneUiPill(
         }
 
         // Optional Right Action / Content
-        if (rightContent != null) {
+        if (hasTrailing) {
             Spacer(Modifier.width(8.dp))
-            rightContent()
+            rightContent?.invoke()
         }
     }
 }

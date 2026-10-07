@@ -5,12 +5,12 @@ import 'dart:math' as math;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:herculex/data/local/migrations/sync_backfill.dart'
+    show isCustomFilteredTableNames;
+import 'package:herculex/data/sync/sync_backend_service.dart';
+import 'package:herculex/data/sync/sync_id_resolver.dart';
+import 'package:herculex/data/sync/sync_table_specs.dart';
 import 'package:uuid/uuid.dart';
-
-import '../local/migrations/sync_backfill.dart' show isCustomFilteredTableNames;
-import 'sync_backend_service.dart';
-import 'sync_id_resolver.dart';
-import 'sync_table_specs.dart';
 
 void _log(String message) {
   developer.log(message);
@@ -195,12 +195,25 @@ class SyncService {
     _userId = userId;
     _lastSyncedAt = await _readLastSyncedAt();
 
-    _pushTimer = Timer.periodic(const Duration(seconds: 20), (_) => pushOnce());
-    _pullTimer = Timer.periodic(const Duration(minutes: 5), (_) => pullAll());
+    // Every periodic/on-change kick goes through [_fireAndLog] rather than
+    // dropping the Future on the floor. `pushOnce` and `pullAll` are both
+    // `try { } finally { }` with no `catch`, so a throw from anywhere outside
+    // their inner try blocks — `_refreshState`'s customSelect, or
+    // `_applyPulledRow`, which is called outside the `_backend.pull` try —
+    // used to escape into a Timer callback as an uncaught async error, once
+    // every 20 seconds, invisible to everything except the console.
+    _pushTimer = Timer.periodic(
+      const Duration(seconds: 20),
+      (_) => _fireAndLog('push', pushOnce),
+    );
+    _pullTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => _fireAndLog('pull', pullAll),
+    );
     _connectivitySub = _connectivity.onConnectivityChanged.listen((results) {
       if (!results.contains(ConnectivityResult.none)) {
-        pushOnce();
-        pullAll();
+        _fireAndLog('push', pushOnce);
+        _fireAndLog('pull', pullAll);
       }
     });
     _realtimeSub = _backend
@@ -258,8 +271,10 @@ class SyncService {
     if (owner == userId) return;
 
     if (owner != null) {
-      _log('local database owner changed ($owner -> $userId); '
-          'clearing outbox and cursors');
+      _log(
+        'local database owner changed ($owner -> $userId); '
+        'clearing outbox and cursors',
+      );
       await _db.customUpdate('DELETE FROM pending_sync_ops');
       await _db.customUpdate('DELETE FROM sync_cursors');
       _lastSyncedAt = null;
@@ -359,6 +374,19 @@ class SyncService {
     );
   }
 
+  /// Runs a fire-and-forget sync pass without letting a throw escape into
+  /// the Timer callback that started it. Records the failure the same way a
+  /// caught pull/push error is recorded, so it reaches [state] and the error
+  /// log instead of the void.
+  void _fireAndLog(String label, Future<void> Function() body) {
+    unawaited(
+      body().catchError((Object e, StackTrace st) {
+        _lastRunError = e.toString();
+        _log('SyncService $label pass threw: $e\n$st');
+      }),
+    );
+  }
+
   // ── Push ───────────────────────────────────────────────────────────────
 
   Future<void> pushOnce() async {
@@ -438,12 +466,65 @@ class SyncService {
         variables: [Variable(opId)],
       );
       return true;
-    } catch (e) {
-      final attempts = (op['attempts'] as int? ?? 0) + 1;
+    } on SyncBackendException catch (e) {
+      // A duplicate key is not a failure under last-write-wins — the row is
+      // already there. Acknowledge the op rather than burning eight attempts
+      // proving it.
+      if (e.kind == SyncErrorKind.conflict) {
+        await _db.customUpdate(
+          'DELETE FROM pending_sync_ops WHERE id = ?',
+          variables: [Variable(opId)],
+        );
+        return true;
+      }
+
+      // An expired JWT is not this op's fault and no number of retries fixes
+      // it, so it must not consume an attempt: before this branch existed,
+      // one expired token quarantined the whole outbox in ~20 minutes. Nudge
+      // a refresh and come back to the same op with its attempt count
+      // untouched.
+      if (e.kind == SyncErrorKind.auth) {
+        final nextRetry =
+            DateTime.now().add(const Duration(seconds: 30)).millisecondsSinceEpoch ~/
+            1000;
+        await _db.customUpdate(
+          'UPDATE pending_sync_ops '
+          'SET last_error = ?, next_retry_at = ?, user_id = ? WHERE id = ?',
+          variables: [
+            Variable(e.toString()),
+            Variable(nextRetry),
+            Variable(userId),
+            Variable(opId),
+          ],
+          updates: {},
+        );
+        _lastRunError = e.toString();
+        _log('SyncService push deferred for $table/$entityId (auth): $e');
+        return false;
+      }
+
+      // The remote schema is missing a column or a table this payload names,
+      // which means a file in supabase/migrations/ has not been applied.
+      // Retrying cannot fix that, and eight quiet retries is exactly how the
+      // v33/v34/v37 regressions stayed invisible for weeks — quarantine at
+      // once, with the cause in `last_error`.
+      final isSchema = e.kind == SyncErrorKind.schema;
+      final attempts = isSchema
+          ? maxPushAttempts
+          : (op['attempts'] as int? ?? 0) + 1;
       final delaySeconds = math.min(300, 5 * (1 << math.min(attempts, 6)));
       final nextRetry =
-          DateTime.now().add(Duration(seconds: delaySeconds)).millisecondsSinceEpoch ~/
+          DateTime.now()
+              .add(Duration(seconds: delaySeconds))
+              .millisecondsSinceEpoch ~/
           1000;
+      if (isSchema) {
+        _log(
+          'SyncService quarantined $table/$entityId immediately — remote '
+          'schema is missing what the payload names. An unapplied migration '
+          'in supabase/migrations/ is the usual cause: $e',
+        );
+      }
       // `user_id` is stamped here rather than by the SQLite trigger, which
       // has no auth context — it is forensic only (ownership is enforced by
       // `_claimLocalDatabaseFor`), so a quarantined op can be traced to the
@@ -462,13 +543,75 @@ class SyncService {
         updates: {},
       );
       _lastRunError = e.toString();
-      if (attempts >= maxPushAttempts) {
-        _log('SyncService quarantined $table/$entityId after $attempts attempts: $e');
-      } else {
-        _log('SyncService push failed for $table/$entityId (attempt $attempts): $e');
+      if (attempts >= maxPushAttempts && !isSchema) {
+        _log(
+          'SyncService quarantined $table/$entityId after $attempts attempts: $e',
+        );
+      } else if (!isSchema) {
+        _log(
+          'SyncService push failed for $table/$entityId (attempt $attempts): $e',
+        );
       }
       return false;
+    } catch (e) {
+      // Anything the backend did not classify (a local Drift failure while
+      // building the payload, say). Same backoff as before.
+      final attempts = (op['attempts'] as int? ?? 0) + 1;
+      final delaySeconds = math.min(300, 5 * (1 << math.min(attempts, 6)));
+      final nextRetry =
+          DateTime.now()
+              .add(Duration(seconds: delaySeconds))
+              .millisecondsSinceEpoch ~/
+          1000;
+      await _db.customUpdate(
+        'UPDATE pending_sync_ops '
+        'SET attempts = ?, last_error = ?, next_retry_at = ?, user_id = ? '
+        'WHERE id = ?',
+        variables: [
+          Variable(attempts),
+          Variable(e.toString()),
+          Variable(nextRetry),
+          Variable(userId),
+          Variable(opId),
+        ],
+        updates: {},
+      );
+      _lastRunError = e.toString();
+      _log(
+        'SyncService push failed for $table/$entityId (attempt $attempts): $e',
+      );
+      return false;
     }
+  }
+
+  /// Clears the quarantine on every outbox op and schedules them for the next
+  /// cycle.
+  ///
+  /// Quarantine is permanent by design — `pushOnce` filters on
+  /// `attempts < maxPushAttempts`, so a quarantined op is never retried, not
+  /// even after the app restarts. That is right for a genuinely broken row
+  /// and wrong for the common case: an unapplied migration quarantines every
+  /// row of a table, and once the migration lands there was, until now, no
+  /// way to get those rows moving again short of editing the database by
+  /// hand. Called from Profile -> Sync diagnostics, and the thing to run
+  /// after every `supabase db push`.
+  ///
+  /// Returns how many ops were released. Deliberately does NOT push them
+  /// itself: the caller decides when, and a fire-and-forget push from here
+  /// would race the next `pushOnce` through the `_pushing` guard.
+  Future<int> retryQuarantined() async {
+    final released = await _db.customUpdate(
+      'UPDATE pending_sync_ops '
+      'SET attempts = 0, next_retry_at = NULL '
+      'WHERE attempts >= ?',
+      variables: [Variable(maxPushAttempts)],
+      updates: {},
+    );
+    if (released > 0) {
+      _log('SyncService released $released quarantined op(s)');
+      await _refreshState();
+    }
+    return released;
   }
 
   /// Builds the Postgres-shaped payload for one local row: renames columns
@@ -592,7 +735,8 @@ class SyncService {
     if (spec == null) return;
 
     final isCustomFiltered =
-        isCustomFilteredTableNames.contains(parentTable) && parentTable != 'recipes';
+        isCustomFilteredTableNames.contains(parentTable) &&
+        parentTable != 'recipes';
     final isCustomGuard = isCustomFiltered ? ' AND is_custom = 1' : '';
 
     final parentRow = await _db
@@ -617,11 +761,10 @@ class SyncService {
     // Recursively ensure any grandparent tables are pushed first
     await _ensureParentsPushed(parentTable, parentRow.data, userId);
 
-    final payload = await _buildRemotePayload(
-      parentTable,
-      {...parentRow.data, 'sync_uuid': parentUuid},
-      userId,
-    );
+    final payload = await _buildRemotePayload(parentTable, {
+      ...parentRow.data,
+      'sync_uuid': parentUuid,
+    }, userId);
     await _backend.upsert(parentTable, payload);
 
     final nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -691,7 +834,9 @@ class SyncService {
     var latest = since;
     for (final remoteRow in remoteRows) {
       await _applyPulledRow(table, spec, remoteRow);
-      final updatedAt = DateTime.tryParse(remoteRow['updated_at'] as String? ?? '');
+      final updatedAt = DateTime.tryParse(
+        remoteRow['updated_at'] as String? ?? '',
+      );
       if (updatedAt != null && updatedAt.isAfter(latest)) latest = updatedAt;
     }
 
@@ -710,7 +855,10 @@ class SyncService {
       // First sync on this device: nothing local can predate the account's
       // tombstones in a way that matters, so start the cursor at now rather
       // than replaying the whole retention window as no-op deletes.
-      await _writeCursor(_tombstoneKey, DateTime.now().toUtc().toIso8601String());
+      await _writeCursor(
+        _tombstoneKey,
+        DateTime.now().toUtc().toIso8601String(),
+      );
       return true;
     }
 
@@ -752,7 +900,10 @@ class SyncService {
 
     final appliedThrough = await _applyTombstoneBatch(batch);
     if (appliedThrough != null) {
-      await _writeCursor(_tombstoneKey, appliedThrough.toUtc().toIso8601String());
+      await _writeCursor(
+        _tombstoneKey,
+        appliedThrough.toUtc().toIso8601String(),
+      );
     }
     // A batch that stopped early left the cursor behind the failure, so the
     // blocked tombstone is retried on the next pull rather than lost.
@@ -797,11 +948,11 @@ class SyncService {
       // is, by construction, an echo of a delete we just applied.
       final watermark =
           (await _db
-                  .customSelect(
-                    'SELECT COALESCE(MAX(id), 0) AS max_id FROM pending_sync_ops',
-                  )
-                  .getSingle())
-              .data['max_id']
+                      .customSelect(
+                        'SELECT COALESCE(MAX(id), 0) AS max_id FROM pending_sync_ops',
+                      )
+                      .getSingle())
+                  .data['max_id']
               as int;
 
       for (final tombstone in ordered) {
@@ -891,21 +1042,22 @@ class SyncService {
       await _db.transaction(() async {
         final watermark =
             (await _db
-                    .customSelect(
-                      'SELECT COALESCE(MAX(id), 0) AS max_id FROM pending_sync_ops',
-                    )
-                    .getSingle())
-                .data['max_id']
+                        .customSelect(
+                          'SELECT COALESCE(MAX(id), 0) AS max_id FROM pending_sync_ops',
+                        )
+                        .getSingle())
+                    .data['max_id']
                 as int;
 
-        final pendingIds = (await _db
-                .customSelect(
-                  'SELECT entity_id FROM pending_sync_ops WHERE entity_type = ?',
-                  variables: [Variable(table)],
-                )
-                .get())
-            .map((row) => row.data['entity_id'] as String)
-            .toSet();
+        final pendingIds =
+            (await _db
+                    .customSelect(
+                      'SELECT entity_id FROM pending_sync_ops WHERE entity_type = ?',
+                      variables: [Variable(table)],
+                    )
+                    .get())
+                .map((row) => row.data['entity_id'] as String)
+                .toSet();
 
         // `synced_at IS NOT NULL` is essential: a row created locally while
         // offline has never been pushed, so its absence from the remote id set
@@ -1119,8 +1271,13 @@ class SyncState {
       other.lastError == lastError;
 
   @override
-  int get hashCode =>
-      Object.hash(phase, pendingCount, quarantinedCount, lastSyncedAt, lastError);
+  int get hashCode => Object.hash(
+    phase,
+    pendingCount,
+    quarantinedCount,
+    lastSyncedAt,
+    lastError,
+  );
 
   @override
   String toString() =>

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../app/providers.dart';
-import '../../../theme/colors.dart';
-import '../../workouts/presentation/workouts_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 
 /// Gym selection at workout start (§10). Returns the chosen gym id, null for
 /// "no gym", or never shows when the user has no gym profiles. New gyms can
@@ -15,7 +14,9 @@ class GymPickerSheet extends ConsumerWidget {
   /// one gym ⇒ that gym without prompting; otherwise show the picker
   /// (pre-highlighting the default gym).
   static Future<({int? gymId, bool cancelled})> resolve(
-      BuildContext context, WidgetRef ref) async {
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final gyms = await ref.read(gymsRepositoryProvider).watchGyms().first;
     if (gyms.isEmpty) return (gymId: null, cancelled: false);
     if (gyms.length == 1) return (gymId: gyms.first.id, cancelled: false);
@@ -35,7 +36,8 @@ class GymPickerSheet extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.bottomSheetTheme.backgroundColor ??
+        color:
+            theme.bottomSheetTheme.backgroundColor ??
             AppColors.surfaceContainerLowest,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
@@ -61,9 +63,12 @@ class GymPickerSheet extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Where are you training?',
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Where are you training?',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   TextButton.icon(
                     icon: const Icon(Icons.add, size: 16),
                     label: const Text('New'),
@@ -80,7 +85,9 @@ class GymPickerSheet extends ConsumerWidget {
                         margin: const EdgeInsets.only(bottom: 6),
                         decoration: BoxDecoration(
                           color: g.isDefault
-                              ? AppColors.primaryContainer.withValues(alpha: 0.3)
+                              ? AppColors.primaryContainer.withValues(
+                                  alpha: 0.3,
+                                )
                               : AppColors.surfaceContainer,
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -91,11 +98,14 @@ class GymPickerSheet extends ConsumerWidget {
                                 ? AppColors.primary
                                 : AppColors.secondary,
                           ),
-                          title: Text(g.name,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: g.isDefault
-                                      ? FontWeight.bold
-                                      : FontWeight.w500)),
+                          title: Text(
+                            g.name,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: g.isDefault
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
+                            ),
+                          ),
                           subtitle: g.isDefault ? const Text('Default') : null,
                           onTap: () => Navigator.of(context).pop(g.id),
                         ),
@@ -125,11 +135,13 @@ class GymPickerSheet extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(dialogCtx, ctrl.text),
-              child: const Text('Add')),
+            onPressed: () => Navigator.pop(dialogCtx, ctrl.text),
+            child: const Text('Add'),
+          ),
         ],
       ),
     );

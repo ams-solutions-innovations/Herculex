@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import '../../analytics/domain/training_snapshot.dart';
-import '../domain/carb_cycling.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
 
 /// Builds carb-cycle plans from training data (§19). Bridges the
 /// [TrainingSnapshot] (effective-load resolved sets) and the pure
@@ -24,9 +24,11 @@ class CarbCycleService {
     for (final rs in snapshot.sets) {
       final completedAt = rs.set.completedAt;
       if (completedAt == null) continue;
-      final dayIdx = DateTime(completedAt.year, completedAt.month, completedAt.day)
-          .difference(monday)
-          .inDays;
+      final dayIdx = DateTime(
+        completedAt.year,
+        completedAt.month,
+        completedAt.day,
+      ).difference(monday).inDays;
       if (dayIdx < 0 || dayIdx > 6) continue;
 
       trained[dayIdx] = true;
@@ -47,8 +49,9 @@ class CarbCycleService {
         DayTrainingSignal(
           weekdayIndex: i,
           cnsLoad: cns[i],
-          compoundDensity:
-              totalSets[i] == 0 ? 0 : compoundSets[i] / totalSets[i],
+          compoundDensity: totalSets[i] == 0
+              ? 0
+              : compoundSets[i] / totalSets[i],
           isTrainingDay: trained[i],
         ),
     ];
@@ -58,8 +61,9 @@ class CarbCycleService {
   static String encodeLevels(List<CarbLevel> levels) =>
       jsonEncode([for (final l in levels) l.id]);
 
-  static List<CarbLevel> decodeLevels(String json) =>
-      [for (final id in jsonDecode(json) as List) CarbLevel.fromId(id as String)];
+  static List<CarbLevel> decodeLevels(String json) => [
+    for (final id in jsonDecode(json) as List) CarbLevel.fromId(id as String),
+  ];
 
   static DateTime _weekStart(DateTime d) {
     final local = DateTime(d.year, d.month, d.day);

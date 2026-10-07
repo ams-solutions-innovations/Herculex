@@ -5,17 +5,19 @@ import 'package:herculex/features/programs/domain/slot_role.dart';
 
 void main() {
   group('RotationPolicy.forSlot', () {
-    test('max effort rotates the main lift fast — rotation is the progression',
-        () {
-      final p = RotationPolicy.forSlot(
-        model: PeriodizationModel.maxEffort,
-        role: SlotRole.main,
-      );
-      expect(p.everyWeeks, lessThanOrEqualTo(3));
-      expect(p.rotates, isTrue);
-      // Alternating between two lifts is not accommodation.
-      expect(p.minPoolSize, greaterThanOrEqualTo(3));
-    });
+    test(
+      'max effort rotates the main lift fast — rotation is the progression',
+      () {
+        final p = RotationPolicy.forSlot(
+          model: PeriodizationModel.maxEffort,
+          role: SlotRole.main,
+        );
+        expect(p.everyWeeks, lessThanOrEqualTo(3));
+        expect(p.rotates, isTrue);
+        // Alternating between two lifts is not accommodation.
+        expect(p.minPoolSize, greaterThanOrEqualTo(3));
+      },
+    );
 
     test('linear never rotates the main lift', () {
       final p = RotationPolicy.forSlot(
@@ -38,17 +40,19 @@ void main() {
       expect(concurrent.everyWeeks, greaterThan(maxEffort.everyWeeks));
     });
 
-    test('block locks the main lift inside a phase and forces it at the edge',
-        () {
-      final p = RotationPolicy.forSlot(
-        model: PeriodizationModel.block,
-        role: SlotRole.main,
-        blockPhase: 'accumulation',
-      );
-      expect(p.lockedInPhase, isTrue);
-      expect(p.forceOnPhaseChange, isTrue);
-      expect(p.tier, PoolTier.volumeFriendly);
-    });
+    test(
+      'block locks the main lift inside a phase and forces it at the edge',
+      () {
+        final p = RotationPolicy.forSlot(
+          model: PeriodizationModel.block,
+          role: SlotRole.main,
+          blockPhase: 'accumulation',
+        );
+        expect(p.lockedInPhase, isTrue);
+        expect(p.forceOnPhaseChange, isTrue);
+        expect(p.tier, PoolTier.volumeFriendly);
+      },
+    );
 
     test('realization pins the main slot to the anchor lift', () {
       final p = RotationPolicy.forSlot(
@@ -66,7 +70,11 @@ void main() {
           model: model,
           role: SlotRole.accessory,
         );
-        expect(p.rotates, isTrue, reason: '${model.id} accessory should rotate');
+        expect(
+          p.rotates,
+          isTrue,
+          reason: '${model.id} accessory should rotate',
+        );
         expect(p.minPoolSize, 1);
       }
     });
@@ -120,10 +128,7 @@ void main() {
         role: SlotRole.main,
         blockPhase: 'accumulation',
       );
-      expect(
-        () => p.epochFor(99, phases: phases),
-        returnsNormally,
-      );
+      expect(() => p.epochFor(99, phases: phases), returnsNormally);
     });
   });
 }

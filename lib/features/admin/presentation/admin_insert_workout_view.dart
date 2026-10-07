@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../widgets/premium_button.dart';
-import '../../../widgets/premium_text_field.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/components/premium_text_field.dart';
 
 class AdminInsertWorkoutView extends StatelessWidget {
   const AdminInsertWorkoutView({super.key});
@@ -23,7 +23,9 @@ class AdminInsertWorkoutView extends StatelessWidget {
           const SizedBox(height: 32),
           const PremiumTextField(hintText: "Exercise Name (e.g. Hex Press)"),
           const SizedBox(height: 16),
-          const PremiumTextField(hintText: "Biomechanical Tags (comma separated)"),
+          const PremiumTextField(
+            hintText: "Biomechanical Tags (comma separated)",
+          ),
           const SizedBox(height: 16),
           const PremiumTextField(hintText: "Target Muscles"),
           const SizedBox(height: 16),
@@ -42,14 +44,16 @@ class AdminInsertWorkoutView extends StatelessWidget {
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text("Workout saved (stub — persistence lands in Phase 2)"),
+                    content: Text(
+                      "Workout saved (stub — persistence lands in Phase 2)",
+                    ),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
                 Navigator.pop(context);
               },
             ),
-          )
+          ),
         ],
       ),
     );

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
-import 'package:herculex/features/programs/presentation/training_blocks_view.dart';
+import 'package:herculex/features/programs/presentation/views/training_blocks_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../support/test_database.dart';
@@ -90,8 +90,9 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('an active block renders its name, split and week counter',
-      (tester) async {
+  testWidgets('an active block renders its name, split and week counter', (
+    tester,
+  ) async {
     await buildBlock();
     await pump(tester);
 
@@ -106,8 +107,9 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('the week board shows real day names, not placeholders',
-      (tester) async {
+  testWidgets('the week board shows real day names, not placeholders', (
+    tester,
+  ) async {
     await buildBlock();
     await pump(tester);
 
@@ -135,12 +137,15 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('a linked template shows its name and exercise count',
-      (tester) async {
+  testWidgets('a linked template shows its name and exercise count', (
+    tester,
+  ) async {
     final templateId = await db
         .into(db.workoutTemplates)
         .insert(WorkoutTemplatesCompanion.insert(name: 'Heavy Push'));
-    final exerciseId = await db.into(db.exerciseCatalog).insert(
+    final exerciseId = await db
+        .into(db.exerciseCatalog)
+        .insert(
           ExerciseCatalogCompanion.insert(
             name: 'Test Bench',
             primaryMuscle: 'Chest',
@@ -150,7 +155,9 @@ void main() {
             plane: 'horizontal',
           ),
         );
-    await db.into(db.templateExercises).insert(
+    await db
+        .into(db.templateExercises)
+        .insert(
           TemplateExercisesCompanion.insert(
             templateId: templateId,
             exerciseId: exerciseId,
@@ -168,8 +175,9 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('the Week/Month toggle switches to the calendar grid',
-      (tester) async {
+  testWidgets('the Week/Month toggle switches to the calendar grid', (
+    tester,
+  ) async {
     await buildBlock();
     await pump(tester);
 

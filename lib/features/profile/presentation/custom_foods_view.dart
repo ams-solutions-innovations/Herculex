@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../data/local/database.dart';
-import '../../../theme/tokens/tokens.dart';
-import '../../../ui/ui.dart';
-import '../../../widgets/premium_button.dart';
-import '../../nutrition/presentation/custom_food_form_sheet.dart';
-import '../../nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/custom_food_form_sheet.dart';
 
 class CustomFoodsView extends ConsumerStatefulWidget {
   const CustomFoodsView({super.key});
@@ -78,8 +77,9 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hx = context.hx;
-    final foodsAsync =
-        ref.watch(customFoodsProvider(_query.isEmpty ? null : _query));
+    final foodsAsync = ref.watch(
+      customFoodsProvider(_query.isEmpty ? null : _query),
+    );
 
     return HxScreenShell(
       title: 'Custom Foods',
@@ -106,8 +106,10 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
                 : null,
             filled: true,
             fillColor: hx.surfaceContainer,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
@@ -120,7 +122,10 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
             if (foods.isEmpty) {
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 48,
+                    horizontal: 24,
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -172,7 +177,8 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
             padding: EdgeInsets.all(32),
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (e, _) => Center(child: Text('Error loading custom foods: $e')),
+          error: (e, _) =>
+              Center(child: Text('Error loading custom foods: $e')),
         ),
       ],
     );
@@ -202,7 +208,9 @@ class _CustomFoodTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.hx.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: context.hx.outlineVariant.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: context.hx.outlineVariant.withValues(alpha: 0.3),
+        ),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -251,12 +259,26 @@ class _CustomFoodTile extends StatelessWidget {
               runSpacing: 4,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                _MacroBadge(label: 'P', value: '${p}g', color: Colors.blue.shade600),
-                _MacroBadge(label: 'C', value: '${c}g', color: Colors.amber.shade700),
-                _MacroBadge(label: 'F', value: '${f}g', color: Colors.pink.shade600),
+                _MacroBadge(
+                  label: 'P',
+                  value: '${p}g',
+                  color: Colors.blue.shade600,
+                ),
+                _MacroBadge(
+                  label: 'C',
+                  value: '${c}g',
+                  color: Colors.amber.shade700,
+                ),
+                _MacroBadge(
+                  label: 'F',
+                  value: '${f}g',
+                  color: Colors.pink.shade600,
+                ),
                 Text(
                   '/ 100g',
-                  style: theme.textTheme.labelSmall?.copyWith(color: context.hx.secondary),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: context.hx.secondary,
+                  ),
                 ),
               ],
             ),

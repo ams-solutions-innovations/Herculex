@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 
-import '../../../core/clock.dart';
-import '../../../data/local/database.dart';
+import 'package:herculex/core/utils/clock.dart';
+import 'package:herculex/data/local/database.dart';
 
 class FastingRepository {
   final AppDatabase _db;
@@ -9,7 +9,10 @@ class FastingRepository {
 
   FastingRepository(this._db, this._clock);
 
-  Future<int> startSession(int targetSeconds, {DateTime? customStartTime}) async {
+  Future<int> startSession(
+    int targetSeconds, {
+    DateTime? customStartTime,
+  }) async {
     // Ensure we don't have another active session running. If we do, close it.
     final active = await (_db.select(
       _db.fastingSessions,
@@ -54,24 +57,46 @@ class FastingRepository {
     );
   }
 
+  Future<int> insertCompletedSession({
+    required DateTime startedAt,
+    required DateTime endedAt,
+    required int targetSeconds,
+    bool completed = true,
+  }) async {
+    return _db
+        .into(_db.fastingSessions)
+        .insert(
+          FastingSessionsCompanion.insert(
+            startedAt: startedAt,
+            endedAt: Value(endedAt),
+            targetSeconds: targetSeconds,
+            completed: Value(completed),
+          ),
+        );
+  }
+
   Future<void> deleteSession(int id) async {
     await (_db.delete(_db.fastingSessions)..where((t) => t.id.equals(id))).go();
   }
 
   Future<void> updateSessionStartTime(int id, DateTime newStartTime) async {
-    await (_db.update(_db.fastingSessions)..where((t) => t.id.equals(id))).write(
-      FastingSessionsCompanion(startedAt: Value(newStartTime)),
-    );
+    await (_db.update(_db.fastingSessions)..where((t) => t.id.equals(id)))
+        .write(FastingSessionsCompanion(startedAt: Value(newStartTime)));
   }
 
   Future<void> updateSessionTarget(int id, int targetSeconds) async {
-    await (_db.update(_db.fastingSessions)..where((t) => t.id.equals(id))).write(
-      FastingSessionsCompanion(targetSeconds: Value(targetSeconds)),
-    );
+    await (_db.update(_db.fastingSessions)..where((t) => t.id.equals(id)))
+        .write(FastingSessionsCompanion(targetSeconds: Value(targetSeconds)));
   }
 
-  Future<void> updateSessionCompletion(int id, bool completed, {DateTime? endedAt}) async {
-    await (_db.update(_db.fastingSessions)..where((t) => t.id.equals(id))).write(
+  Future<void> updateSessionCompletion(
+    int id,
+    bool completed, {
+    DateTime? endedAt,
+  }) async {
+    await (_db.update(
+      _db.fastingSessions,
+    )..where((t) => t.id.equals(id))).write(
       FastingSessionsCompanion(
         completed: Value(completed),
         endedAt: endedAt == null ? const Value.absent() : Value(endedAt),
@@ -102,16 +127,12 @@ class FastingRepository {
   }
 
   SimpleSelectStatement<$FastingSessionsTable, FastingSessionData>
-      _historyQuery(int limit) =>
-          _db.select(_db.fastingSessions)
-            ..where((t) => t.endedAt.isNotNull())
-            ..orderBy([
-              (t) => OrderingTerm(
-                    expression: t.startedAt,
-                    mode: OrderingMode.desc,
-                  ),
-            ])
-            ..limit(limit);
+  _historyQuery(int limit) => _db.select(_db.fastingSessions)
+    ..where((t) => t.endedAt.isNotNull())
+    ..orderBy([
+      (t) => OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc),
+    ])
+    ..limit(limit);
 
   Stream<List<FastingSessionData>> watchHistory({int limit = 50}) =>
       _historyQuery(limit).watch();
@@ -233,11 +254,9 @@ class FastingRepository {
   // ── Auto-schedule (Phase 6) ──
 
   Stream<List<FastingScheduleData>> watchSchedules() {
-    return (_db.select(_db.fastingSchedules)
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.startTimeMinutes),
-          ]))
-        .watch();
+    return (_db.select(
+      _db.fastingSchedules,
+    )..orderBy([(t) => OrderingTerm(expression: t.startTimeMinutes)])).watch();
   }
 
   Future<FastingScheduleData?> schedule(int id) {
@@ -277,17 +296,18 @@ class FastingRepository {
     required bool enabled,
     required bool autoStart,
   }) {
-    return (_db.update(_db.fastingSchedules)..where((t) => t.id.equals(id)))
-        .write(
-          FastingSchedulesCompanion(
-            planName: Value(planName),
-            customTargetSeconds: Value(customTargetSeconds),
-            daysOfWeek: Value(daysOfWeek),
-            startTimeMinutes: Value(startTimeMinutes),
-            enabled: Value(enabled),
-            autoStart: Value(autoStart),
-          ),
-        );
+    return (_db.update(
+      _db.fastingSchedules,
+    )..where((t) => t.id.equals(id))).write(
+      FastingSchedulesCompanion(
+        planName: Value(planName),
+        customTargetSeconds: Value(customTargetSeconds),
+        daysOfWeek: Value(daysOfWeek),
+        startTimeMinutes: Value(startTimeMinutes),
+        enabled: Value(enabled),
+        autoStart: Value(autoStart),
+      ),
+    );
   }
 
   Future<void> setScheduleEnabled(int id, bool enabled) {
@@ -299,5 +319,25 @@ class FastingRepository {
     return (_db.delete(
       _db.fastingSchedules,
     )..where((t) => t.id.equals(id))).go();
+  }
+
+  // ── Fasting stages & bodily milestones (v36) ──
+
+  Stream<List<FastingStageData>> watchFastingStages() {
+    return (_db.select(
+      _db.fastingStages,
+    )..orderBy([(t) => OrderingTerm(expression: t.hour)])).watch();
+  }
+
+  Future<List<FastingStageData>> fastingStages() {
+    return (_db.select(
+      _db.fastingStages,
+    )..orderBy([(t) => OrderingTerm(expression: t.hour)])).get();
+  }
+
+  Future<FastingStageData?> fastingStage(int hour) {
+    return (_db.select(
+      _db.fastingStages,
+    )..where((t) => t.hour.equals(hour))).getSingleOrNull();
   }
 }

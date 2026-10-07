@@ -1,5 +1,5 @@
-import '../domain/auth_provider_service.dart';
-import '../domain/auth_session.dart';
+import 'package:herculex/features/auth/domain/auth_provider_service.dart';
+import 'package:herculex/features/auth/domain/auth_session.dart';
 
 /// Stands in for [SupabaseAuthService] when the app was built without
 /// `SUPABASE_URL` / `SUPABASE_ANON_KEY`.

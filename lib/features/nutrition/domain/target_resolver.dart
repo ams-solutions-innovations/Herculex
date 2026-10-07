@@ -1,4 +1,4 @@
-import 'macro_targets.dart';
+import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 
 /// A stored nutrition target plus its scope key (mirrors NutritionTargetData
 /// without depending on the generated DB class, so the resolver stays pure /
@@ -97,7 +97,10 @@ class TargetResolver {
   static int reductionSteps(DietScheduleRule schedule, DateTime date) {
     if (!schedule.active || schedule.intervalDays <= 0) return 0;
     final start = DateTime(
-        schedule.startDate.year, schedule.startDate.month, schedule.startDate.day);
+      schedule.startDate.year,
+      schedule.startDate.month,
+      schedule.startDate.day,
+    );
     final today = DateTime(date.year, date.month, date.day);
     final days = today.difference(start).inDays;
     if (days < schedule.intervalDays) return 0;
@@ -141,7 +144,10 @@ class TargetResolver {
     MacroTargets? fallback,
   }) {
     final rule = resolveRule(
-        rules: rules, date: date, isTrainingDay: isTrainingDay);
+      rules: rules,
+      date: date,
+      isTrainingDay: isTrainingDay,
+    );
     final base = rule?.macros ?? fallback;
     if (base == null) return null;
     if (schedule == null) return base;

@@ -1,32 +1,32 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/utils/env.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/data/sync/supabase_sync_backend_service.dart';
+import 'package:herculex/data/sync/sync_backend_service.dart';
+import 'package:herculex/data/sync/sync_service.dart';
+import 'package:herculex/features/auth/data/account_deletion_service.dart';
+import 'package:herculex/features/auth/data/auth_repository.dart';
+import 'package:herculex/features/auth/data/local_auth_repository.dart';
+import 'package:herculex/features/auth/data/supabase_auth_service.dart';
+import 'package:herculex/features/auth/data/unconfigured_auth_service.dart';
+import 'package:herculex/features/auth/domain/auth_provider_service.dart';
+import 'package:herculex/features/auth/domain/auth_session.dart';
+import 'package:herculex/features/gyms/data/gyms_repository.dart';
+import 'package:herculex/features/measurements/data/measurements_repository.dart';
+import 'package:herculex/features/profile/data/local_profile_repository.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/workouts/data/accessories_repository.dart';
+import 'package:herculex/features/workouts/data/exercise_progressions_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
-import '../core/env.dart';
-import '../data/local/database.dart';
-import '../features/auth/data/account_deletion_service.dart';
-import '../features/auth/data/auth_repository.dart';
-import '../features/auth/data/local_auth_repository.dart';
-import '../features/auth/data/supabase_auth_service.dart';
-import '../features/auth/data/unconfigured_auth_service.dart';
-import '../features/auth/domain/auth_provider_service.dart';
-import '../features/auth/domain/auth_session.dart';
-import '../features/profile/data/local_profile_repository.dart';
-import '../features/profile/domain/profile.dart';
-
-import '../features/gyms/data/gyms_repository.dart';
-import '../features/measurements/data/measurements_repository.dart';
-import '../features/workouts/data/accessories_repository.dart';
-import '../features/workouts/data/exercise_progressions_repository.dart';
-import '../data/sync/sync_backend_service.dart';
-import '../data/sync/sync_service.dart';
-import '../data/sync/supabase_sync_backend_service.dart';
-
-export '../core/clock.dart' show clockProvider;
+export 'package:herculex/core/utils/clock.dart' show clockProvider;
 
 /// Overridden in main() once SharedPreferences has been initialised.
 final sharedPreferencesProvider = Provider<SharedPreferences>((_) {
-  throw UnimplementedError('sharedPreferencesProvider must be overridden in main()');
+  throw UnimplementedError(
+    'sharedPreferencesProvider must be overridden in main()',
+  );
 });
 
 /// Resolves to the real Supabase-backed sync backend when the build carries
@@ -145,5 +145,5 @@ final measurementsRepositoryProvider = Provider<MeasurementsRepository>((ref) {
 
 final exerciseProgressionsRepositoryProvider =
     Provider<ExerciseProgressionsRepository>((ref) {
-  return ExerciseProgressionsRepository(ref.watch(appDatabaseProvider));
-});
+      return ExerciseProgressionsRepository(ref.watch(appDatabaseProvider));
+    });

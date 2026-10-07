@@ -15,8 +15,11 @@ void main() {
       for (var i = 0; i < 300; i++) {
         date = DateUtils.addDaysToDate(date, 1);
         final iso = dateIso(date);
-        expect(iso.compareTo(previous), greaterThan(0),
-            reason: 'day must advance, never repeat or skip backwards');
+        expect(
+          iso.compareTo(previous),
+          greaterThan(0),
+          reason: 'day must advance, never repeat or skip backwards',
+        );
         // No time component ever creeps in.
         expect(date.hour, 0);
         expect(date.minute, 0);

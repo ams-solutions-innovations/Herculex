@@ -1,11 +1,10 @@
+import 'package:herculex/data/sync/sync_id_resolver.dart';
+import 'package:herculex/features/buddy/data/buddy_event_publisher.dart';
+import 'package:herculex/features/buddy/data/buddy_slot_store.dart';
+import 'package:herculex/features/buddy/domain/buddy_event.dart';
+import 'package:herculex/features/buddy/domain/buddy_scope.dart';
+import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:uuid/uuid.dart';
-
-import '../../../data/sync/sync_id_resolver.dart';
-import '../../workouts/data/workouts_repository.dart';
-import '../data/buddy_event_publisher.dart';
-import '../data/buddy_slot_store.dart';
-import '../domain/buddy_event.dart';
-import '../domain/buddy_scope.dart';
 
 /// Sends user choreography actions to the local store and, when scope is [BuddyScope.both],
 /// publishes the action to the shared [BuddyEventPublisher].
@@ -18,13 +17,13 @@ class BuddyChoreographySender {
     required String buddySessionId,
     required int localWorkoutSessionId,
     String Function()? newSlotId,
-  })  : _publisher = publisher,
-        _slots = slots,
-        _workouts = workouts,
-        _resolver = resolver,
-        _buddySessionId = buddySessionId,
-        _localWorkoutSessionId = localWorkoutSessionId,
-        _newSlotId = newSlotId ?? _defaultNewSlotId;
+  }) : _publisher = publisher,
+       _slots = slots,
+       _workouts = workouts,
+       _resolver = resolver,
+       _buddySessionId = buddySessionId,
+       _localWorkoutSessionId = localWorkoutSessionId,
+       _newSlotId = newSlotId ?? _defaultNewSlotId;
 
   final BuddyEventPublisher _publisher;
   final BuddySlotStore _slots;
@@ -83,10 +82,7 @@ class BuddyChoreographySender {
       naturalKeyColumn: 'slug',
       isCustomColumn: 'is_custom',
     );
-    final exerciseRef = BuddyExerciseRef(
-      uuid: pushRef.$1,
-      slug: pushRef.$2,
-    );
+    final exerciseRef = BuddyExerciseRef(uuid: pushRef.$1, slug: pushRef.$2);
     final payload = BuddyAddPayload(
       slotId: slotId,
       ref: exerciseRef,
@@ -197,14 +193,8 @@ class BuddyChoreographySender {
       naturalKeyColumn: 'slug',
       isCustomColumn: 'is_custom',
     );
-    final exerciseRef = BuddyExerciseRef(
-      uuid: pushRef.$1,
-      slug: pushRef.$2,
-    );
-    final payload = BuddyReplacePayload(
-      slotId: slot.slotId,
-      ref: exerciseRef,
-    );
+    final exerciseRef = BuddyExerciseRef(uuid: pushRef.$1, slug: pushRef.$2);
+    final payload = BuddyReplacePayload(slotId: slot.slotId, ref: exerciseRef);
 
     await _publisher.append(
       buddySessionId: _buddySessionId,

@@ -323,5 +323,87 @@
       "normal": "Hercul sees you pulling conventional at {profile.heightCm|int} cm — a shorter build usually keeps the bar close and the back angle friendly here. Worth trying a heavier top set before assuming sumo is the answer.",
       "honest": "Hercul sees {profile.heightCm|int} cm pulling conventional. That is the stance your build is actually good at. Stop reading about sumo and add weight."
     }
+  },
+  {
+    "id": "calorie-lie-deficit",
+    "domain": "nutrition",
+    "priority": 89,
+    "cooldownDays": 7,
+    "when": [
+      { "signal": "body.weightDeltaKg", "arg": "14", "op": ">", "value": 1.0 },
+      { "signal": "nutrition.kcalPct14d", "op": "<", "value": 0.95 }
+    ],
+    "copy": {
+      "normal": "Hercul sees you up {body.weightDeltaKg:14|abs} kg over two weeks while logging a deficit. Unless you have just started creatine, which holds water, some calories are going unlogged — oils and snacks are the usual suspects.",
+      "honest": "Hercul sees +{body.weightDeltaKg:14|abs} kg on the scale and a deficit in the app. Unless you are drinking creatine by the spoonful, you are eating food you are not logging. The math does not lie."
+    }
+  },
+  {
+    "id": "calorie-lie-surplus",
+    "domain": "nutrition",
+    "priority": 87,
+    "cooldownDays": 7,
+    "when": [
+      { "signal": "body.weightDeltaKg", "arg": "14", "op": "<", "value": -0.5 },
+      { "signal": "nutrition.kcalPct14d", "op": ">", "value": 1.05 }
+    ],
+    "copy": {
+      "normal": "Hercul sees you logging a surplus while the scale dropped {body.weightDeltaKg:14|abs} kg. Your real expenditure is running higher than the estimate — add food if you want to grow.",
+      "honest": "You log a bulk, the scale says -{body.weightDeltaKg:14|abs} kg. Stop eating like a bird and eat an actual surplus."
+    }
+  },
+  {
+    "id": "surplus-no-progress",
+    "domain": "nutrition",
+    "priority": 80,
+    "cooldownDays": 14,
+    "when": [
+      { "signal": "nutrition.kcalPct14d", "op": ">", "value": 1.05 },
+      { "signal": "exercise.e1rmDeltaKg14d", "arg": "barbell-back-squat", "op": "<=", "value": 0 }
+    ],
+    "copy": {
+      "normal": "Hercul sees you in a surplus with a squat that has not moved in 14 days. Those extra calories are not turning into muscle — check your training volume, or sleep more.",
+      "honest": "Hercul sees a surplus and a squat that has not moved in 14 days. You are not bulking, you are just eating. Add volume or add sleep, then earn the food."
+    }
+  },
+  {
+    "id": "deficit-progress",
+    "domain": "consistency",
+    "priority": 60,
+    "cooldownDays": 21,
+    "when": [
+      { "signal": "nutrition.kcalPct14d", "op": "<", "value": 0.9 },
+      { "signal": "exercise.e1rmDeltaKg14d", "arg": "barbell-bench-press", "op": ">", "value": 2 }
+    ],
+    "copy": {
+      "normal": "Hercul sees your strength climbing through a deficit. That is fatigue management and programming done right — keep it exactly as it is.",
+      "honest": "Strength up while in a deficit. That is the hard version and you are pulling it off. Do not get clever and change something."
+    }
+  },
+  {
+    "id": "belt-core-weakness",
+    "domain": "ergonomics",
+    "priority": 75,
+    "cooldownDays": 28,
+    "when": [
+      { "signal": "exercise.e1rmRatioBelted", "arg": "barbell-back-squat", "op": ">", "value": 1.15 }
+    ],
+    "copy": {
+      "normal": "Hercul sees you squat {exercise.e1rmRatioBelted:barbell-back-squat|1dp}x more with a belt than without. Your legs clearly have the strength; your core is what is holding them back — start on dedicated trunk work (planks, ab wheel).",
+      "honest": "Your belted squat is {exercise.e1rmRatioBelted:barbell-back-squat|1dp}x your raw squat. The belt is doing your abs' job. Fix the core, or your back pays for it."
+    }
+  },
+  {
+    "id": "sleep-rpe-correlation",
+    "domain": "recovery",
+    "priority": 85,
+    "cooldownDays": 10,
+    "when": [
+      { "signal": "biometrics.sleepVsRpeR2", "op": ">", "value": 0.4 }
+    ],
+    "copy": {
+      "normal": "Hercul sees your sleep tracking closely with your training RPE. After a bad night, expect the same weights to feel heavier today — plan around it rather than pushing through.",
+      "honest": "Your RPE follows your sleep almost one to one. You slept badly, so today's weights will feel heavy, and that is not weakness. Do not run into the wall to prove a point."
+    }
   }
 ]

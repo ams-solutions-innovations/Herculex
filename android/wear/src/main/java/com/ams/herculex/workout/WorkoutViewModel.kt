@@ -388,7 +388,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         }
 
         val nextOpenIndex = newSets.indexOfFirst { !it.completed }
-        val allDone       = nextOpenIndex < 0 && newSets.count { it.completed } >= exercise.template.targetSets
+        val allDone       = nextOpenIndex < 0 && newSets.isNotEmpty()
         val isExtraMode   = isMyo || normalizedType == "forced" || normalizedType == "cheat"
 
         val sGroup = exercise.supersetGroup ?: exercise.template.supersetGroup
@@ -425,15 +425,28 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 newExIndex = targetExIdx
                 newSetIndex = targetSet
             } else if (allDone) {
-                newExIndex = (exerciseIndex + 1).coerceAtMost(exercises.size - 1)
-                newSetIndex = 0
+                val nextIncomplete = exercises.indices.firstOrNull { it > exerciseIndex && exercises[it].sets.any { !it.completed } }
+                    ?: exercises.indices.firstOrNull { exercises[it].sets.any { !it.completed } }
+                    ?: (exerciseIndex + 1).coerceAtMost(exercises.size - 1)
+                newExIndex = nextIncomplete
+                val targetEx = exercises[newExIndex]
+                newSetIndex = targetEx.sets.indexOfFirst { !it.completed }.takeIf { it >= 0 } ?: 0
             } else {
                 newExIndex = exerciseIndex
                 newSetIndex = nextOpenIndex.takeIf { it >= 0 } ?: newSets.size
             }
         } else {
-            newExIndex = if (allDone) (exerciseIndex + 1).coerceAtMost(exercises.size - 1) else exerciseIndex
-            newSetIndex = if (allDone) 0 else nextOpenIndex.takeIf { it >= 0 } ?: newSets.size
+            if (allDone) {
+                val nextIncomplete = exercises.indices.firstOrNull { it > exerciseIndex && exercises[it].sets.any { !it.completed } }
+                    ?: exercises.indices.firstOrNull { exercises[it].sets.any { !it.completed } }
+                    ?: (exerciseIndex + 1).coerceAtMost(exercises.size - 1)
+                newExIndex = nextIncomplete
+                val targetEx = exercises[newExIndex]
+                newSetIndex = targetEx.sets.indexOfFirst { !it.completed }.takeIf { it >= 0 } ?: 0
+            } else {
+                newExIndex = exerciseIndex
+                newSetIndex = nextOpenIndex.takeIf { it >= 0 } ?: newSets.size
+            }
         }
 
         val updated = current.copy(
@@ -553,7 +566,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         val exercises = current.exercises
         val exercise = exercises[exerciseIndex]
         val nextOpenIndex = exercise.sets.indexOfFirst { !it.completed }
-        val allDone = nextOpenIndex < 0 && exercise.completedSets >= exercise.template.targetSets
+        val allDone = nextOpenIndex < 0 && exercise.sets.isNotEmpty()
 
         val sGroup = exercise.supersetGroup ?: exercise.template.supersetGroup
         val groupIndices = if (sGroup != null) {
@@ -585,15 +598,28 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 newExIndex = targetExIdx
                 newSetIndex = targetSet
             } else if (allDone) {
-                newExIndex = (exerciseIndex + 1).coerceAtMost(exercises.size - 1)
-                newSetIndex = 0
+                val nextIncomplete = exercises.indices.firstOrNull { it > exerciseIndex && exercises[it].sets.any { !it.completed } }
+                    ?: exercises.indices.firstOrNull { exercises[it].sets.any { !it.completed } }
+                    ?: (exerciseIndex + 1).coerceAtMost(exercises.size - 1)
+                newExIndex = nextIncomplete
+                val targetEx = exercises[newExIndex]
+                newSetIndex = targetEx.sets.indexOfFirst { !it.completed }.takeIf { it >= 0 } ?: 0
             } else {
                 newExIndex = exerciseIndex
                 newSetIndex = nextOpenIndex.takeIf { it >= 0 } ?: exercise.sets.size
             }
         } else {
-            newExIndex = if (allDone) (exerciseIndex + 1).coerceAtMost(exercises.size - 1) else exerciseIndex
-            newSetIndex = if (allDone) 0 else nextOpenIndex.takeIf { it >= 0 } ?: exercise.sets.size
+            if (allDone) {
+                val nextIncomplete = exercises.indices.firstOrNull { it > exerciseIndex && exercises[it].sets.any { !it.completed } }
+                    ?: exercises.indices.firstOrNull { exercises[it].sets.any { !it.completed } }
+                    ?: (exerciseIndex + 1).coerceAtMost(exercises.size - 1)
+                newExIndex = nextIncomplete
+                val targetEx = exercises[newExIndex]
+                newSetIndex = targetEx.sets.indexOfFirst { !it.completed }.takeIf { it >= 0 } ?: 0
+            } else {
+                newExIndex = exerciseIndex
+                newSetIndex = nextOpenIndex.takeIf { it >= 0 } ?: exercise.sets.size
+            }
         }
 
         val updated = current.copy(

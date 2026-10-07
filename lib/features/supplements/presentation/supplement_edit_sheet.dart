@@ -3,18 +3,17 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/data/product_catalogue_repository.dart';
+import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
+import 'package:herculex/features/nutrition/presentation/views/barcode_scanner_view.dart';
+import 'package:herculex/features/supplements/application/supplement_providers.dart';
+import 'package:herculex/features/supplements/domain/supplement.dart';
+import 'package:herculex/features/supplements/presentation/supplement_ai_scan_dialog.dart';
+import 'package:herculex/features/supplements/presentation/supplement_nutrients_sheet.dart';
 import 'package:uuid/uuid.dart';
-
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../nutrition/data/product_catalogue_repository.dart';
-import '../../nutrition/domain/nutrient_definitions.dart';
-import '../../nutrition/presentation/barcode_scanner_view.dart';
-import '../../nutrition/presentation/nutrition_providers.dart';
-import '../domain/supplement.dart';
-import 'supplement_ai_scan_dialog.dart';
-import 'supplement_nutrients_sheet.dart';
-import 'supplement_providers.dart';
 
 /// Bottom sheet to add or edit a single supplement.
 class SupplementEditSheet extends ConsumerStatefulWidget {
@@ -64,8 +63,8 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
       text: s?.doseAmount == null
           ? ''
           : s!.doseAmount!.truncateToDouble() == s.doseAmount
-              ? s.doseAmount!.toStringAsFixed(0)
-              : s.doseAmount!.toStringAsFixed(1),
+          ? s.doseAmount!.toStringAsFixed(0)
+          : s.doseAmount!.toStringAsFixed(1),
     );
     _doseUnit = supplementDoseUnits.contains(s?.doseUnit)
         ? s!.doseUnit!
@@ -102,8 +101,8 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
       if (result.doseAmount != null) {
         _doseCtrl.text =
             result.doseAmount!.truncateToDouble() == result.doseAmount
-                ? result.doseAmount!.toStringAsFixed(0)
-                : result.doseAmount!.toStringAsFixed(1);
+            ? result.doseAmount!.toStringAsFixed(0)
+            : result.doseAmount!.toStringAsFixed(1);
       }
       if (result.doseUnit != null &&
           supplementDoseUnits.contains(result.doseUnit)) {
@@ -143,8 +142,9 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
     });
 
     try {
-      final product =
-          await ref.read(openFoodFactsClientProvider).lookupBarcode(code);
+      final product = await ref
+          .read(openFoodFactsClientProvider)
+          .lookupBarcode(code);
       if (!mounted) return;
       setState(() {
         if (product == null) {
@@ -307,8 +307,9 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
       decoration: BoxDecoration(
         // Use a guaranteed-opaque surface colour so the sheet is never
         // see-through regardless of theme configuration.
-        color: theme.bottomSheetTheme.backgroundColor ??
-               theme.colorScheme.surfaceContainerHigh,
+        color:
+            theme.bottomSheetTheme.backgroundColor ??
+            theme.colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(28),
       ),
       child: Padding(
@@ -331,8 +332,9 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
             ),
             Text(
               _isEditing ? 'Edit Supplement' : 'Add Supplement',
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 20),
             Flexible(
@@ -389,9 +391,12 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                     ),
                     if (_scanMessage != null) ...[
                       const SizedBox(height: 8),
-                      Text(_scanMessage!,
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: AppColors.secondary)),
+                      Text(
+                        _scanMessage!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.secondary,
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 16),
 
@@ -407,15 +412,22 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                         fillColor: AppColors.surfaceVariant,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: AppColors.outlineVariant),
+                          borderSide: BorderSide(
+                            color: AppColors.outlineVariant,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: AppColors.outlineVariant),
+                          borderSide: BorderSide(
+                            color: AppColors.outlineVariant,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                          borderSide: BorderSide(
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                     ),
@@ -432,15 +444,22 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                         fillColor: AppColors.surfaceVariant,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: AppColors.outlineVariant),
+                          borderSide: BorderSide(
+                            color: AppColors.outlineVariant,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: AppColors.outlineVariant),
+                          borderSide: BorderSide(
+                            color: AppColors.outlineVariant,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                          borderSide: BorderSide(
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                     ),
@@ -454,10 +473,13 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                           flex: 3,
                           child: TextField(
                             controller: _doseCtrl,
-                            keyboardType:
-                                const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
                             inputFormatters: [
-                              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9.]'),
+                              ),
                             ],
                             decoration: InputDecoration(
                               labelText: 'Dose',
@@ -466,15 +488,22 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                               fillColor: AppColors.surfaceVariant,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(color: AppColors.outlineVariant),
+                                borderSide: BorderSide(
+                                  color: AppColors.outlineVariant,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(color: AppColors.outlineVariant),
+                                borderSide: BorderSide(
+                                  color: AppColors.outlineVariant,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                                borderSide: BorderSide(
+                                  color: AppColors.primary,
+                                  width: 1.5,
+                                ),
                               ),
                             ),
                           ),
@@ -495,15 +524,22 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                               fillColor: AppColors.surfaceVariant,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(color: AppColors.outlineVariant),
+                                borderSide: BorderSide(
+                                  color: AppColors.outlineVariant,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(color: AppColors.outlineVariant),
+                                borderSide: BorderSide(
+                                  color: AppColors.outlineVariant,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                                borderSide: BorderSide(
+                                  color: AppColors.primary,
+                                  width: 1.5,
+                                ),
                               ),
                             ),
                             items: [
@@ -530,35 +566,46 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceVariant,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.science_outlined,
-                                size: 18, color: AppColors.primary),
+                            Icon(
+                              Icons.science_outlined,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Nutrients per dose',
-                                      style: theme.textTheme.bodyMedium),
+                                  Text(
+                                    'Nutrients per dose',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
                                   Text(
                                     _nutrients.isEmpty
                                         ? 'Not counted towards daily totals'
                                         : _nutrientSummary(),
-                                    style: theme.textTheme.bodySmall
-                                        ?.copyWith(color: AppColors.secondary),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.secondary,
+                                    ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right, color: AppColors.secondary),
+                            Icon(
+                              Icons.chevron_right,
+                              color: AppColors.secondary,
+                            ),
                           ],
                         ),
                       ),
@@ -581,7 +628,9 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                           label: 'None',
                           icon: Icons.notifications_off_outlined,
                           selected: _schedule == SupplementSchedule.none,
-                          onTap: () => setState(() => _schedule = SupplementSchedule.none),
+                          onTap: () => setState(
+                            () => _schedule = SupplementSchedule.none,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         _ScheduleChip(
@@ -596,7 +645,8 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                           icon: Icons.fitness_center,
                           selected: _schedule == SupplementSchedule.postWorkout,
                           onTap: () => setState(
-                              () => _schedule = SupplementSchedule.postWorkout),
+                            () => _schedule = SupplementSchedule.postWorkout,
+                          ),
                         ),
                       ],
                     ),
@@ -607,19 +657,25 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                       GestureDetector(
                         onTap: _pickTime,
                         child: Container(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.4)),
+                              color: AppColors.primary.withValues(alpha: 0.4),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.access_time,
-                                  color: AppColors.primary, size: 18),
+                              Icon(
+                                Icons.access_time,
+                                color: AppColors.primary,
+                                size: 18,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 _time != null
@@ -640,14 +696,18 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          Icon(Icons.info_outline,
-                              size: 14, color: AppColors.secondary),
+                          Icon(
+                            Icons.info_outline,
+                            size: 14,
+                            color: AppColors.secondary,
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               'You\'ll be notified when your workout ends.',
-                              style: theme.textTheme.bodySmall
-                                  ?.copyWith(color: AppColors.secondary),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.secondary,
+                              ),
                             ),
                           ),
                         ],
@@ -668,7 +728,9 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                               foregroundColor: Colors.redAccent,
                               side: const BorderSide(color: Colors.redAccent),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 14),
+                                horizontal: 20,
+                                vertical: 14,
+                              ),
                               shape: const StadiumBorder(),
                             ),
                           ),
@@ -686,7 +748,9 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                             ),
                             child: Text(
                               _isEditing ? 'Save changes' : 'Add supplement',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
@@ -751,8 +815,7 @@ class _ScheduleChip extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: selected ? AppColors.primary : AppColors.secondary,
-                  fontWeight:
-                      selected ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                   fontSize: 10,
                 ),
               ),

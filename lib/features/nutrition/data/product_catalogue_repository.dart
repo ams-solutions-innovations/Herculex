@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/utils/env.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../../../core/env.dart';
 
 /// A row from the shared/public `product_catalogue` table — community
 /// nutrition data keyed by barcode, contributed via the AI barcode-lookup
@@ -22,6 +21,17 @@ class PublicProduct {
   final String? servingLabel;
   final String referenceBasis;
 
+  /// Two or more independent submissions agreed on these numbers, or a human
+  /// confirmed them. An unverified row is a single AI reading nobody has
+  /// corroborated — worth showing, worth labelling.
+  final bool verified;
+
+  /// A later submission disagreed with the published values. The row is
+  /// still the best guess available, but it is disputed.
+  final bool needsReview;
+
+  final int submissionCount;
+
   const PublicProduct({
     required this.barcode,
     required this.name,
@@ -37,6 +47,9 @@ class PublicProduct {
     this.servingGrams,
     this.servingLabel,
     this.referenceBasis = '100 g',
+    this.verified = false,
+    this.needsReview = false,
+    this.submissionCount = 1,
   });
 
   factory PublicProduct.fromRow(Map<String, dynamic> row) => PublicProduct(
@@ -54,6 +67,9 @@ class PublicProduct {
     servingGrams: (row['serving_grams'] as num?)?.toDouble(),
     servingLabel: row['serving_label'] as String?,
     referenceBasis: row['reference_basis'] as String? ?? '100 g',
+    verified: row['verified'] as bool? ?? false,
+    needsReview: row['needs_review'] as bool? ?? false,
+    submissionCount: (row['submission_count'] as num?)?.toInt() ?? 1,
   );
 }
 
@@ -65,17 +81,36 @@ final productCatalogueRepositoryProvider = Provider<ProductCatalogueRepository>(
 /// (supabase/migrations/0012_product_catalogue.sql). Reads go straight to
 /// the table (public-select RLS, no user_id scoping — unlike every other
 /// table in this app, which goes through the per-user sync engine). Writes
-/// go through the `product-catalogue-publish` Edge Function, the table's
-/// only write path by design.
+/// go through the `product_catalogue_submit` RPC (SECURITY DEFINER, reads
+/// `auth.uid()` itself), the table's only write path by design.
 class ProductCatalogueRepository {
   const ProductCatalogueRepository();
+
+  /// The columns [PublicProduct.fromRow] reads, spelled out.
+  ///
+  /// `select()` (i.e. `select *`) would be simpler and is what this used to
+  /// do — but `0018_shared_data_hardening.sql` revokes SELECT on
+  /// `contributed_by` from the authenticated role (it is a personal
+  /// identifier sitting on a table every signed-in user can read, and the
+  /// client has no use for it). A `select *` that touches a revoked column
+  /// fails outright with 42501, so the list is not an optimisation — it is
+  /// what keeps this query working at all. Add a column here whenever one
+  /// is added to [PublicProduct].
+  static const _columns =
+      'barcode, name, brand, kcal_per_100g, protein_per_100g, '
+      'carbs_per_100g, fat_per_100g, fiber_per_100g, sodium_mg_per_100g, '
+      'potassium_mg_per_100g, cholesterol_mg_per_100g, serving_grams, '
+      'serving_label, reference_basis, verified, needs_review, '
+      'submission_count';
 
   Future<PublicProduct?> lookupByBarcode(String barcode) async {
     if (!Env.hasSupabase) return null;
     try {
+      // Soft-deleted rows are filtered by the RLS policy itself
+      // (`product_catalogue_select_live`), so no `deleted_at` clause here.
       final row = await Supabase.instance.client
           .from('product_catalogue')
-          .select()
+          .select(_columns)
           .eq('barcode', barcode)
           .maybeSingle();
       if (row == null) return null;
@@ -106,30 +141,56 @@ class ProductCatalogueRepository {
     double? servingGrams,
     String? servingLabel,
     String referenceBasis = '100 g',
+    double? confidence,
+    Object? evidence,
   }) async {
     if (!Env.hasSupabase) return;
     try {
-      await Supabase.instance.client.functions.invoke(
-        'product-catalogue-publish',
-        body: {
-          'barcode': barcode,
-          'name': name,
-          'brand': brand,
-          'kcalPer100g': kcalPer100g,
-          'proteinPer100g': proteinPer100g,
-          'carbsPer100g': carbsPer100g,
-          'fatPer100g': fatPer100g,
-          'fiberPer100g': fiberPer100g,
-          'sodiumMgPer100g': sodiumMgPer100g,
-          'potassiumMgPer100g': potassiumMgPer100g,
-          'cholesterolMgPer100g': cholesterolMgPer100g,
-          'servingGrams': servingGrams,
-          'servingLabel': servingLabel,
-          'referenceBasis': referenceBasis,
+      // A direct RPC, not an Edge Function invoke. `product_catalogue_submit`
+      // is SECURITY DEFINER and reads `auth.uid()` itself, so the caller
+      // cannot claim to be anyone else and no service-role key is involved
+      // anywhere in this path — the same shape the `buddy_*` routines in
+      // `0011_buddy_sessions.sql` already use. It replaced the
+      // `product-catalogue-publish` Edge Function, which held no secret of
+      // its own and existed only to bypass RLS.
+      //
+      // Keys are the Postgres column names, not the camelCase the old
+      // function took: the whole map goes into the RPC's `p_payload jsonb`
+      // and is read with `->>` against the real column names.
+      await Supabase.instance.client.rpc(
+        'product_catalogue_submit',
+        params: {
+          'p_barcode': barcode,
+          'p_payload': <String, dynamic>{
+            'name': name,
+            'brand': brand,
+            'kcal_per_100g': kcalPer100g,
+            'protein_per_100g': proteinPer100g,
+            'carbs_per_100g': carbsPer100g,
+            'fat_per_100g': fatPer100g,
+            'fiber_per_100g': fiberPer100g,
+            'sodium_mg_per_100g': sodiumMgPer100g,
+            'potassium_mg_per_100g': potassiumMgPer100g,
+            'cholesterol_mg_per_100g': cholesterolMgPer100g,
+            'serving_grams': servingGrams,
+            'serving_label': servingLabel,
+            'reference_basis': referenceBasis,
+            // Grounding sources from the AI lookup, kept alongside the
+            // submission in `product_catalogue_submissions.payload`.
+            // Without them there is no way to check where a number came
+            // from — the reason a disputed entry could never be
+            // adjudicated before.
+            'evidence': evidence,
+          },
+          'p_source': 'gemini',
+          'p_confidence': confidence,
         },
       );
     } catch (_) {
-      // Non-fatal — see doc comment above.
+      // Non-fatal — see doc comment above. This deliberately swallows the
+      // RPC's 30-submissions-per-hour rate limit too: hitting it means the
+      // community catalogue skipped one contribution, which is not the
+      // user's problem and must not interrupt their own save.
     }
   }
 }

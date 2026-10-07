@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../theme/colors.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 
 /// Shared muscle-recovery bar row: name, progress bar, score, and two
 /// optional trailing pieces (an ETA chip and a status dot) that the two
@@ -33,8 +33,8 @@ class MuscleRecoveryRow extends StatelessWidget {
     final barColor = recoveryScore >= 70
         ? Colors.green
         : recoveryScore >= 30
-            ? Colors.amber
-            : Colors.red;
+        ? Colors.amber
+        : Colors.red;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -44,7 +44,9 @@ class MuscleRecoveryRow extends StatelessWidget {
             width: 92,
             child: Text(
               muscle,
-              style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
@@ -58,7 +60,9 @@ class MuscleRecoveryRow extends StatelessWidget {
                 // wasn't clamped.
                 value: (recoveryScore / 100).clamp(0.0, 1.0),
                 minHeight: 8,
-                backgroundColor: AppColors.outlineVariant.withValues(alpha: 0.2),
+                backgroundColor: AppColors.outlineVariant.withValues(
+                  alpha: 0.2,
+                ),
                 valueColor: AlwaysStoppedAnimation(barColor),
               ),
             ),
@@ -68,8 +72,10 @@ class MuscleRecoveryRow extends StatelessWidget {
             child: Text(
               '$recoveryScore',
               textAlign: TextAlign.end,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(fontWeight: FontWeight.bold, color: AppColors.secondary),
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.secondary,
+              ),
             ),
           ),
           if (etaLabel != null) ...[
@@ -82,7 +88,9 @@ class MuscleRecoveryRow extends StatelessWidget {
               ),
               child: Text(
                 etaLabel!,
-                style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.secondary,
+                ),
               ),
             ),
           ],
@@ -91,7 +99,10 @@ class MuscleRecoveryRow extends StatelessWidget {
             Container(
               width: 8,
               height: 8,
-              decoration: BoxDecoration(color: statusDotColor, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: statusDotColor,
+                shape: BoxShape.circle,
+              ),
             ),
           ],
         ],

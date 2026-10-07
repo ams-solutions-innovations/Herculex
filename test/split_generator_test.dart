@@ -5,10 +5,7 @@ import 'package:herculex/features/programs/domain/split_template.dart';
 void main() {
   group('SplitTemplates.generate — weekly', () {
     test('PPL over 6 days repeats the slots round-robin', () {
-      final plan = SplitTemplates.generate(
-        type: SplitType.ppl,
-        daysPerWeek: 6,
-      );
+      final plan = SplitTemplates.generate(type: SplitType.ppl, daysPerWeek: 6);
 
       expect(plan.mode, ScheduleMode.weekly);
       expect(plan.cycleLength, 7);
@@ -93,10 +90,7 @@ void main() {
     });
 
     test('weekly plans emit training days only', () {
-      final plan = SplitTemplates.generate(
-        type: SplitType.ppl,
-        daysPerWeek: 3,
-      );
+      final plan = SplitTemplates.generate(type: SplitType.ppl, daysPerWeek: 3);
 
       expect(plan.days.any((d) => d.isRest), isFalse);
       expect(plan.trainingDayCount, 3);
@@ -165,10 +159,7 @@ void main() {
 
   group('ScheduleWalker — weekly', () {
     test('expands a 3-day week over 4 weeks onto the right offsets', () {
-      final plan = SplitTemplates.generate(
-        type: SplitType.ppl,
-        daysPerWeek: 3,
-      );
+      final plan = SplitTemplates.generate(type: SplitType.ppl, daysPerWeek: 3);
       final occ = ScheduleWalker.walk(
         mode: ScheduleMode.weekly,
         dayIndices: plan.days.map((d) => d.index).toList(),
@@ -183,10 +174,7 @@ void main() {
     });
 
     test('starting mid-week keeps weekdays and drops the past days', () {
-      final plan = SplitTemplates.generate(
-        type: SplitType.ppl,
-        daysPerWeek: 3,
-      );
+      final plan = SplitTemplates.generate(type: SplitType.ppl, daysPerWeek: 3);
       // Start on a Wednesday: Monday of week 0 is already behind us.
       final occ = ScheduleWalker.walk(
         mode: ScheduleMode.weekly,
@@ -200,8 +188,7 @@ void main() {
       expect(occ, hasLength(5));
       // Every offset still lands on the intended weekday.
       for (final o in occ) {
-        final weekday =
-            ((DateTime.wednesday - 1 + o.dayOffset) % 7) + 1;
+        final weekday = ((DateTime.wednesday - 1 + o.dayOffset) % 7) + 1;
         expect(weekday, o.dayIndex + 1);
       }
     });
@@ -242,9 +229,19 @@ void main() {
       expect(occ, hasLength(14));
       expect(occ.map((o) => o.dayOffset), List.generate(14, (i) => i));
       // Even offsets are slot A, odd are slot B — no weekday involved.
-      expect(occ.where((o) => o.dayIndex == 0).map((o) => o.dayOffset),
-          [0, 2, 4, 6, 8, 10, 12]);
-      expect(occ.map((o) => o.occurrenceIndex).toSet(), List.generate(7, (i) => i).toSet());
+      expect(occ.where((o) => o.dayIndex == 0).map((o) => o.dayOffset), [
+        0,
+        2,
+        4,
+        6,
+        8,
+        10,
+        12,
+      ]);
+      expect(
+        occ.map((o) => o.occurrenceIndex).toSet(),
+        List.generate(7, (i) => i).toSet(),
+      );
     });
 
     test('a 4-day cycle drifts the rest day across weekdays', () {

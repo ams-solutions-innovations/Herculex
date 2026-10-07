@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../nutrition/presentation/recipe_builder_view.dart';
+import 'package:herculex/features/nutrition/presentation/views/recipe_builder_view.dart';
 
 /// The admin "insert recipe" surface now defers to the real recipe builder.
 class AdminInsertRecipeView extends StatelessWidget {

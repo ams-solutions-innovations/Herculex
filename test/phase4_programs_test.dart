@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/data/program_csv_io.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
@@ -39,8 +39,11 @@ void main() {
       final plan = Periodization.plan(PeriodizationModel.block, 10);
       expect(plan.first.blockPhase, 'accumulation');
       expect(plan.last.blockPhase, 'realization');
-      expect(plan.map((w) => w.blockPhase).toSet(),
-          {'accumulation', 'transmutation', 'realization'});
+      expect(plan.map((w) => w.blockPhase).toSet(), {
+        'accumulation',
+        'transmutation',
+        'realization',
+      });
       // Accumulation: more volume, less intensity than realization.
       expect(plan.first.volumeFactor, greaterThan(plan.last.volumeFactor));
       expect(plan.first.intensityFactor, lessThan(plan.last.intensityFactor));
@@ -54,8 +57,10 @@ void main() {
 
     test('none is flat', () {
       final plan = Periodization.plan(PeriodizationModel.none, 4);
-      expect(plan.every((w) => w.intensityFactor == 1 && w.volumeFactor == 1),
-          isTrue);
+      expect(
+        plan.every((w) => w.intensityFactor == 1 && w.volumeFactor == 1),
+        isTrue,
+      );
     });
   });
 
@@ -64,7 +69,10 @@ void main() {
       // 3 exercises, rotate every 2 weeks, 8-week program:
       expect(
         ExerciseRotation.assignments(
-            weeks: 8, memberCount: 3, rotateEveryWeeks: 2),
+          weeks: 8,
+          memberCount: 3,
+          rotateEveryWeeks: 2,
+        ),
         [0, 0, 1, 1, 2, 2, 0, 0],
       );
     });
@@ -72,7 +80,10 @@ void main() {
     test('weekly rotation with 2 members alternates', () {
       expect(
         ExerciseRotation.assignments(
-            weeks: 4, memberCount: 2, rotateEveryWeeks: 1),
+          weeks: 4,
+          memberCount: 2,
+          rotateEveryWeeks: 1,
+        ),
         [0, 1, 0, 1],
       );
     });
@@ -110,9 +121,14 @@ void main() {
     });
 
     test('rejects malformed input with readable errors', () {
-      expect(() => ProgramCsv.decode(''), throwsA(isA<ProgramCsvFormatException>()));
-      expect(() => ProgramCsv.decode('nonsense,row'),
-          throwsA(isA<ProgramCsvFormatException>()));
+      expect(
+        () => ProgramCsv.decode(''),
+        throwsA(isA<ProgramCsvFormatException>()),
+      );
+      expect(
+        () => ProgramCsv.decode('nonsense,row'),
+        throwsA(isA<ProgramCsvFormatException>()),
+      );
       expect(
         () => ProgramCsv.decode('program,X,4,linear\n0,9,Push,Bench,3'),
         throwsA(isA<ProgramCsvFormatException>()), // dayOfWeek out of range
@@ -132,12 +148,15 @@ void main() {
     tearDown(() => db.close());
 
     Future<int> exerciseIdByName(String name) async {
-      final row = await (db.select(db.exerciseCatalog)
-            ..where((t) => t.name.equals(name))
-            ..limit(1))
-          .getSingleOrNull();
+      final row =
+          await (db.select(db.exerciseCatalog)
+                ..where((t) => t.name.equals(name))
+                ..limit(1))
+              .getSingleOrNull();
       if (row != null) return row.id;
-      return db.into(db.exerciseCatalog).insert(
+      return db
+          .into(db.exerciseCatalog)
+          .insert(
             ExerciseCatalogCompanion.insert(
               name: name,
               primaryMuscle: 'Chest',
@@ -160,87 +179,104 @@ void main() {
         exerciseIds: [a, b, c],
       );
 
-      final week0 =
-          await repo.activeExerciseFor(rotationId: rotationId, weekIndex: 0);
-      final week1 =
-          await repo.activeExerciseFor(rotationId: rotationId, weekIndex: 1);
-      final week3 =
-          await repo.activeExerciseFor(rotationId: rotationId, weekIndex: 3);
+      final week0 = await repo.activeExerciseFor(
+        rotationId: rotationId,
+        weekIndex: 0,
+      );
+      final week1 = await repo.activeExerciseFor(
+        rotationId: rotationId,
+        weekIndex: 1,
+      );
+      final week3 = await repo.activeExerciseFor(
+        rotationId: rotationId,
+        weekIndex: 3,
+      );
       expect(week0!.id, a);
       expect(week1!.id, b);
       expect(week3!.id, a); // wrapped around
     });
 
-    test('micro workout completion writes a real session + completed set',
-        () async {
-      final repo = MicroWorkoutsRepository(db, clock);
-      final pushups = await exerciseIdByName('Test Pushup');
-      final id = await repo.create(
-          name: '50 Pushups', exerciseId: pushups, targetReps: 50, timesPerDay: 3);
-      final micro = await (db.select(db.microWorkouts)
-            ..where((t) => t.id.equals(id)))
-          .getSingle();
+    test(
+      'micro workout completion writes a real session + completed set',
+      () async {
+        final repo = MicroWorkoutsRepository(db, clock);
+        final pushups = await exerciseIdByName('Test Pushup');
+        final id = await repo.create(
+          name: '50 Pushups',
+          exerciseId: pushups,
+          targetReps: 50,
+          timesPerDay: 3,
+        );
+        final micro = await (db.select(
+          db.microWorkouts,
+        )..where((t) => t.id.equals(id))).getSingle();
 
-      await repo.logCompletion(micro, bodyweightKg: 80);
-      clock.fixed = clock.fixed.add(const Duration(hours: 3));
-      await repo.logCompletion(micro, reps: 40);
+        await repo.logCompletion(micro, bodyweightKg: 80);
+        clock.fixed = clock.fixed.add(const Duration(hours: 3));
+        await repo.logCompletion(micro, reps: 40);
 
-      final sessions = await (db.select(db.workoutSessions)
-            ..where((t) => t.microWorkoutId.equals(id)))
-          .get();
-      expect(sessions, hasLength(2));
-      expect(sessions.every((s) => s.endedAt != null), isTrue);
+        final sessions = await (db.select(
+          db.workoutSessions,
+        )..where((t) => t.microWorkoutId.equals(id))).get();
+        expect(sessions, hasLength(2));
+        expect(sessions.every((s) => s.endedAt != null), isTrue);
 
-      final sets = await db.select(db.setEntries).get();
-      expect(sets, hasLength(2));
-      expect(sets.first.reps, 50);
-      expect(sets.first.bodyweightKg, 80);
-      expect(sets.last.reps, 40);
-      expect(sets.every((s) => s.isCompleted), isTrue);
+        final sets = await db.select(db.setEntries).get();
+        expect(sets, hasLength(2));
+        expect(sets.first.reps, 50);
+        expect(sets.first.bodyweightKg, 80);
+        expect(sets.last.reps, 40);
+        expect(sets.every((s) => s.isCompleted), isTrue);
 
-      final counts = await repo.completionsOn(clock.now());
-      expect(counts[id], 2);
-    });
+        final counts = await repo.completionsOn(clock.now());
+        expect(counts[id], 2);
+      },
+    );
 
-    test('CSV import creates program with periodized weeks; export round-trips',
-        () async {
-      await exerciseIdByName('Test Bench Press');
-      await exerciseIdByName('Test Squat');
-      final io = ProgramCsvIo(db);
+    test(
+      'CSV import creates program with periodized weeks; export round-trips',
+      () async {
+        await exerciseIdByName('Test Bench Press');
+        await exerciseIdByName('Test Squat');
+        final io = ProgramCsvIo(db);
 
-      const csv = '''
+        const csv = '''
 program,Test Block,4,block
 week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equipment
 0,1,Upper,Test Bench Press,4,6,8,8,standard,75,barbell
 0,3,Lower,Test Squat,5,5,5,9,pause,80,barbell
 1,1,Upper,Test Bench Press,4,6,8,8,standard,77.5,barbell
 ''';
-      final programId = await io.importProgram(csv);
+        final programId = await io.importProgram(csv);
 
-      final program = await (db.select(db.programs)
-            ..where((t) => t.id.equals(programId)))
-          .getSingle();
-      expect(program.periodizationModel, 'block');
-      expect(program.weeks, 4);
+        final program = await (db.select(
+          db.programs,
+        )..where((t) => t.id.equals(programId))).getSingle();
+        expect(program.periodizationModel, 'block');
+        expect(program.weeks, 4);
 
-      final weeks = await (db.select(db.programWeeks)
-            ..where((t) => t.programId.equals(programId)))
-          .get();
-      expect(weeks, hasLength(4));
-      expect(weeks.first.blockPhase, 'accumulation');
-      expect(weeks.last.blockPhase, 'realization');
+        final weeks = await (db.select(
+          db.programWeeks,
+        )..where((t) => t.programId.equals(programId))).get();
+        expect(weeks, hasLength(4));
+        expect(weeks.first.blockPhase, 'accumulation');
+        expect(weeks.last.blockPhase, 'realization');
 
-      final exported = await io.exportProgram(programId);
-      final reDecoded = ProgramCsv.decode(exported);
-      expect(reDecoded.name, 'Test Block');
-      expect(reDecoded.rows, hasLength(3));
-      expect(
-          reDecoded.rows.any((r) =>
-              r.exerciseName == 'Test Squat' &&
-              r.setType == 'pause' &&
-              r.percentOf1Rm == 80),
-          isTrue);
-    });
+        final exported = await io.exportProgram(programId);
+        final reDecoded = ProgramCsv.decode(exported);
+        expect(reDecoded.name, 'Test Block');
+        expect(reDecoded.rows, hasLength(3));
+        expect(
+          reDecoded.rows.any(
+            (r) =>
+                r.exerciseName == 'Test Squat' &&
+                r.setType == 'pause' &&
+                r.percentOf1Rm == 80,
+          ),
+          isTrue,
+        );
+      },
+    );
 
     test('CSV import rejects unknown exercise names', () async {
       final io = ProgramCsvIo(db);
@@ -250,9 +286,13 @@ program,Bad,2,none
 ''';
       expect(
         () => io.importProgram(csv),
-        throwsA(predicate((e) =>
-            e is ProgramCsvFormatException &&
-            e.message.contains('Totally Unknown Exercise'))),
+        throwsA(
+          predicate(
+            (e) =>
+                e is ProgramCsvFormatException &&
+                e.message.contains('Totally Unknown Exercise'),
+          ),
+        ),
       );
     });
   });
@@ -272,12 +312,15 @@ program,Bad,2,none
     tearDown(() => db.close());
 
     Future<int> exerciseId(String name, {String muscle = 'Chest'}) async {
-      final row = await (db.select(db.exerciseCatalog)
-            ..where((t) => t.name.equals(name))
-            ..limit(1))
-          .getSingleOrNull();
+      final row =
+          await (db.select(db.exerciseCatalog)
+                ..where((t) => t.name.equals(name))
+                ..limit(1))
+              .getSingleOrNull();
       if (row != null) return row.id;
-      return db.into(db.exerciseCatalog).insert(
+      return db
+          .into(db.exerciseCatalog)
+          .insert(
             ExerciseCatalogCompanion.insert(
               name: name,
               primaryMuscle: muscle,
@@ -299,7 +342,9 @@ program,Bad,2,none
           .into(db.workoutTemplates)
           .insert(WorkoutTemplatesCompanion.insert(name: name));
       for (var i = 0; i < exerciseNames.length; i++) {
-        await db.into(db.templateExercises).insert(
+        await db
+            .into(db.templateExercises)
+            .insert(
               TemplateExercisesCompanion.insert(
                 templateId: templateId,
                 exerciseId: await exerciseId(exerciseNames[i], muscle: muscle),
@@ -350,16 +395,21 @@ program,Bad,2,none
       final rows = await schedulesFor(id);
 
       expect(rows, hasLength(12));
-      expect(rows.take(3).map((r) => r.dateIso),
-          ['2026-06-01', '2026-06-03', '2026-06-05']);
+      expect(rows.take(3).map((r) => r.dateIso), [
+        '2026-06-01',
+        '2026-06-03',
+        '2026-06-05',
+      ]);
       expect(rows.last.dateIso, '2026-06-26');
       // Every date is a Mon, Wed or Fri.
       expect(
-        rows.every((r) => const [
-              DateTime.monday,
-              DateTime.wednesday,
-              DateTime.friday,
-            ].contains(DateTime.parse(r.dateIso).weekday)),
+        rows.every(
+          (r) => const [
+            DateTime.monday,
+            DateTime.wednesday,
+            DateTime.friday,
+          ].contains(DateTime.parse(r.dateIso).weekday),
+        ),
         isTrue,
       );
     });
@@ -398,85 +448,108 @@ program,Bad,2,none
       expect(afterA.map((r) => r.id).toSet(), beforeA.map((r) => r.id).toSet());
     });
 
-    test('touched sessions survive re-materialize and are not duplicated',
-        () async {
-      final id = await makeBlock();
-      final rows = await schedulesFor(id);
+    test(
+      'touched sessions survive re-materialize and are not duplicated',
+      () async {
+        final id = await makeBlock();
+        final rows = await schedulesFor(id);
 
-      final done = rows.first;
-      final skipped = rows[1];
-      await repo.setScheduleStatus(done.id, ScheduleStatus.done);
-      await repo.setScheduleStatus(skipped.id, ScheduleStatus.skipped);
+        final done = rows.first;
+        final skipped = rows[1];
+        await repo.setScheduleStatus(done.id, ScheduleStatus.done);
+        await repo.setScheduleStatus(skipped.id, ScheduleStatus.skipped);
 
-      await repo.materializeProgram(id, start);
-      final after = await schedulesFor(id);
+        await repo.materializeProgram(id, start);
+        final after = await schedulesFor(id);
 
-      expect(after, hasLength(12), reason: 'no occurrence duplicated');
-      expect(after.singleWhere((r) => r.id == done.id).status,
-          ScheduleStatus.done);
-      expect(after.singleWhere((r) => r.id == skipped.id).status,
-          ScheduleStatus.skipped);
-      // The identity key stays unique.
-      final keys = after.map((r) => (r.programDayId, r.occurrenceIndex));
-      expect(keys.toSet(), hasLength(12));
-    });
+        expect(after, hasLength(12), reason: 'no occurrence duplicated');
+        expect(
+          after.singleWhere((r) => r.id == done.id).status,
+          ScheduleStatus.done,
+        );
+        expect(
+          after.singleWhere((r) => r.id == skipped.id).status,
+          ScheduleStatus.skipped,
+        );
+        // The identity key stays unique.
+        final keys = after.map((r) => (r.programDayId, r.occurrenceIndex));
+        expect(keys.toSet(), hasLength(12));
+      },
+    );
 
     test('rematerialize with futureOnly keeps the past intact', () async {
       final id = await makeBlock();
       final before = await schedulesFor(id);
-      final pastIds =
-          before.where((r) => r.dateIso.compareTo('2026-06-15') < 0)
-              .map((r) => r.id)
-              .toSet();
+      final pastIds = before
+          .where((r) => r.dateIso.compareTo('2026-06-15') < 0)
+          .map((r) => r.id)
+          .toSet();
       expect(pastIds, isNotEmpty);
 
       await repo.rematerializeProgram(id, today: DateTime(2026, 6, 15));
 
       final after = await schedulesFor(id);
       expect(after, hasLength(12));
-      expect(after.map((r) => r.id).toSet().containsAll(pastIds), isTrue,
-          reason: 'rows before the cutoff must keep their identity');
-    });
-
-    test('createProgramFromSplit attaches templates, so sessions are not empty',
-        () async {
-      // The headline bug: the old builder wrote a display string into the day
-      // name and never attached content, so every block materialized empty.
-      final push = await makeTemplate('Push Day', ['Bench', 'Overhead Press']);
-      final pull = await makeTemplate('Pull Day', ['Row', 'Pulldown', 'Curl']);
-      final legs = await makeTemplate('Leg Day', ['Squat']);
-
-      final id = await makeBlock(templates: {0: push, 1: pull, 2: legs});
-
-      final days = await (db.select(db.programDays)).get();
-      expect(days.every((d) => d.templateId != null), isTrue);
-      expect(days.map((d) => d.slotLabel).toSet(), {'Push', 'Pull', 'Legs'});
-
-      final rows = await schedulesFor(id);
-      for (final row in rows) {
-        final count = await repo.countDayExercises(row.programDayId);
-        expect(count, greaterThan(0));
-      }
-      // The Pull day resolves its three template exercises.
-      final pullDay = days.firstWhere((d) => d.slotLabel == 'Pull');
-      expect(await repo.countDayExercises(pullDay.id), 3);
-    });
-
-    test('a schedule template override wins over the program day link',
-        () async {
-      final push = await makeTemplate('Push Day', ['Bench']);
-      final swap = await makeTemplate('Deload Push', ['Bench', 'Fly', 'Dip']);
-      final id = await makeBlock(templates: {0: push, 1: push, 2: push});
-
-      final row = (await schedulesFor(id)).first;
-      expect(await repo.countDayExercises(row.programDayId), 1);
-
-      await repo.setScheduleTemplateOverride(row.id, swap);
       expect(
-        await repo.countDayExercises(row.programDayId, templateOverride: swap),
-        3,
+        after.map((r) => r.id).toSet().containsAll(pastIds),
+        isTrue,
+        reason: 'rows before the cutoff must keep their identity',
       );
     });
+
+    test(
+      'createProgramFromSplit attaches templates, so sessions are not empty',
+      () async {
+        // The headline bug: the old builder wrote a display string into the day
+        // name and never attached content, so every block materialized empty.
+        final push = await makeTemplate('Push Day', [
+          'Bench',
+          'Overhead Press',
+        ]);
+        final pull = await makeTemplate('Pull Day', [
+          'Row',
+          'Pulldown',
+          'Curl',
+        ]);
+        final legs = await makeTemplate('Leg Day', ['Squat']);
+
+        final id = await makeBlock(templates: {0: push, 1: pull, 2: legs});
+
+        final days = await (db.select(db.programDays)).get();
+        expect(days.every((d) => d.templateId != null), isTrue);
+        expect(days.map((d) => d.slotLabel).toSet(), {'Push', 'Pull', 'Legs'});
+
+        final rows = await schedulesFor(id);
+        for (final row in rows) {
+          final count = await repo.countDayExercises(row.programDayId);
+          expect(count, greaterThan(0));
+        }
+        // The Pull day resolves its three template exercises.
+        final pullDay = days.firstWhere((d) => d.slotLabel == 'Pull');
+        expect(await repo.countDayExercises(pullDay.id), 3);
+      },
+    );
+
+    test(
+      'a schedule template override wins over the program day link',
+      () async {
+        final push = await makeTemplate('Push Day', ['Bench']);
+        final swap = await makeTemplate('Deload Push', ['Bench', 'Fly', 'Dip']);
+        final id = await makeBlock(templates: {0: push, 1: push, 2: push});
+
+        final row = (await schedulesFor(id)).first;
+        expect(await repo.countDayExercises(row.programDayId), 1);
+
+        await repo.setScheduleTemplateOverride(row.id, swap);
+        expect(
+          await repo.countDayExercises(
+            row.programDayId,
+            templateOverride: swap,
+          ),
+          3,
+        );
+      },
+    );
 
     test('watchScheduleRange resolves titles, templates and counts', () async {
       final push = await makeTemplate('Push Day', ['Bench', 'Overhead Press']);
@@ -502,29 +575,35 @@ program,Bad,2,none
       expect(rows.every((r) => r.program.id == id), isTrue);
     });
 
-    test('moveScheduledWorkout reindexes both dates and flips planned to moved',
-        () async {
-      final id = await makeBlock();
-      final rows = await schedulesFor(id);
-      final mon = rows.firstWhere((r) => r.dateIso == '2026-06-01');
-      final wed = rows.firstWhere((r) => r.dateIso == '2026-06-03');
+    test(
+      'moveScheduledWorkout reindexes both dates and flips planned to moved',
+      () async {
+        final id = await makeBlock();
+        final rows = await schedulesFor(id);
+        final mon = rows.firstWhere((r) => r.dateIso == '2026-06-01');
+        final wed = rows.firstWhere((r) => r.dateIso == '2026-06-03');
 
-      await repo.moveScheduledWorkout(
-        scheduleId: mon.id,
-        newDate: DateTime(2026, 6, 3),
-      );
+        await repo.moveScheduledWorkout(
+          scheduleId: mon.id,
+          newDate: DateTime(2026, 6, 3),
+        );
 
-      final after = await schedulesFor(id);
-      final onWed = after.where((r) => r.dateIso == '2026-06-03').toList()
-        ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
-      expect(onWed, hasLength(2));
-      expect(onWed.map((r) => r.orderIndex), [0, 1]);
-      expect(after.where((r) => r.dateIso == '2026-06-01'), isEmpty);
-      expect(after.singleWhere((r) => r.id == mon.id).status,
-          ScheduleStatus.moved);
-      expect(after.singleWhere((r) => r.id == wed.id).status,
-          ScheduleStatus.planned);
-    });
+        final after = await schedulesFor(id);
+        final onWed = after.where((r) => r.dateIso == '2026-06-03').toList()
+          ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+        expect(onWed, hasLength(2));
+        expect(onWed.map((r) => r.orderIndex), [0, 1]);
+        expect(after.where((r) => r.dateIso == '2026-06-01'), isEmpty);
+        expect(
+          after.singleWhere((r) => r.id == mon.id).status,
+          ScheduleStatus.moved,
+        );
+        expect(
+          after.singleWhere((r) => r.id == wed.id).status,
+          ScheduleStatus.planned,
+        );
+      },
+    );
 
     test('moving a completed session does not overwrite its status', () async {
       final id = await makeBlock();
@@ -537,8 +616,10 @@ program,Bad,2,none
       );
 
       final after = await schedulesFor(id);
-      expect(after.singleWhere((r) => r.id == row.id).status,
-          ScheduleStatus.done);
+      expect(
+        after.singleWhere((r) => r.id == row.id).status,
+        ScheduleStatus.done,
+      );
       expect(after.singleWhere((r) => r.id == row.id).dateIso, '2026-06-02');
     });
 
@@ -553,10 +634,11 @@ program,Bad,2,none
         );
       }
 
-      final before = (await schedulesFor(id))
-          .where((r) => r.dateIso == '2026-06-01')
-          .toList()
-        ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+      final before =
+          (await schedulesFor(
+              id,
+            )).where((r) => r.dateIso == '2026-06-01').toList()
+            ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
       expect(before.map((r) => r.orderIndex), [0, 1, 2]);
 
       // Drag the first tile to the end — ReorderableListView reports newIndex
@@ -567,10 +649,11 @@ program,Bad,2,none
         newIndex: 3,
       );
 
-      final after = (await schedulesFor(id))
-          .where((r) => r.dateIso == '2026-06-01')
-          .toList()
-        ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+      final after =
+          (await schedulesFor(
+              id,
+            )).where((r) => r.dateIso == '2026-06-01').toList()
+            ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
       expect(after.map((r) => r.orderIndex), [0, 1, 2]);
       expect(after.map((r) => r.id), [
         before[1].id,
@@ -583,7 +666,9 @@ program,Bad,2,none
       // Two back-to-back days both driven by templates hitting Chest. Reading
       // ProgramDayExercises alone would find nothing here.
       final chestA = await makeTemplate('Chest A', ['Bench'], muscle: 'Chest');
-      final chestB = await makeTemplate('Chest B', ['Incline'], muscle: 'Chest');
+      final chestB = await makeTemplate('Chest B', [
+        'Incline',
+      ], muscle: 'Chest');
       final id = await makeBlock(
         type: SplitType.custom,
         daysPerWeek: 7,
@@ -641,32 +726,34 @@ program,Bad,2,none
       expect(await db.select(db.programDays).get(), isEmpty);
     });
 
-    test('a vacation range skips planned sessions but not completed ones',
-        () async {
-      final id = await makeBlock();
-      final rows = await schedulesFor(id);
-      final inRange = rows.firstWhere((r) => r.dateIso == '2026-06-03');
-      await repo.setScheduleStatus(inRange.id, ScheduleStatus.done);
+    test(
+      'a vacation range skips planned sessions but not completed ones',
+      () async {
+        final id = await makeBlock();
+        final rows = await schedulesFor(id);
+        final inRange = rows.firstWhere((r) => r.dateIso == '2026-06-03');
+        await repo.setScheduleStatus(inRange.id, ScheduleStatus.done);
 
-      await repo.addExternalEvent(
-        from: DateTime(2026, 6, 1),
-        to: DateTime(2026, 6, 7),
-        type: 'vacation',
-      );
+        await repo.addExternalEvent(
+          from: DateTime(2026, 6, 1),
+          to: DateTime(2026, 6, 7),
+          type: 'vacation',
+        );
 
-      final after = await schedulesFor(id);
-      final week1 = after.where(
-        (r) => r.dateIso.compareTo('2026-06-08') < 0,
-      );
-      expect(
-        week1.where((r) => r.id != inRange.id).every(
-              (r) => r.status == ScheduleStatus.skipped,
-            ),
-        isTrue,
-      );
-      expect(after.singleWhere((r) => r.id == inRange.id).status,
-          ScheduleStatus.done);
-    });
+        final after = await schedulesFor(id);
+        final week1 = after.where((r) => r.dateIso.compareTo('2026-06-08') < 0);
+        expect(
+          week1
+              .where((r) => r.id != inRange.id)
+              .every((r) => r.status == ScheduleStatus.skipped),
+          isTrue,
+        );
+        expect(
+          after.singleWhere((r) => r.id == inRange.id).status,
+          ScheduleStatus.done,
+        );
+      },
+    );
   });
 
   group('Session start times (Phase 8)', () {
@@ -681,10 +768,7 @@ program,Bad,2,none
 
     tearDown(() => db.close());
 
-    Future<int> makeBlock({
-      int weeks = 1,
-      int? defaultStartTimeMinutes,
-    }) {
+    Future<int> makeBlock({int weeks = 1, int? defaultStartTimeMinutes}) {
       return repo.createProgramFromSplit(
         name: 'Block',
         weeks: weeks,
@@ -713,25 +797,27 @@ program,Bad,2,none
       expect(rows.every((r) => r.startTimeMinutes == null), isTrue);
     });
 
-    test('setScheduleStartTime edits one occurrence without touching others',
-        () async {
-      final id = await makeBlock(defaultStartTimeMinutes: 7 * 60);
-      final rows = await schedulesFor(id);
-      final target = rows.first;
-      await repo.setScheduleStartTime(target.id, 20 * 60);
+    test(
+      'setScheduleStartTime edits one occurrence without touching others',
+      () async {
+        final id = await makeBlock(defaultStartTimeMinutes: 7 * 60);
+        final rows = await schedulesFor(id);
+        final target = rows.first;
+        await repo.setScheduleStartTime(target.id, 20 * 60);
 
-      final after = await schedulesFor(id);
-      expect(
-        after.singleWhere((r) => r.id == target.id).startTimeMinutes,
-        20 * 60,
-      );
-      expect(
-        after
-            .where((r) => r.id != target.id)
-            .every((r) => r.startTimeMinutes == 7 * 60),
-        isTrue,
-      );
-    });
+        final after = await schedulesFor(id);
+        expect(
+          after.singleWhere((r) => r.id == target.id).startTimeMinutes,
+          20 * 60,
+        );
+        expect(
+          after
+              .where((r) => r.id != target.id)
+              .every((r) => r.startTimeMinutes == 7 * 60),
+          isTrue,
+        );
+      },
+    );
 
     test('setScheduleStartTime(null) clears the time', () async {
       final id = await makeBlock(defaultStartTimeMinutes: 7 * 60);
@@ -744,8 +830,7 @@ program,Bad,2,none
       );
     });
 
-    test(
-        'setProgramDayStartTime + rematerialize applies the new default to '
+    test('setProgramDayStartTime + rematerialize applies the new default to '
         'the regenerated occurrence', () async {
       final id = await makeBlock();
       final row = (await schedulesFor(id)).first;
@@ -763,8 +848,7 @@ program,Bad,2,none
       expect(regenerated.startTimeMinutes, 6 * 60);
     });
 
-    test(
-        'a touched occurrence keeps its own start time through rematerialize, '
+    test('a touched occurrence keeps its own start time through rematerialize, '
         'even when the day default changes', () async {
       final id = await makeBlock(defaultStartTimeMinutes: 7 * 60);
       final touched = (await schedulesFor(id)).first;
@@ -781,8 +865,7 @@ program,Bad,2,none
       );
     });
 
-    test(
-        'sortedByStartTime orders timed sessions chronologically ahead of '
+    test('sortedByStartTime orders timed sessions chronologically ahead of '
         'untimed ones, orderIndex breaking ties', () async {
       final id = await makeBlock();
       final raw = await schedulesFor(id);

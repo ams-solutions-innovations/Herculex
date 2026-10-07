@@ -32,12 +32,9 @@
 // NOT cleaned up here: those rows are shared community nutrition data, not
 // personal data, and the cascade already anonymizes them.
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { callerUserId } from "../_shared/auth.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+import { json } from "../_shared/json.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -176,31 +173,4 @@ async function listStorage(prefix: string): Promise<string[]> {
   }
   const rows = await response.json() as { name?: string }[];
   return rows.map((row) => row.name).filter((name): name is string => !!name);
-}
-
-/// Extracts the `sub` claim from the already-platform-verified JWT. Same
-/// helper, same reasoning as `product-catalogue-publish`.
-function callerUserId(authHeader: string | null): string | null {
-  if (!authHeader?.startsWith("Bearer ")) return null;
-  const token = authHeader.slice("Bearer ".length);
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
-  try {
-    let base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    while (base64.length % 4 !== 0) base64 += "=";
-    const payload = JSON.parse(atob(base64));
-    return typeof payload.sub === "string" ? payload.sub : null;
-  } catch {
-    return null;
-  }
-}
-
-function json(body: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "application/json",
-    },
-  });
 }

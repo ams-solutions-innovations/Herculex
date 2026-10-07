@@ -26595,6 +26595,78 @@ class $ExerciseProgressionsTable extends ExerciseProgressions
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _progressionModelMeta = const VerificationMeta(
+    'progressionModel',
+  );
+  @override
+  late final GeneratedColumn<String> progressionModel = GeneratedColumn<String>(
+    'progression_model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('linear'),
+  );
+  static const VerificationMeta _targetSetsMeta = const VerificationMeta(
+    'targetSets',
+  );
+  @override
+  late final GeneratedColumn<int> targetSets = GeneratedColumn<int>(
+    'target_sets',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _targetRepsMinMeta = const VerificationMeta(
+    'targetRepsMin',
+  );
+  @override
+  late final GeneratedColumn<int> targetRepsMin = GeneratedColumn<int>(
+    'target_reps_min',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _targetRepsMaxMeta = const VerificationMeta(
+    'targetRepsMax',
+  );
+  @override
+  late final GeneratedColumn<int> targetRepsMax = GeneratedColumn<int>(
+    'target_reps_max',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _autoAddSetsMeta = const VerificationMeta(
+    'autoAddSets',
+  );
+  @override
+  late final GeneratedColumn<bool> autoAddSets = GeneratedColumn<bool>(
+    'auto_add_sets',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_add_sets" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _autoAddSetsCountMeta = const VerificationMeta(
+    'autoAddSetsCount',
+  );
+  @override
+  late final GeneratedColumn<int> autoAddSetsCount = GeneratedColumn<int>(
+    'auto_add_sets_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(3),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     syncUuid,
@@ -26606,6 +26678,12 @@ class $ExerciseProgressionsTable extends ExerciseProgressions
     goal,
     weeklyIncreasePct,
     enabled,
+    progressionModel,
+    targetSets,
+    targetRepsMin,
+    targetRepsMax,
+    autoAddSets,
+    autoAddSetsCount,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -26675,6 +26753,57 @@ class $ExerciseProgressionsTable extends ExerciseProgressions
         enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta),
       );
     }
+    if (data.containsKey('progression_model')) {
+      context.handle(
+        _progressionModelMeta,
+        progressionModel.isAcceptableOrUnknown(
+          data['progression_model']!,
+          _progressionModelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('target_sets')) {
+      context.handle(
+        _targetSetsMeta,
+        targetSets.isAcceptableOrUnknown(data['target_sets']!, _targetSetsMeta),
+      );
+    }
+    if (data.containsKey('target_reps_min')) {
+      context.handle(
+        _targetRepsMinMeta,
+        targetRepsMin.isAcceptableOrUnknown(
+          data['target_reps_min']!,
+          _targetRepsMinMeta,
+        ),
+      );
+    }
+    if (data.containsKey('target_reps_max')) {
+      context.handle(
+        _targetRepsMaxMeta,
+        targetRepsMax.isAcceptableOrUnknown(
+          data['target_reps_max']!,
+          _targetRepsMaxMeta,
+        ),
+      );
+    }
+    if (data.containsKey('auto_add_sets')) {
+      context.handle(
+        _autoAddSetsMeta,
+        autoAddSets.isAcceptableOrUnknown(
+          data['auto_add_sets']!,
+          _autoAddSetsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('auto_add_sets_count')) {
+      context.handle(
+        _autoAddSetsCountMeta,
+        autoAddSetsCount.isAcceptableOrUnknown(
+          data['auto_add_sets_count']!,
+          _autoAddSetsCountMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -26727,6 +26856,30 @@ class $ExerciseProgressionsTable extends ExerciseProgressions
         DriftSqlType.bool,
         data['${effectivePrefix}enabled'],
       )!,
+      progressionModel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}progression_model'],
+      )!,
+      targetSets: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_sets'],
+      ),
+      targetRepsMin: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_reps_min'],
+      ),
+      targetRepsMax: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_reps_max'],
+      ),
+      autoAddSets: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_add_sets'],
+      )!,
+      autoAddSetsCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}auto_add_sets_count'],
+      )!,
     );
   }
 
@@ -26747,6 +26900,12 @@ class ExerciseProgressionData extends DataClass
   final String goal;
   final double weeklyIncreasePct;
   final bool enabled;
+  final String progressionModel;
+  final int? targetSets;
+  final int? targetRepsMin;
+  final int? targetRepsMax;
+  final bool autoAddSets;
+  final int autoAddSetsCount;
   const ExerciseProgressionData({
     this.syncUuid,
     this.updatedAt,
@@ -26757,6 +26916,12 @@ class ExerciseProgressionData extends DataClass
     required this.goal,
     required this.weeklyIncreasePct,
     required this.enabled,
+    required this.progressionModel,
+    this.targetSets,
+    this.targetRepsMin,
+    this.targetRepsMax,
+    required this.autoAddSets,
+    required this.autoAddSetsCount,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -26778,6 +26943,18 @@ class ExerciseProgressionData extends DataClass
     map['goal'] = Variable<String>(goal);
     map['weekly_increase_pct'] = Variable<double>(weeklyIncreasePct);
     map['enabled'] = Variable<bool>(enabled);
+    map['progression_model'] = Variable<String>(progressionModel);
+    if (!nullToAbsent || targetSets != null) {
+      map['target_sets'] = Variable<int>(targetSets);
+    }
+    if (!nullToAbsent || targetRepsMin != null) {
+      map['target_reps_min'] = Variable<int>(targetRepsMin);
+    }
+    if (!nullToAbsent || targetRepsMax != null) {
+      map['target_reps_max'] = Variable<int>(targetRepsMax);
+    }
+    map['auto_add_sets'] = Variable<bool>(autoAddSets);
+    map['auto_add_sets_count'] = Variable<int>(autoAddSetsCount);
     return map;
   }
 
@@ -26800,6 +26977,18 @@ class ExerciseProgressionData extends DataClass
       goal: Value(goal),
       weeklyIncreasePct: Value(weeklyIncreasePct),
       enabled: Value(enabled),
+      progressionModel: Value(progressionModel),
+      targetSets: targetSets == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetSets),
+      targetRepsMin: targetRepsMin == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetRepsMin),
+      targetRepsMax: targetRepsMax == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetRepsMax),
+      autoAddSets: Value(autoAddSets),
+      autoAddSetsCount: Value(autoAddSetsCount),
     );
   }
 
@@ -26818,6 +27007,12 @@ class ExerciseProgressionData extends DataClass
       goal: serializer.fromJson<String>(json['goal']),
       weeklyIncreasePct: serializer.fromJson<double>(json['weeklyIncreasePct']),
       enabled: serializer.fromJson<bool>(json['enabled']),
+      progressionModel: serializer.fromJson<String>(json['progressionModel']),
+      targetSets: serializer.fromJson<int?>(json['targetSets']),
+      targetRepsMin: serializer.fromJson<int?>(json['targetRepsMin']),
+      targetRepsMax: serializer.fromJson<int?>(json['targetRepsMax']),
+      autoAddSets: serializer.fromJson<bool>(json['autoAddSets']),
+      autoAddSetsCount: serializer.fromJson<int>(json['autoAddSetsCount']),
     );
   }
   @override
@@ -26833,6 +27028,12 @@ class ExerciseProgressionData extends DataClass
       'goal': serializer.toJson<String>(goal),
       'weeklyIncreasePct': serializer.toJson<double>(weeklyIncreasePct),
       'enabled': serializer.toJson<bool>(enabled),
+      'progressionModel': serializer.toJson<String>(progressionModel),
+      'targetSets': serializer.toJson<int?>(targetSets),
+      'targetRepsMin': serializer.toJson<int?>(targetRepsMin),
+      'targetRepsMax': serializer.toJson<int?>(targetRepsMax),
+      'autoAddSets': serializer.toJson<bool>(autoAddSets),
+      'autoAddSetsCount': serializer.toJson<int>(autoAddSetsCount),
     };
   }
 
@@ -26846,6 +27047,12 @@ class ExerciseProgressionData extends DataClass
     String? goal,
     double? weeklyIncreasePct,
     bool? enabled,
+    String? progressionModel,
+    Value<int?> targetSets = const Value.absent(),
+    Value<int?> targetRepsMin = const Value.absent(),
+    Value<int?> targetRepsMax = const Value.absent(),
+    bool? autoAddSets,
+    int? autoAddSetsCount,
   }) => ExerciseProgressionData(
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
@@ -26856,6 +27063,16 @@ class ExerciseProgressionData extends DataClass
     goal: goal ?? this.goal,
     weeklyIncreasePct: weeklyIncreasePct ?? this.weeklyIncreasePct,
     enabled: enabled ?? this.enabled,
+    progressionModel: progressionModel ?? this.progressionModel,
+    targetSets: targetSets.present ? targetSets.value : this.targetSets,
+    targetRepsMin: targetRepsMin.present
+        ? targetRepsMin.value
+        : this.targetRepsMin,
+    targetRepsMax: targetRepsMax.present
+        ? targetRepsMax.value
+        : this.targetRepsMax,
+    autoAddSets: autoAddSets ?? this.autoAddSets,
+    autoAddSetsCount: autoAddSetsCount ?? this.autoAddSetsCount,
   );
   ExerciseProgressionData copyWithCompanion(
     ExerciseProgressionsCompanion data,
@@ -26874,6 +27091,24 @@ class ExerciseProgressionData extends DataClass
           ? data.weeklyIncreasePct.value
           : this.weeklyIncreasePct,
       enabled: data.enabled.present ? data.enabled.value : this.enabled,
+      progressionModel: data.progressionModel.present
+          ? data.progressionModel.value
+          : this.progressionModel,
+      targetSets: data.targetSets.present
+          ? data.targetSets.value
+          : this.targetSets,
+      targetRepsMin: data.targetRepsMin.present
+          ? data.targetRepsMin.value
+          : this.targetRepsMin,
+      targetRepsMax: data.targetRepsMax.present
+          ? data.targetRepsMax.value
+          : this.targetRepsMax,
+      autoAddSets: data.autoAddSets.present
+          ? data.autoAddSets.value
+          : this.autoAddSets,
+      autoAddSetsCount: data.autoAddSetsCount.present
+          ? data.autoAddSetsCount.value
+          : this.autoAddSetsCount,
     );
   }
 
@@ -26888,7 +27123,13 @@ class ExerciseProgressionData extends DataClass
           ..write('exerciseId: $exerciseId, ')
           ..write('goal: $goal, ')
           ..write('weeklyIncreasePct: $weeklyIncreasePct, ')
-          ..write('enabled: $enabled')
+          ..write('enabled: $enabled, ')
+          ..write('progressionModel: $progressionModel, ')
+          ..write('targetSets: $targetSets, ')
+          ..write('targetRepsMin: $targetRepsMin, ')
+          ..write('targetRepsMax: $targetRepsMax, ')
+          ..write('autoAddSets: $autoAddSets, ')
+          ..write('autoAddSetsCount: $autoAddSetsCount')
           ..write(')'))
         .toString();
   }
@@ -26904,6 +27145,12 @@ class ExerciseProgressionData extends DataClass
     goal,
     weeklyIncreasePct,
     enabled,
+    progressionModel,
+    targetSets,
+    targetRepsMin,
+    targetRepsMax,
+    autoAddSets,
+    autoAddSetsCount,
   );
   @override
   bool operator ==(Object other) =>
@@ -26917,7 +27164,13 @@ class ExerciseProgressionData extends DataClass
           other.exerciseId == this.exerciseId &&
           other.goal == this.goal &&
           other.weeklyIncreasePct == this.weeklyIncreasePct &&
-          other.enabled == this.enabled);
+          other.enabled == this.enabled &&
+          other.progressionModel == this.progressionModel &&
+          other.targetSets == this.targetSets &&
+          other.targetRepsMin == this.targetRepsMin &&
+          other.targetRepsMax == this.targetRepsMax &&
+          other.autoAddSets == this.autoAddSets &&
+          other.autoAddSetsCount == this.autoAddSetsCount);
 }
 
 class ExerciseProgressionsCompanion
@@ -26931,6 +27184,12 @@ class ExerciseProgressionsCompanion
   final Value<String> goal;
   final Value<double> weeklyIncreasePct;
   final Value<bool> enabled;
+  final Value<String> progressionModel;
+  final Value<int?> targetSets;
+  final Value<int?> targetRepsMin;
+  final Value<int?> targetRepsMax;
+  final Value<bool> autoAddSets;
+  final Value<int> autoAddSetsCount;
   const ExerciseProgressionsCompanion({
     this.syncUuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -26941,6 +27200,12 @@ class ExerciseProgressionsCompanion
     this.goal = const Value.absent(),
     this.weeklyIncreasePct = const Value.absent(),
     this.enabled = const Value.absent(),
+    this.progressionModel = const Value.absent(),
+    this.targetSets = const Value.absent(),
+    this.targetRepsMin = const Value.absent(),
+    this.targetRepsMax = const Value.absent(),
+    this.autoAddSets = const Value.absent(),
+    this.autoAddSetsCount = const Value.absent(),
   });
   ExerciseProgressionsCompanion.insert({
     this.syncUuid = const Value.absent(),
@@ -26952,6 +27217,12 @@ class ExerciseProgressionsCompanion
     this.goal = const Value.absent(),
     this.weeklyIncreasePct = const Value.absent(),
     this.enabled = const Value.absent(),
+    this.progressionModel = const Value.absent(),
+    this.targetSets = const Value.absent(),
+    this.targetRepsMin = const Value.absent(),
+    this.targetRepsMax = const Value.absent(),
+    this.autoAddSets = const Value.absent(),
+    this.autoAddSetsCount = const Value.absent(),
   }) : exerciseId = Value(exerciseId);
   static Insertable<ExerciseProgressionData> custom({
     Expression<String>? syncUuid,
@@ -26963,6 +27234,12 @@ class ExerciseProgressionsCompanion
     Expression<String>? goal,
     Expression<double>? weeklyIncreasePct,
     Expression<bool>? enabled,
+    Expression<String>? progressionModel,
+    Expression<int>? targetSets,
+    Expression<int>? targetRepsMin,
+    Expression<int>? targetRepsMax,
+    Expression<bool>? autoAddSets,
+    Expression<int>? autoAddSetsCount,
   }) {
     return RawValuesInsertable({
       if (syncUuid != null) 'sync_uuid': syncUuid,
@@ -26974,6 +27251,12 @@ class ExerciseProgressionsCompanion
       if (goal != null) 'goal': goal,
       if (weeklyIncreasePct != null) 'weekly_increase_pct': weeklyIncreasePct,
       if (enabled != null) 'enabled': enabled,
+      if (progressionModel != null) 'progression_model': progressionModel,
+      if (targetSets != null) 'target_sets': targetSets,
+      if (targetRepsMin != null) 'target_reps_min': targetRepsMin,
+      if (targetRepsMax != null) 'target_reps_max': targetRepsMax,
+      if (autoAddSets != null) 'auto_add_sets': autoAddSets,
+      if (autoAddSetsCount != null) 'auto_add_sets_count': autoAddSetsCount,
     });
   }
 
@@ -26987,6 +27270,12 @@ class ExerciseProgressionsCompanion
     Value<String>? goal,
     Value<double>? weeklyIncreasePct,
     Value<bool>? enabled,
+    Value<String>? progressionModel,
+    Value<int?>? targetSets,
+    Value<int?>? targetRepsMin,
+    Value<int?>? targetRepsMax,
+    Value<bool>? autoAddSets,
+    Value<int>? autoAddSetsCount,
   }) {
     return ExerciseProgressionsCompanion(
       syncUuid: syncUuid ?? this.syncUuid,
@@ -26998,6 +27287,12 @@ class ExerciseProgressionsCompanion
       goal: goal ?? this.goal,
       weeklyIncreasePct: weeklyIncreasePct ?? this.weeklyIncreasePct,
       enabled: enabled ?? this.enabled,
+      progressionModel: progressionModel ?? this.progressionModel,
+      targetSets: targetSets ?? this.targetSets,
+      targetRepsMin: targetRepsMin ?? this.targetRepsMin,
+      targetRepsMax: targetRepsMax ?? this.targetRepsMax,
+      autoAddSets: autoAddSets ?? this.autoAddSets,
+      autoAddSetsCount: autoAddSetsCount ?? this.autoAddSetsCount,
     );
   }
 
@@ -27031,6 +27326,24 @@ class ExerciseProgressionsCompanion
     if (enabled.present) {
       map['enabled'] = Variable<bool>(enabled.value);
     }
+    if (progressionModel.present) {
+      map['progression_model'] = Variable<String>(progressionModel.value);
+    }
+    if (targetSets.present) {
+      map['target_sets'] = Variable<int>(targetSets.value);
+    }
+    if (targetRepsMin.present) {
+      map['target_reps_min'] = Variable<int>(targetRepsMin.value);
+    }
+    if (targetRepsMax.present) {
+      map['target_reps_max'] = Variable<int>(targetRepsMax.value);
+    }
+    if (autoAddSets.present) {
+      map['auto_add_sets'] = Variable<bool>(autoAddSets.value);
+    }
+    if (autoAddSetsCount.present) {
+      map['auto_add_sets_count'] = Variable<int>(autoAddSetsCount.value);
+    }
     return map;
   }
 
@@ -27045,7 +27358,13 @@ class ExerciseProgressionsCompanion
           ..write('exerciseId: $exerciseId, ')
           ..write('goal: $goal, ')
           ..write('weeklyIncreasePct: $weeklyIncreasePct, ')
-          ..write('enabled: $enabled')
+          ..write('enabled: $enabled, ')
+          ..write('progressionModel: $progressionModel, ')
+          ..write('targetSets: $targetSets, ')
+          ..write('targetRepsMin: $targetRepsMin, ')
+          ..write('targetRepsMax: $targetRepsMax, ')
+          ..write('autoAddSets: $autoAddSets, ')
+          ..write('autoAddSetsCount: $autoAddSetsCount')
           ..write(')'))
         .toString();
   }
@@ -29721,1762 +30040,6 @@ class SyncCursorsCompanion extends UpdateCompanion<SyncCursorData> {
           ..write('entityType: $entityType, ')
           ..write('cursorIso: $cursorIso, ')
           ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $RepTrackingSettingsTable extends RepTrackingSettings
-    with TableInfo<$RepTrackingSettingsTable, RepTrackingSettingData> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $RepTrackingSettingsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _consentGrantedAtMeta = const VerificationMeta(
-    'consentGrantedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> consentGrantedAt =
-      GeneratedColumn<DateTime>(
-        'consent_granted_at',
-        aliasedName,
-        true,
-        type: DriftSqlType.dateTime,
-        requiredDuringInsert: false,
-      );
-  static const VerificationMeta _consentVersionMeta = const VerificationMeta(
-    'consentVersion',
-  );
-  @override
-  late final GeneratedColumn<int> consentVersion = GeneratedColumn<int>(
-    'consent_version',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(1),
-  );
-  static const VerificationMeta _defaultSourceMeta = const VerificationMeta(
-    'defaultSource',
-  );
-  @override
-  late final GeneratedColumn<String> defaultSource = GeneratedColumn<String>(
-    'default_source',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _phonePlacementMeta = const VerificationMeta(
-    'phonePlacement',
-  );
-  @override
-  late final GeneratedColumn<String> phonePlacement = GeneratedColumn<String>(
-    'phone_placement',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _hapticsEnabledMeta = const VerificationMeta(
-    'hapticsEnabled',
-  );
-  @override
-  late final GeneratedColumn<bool> hapticsEnabled = GeneratedColumn<bool>(
-    'haptics_enabled',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("haptics_enabled" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  static const VerificationMeta _autoCountEnabledMeta = const VerificationMeta(
-    'autoCountEnabled',
-  );
-  @override
-  late final GeneratedColumn<bool> autoCountEnabled = GeneratedColumn<bool>(
-    'auto_count_enabled',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("auto_count_enabled" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    consentGrantedAt,
-    consentVersion,
-    defaultSource,
-    phonePlacement,
-    hapticsEnabled,
-    autoCountEnabled,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'rep_tracking_settings';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<RepTrackingSettingData> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('consent_granted_at')) {
-      context.handle(
-        _consentGrantedAtMeta,
-        consentGrantedAt.isAcceptableOrUnknown(
-          data['consent_granted_at']!,
-          _consentGrantedAtMeta,
-        ),
-      );
-    }
-    if (data.containsKey('consent_version')) {
-      context.handle(
-        _consentVersionMeta,
-        consentVersion.isAcceptableOrUnknown(
-          data['consent_version']!,
-          _consentVersionMeta,
-        ),
-      );
-    }
-    if (data.containsKey('default_source')) {
-      context.handle(
-        _defaultSourceMeta,
-        defaultSource.isAcceptableOrUnknown(
-          data['default_source']!,
-          _defaultSourceMeta,
-        ),
-      );
-    }
-    if (data.containsKey('phone_placement')) {
-      context.handle(
-        _phonePlacementMeta,
-        phonePlacement.isAcceptableOrUnknown(
-          data['phone_placement']!,
-          _phonePlacementMeta,
-        ),
-      );
-    }
-    if (data.containsKey('haptics_enabled')) {
-      context.handle(
-        _hapticsEnabledMeta,
-        hapticsEnabled.isAcceptableOrUnknown(
-          data['haptics_enabled']!,
-          _hapticsEnabledMeta,
-        ),
-      );
-    }
-    if (data.containsKey('auto_count_enabled')) {
-      context.handle(
-        _autoCountEnabledMeta,
-        autoCountEnabled.isAcceptableOrUnknown(
-          data['auto_count_enabled']!,
-          _autoCountEnabledMeta,
-        ),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  RepTrackingSettingData map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return RepTrackingSettingData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      consentGrantedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}consent_granted_at'],
-      ),
-      consentVersion: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}consent_version'],
-      )!,
-      defaultSource: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}default_source'],
-      ),
-      phonePlacement: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}phone_placement'],
-      ),
-      hapticsEnabled: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}haptics_enabled'],
-      )!,
-      autoCountEnabled: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}auto_count_enabled'],
-      )!,
-    );
-  }
-
-  @override
-  $RepTrackingSettingsTable createAlias(String alias) {
-    return $RepTrackingSettingsTable(attachedDatabase, alias);
-  }
-}
-
-class RepTrackingSettingData extends DataClass
-    implements Insertable<RepTrackingSettingData> {
-  final int id;
-
-  /// Null ⇒ consent screen not completed. The single authority for whether
-  /// the tracker may run at all.
-  final DateTime? consentGrantedAt;
-
-  /// Bumping this in code forces re-consent when data handling changes.
-  final int consentVersion;
-
-  /// wrist | phone
-  final String? defaultSource;
-
-  /// pocket_front | armband | null. Must be non-null before the phone source
-  /// is usable (REP-02).
-  final String? phonePlacement;
-  final bool hapticsEnabled;
-
-  /// The single global switch (v30).
-  ///
-  /// Replaces per-exercise opt-in as the thing that turns tracking on.
-  /// Eligibility is now a property of the exercise — derived from
-  /// `assets/data/rep_tracking_profiles.json`, which covers the whole
-  /// catalogue — so asking the user to opt in exercise by exercise was asking
-  /// them to re-derive physics the app already knows.
-  ///
-  /// Defaults to false, and consent still gates it: this switch is only
-  /// reachable once the consent screen has been completed, and turning it on
-  /// can never bypass `consentGrantedAt`.
-  final bool autoCountEnabled;
-  const RepTrackingSettingData({
-    required this.id,
-    this.consentGrantedAt,
-    required this.consentVersion,
-    this.defaultSource,
-    this.phonePlacement,
-    required this.hapticsEnabled,
-    required this.autoCountEnabled,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    if (!nullToAbsent || consentGrantedAt != null) {
-      map['consent_granted_at'] = Variable<DateTime>(consentGrantedAt);
-    }
-    map['consent_version'] = Variable<int>(consentVersion);
-    if (!nullToAbsent || defaultSource != null) {
-      map['default_source'] = Variable<String>(defaultSource);
-    }
-    if (!nullToAbsent || phonePlacement != null) {
-      map['phone_placement'] = Variable<String>(phonePlacement);
-    }
-    map['haptics_enabled'] = Variable<bool>(hapticsEnabled);
-    map['auto_count_enabled'] = Variable<bool>(autoCountEnabled);
-    return map;
-  }
-
-  RepTrackingSettingsCompanion toCompanion(bool nullToAbsent) {
-    return RepTrackingSettingsCompanion(
-      id: Value(id),
-      consentGrantedAt: consentGrantedAt == null && nullToAbsent
-          ? const Value.absent()
-          : Value(consentGrantedAt),
-      consentVersion: Value(consentVersion),
-      defaultSource: defaultSource == null && nullToAbsent
-          ? const Value.absent()
-          : Value(defaultSource),
-      phonePlacement: phonePlacement == null && nullToAbsent
-          ? const Value.absent()
-          : Value(phonePlacement),
-      hapticsEnabled: Value(hapticsEnabled),
-      autoCountEnabled: Value(autoCountEnabled),
-    );
-  }
-
-  factory RepTrackingSettingData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return RepTrackingSettingData(
-      id: serializer.fromJson<int>(json['id']),
-      consentGrantedAt: serializer.fromJson<DateTime?>(
-        json['consentGrantedAt'],
-      ),
-      consentVersion: serializer.fromJson<int>(json['consentVersion']),
-      defaultSource: serializer.fromJson<String?>(json['defaultSource']),
-      phonePlacement: serializer.fromJson<String?>(json['phonePlacement']),
-      hapticsEnabled: serializer.fromJson<bool>(json['hapticsEnabled']),
-      autoCountEnabled: serializer.fromJson<bool>(json['autoCountEnabled']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'consentGrantedAt': serializer.toJson<DateTime?>(consentGrantedAt),
-      'consentVersion': serializer.toJson<int>(consentVersion),
-      'defaultSource': serializer.toJson<String?>(defaultSource),
-      'phonePlacement': serializer.toJson<String?>(phonePlacement),
-      'hapticsEnabled': serializer.toJson<bool>(hapticsEnabled),
-      'autoCountEnabled': serializer.toJson<bool>(autoCountEnabled),
-    };
-  }
-
-  RepTrackingSettingData copyWith({
-    int? id,
-    Value<DateTime?> consentGrantedAt = const Value.absent(),
-    int? consentVersion,
-    Value<String?> defaultSource = const Value.absent(),
-    Value<String?> phonePlacement = const Value.absent(),
-    bool? hapticsEnabled,
-    bool? autoCountEnabled,
-  }) => RepTrackingSettingData(
-    id: id ?? this.id,
-    consentGrantedAt: consentGrantedAt.present
-        ? consentGrantedAt.value
-        : this.consentGrantedAt,
-    consentVersion: consentVersion ?? this.consentVersion,
-    defaultSource: defaultSource.present
-        ? defaultSource.value
-        : this.defaultSource,
-    phonePlacement: phonePlacement.present
-        ? phonePlacement.value
-        : this.phonePlacement,
-    hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
-    autoCountEnabled: autoCountEnabled ?? this.autoCountEnabled,
-  );
-  RepTrackingSettingData copyWithCompanion(RepTrackingSettingsCompanion data) {
-    return RepTrackingSettingData(
-      id: data.id.present ? data.id.value : this.id,
-      consentGrantedAt: data.consentGrantedAt.present
-          ? data.consentGrantedAt.value
-          : this.consentGrantedAt,
-      consentVersion: data.consentVersion.present
-          ? data.consentVersion.value
-          : this.consentVersion,
-      defaultSource: data.defaultSource.present
-          ? data.defaultSource.value
-          : this.defaultSource,
-      phonePlacement: data.phonePlacement.present
-          ? data.phonePlacement.value
-          : this.phonePlacement,
-      hapticsEnabled: data.hapticsEnabled.present
-          ? data.hapticsEnabled.value
-          : this.hapticsEnabled,
-      autoCountEnabled: data.autoCountEnabled.present
-          ? data.autoCountEnabled.value
-          : this.autoCountEnabled,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('RepTrackingSettingData(')
-          ..write('id: $id, ')
-          ..write('consentGrantedAt: $consentGrantedAt, ')
-          ..write('consentVersion: $consentVersion, ')
-          ..write('defaultSource: $defaultSource, ')
-          ..write('phonePlacement: $phonePlacement, ')
-          ..write('hapticsEnabled: $hapticsEnabled, ')
-          ..write('autoCountEnabled: $autoCountEnabled')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    consentGrantedAt,
-    consentVersion,
-    defaultSource,
-    phonePlacement,
-    hapticsEnabled,
-    autoCountEnabled,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is RepTrackingSettingData &&
-          other.id == this.id &&
-          other.consentGrantedAt == this.consentGrantedAt &&
-          other.consentVersion == this.consentVersion &&
-          other.defaultSource == this.defaultSource &&
-          other.phonePlacement == this.phonePlacement &&
-          other.hapticsEnabled == this.hapticsEnabled &&
-          other.autoCountEnabled == this.autoCountEnabled);
-}
-
-class RepTrackingSettingsCompanion
-    extends UpdateCompanion<RepTrackingSettingData> {
-  final Value<int> id;
-  final Value<DateTime?> consentGrantedAt;
-  final Value<int> consentVersion;
-  final Value<String?> defaultSource;
-  final Value<String?> phonePlacement;
-  final Value<bool> hapticsEnabled;
-  final Value<bool> autoCountEnabled;
-  const RepTrackingSettingsCompanion({
-    this.id = const Value.absent(),
-    this.consentGrantedAt = const Value.absent(),
-    this.consentVersion = const Value.absent(),
-    this.defaultSource = const Value.absent(),
-    this.phonePlacement = const Value.absent(),
-    this.hapticsEnabled = const Value.absent(),
-    this.autoCountEnabled = const Value.absent(),
-  });
-  RepTrackingSettingsCompanion.insert({
-    this.id = const Value.absent(),
-    this.consentGrantedAt = const Value.absent(),
-    this.consentVersion = const Value.absent(),
-    this.defaultSource = const Value.absent(),
-    this.phonePlacement = const Value.absent(),
-    this.hapticsEnabled = const Value.absent(),
-    this.autoCountEnabled = const Value.absent(),
-  });
-  static Insertable<RepTrackingSettingData> custom({
-    Expression<int>? id,
-    Expression<DateTime>? consentGrantedAt,
-    Expression<int>? consentVersion,
-    Expression<String>? defaultSource,
-    Expression<String>? phonePlacement,
-    Expression<bool>? hapticsEnabled,
-    Expression<bool>? autoCountEnabled,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (consentGrantedAt != null) 'consent_granted_at': consentGrantedAt,
-      if (consentVersion != null) 'consent_version': consentVersion,
-      if (defaultSource != null) 'default_source': defaultSource,
-      if (phonePlacement != null) 'phone_placement': phonePlacement,
-      if (hapticsEnabled != null) 'haptics_enabled': hapticsEnabled,
-      if (autoCountEnabled != null) 'auto_count_enabled': autoCountEnabled,
-    });
-  }
-
-  RepTrackingSettingsCompanion copyWith({
-    Value<int>? id,
-    Value<DateTime?>? consentGrantedAt,
-    Value<int>? consentVersion,
-    Value<String?>? defaultSource,
-    Value<String?>? phonePlacement,
-    Value<bool>? hapticsEnabled,
-    Value<bool>? autoCountEnabled,
-  }) {
-    return RepTrackingSettingsCompanion(
-      id: id ?? this.id,
-      consentGrantedAt: consentGrantedAt ?? this.consentGrantedAt,
-      consentVersion: consentVersion ?? this.consentVersion,
-      defaultSource: defaultSource ?? this.defaultSource,
-      phonePlacement: phonePlacement ?? this.phonePlacement,
-      hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
-      autoCountEnabled: autoCountEnabled ?? this.autoCountEnabled,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (consentGrantedAt.present) {
-      map['consent_granted_at'] = Variable<DateTime>(consentGrantedAt.value);
-    }
-    if (consentVersion.present) {
-      map['consent_version'] = Variable<int>(consentVersion.value);
-    }
-    if (defaultSource.present) {
-      map['default_source'] = Variable<String>(defaultSource.value);
-    }
-    if (phonePlacement.present) {
-      map['phone_placement'] = Variable<String>(phonePlacement.value);
-    }
-    if (hapticsEnabled.present) {
-      map['haptics_enabled'] = Variable<bool>(hapticsEnabled.value);
-    }
-    if (autoCountEnabled.present) {
-      map['auto_count_enabled'] = Variable<bool>(autoCountEnabled.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('RepTrackingSettingsCompanion(')
-          ..write('id: $id, ')
-          ..write('consentGrantedAt: $consentGrantedAt, ')
-          ..write('consentVersion: $consentVersion, ')
-          ..write('defaultSource: $defaultSource, ')
-          ..write('phonePlacement: $phonePlacement, ')
-          ..write('hapticsEnabled: $hapticsEnabled, ')
-          ..write('autoCountEnabled: $autoCountEnabled')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $RepTrackingExercisePrefsTable extends RepTrackingExercisePrefs
-    with
-        TableInfo<$RepTrackingExercisePrefsTable, RepTrackingExercisePrefData> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $RepTrackingExercisePrefsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _exerciseSlugMeta = const VerificationMeta(
-    'exerciseSlug',
-  );
-  @override
-  late final GeneratedColumn<String> exerciseSlug = GeneratedColumn<String>(
-    'exercise_slug',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _enabledMeta = const VerificationMeta(
-    'enabled',
-  );
-  @override
-  late final GeneratedColumn<bool> enabled = GeneratedColumn<bool>(
-    'enabled',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("enabled" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _preferredSourceMeta = const VerificationMeta(
-    'preferredSource',
-  );
-  @override
-  late final GeneratedColumn<String> preferredSource = GeneratedColumn<String>(
-    'preferred_source',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    exerciseSlug,
-    enabled,
-    preferredSource,
-    updatedAt,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'rep_tracking_exercise_prefs';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<RepTrackingExercisePrefData> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('exercise_slug')) {
-      context.handle(
-        _exerciseSlugMeta,
-        exerciseSlug.isAcceptableOrUnknown(
-          data['exercise_slug']!,
-          _exerciseSlugMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_exerciseSlugMeta);
-    }
-    if (data.containsKey('enabled')) {
-      context.handle(
-        _enabledMeta,
-        enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta),
-      );
-    }
-    if (data.containsKey('preferred_source')) {
-      context.handle(
-        _preferredSourceMeta,
-        preferredSource.isAcceptableOrUnknown(
-          data['preferred_source']!,
-          _preferredSourceMeta,
-        ),
-      );
-    }
-    if (data.containsKey('updated_at')) {
-      context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_updatedAtMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  List<Set<GeneratedColumn>> get uniqueKeys => [
-    {exerciseSlug},
-  ];
-  @override
-  RepTrackingExercisePrefData map(
-    Map<String, dynamic> data, {
-    String? tablePrefix,
-  }) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return RepTrackingExercisePrefData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      exerciseSlug: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}exercise_slug'],
-      )!,
-      enabled: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}enabled'],
-      )!,
-      preferredSource: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}preferred_source'],
-      ),
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
-      )!,
-    );
-  }
-
-  @override
-  $RepTrackingExercisePrefsTable createAlias(String alias) {
-    return $RepTrackingExercisePrefsTable(attachedDatabase, alias);
-  }
-}
-
-class RepTrackingExercisePrefData extends DataClass
-    implements Insertable<RepTrackingExercisePrefData> {
-  final int id;
-  final String exerciseSlug;
-  final bool enabled;
-
-  /// wrist | phone. Null ⇒ fall back to [RepTrackingSettings.defaultSource].
-  final String? preferredSource;
-  final DateTime updatedAt;
-  const RepTrackingExercisePrefData({
-    required this.id,
-    required this.exerciseSlug,
-    required this.enabled,
-    this.preferredSource,
-    required this.updatedAt,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['exercise_slug'] = Variable<String>(exerciseSlug);
-    map['enabled'] = Variable<bool>(enabled);
-    if (!nullToAbsent || preferredSource != null) {
-      map['preferred_source'] = Variable<String>(preferredSource);
-    }
-    map['updated_at'] = Variable<DateTime>(updatedAt);
-    return map;
-  }
-
-  RepTrackingExercisePrefsCompanion toCompanion(bool nullToAbsent) {
-    return RepTrackingExercisePrefsCompanion(
-      id: Value(id),
-      exerciseSlug: Value(exerciseSlug),
-      enabled: Value(enabled),
-      preferredSource: preferredSource == null && nullToAbsent
-          ? const Value.absent()
-          : Value(preferredSource),
-      updatedAt: Value(updatedAt),
-    );
-  }
-
-  factory RepTrackingExercisePrefData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return RepTrackingExercisePrefData(
-      id: serializer.fromJson<int>(json['id']),
-      exerciseSlug: serializer.fromJson<String>(json['exerciseSlug']),
-      enabled: serializer.fromJson<bool>(json['enabled']),
-      preferredSource: serializer.fromJson<String?>(json['preferredSource']),
-      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'exerciseSlug': serializer.toJson<String>(exerciseSlug),
-      'enabled': serializer.toJson<bool>(enabled),
-      'preferredSource': serializer.toJson<String?>(preferredSource),
-      'updatedAt': serializer.toJson<DateTime>(updatedAt),
-    };
-  }
-
-  RepTrackingExercisePrefData copyWith({
-    int? id,
-    String? exerciseSlug,
-    bool? enabled,
-    Value<String?> preferredSource = const Value.absent(),
-    DateTime? updatedAt,
-  }) => RepTrackingExercisePrefData(
-    id: id ?? this.id,
-    exerciseSlug: exerciseSlug ?? this.exerciseSlug,
-    enabled: enabled ?? this.enabled,
-    preferredSource: preferredSource.present
-        ? preferredSource.value
-        : this.preferredSource,
-    updatedAt: updatedAt ?? this.updatedAt,
-  );
-  RepTrackingExercisePrefData copyWithCompanion(
-    RepTrackingExercisePrefsCompanion data,
-  ) {
-    return RepTrackingExercisePrefData(
-      id: data.id.present ? data.id.value : this.id,
-      exerciseSlug: data.exerciseSlug.present
-          ? data.exerciseSlug.value
-          : this.exerciseSlug,
-      enabled: data.enabled.present ? data.enabled.value : this.enabled,
-      preferredSource: data.preferredSource.present
-          ? data.preferredSource.value
-          : this.preferredSource,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('RepTrackingExercisePrefData(')
-          ..write('id: $id, ')
-          ..write('exerciseSlug: $exerciseSlug, ')
-          ..write('enabled: $enabled, ')
-          ..write('preferredSource: $preferredSource, ')
-          ..write('updatedAt: $updatedAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(id, exerciseSlug, enabled, preferredSource, updatedAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is RepTrackingExercisePrefData &&
-          other.id == this.id &&
-          other.exerciseSlug == this.exerciseSlug &&
-          other.enabled == this.enabled &&
-          other.preferredSource == this.preferredSource &&
-          other.updatedAt == this.updatedAt);
-}
-
-class RepTrackingExercisePrefsCompanion
-    extends UpdateCompanion<RepTrackingExercisePrefData> {
-  final Value<int> id;
-  final Value<String> exerciseSlug;
-  final Value<bool> enabled;
-  final Value<String?> preferredSource;
-  final Value<DateTime> updatedAt;
-  const RepTrackingExercisePrefsCompanion({
-    this.id = const Value.absent(),
-    this.exerciseSlug = const Value.absent(),
-    this.enabled = const Value.absent(),
-    this.preferredSource = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-  });
-  RepTrackingExercisePrefsCompanion.insert({
-    this.id = const Value.absent(),
-    required String exerciseSlug,
-    this.enabled = const Value.absent(),
-    this.preferredSource = const Value.absent(),
-    required DateTime updatedAt,
-  }) : exerciseSlug = Value(exerciseSlug),
-       updatedAt = Value(updatedAt);
-  static Insertable<RepTrackingExercisePrefData> custom({
-    Expression<int>? id,
-    Expression<String>? exerciseSlug,
-    Expression<bool>? enabled,
-    Expression<String>? preferredSource,
-    Expression<DateTime>? updatedAt,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (exerciseSlug != null) 'exercise_slug': exerciseSlug,
-      if (enabled != null) 'enabled': enabled,
-      if (preferredSource != null) 'preferred_source': preferredSource,
-      if (updatedAt != null) 'updated_at': updatedAt,
-    });
-  }
-
-  RepTrackingExercisePrefsCompanion copyWith({
-    Value<int>? id,
-    Value<String>? exerciseSlug,
-    Value<bool>? enabled,
-    Value<String?>? preferredSource,
-    Value<DateTime>? updatedAt,
-  }) {
-    return RepTrackingExercisePrefsCompanion(
-      id: id ?? this.id,
-      exerciseSlug: exerciseSlug ?? this.exerciseSlug,
-      enabled: enabled ?? this.enabled,
-      preferredSource: preferredSource ?? this.preferredSource,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (exerciseSlug.present) {
-      map['exercise_slug'] = Variable<String>(exerciseSlug.value);
-    }
-    if (enabled.present) {
-      map['enabled'] = Variable<bool>(enabled.value);
-    }
-    if (preferredSource.present) {
-      map['preferred_source'] = Variable<String>(preferredSource.value);
-    }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<DateTime>(updatedAt.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('RepTrackingExercisePrefsCompanion(')
-          ..write('id: $id, ')
-          ..write('exerciseSlug: $exerciseSlug, ')
-          ..write('enabled: $enabled, ')
-          ..write('preferredSource: $preferredSource, ')
-          ..write('updatedAt: $updatedAt')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $RepSetObservationsTable extends RepSetObservations
-    with TableInfo<$RepSetObservationsTable, RepSetObservationData> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $RepSetObservationsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _exerciseSlugMeta = const VerificationMeta(
-    'exerciseSlug',
-  );
-  @override
-  late final GeneratedColumn<String> exerciseSlug = GeneratedColumn<String>(
-    'exercise_slug',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
-    'sessionId',
-  );
-  @override
-  late final GeneratedColumn<int> sessionId = GeneratedColumn<int>(
-    'session_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _setEntryIdMeta = const VerificationMeta(
-    'setEntryId',
-  );
-  @override
-  late final GeneratedColumn<int> setEntryId = GeneratedColumn<int>(
-    'set_entry_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _recordedAtMeta = const VerificationMeta(
-    'recordedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> recordedAt = GeneratedColumn<DateTime>(
-    'recorded_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
-  @override
-  late final GeneratedColumn<String> source = GeneratedColumn<String>(
-    'source',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _placementMeta = const VerificationMeta(
-    'placement',
-  );
-  @override
-  late final GeneratedColumn<String> placement = GeneratedColumn<String>(
-    'placement',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _sensorTypeMeta = const VerificationMeta(
-    'sensorType',
-  );
-  @override
-  late final GeneratedColumn<String> sensorType = GeneratedColumn<String>(
-    'sensor_type',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _detectedRepsMeta = const VerificationMeta(
-    'detectedReps',
-  );
-  @override
-  late final GeneratedColumn<int> detectedReps = GeneratedColumn<int>(
-    'detected_reps',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _confirmedRepsMeta = const VerificationMeta(
-    'confirmedReps',
-  );
-  @override
-  late final GeneratedColumn<int> confirmedReps = GeneratedColumn<int>(
-    'confirmed_reps',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _confidenceMeta = const VerificationMeta(
-    'confidence',
-  );
-  @override
-  late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
-    'confidence',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _suggestedRpeX10Meta = const VerificationMeta(
-    'suggestedRpeX10',
-  );
-  @override
-  late final GeneratedColumn<int> suggestedRpeX10 = GeneratedColumn<int>(
-    'suggested_rpe_x10',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _confirmedRpeX10Meta = const VerificationMeta(
-    'confirmedRpeX10',
-  );
-  @override
-  late final GeneratedColumn<int> confirmedRpeX10 = GeneratedColumn<int>(
-    'confirmed_rpe_x10',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _featuresJsonMeta = const VerificationMeta(
-    'featuresJson',
-  );
-  @override
-  late final GeneratedColumn<String> featuresJson = GeneratedColumn<String>(
-    'features_json',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    exerciseSlug,
-    sessionId,
-    setEntryId,
-    recordedAt,
-    source,
-    placement,
-    sensorType,
-    detectedReps,
-    confirmedReps,
-    confidence,
-    suggestedRpeX10,
-    confirmedRpeX10,
-    featuresJson,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'rep_set_observations';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<RepSetObservationData> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('exercise_slug')) {
-      context.handle(
-        _exerciseSlugMeta,
-        exerciseSlug.isAcceptableOrUnknown(
-          data['exercise_slug']!,
-          _exerciseSlugMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_exerciseSlugMeta);
-    }
-    if (data.containsKey('session_id')) {
-      context.handle(
-        _sessionIdMeta,
-        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_sessionIdMeta);
-    }
-    if (data.containsKey('set_entry_id')) {
-      context.handle(
-        _setEntryIdMeta,
-        setEntryId.isAcceptableOrUnknown(
-          data['set_entry_id']!,
-          _setEntryIdMeta,
-        ),
-      );
-    }
-    if (data.containsKey('recorded_at')) {
-      context.handle(
-        _recordedAtMeta,
-        recordedAt.isAcceptableOrUnknown(data['recorded_at']!, _recordedAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_recordedAtMeta);
-    }
-    if (data.containsKey('source')) {
-      context.handle(
-        _sourceMeta,
-        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_sourceMeta);
-    }
-    if (data.containsKey('placement')) {
-      context.handle(
-        _placementMeta,
-        placement.isAcceptableOrUnknown(data['placement']!, _placementMeta),
-      );
-    }
-    if (data.containsKey('sensor_type')) {
-      context.handle(
-        _sensorTypeMeta,
-        sensorType.isAcceptableOrUnknown(data['sensor_type']!, _sensorTypeMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_sensorTypeMeta);
-    }
-    if (data.containsKey('detected_reps')) {
-      context.handle(
-        _detectedRepsMeta,
-        detectedReps.isAcceptableOrUnknown(
-          data['detected_reps']!,
-          _detectedRepsMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_detectedRepsMeta);
-    }
-    if (data.containsKey('confirmed_reps')) {
-      context.handle(
-        _confirmedRepsMeta,
-        confirmedReps.isAcceptableOrUnknown(
-          data['confirmed_reps']!,
-          _confirmedRepsMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_confirmedRepsMeta);
-    }
-    if (data.containsKey('confidence')) {
-      context.handle(
-        _confidenceMeta,
-        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_confidenceMeta);
-    }
-    if (data.containsKey('suggested_rpe_x10')) {
-      context.handle(
-        _suggestedRpeX10Meta,
-        suggestedRpeX10.isAcceptableOrUnknown(
-          data['suggested_rpe_x10']!,
-          _suggestedRpeX10Meta,
-        ),
-      );
-    }
-    if (data.containsKey('confirmed_rpe_x10')) {
-      context.handle(
-        _confirmedRpeX10Meta,
-        confirmedRpeX10.isAcceptableOrUnknown(
-          data['confirmed_rpe_x10']!,
-          _confirmedRpeX10Meta,
-        ),
-      );
-    }
-    if (data.containsKey('features_json')) {
-      context.handle(
-        _featuresJsonMeta,
-        featuresJson.isAcceptableOrUnknown(
-          data['features_json']!,
-          _featuresJsonMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_featuresJsonMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  RepSetObservationData map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return RepSetObservationData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      exerciseSlug: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}exercise_slug'],
-      )!,
-      sessionId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}session_id'],
-      )!,
-      setEntryId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}set_entry_id'],
-      ),
-      recordedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}recorded_at'],
-      )!,
-      source: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}source'],
-      )!,
-      placement: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}placement'],
-      ),
-      sensorType: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}sensor_type'],
-      )!,
-      detectedReps: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}detected_reps'],
-      )!,
-      confirmedReps: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}confirmed_reps'],
-      )!,
-      confidence: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}confidence'],
-      )!,
-      suggestedRpeX10: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}suggested_rpe_x10'],
-      ),
-      confirmedRpeX10: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}confirmed_rpe_x10'],
-      ),
-      featuresJson: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}features_json'],
-      )!,
-    );
-  }
-
-  @override
-  $RepSetObservationsTable createAlias(String alias) {
-    return $RepSetObservationsTable(attachedDatabase, alias);
-  }
-}
-
-class RepSetObservationData extends DataClass
-    implements Insertable<RepSetObservationData> {
-  final int id;
-  final String exerciseSlug;
-  final int sessionId;
-
-  /// Deliberately a plain nullable int and **not** a `references(...)` edge:
-  /// a discarded set must leave no dangling FK, and these rows must survive
-  /// set deletion so calibration history stays continuous.
-  final int? setEntryId;
-  final DateTime recordedAt;
-
-  /// wrist | phone
-  final String source;
-
-  /// pocket_front | armband | null (wrist source).
-  final String? placement;
-
-  /// linear_acceleration | accelerometer. Recorded because the two are not
-  /// interchangeable for calibration — a profile must not mix them.
-  final String sensorType;
-  final int detectedReps;
-  final int confirmedReps;
-
-  /// 0–1.
-  final double confidence;
-  final int? suggestedRpeX10;
-  final int? confirmedRpeX10;
-
-  /// The derived feature vector; its schema is owned by 10-02.
-  final String featuresJson;
-  const RepSetObservationData({
-    required this.id,
-    required this.exerciseSlug,
-    required this.sessionId,
-    this.setEntryId,
-    required this.recordedAt,
-    required this.source,
-    this.placement,
-    required this.sensorType,
-    required this.detectedReps,
-    required this.confirmedReps,
-    required this.confidence,
-    this.suggestedRpeX10,
-    this.confirmedRpeX10,
-    required this.featuresJson,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['exercise_slug'] = Variable<String>(exerciseSlug);
-    map['session_id'] = Variable<int>(sessionId);
-    if (!nullToAbsent || setEntryId != null) {
-      map['set_entry_id'] = Variable<int>(setEntryId);
-    }
-    map['recorded_at'] = Variable<DateTime>(recordedAt);
-    map['source'] = Variable<String>(source);
-    if (!nullToAbsent || placement != null) {
-      map['placement'] = Variable<String>(placement);
-    }
-    map['sensor_type'] = Variable<String>(sensorType);
-    map['detected_reps'] = Variable<int>(detectedReps);
-    map['confirmed_reps'] = Variable<int>(confirmedReps);
-    map['confidence'] = Variable<double>(confidence);
-    if (!nullToAbsent || suggestedRpeX10 != null) {
-      map['suggested_rpe_x10'] = Variable<int>(suggestedRpeX10);
-    }
-    if (!nullToAbsent || confirmedRpeX10 != null) {
-      map['confirmed_rpe_x10'] = Variable<int>(confirmedRpeX10);
-    }
-    map['features_json'] = Variable<String>(featuresJson);
-    return map;
-  }
-
-  RepSetObservationsCompanion toCompanion(bool nullToAbsent) {
-    return RepSetObservationsCompanion(
-      id: Value(id),
-      exerciseSlug: Value(exerciseSlug),
-      sessionId: Value(sessionId),
-      setEntryId: setEntryId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(setEntryId),
-      recordedAt: Value(recordedAt),
-      source: Value(source),
-      placement: placement == null && nullToAbsent
-          ? const Value.absent()
-          : Value(placement),
-      sensorType: Value(sensorType),
-      detectedReps: Value(detectedReps),
-      confirmedReps: Value(confirmedReps),
-      confidence: Value(confidence),
-      suggestedRpeX10: suggestedRpeX10 == null && nullToAbsent
-          ? const Value.absent()
-          : Value(suggestedRpeX10),
-      confirmedRpeX10: confirmedRpeX10 == null && nullToAbsent
-          ? const Value.absent()
-          : Value(confirmedRpeX10),
-      featuresJson: Value(featuresJson),
-    );
-  }
-
-  factory RepSetObservationData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return RepSetObservationData(
-      id: serializer.fromJson<int>(json['id']),
-      exerciseSlug: serializer.fromJson<String>(json['exerciseSlug']),
-      sessionId: serializer.fromJson<int>(json['sessionId']),
-      setEntryId: serializer.fromJson<int?>(json['setEntryId']),
-      recordedAt: serializer.fromJson<DateTime>(json['recordedAt']),
-      source: serializer.fromJson<String>(json['source']),
-      placement: serializer.fromJson<String?>(json['placement']),
-      sensorType: serializer.fromJson<String>(json['sensorType']),
-      detectedReps: serializer.fromJson<int>(json['detectedReps']),
-      confirmedReps: serializer.fromJson<int>(json['confirmedReps']),
-      confidence: serializer.fromJson<double>(json['confidence']),
-      suggestedRpeX10: serializer.fromJson<int?>(json['suggestedRpeX10']),
-      confirmedRpeX10: serializer.fromJson<int?>(json['confirmedRpeX10']),
-      featuresJson: serializer.fromJson<String>(json['featuresJson']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'exerciseSlug': serializer.toJson<String>(exerciseSlug),
-      'sessionId': serializer.toJson<int>(sessionId),
-      'setEntryId': serializer.toJson<int?>(setEntryId),
-      'recordedAt': serializer.toJson<DateTime>(recordedAt),
-      'source': serializer.toJson<String>(source),
-      'placement': serializer.toJson<String?>(placement),
-      'sensorType': serializer.toJson<String>(sensorType),
-      'detectedReps': serializer.toJson<int>(detectedReps),
-      'confirmedReps': serializer.toJson<int>(confirmedReps),
-      'confidence': serializer.toJson<double>(confidence),
-      'suggestedRpeX10': serializer.toJson<int?>(suggestedRpeX10),
-      'confirmedRpeX10': serializer.toJson<int?>(confirmedRpeX10),
-      'featuresJson': serializer.toJson<String>(featuresJson),
-    };
-  }
-
-  RepSetObservationData copyWith({
-    int? id,
-    String? exerciseSlug,
-    int? sessionId,
-    Value<int?> setEntryId = const Value.absent(),
-    DateTime? recordedAt,
-    String? source,
-    Value<String?> placement = const Value.absent(),
-    String? sensorType,
-    int? detectedReps,
-    int? confirmedReps,
-    double? confidence,
-    Value<int?> suggestedRpeX10 = const Value.absent(),
-    Value<int?> confirmedRpeX10 = const Value.absent(),
-    String? featuresJson,
-  }) => RepSetObservationData(
-    id: id ?? this.id,
-    exerciseSlug: exerciseSlug ?? this.exerciseSlug,
-    sessionId: sessionId ?? this.sessionId,
-    setEntryId: setEntryId.present ? setEntryId.value : this.setEntryId,
-    recordedAt: recordedAt ?? this.recordedAt,
-    source: source ?? this.source,
-    placement: placement.present ? placement.value : this.placement,
-    sensorType: sensorType ?? this.sensorType,
-    detectedReps: detectedReps ?? this.detectedReps,
-    confirmedReps: confirmedReps ?? this.confirmedReps,
-    confidence: confidence ?? this.confidence,
-    suggestedRpeX10: suggestedRpeX10.present
-        ? suggestedRpeX10.value
-        : this.suggestedRpeX10,
-    confirmedRpeX10: confirmedRpeX10.present
-        ? confirmedRpeX10.value
-        : this.confirmedRpeX10,
-    featuresJson: featuresJson ?? this.featuresJson,
-  );
-  RepSetObservationData copyWithCompanion(RepSetObservationsCompanion data) {
-    return RepSetObservationData(
-      id: data.id.present ? data.id.value : this.id,
-      exerciseSlug: data.exerciseSlug.present
-          ? data.exerciseSlug.value
-          : this.exerciseSlug,
-      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
-      setEntryId: data.setEntryId.present
-          ? data.setEntryId.value
-          : this.setEntryId,
-      recordedAt: data.recordedAt.present
-          ? data.recordedAt.value
-          : this.recordedAt,
-      source: data.source.present ? data.source.value : this.source,
-      placement: data.placement.present ? data.placement.value : this.placement,
-      sensorType: data.sensorType.present
-          ? data.sensorType.value
-          : this.sensorType,
-      detectedReps: data.detectedReps.present
-          ? data.detectedReps.value
-          : this.detectedReps,
-      confirmedReps: data.confirmedReps.present
-          ? data.confirmedReps.value
-          : this.confirmedReps,
-      confidence: data.confidence.present
-          ? data.confidence.value
-          : this.confidence,
-      suggestedRpeX10: data.suggestedRpeX10.present
-          ? data.suggestedRpeX10.value
-          : this.suggestedRpeX10,
-      confirmedRpeX10: data.confirmedRpeX10.present
-          ? data.confirmedRpeX10.value
-          : this.confirmedRpeX10,
-      featuresJson: data.featuresJson.present
-          ? data.featuresJson.value
-          : this.featuresJson,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('RepSetObservationData(')
-          ..write('id: $id, ')
-          ..write('exerciseSlug: $exerciseSlug, ')
-          ..write('sessionId: $sessionId, ')
-          ..write('setEntryId: $setEntryId, ')
-          ..write('recordedAt: $recordedAt, ')
-          ..write('source: $source, ')
-          ..write('placement: $placement, ')
-          ..write('sensorType: $sensorType, ')
-          ..write('detectedReps: $detectedReps, ')
-          ..write('confirmedReps: $confirmedReps, ')
-          ..write('confidence: $confidence, ')
-          ..write('suggestedRpeX10: $suggestedRpeX10, ')
-          ..write('confirmedRpeX10: $confirmedRpeX10, ')
-          ..write('featuresJson: $featuresJson')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    exerciseSlug,
-    sessionId,
-    setEntryId,
-    recordedAt,
-    source,
-    placement,
-    sensorType,
-    detectedReps,
-    confirmedReps,
-    confidence,
-    suggestedRpeX10,
-    confirmedRpeX10,
-    featuresJson,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is RepSetObservationData &&
-          other.id == this.id &&
-          other.exerciseSlug == this.exerciseSlug &&
-          other.sessionId == this.sessionId &&
-          other.setEntryId == this.setEntryId &&
-          other.recordedAt == this.recordedAt &&
-          other.source == this.source &&
-          other.placement == this.placement &&
-          other.sensorType == this.sensorType &&
-          other.detectedReps == this.detectedReps &&
-          other.confirmedReps == this.confirmedReps &&
-          other.confidence == this.confidence &&
-          other.suggestedRpeX10 == this.suggestedRpeX10 &&
-          other.confirmedRpeX10 == this.confirmedRpeX10 &&
-          other.featuresJson == this.featuresJson);
-}
-
-class RepSetObservationsCompanion
-    extends UpdateCompanion<RepSetObservationData> {
-  final Value<int> id;
-  final Value<String> exerciseSlug;
-  final Value<int> sessionId;
-  final Value<int?> setEntryId;
-  final Value<DateTime> recordedAt;
-  final Value<String> source;
-  final Value<String?> placement;
-  final Value<String> sensorType;
-  final Value<int> detectedReps;
-  final Value<int> confirmedReps;
-  final Value<double> confidence;
-  final Value<int?> suggestedRpeX10;
-  final Value<int?> confirmedRpeX10;
-  final Value<String> featuresJson;
-  const RepSetObservationsCompanion({
-    this.id = const Value.absent(),
-    this.exerciseSlug = const Value.absent(),
-    this.sessionId = const Value.absent(),
-    this.setEntryId = const Value.absent(),
-    this.recordedAt = const Value.absent(),
-    this.source = const Value.absent(),
-    this.placement = const Value.absent(),
-    this.sensorType = const Value.absent(),
-    this.detectedReps = const Value.absent(),
-    this.confirmedReps = const Value.absent(),
-    this.confidence = const Value.absent(),
-    this.suggestedRpeX10 = const Value.absent(),
-    this.confirmedRpeX10 = const Value.absent(),
-    this.featuresJson = const Value.absent(),
-  });
-  RepSetObservationsCompanion.insert({
-    this.id = const Value.absent(),
-    required String exerciseSlug,
-    required int sessionId,
-    this.setEntryId = const Value.absent(),
-    required DateTime recordedAt,
-    required String source,
-    this.placement = const Value.absent(),
-    required String sensorType,
-    required int detectedReps,
-    required int confirmedReps,
-    required double confidence,
-    this.suggestedRpeX10 = const Value.absent(),
-    this.confirmedRpeX10 = const Value.absent(),
-    required String featuresJson,
-  }) : exerciseSlug = Value(exerciseSlug),
-       sessionId = Value(sessionId),
-       recordedAt = Value(recordedAt),
-       source = Value(source),
-       sensorType = Value(sensorType),
-       detectedReps = Value(detectedReps),
-       confirmedReps = Value(confirmedReps),
-       confidence = Value(confidence),
-       featuresJson = Value(featuresJson);
-  static Insertable<RepSetObservationData> custom({
-    Expression<int>? id,
-    Expression<String>? exerciseSlug,
-    Expression<int>? sessionId,
-    Expression<int>? setEntryId,
-    Expression<DateTime>? recordedAt,
-    Expression<String>? source,
-    Expression<String>? placement,
-    Expression<String>? sensorType,
-    Expression<int>? detectedReps,
-    Expression<int>? confirmedReps,
-    Expression<double>? confidence,
-    Expression<int>? suggestedRpeX10,
-    Expression<int>? confirmedRpeX10,
-    Expression<String>? featuresJson,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (exerciseSlug != null) 'exercise_slug': exerciseSlug,
-      if (sessionId != null) 'session_id': sessionId,
-      if (setEntryId != null) 'set_entry_id': setEntryId,
-      if (recordedAt != null) 'recorded_at': recordedAt,
-      if (source != null) 'source': source,
-      if (placement != null) 'placement': placement,
-      if (sensorType != null) 'sensor_type': sensorType,
-      if (detectedReps != null) 'detected_reps': detectedReps,
-      if (confirmedReps != null) 'confirmed_reps': confirmedReps,
-      if (confidence != null) 'confidence': confidence,
-      if (suggestedRpeX10 != null) 'suggested_rpe_x10': suggestedRpeX10,
-      if (confirmedRpeX10 != null) 'confirmed_rpe_x10': confirmedRpeX10,
-      if (featuresJson != null) 'features_json': featuresJson,
-    });
-  }
-
-  RepSetObservationsCompanion copyWith({
-    Value<int>? id,
-    Value<String>? exerciseSlug,
-    Value<int>? sessionId,
-    Value<int?>? setEntryId,
-    Value<DateTime>? recordedAt,
-    Value<String>? source,
-    Value<String?>? placement,
-    Value<String>? sensorType,
-    Value<int>? detectedReps,
-    Value<int>? confirmedReps,
-    Value<double>? confidence,
-    Value<int?>? suggestedRpeX10,
-    Value<int?>? confirmedRpeX10,
-    Value<String>? featuresJson,
-  }) {
-    return RepSetObservationsCompanion(
-      id: id ?? this.id,
-      exerciseSlug: exerciseSlug ?? this.exerciseSlug,
-      sessionId: sessionId ?? this.sessionId,
-      setEntryId: setEntryId ?? this.setEntryId,
-      recordedAt: recordedAt ?? this.recordedAt,
-      source: source ?? this.source,
-      placement: placement ?? this.placement,
-      sensorType: sensorType ?? this.sensorType,
-      detectedReps: detectedReps ?? this.detectedReps,
-      confirmedReps: confirmedReps ?? this.confirmedReps,
-      confidence: confidence ?? this.confidence,
-      suggestedRpeX10: suggestedRpeX10 ?? this.suggestedRpeX10,
-      confirmedRpeX10: confirmedRpeX10 ?? this.confirmedRpeX10,
-      featuresJson: featuresJson ?? this.featuresJson,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (exerciseSlug.present) {
-      map['exercise_slug'] = Variable<String>(exerciseSlug.value);
-    }
-    if (sessionId.present) {
-      map['session_id'] = Variable<int>(sessionId.value);
-    }
-    if (setEntryId.present) {
-      map['set_entry_id'] = Variable<int>(setEntryId.value);
-    }
-    if (recordedAt.present) {
-      map['recorded_at'] = Variable<DateTime>(recordedAt.value);
-    }
-    if (source.present) {
-      map['source'] = Variable<String>(source.value);
-    }
-    if (placement.present) {
-      map['placement'] = Variable<String>(placement.value);
-    }
-    if (sensorType.present) {
-      map['sensor_type'] = Variable<String>(sensorType.value);
-    }
-    if (detectedReps.present) {
-      map['detected_reps'] = Variable<int>(detectedReps.value);
-    }
-    if (confirmedReps.present) {
-      map['confirmed_reps'] = Variable<int>(confirmedReps.value);
-    }
-    if (confidence.present) {
-      map['confidence'] = Variable<double>(confidence.value);
-    }
-    if (suggestedRpeX10.present) {
-      map['suggested_rpe_x10'] = Variable<int>(suggestedRpeX10.value);
-    }
-    if (confirmedRpeX10.present) {
-      map['confirmed_rpe_x10'] = Variable<int>(confirmedRpeX10.value);
-    }
-    if (featuresJson.present) {
-      map['features_json'] = Variable<String>(featuresJson.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('RepSetObservationsCompanion(')
-          ..write('id: $id, ')
-          ..write('exerciseSlug: $exerciseSlug, ')
-          ..write('sessionId: $sessionId, ')
-          ..write('setEntryId: $setEntryId, ')
-          ..write('recordedAt: $recordedAt, ')
-          ..write('source: $source, ')
-          ..write('placement: $placement, ')
-          ..write('sensorType: $sensorType, ')
-          ..write('detectedReps: $detectedReps, ')
-          ..write('confirmedReps: $confirmedReps, ')
-          ..write('confidence: $confidence, ')
-          ..write('suggestedRpeX10: $suggestedRpeX10, ')
-          ..write('confirmedRpeX10: $confirmedRpeX10, ')
-          ..write('featuresJson: $featuresJson')
           ..write(')'))
         .toString();
   }
@@ -34451,6 +33014,1628 @@ class CircuitExercisesCompanion extends UpdateCompanion<CircuitExerciseData> {
   }
 }
 
+class $AchievementsTable extends Achievements
+    with TableInfo<$AchievementsTable, Achievement> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AchievementsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => const Uuid().v4(),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: () => DateTime.now(),
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _unlockedAtMeta = const VerificationMeta(
+    'unlockedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> unlockedAt = GeneratedColumn<DateTime>(
+    'unlocked_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    unlockedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'achievements';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Achievement> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('unlocked_at')) {
+      context.handle(
+        _unlockedAtMeta,
+        unlockedAt.isAcceptableOrUnknown(data['unlocked_at']!, _unlockedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_unlockedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Achievement map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Achievement(
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      unlockedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}unlocked_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AchievementsTable createAlias(String alias) {
+    return $AchievementsTable(attachedDatabase, alias);
+  }
+}
+
+class Achievement extends DataClass implements Insertable<Achievement> {
+  final String? syncUuid;
+  final DateTime? updatedAt;
+  final DateTime? syncedAt;
+  final DateTime? deletedAt;
+  final String id;
+  final DateTime unlockedAt;
+  const Achievement({
+    this.syncUuid,
+    this.updatedAt,
+    this.syncedAt,
+    this.deletedAt,
+    required this.id,
+    required this.unlockedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['id'] = Variable<String>(id);
+    map['unlocked_at'] = Variable<DateTime>(unlockedAt);
+    return map;
+  }
+
+  AchievementsCompanion toCompanion(bool nullToAbsent) {
+    return AchievementsCompanion(
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      id: Value(id),
+      unlockedAt: Value(unlockedAt),
+    );
+  }
+
+  factory Achievement.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Achievement(
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      id: serializer.fromJson<String>(json['id']),
+      unlockedAt: serializer.fromJson<DateTime>(json['unlockedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'id': serializer.toJson<String>(id),
+      'unlockedAt': serializer.toJson<DateTime>(unlockedAt),
+    };
+  }
+
+  Achievement copyWith({
+    Value<String?> syncUuid = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> syncedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    String? id,
+    DateTime? unlockedAt,
+  }) => Achievement(
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    id: id ?? this.id,
+    unlockedAt: unlockedAt ?? this.unlockedAt,
+  );
+  Achievement copyWithCompanion(AchievementsCompanion data) {
+    return Achievement(
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      id: data.id.present ? data.id.value : this.id,
+      unlockedAt: data.unlockedAt.present
+          ? data.unlockedAt.value
+          : this.unlockedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Achievement(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('unlockedAt: $unlockedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(syncUuid, updatedAt, syncedAt, deletedAt, id, unlockedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Achievement &&
+          other.syncUuid == this.syncUuid &&
+          other.updatedAt == this.updatedAt &&
+          other.syncedAt == this.syncedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.id == this.id &&
+          other.unlockedAt == this.unlockedAt);
+}
+
+class AchievementsCompanion extends UpdateCompanion<Achievement> {
+  final Value<String?> syncUuid;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> syncedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String> id;
+  final Value<DateTime> unlockedAt;
+  final Value<int> rowid;
+  const AchievementsCompanion({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    this.unlockedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AchievementsCompanion.insert({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String id,
+    required DateTime unlockedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       unlockedAt = Value(unlockedAt);
+  static Insertable<Achievement> custom({
+    Expression<String>? syncUuid,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? syncedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? id,
+    Expression<DateTime>? unlockedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (id != null) 'id': id,
+      if (unlockedAt != null) 'unlocked_at': unlockedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AchievementsCompanion copyWith({
+    Value<String?>? syncUuid,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? syncedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String>? id,
+    Value<DateTime>? unlockedAt,
+    Value<int>? rowid,
+  }) {
+    return AchievementsCompanion(
+      syncUuid: syncUuid ?? this.syncUuid,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncedAt: syncedAt ?? this.syncedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      id: id ?? this.id,
+      unlockedAt: unlockedAt ?? this.unlockedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (unlockedAt.present) {
+      map['unlocked_at'] = Variable<DateTime>(unlockedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AchievementsCompanion(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('unlockedAt: $unlockedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $HerculRulesTable extends HerculRules
+    with TableInfo<$HerculRulesTable, HerculRule> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HerculRulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _domainMeta = const VerificationMeta('domain');
+  @override
+  late final GeneratedColumn<String> domain = GeneratedColumn<String>(
+    'domain',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _priorityMeta = const VerificationMeta(
+    'priority',
+  );
+  @override
+  late final GeneratedColumn<int> priority = GeneratedColumn<int>(
+    'priority',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cooldownDaysMeta = const VerificationMeta(
+    'cooldownDays',
+  );
+  @override
+  late final GeneratedColumn<int> cooldownDays = GeneratedColumn<int>(
+    'cooldown_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _requiresJsonMeta = const VerificationMeta(
+    'requiresJson',
+  );
+  @override
+  late final GeneratedColumn<String> requiresJson = GeneratedColumn<String>(
+    'requires_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _whenJsonMeta = const VerificationMeta(
+    'whenJson',
+  );
+  @override
+  late final GeneratedColumn<String> whenJson = GeneratedColumn<String>(
+    'when_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _copyNormalMeta = const VerificationMeta(
+    'copyNormal',
+  );
+  @override
+  late final GeneratedColumn<String> copyNormal = GeneratedColumn<String>(
+    'copy_normal',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _copyHonestMeta = const VerificationMeta(
+    'copyHonest',
+  );
+  @override
+  late final GeneratedColumn<String> copyHonest = GeneratedColumn<String>(
+    'copy_honest',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ctaJsonMeta = const VerificationMeta(
+    'ctaJson',
+  );
+  @override
+  late final GeneratedColumn<String> ctaJson = GeneratedColumn<String>(
+    'cta_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    domain,
+    priority,
+    cooldownDays,
+    requiresJson,
+    whenJson,
+    copyNormal,
+    copyHonest,
+    ctaJson,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'hercul_rules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HerculRule> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('domain')) {
+      context.handle(
+        _domainMeta,
+        domain.isAcceptableOrUnknown(data['domain']!, _domainMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_domainMeta);
+    }
+    if (data.containsKey('priority')) {
+      context.handle(
+        _priorityMeta,
+        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_priorityMeta);
+    }
+    if (data.containsKey('cooldown_days')) {
+      context.handle(
+        _cooldownDaysMeta,
+        cooldownDays.isAcceptableOrUnknown(
+          data['cooldown_days']!,
+          _cooldownDaysMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_cooldownDaysMeta);
+    }
+    if (data.containsKey('requires_json')) {
+      context.handle(
+        _requiresJsonMeta,
+        requiresJson.isAcceptableOrUnknown(
+          data['requires_json']!,
+          _requiresJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_requiresJsonMeta);
+    }
+    if (data.containsKey('when_json')) {
+      context.handle(
+        _whenJsonMeta,
+        whenJson.isAcceptableOrUnknown(data['when_json']!, _whenJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_whenJsonMeta);
+    }
+    if (data.containsKey('copy_normal')) {
+      context.handle(
+        _copyNormalMeta,
+        copyNormal.isAcceptableOrUnknown(data['copy_normal']!, _copyNormalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_copyNormalMeta);
+    }
+    if (data.containsKey('copy_honest')) {
+      context.handle(
+        _copyHonestMeta,
+        copyHonest.isAcceptableOrUnknown(data['copy_honest']!, _copyHonestMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_copyHonestMeta);
+    }
+    if (data.containsKey('cta_json')) {
+      context.handle(
+        _ctaJsonMeta,
+        ctaJson.isAcceptableOrUnknown(data['cta_json']!, _ctaJsonMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  HerculRule map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HerculRule(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      domain: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}domain'],
+      )!,
+      priority: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}priority'],
+      )!,
+      cooldownDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cooldown_days'],
+      )!,
+      requiresJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}requires_json'],
+      )!,
+      whenJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}when_json'],
+      )!,
+      copyNormal: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}copy_normal'],
+      )!,
+      copyHonest: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}copy_honest'],
+      )!,
+      ctaJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cta_json'],
+      ),
+    );
+  }
+
+  @override
+  $HerculRulesTable createAlias(String alias) {
+    return $HerculRulesTable(attachedDatabase, alias);
+  }
+}
+
+class HerculRule extends DataClass implements Insertable<HerculRule> {
+  final String id;
+  final String domain;
+  final int priority;
+  final int cooldownDays;
+  final String requiresJson;
+  final String whenJson;
+  final String copyNormal;
+  final String copyHonest;
+  final String? ctaJson;
+  const HerculRule({
+    required this.id,
+    required this.domain,
+    required this.priority,
+    required this.cooldownDays,
+    required this.requiresJson,
+    required this.whenJson,
+    required this.copyNormal,
+    required this.copyHonest,
+    this.ctaJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['domain'] = Variable<String>(domain);
+    map['priority'] = Variable<int>(priority);
+    map['cooldown_days'] = Variable<int>(cooldownDays);
+    map['requires_json'] = Variable<String>(requiresJson);
+    map['when_json'] = Variable<String>(whenJson);
+    map['copy_normal'] = Variable<String>(copyNormal);
+    map['copy_honest'] = Variable<String>(copyHonest);
+    if (!nullToAbsent || ctaJson != null) {
+      map['cta_json'] = Variable<String>(ctaJson);
+    }
+    return map;
+  }
+
+  HerculRulesCompanion toCompanion(bool nullToAbsent) {
+    return HerculRulesCompanion(
+      id: Value(id),
+      domain: Value(domain),
+      priority: Value(priority),
+      cooldownDays: Value(cooldownDays),
+      requiresJson: Value(requiresJson),
+      whenJson: Value(whenJson),
+      copyNormal: Value(copyNormal),
+      copyHonest: Value(copyHonest),
+      ctaJson: ctaJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ctaJson),
+    );
+  }
+
+  factory HerculRule.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HerculRule(
+      id: serializer.fromJson<String>(json['id']),
+      domain: serializer.fromJson<String>(json['domain']),
+      priority: serializer.fromJson<int>(json['priority']),
+      cooldownDays: serializer.fromJson<int>(json['cooldownDays']),
+      requiresJson: serializer.fromJson<String>(json['requiresJson']),
+      whenJson: serializer.fromJson<String>(json['whenJson']),
+      copyNormal: serializer.fromJson<String>(json['copyNormal']),
+      copyHonest: serializer.fromJson<String>(json['copyHonest']),
+      ctaJson: serializer.fromJson<String?>(json['ctaJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'domain': serializer.toJson<String>(domain),
+      'priority': serializer.toJson<int>(priority),
+      'cooldownDays': serializer.toJson<int>(cooldownDays),
+      'requiresJson': serializer.toJson<String>(requiresJson),
+      'whenJson': serializer.toJson<String>(whenJson),
+      'copyNormal': serializer.toJson<String>(copyNormal),
+      'copyHonest': serializer.toJson<String>(copyHonest),
+      'ctaJson': serializer.toJson<String?>(ctaJson),
+    };
+  }
+
+  HerculRule copyWith({
+    String? id,
+    String? domain,
+    int? priority,
+    int? cooldownDays,
+    String? requiresJson,
+    String? whenJson,
+    String? copyNormal,
+    String? copyHonest,
+    Value<String?> ctaJson = const Value.absent(),
+  }) => HerculRule(
+    id: id ?? this.id,
+    domain: domain ?? this.domain,
+    priority: priority ?? this.priority,
+    cooldownDays: cooldownDays ?? this.cooldownDays,
+    requiresJson: requiresJson ?? this.requiresJson,
+    whenJson: whenJson ?? this.whenJson,
+    copyNormal: copyNormal ?? this.copyNormal,
+    copyHonest: copyHonest ?? this.copyHonest,
+    ctaJson: ctaJson.present ? ctaJson.value : this.ctaJson,
+  );
+  HerculRule copyWithCompanion(HerculRulesCompanion data) {
+    return HerculRule(
+      id: data.id.present ? data.id.value : this.id,
+      domain: data.domain.present ? data.domain.value : this.domain,
+      priority: data.priority.present ? data.priority.value : this.priority,
+      cooldownDays: data.cooldownDays.present
+          ? data.cooldownDays.value
+          : this.cooldownDays,
+      requiresJson: data.requiresJson.present
+          ? data.requiresJson.value
+          : this.requiresJson,
+      whenJson: data.whenJson.present ? data.whenJson.value : this.whenJson,
+      copyNormal: data.copyNormal.present
+          ? data.copyNormal.value
+          : this.copyNormal,
+      copyHonest: data.copyHonest.present
+          ? data.copyHonest.value
+          : this.copyHonest,
+      ctaJson: data.ctaJson.present ? data.ctaJson.value : this.ctaJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HerculRule(')
+          ..write('id: $id, ')
+          ..write('domain: $domain, ')
+          ..write('priority: $priority, ')
+          ..write('cooldownDays: $cooldownDays, ')
+          ..write('requiresJson: $requiresJson, ')
+          ..write('whenJson: $whenJson, ')
+          ..write('copyNormal: $copyNormal, ')
+          ..write('copyHonest: $copyHonest, ')
+          ..write('ctaJson: $ctaJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    domain,
+    priority,
+    cooldownDays,
+    requiresJson,
+    whenJson,
+    copyNormal,
+    copyHonest,
+    ctaJson,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HerculRule &&
+          other.id == this.id &&
+          other.domain == this.domain &&
+          other.priority == this.priority &&
+          other.cooldownDays == this.cooldownDays &&
+          other.requiresJson == this.requiresJson &&
+          other.whenJson == this.whenJson &&
+          other.copyNormal == this.copyNormal &&
+          other.copyHonest == this.copyHonest &&
+          other.ctaJson == this.ctaJson);
+}
+
+class HerculRulesCompanion extends UpdateCompanion<HerculRule> {
+  final Value<String> id;
+  final Value<String> domain;
+  final Value<int> priority;
+  final Value<int> cooldownDays;
+  final Value<String> requiresJson;
+  final Value<String> whenJson;
+  final Value<String> copyNormal;
+  final Value<String> copyHonest;
+  final Value<String?> ctaJson;
+  final Value<int> rowid;
+  const HerculRulesCompanion({
+    this.id = const Value.absent(),
+    this.domain = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.cooldownDays = const Value.absent(),
+    this.requiresJson = const Value.absent(),
+    this.whenJson = const Value.absent(),
+    this.copyNormal = const Value.absent(),
+    this.copyHonest = const Value.absent(),
+    this.ctaJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HerculRulesCompanion.insert({
+    required String id,
+    required String domain,
+    required int priority,
+    required int cooldownDays,
+    required String requiresJson,
+    required String whenJson,
+    required String copyNormal,
+    required String copyHonest,
+    this.ctaJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       domain = Value(domain),
+       priority = Value(priority),
+       cooldownDays = Value(cooldownDays),
+       requiresJson = Value(requiresJson),
+       whenJson = Value(whenJson),
+       copyNormal = Value(copyNormal),
+       copyHonest = Value(copyHonest);
+  static Insertable<HerculRule> custom({
+    Expression<String>? id,
+    Expression<String>? domain,
+    Expression<int>? priority,
+    Expression<int>? cooldownDays,
+    Expression<String>? requiresJson,
+    Expression<String>? whenJson,
+    Expression<String>? copyNormal,
+    Expression<String>? copyHonest,
+    Expression<String>? ctaJson,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (domain != null) 'domain': domain,
+      if (priority != null) 'priority': priority,
+      if (cooldownDays != null) 'cooldown_days': cooldownDays,
+      if (requiresJson != null) 'requires_json': requiresJson,
+      if (whenJson != null) 'when_json': whenJson,
+      if (copyNormal != null) 'copy_normal': copyNormal,
+      if (copyHonest != null) 'copy_honest': copyHonest,
+      if (ctaJson != null) 'cta_json': ctaJson,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HerculRulesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? domain,
+    Value<int>? priority,
+    Value<int>? cooldownDays,
+    Value<String>? requiresJson,
+    Value<String>? whenJson,
+    Value<String>? copyNormal,
+    Value<String>? copyHonest,
+    Value<String?>? ctaJson,
+    Value<int>? rowid,
+  }) {
+    return HerculRulesCompanion(
+      id: id ?? this.id,
+      domain: domain ?? this.domain,
+      priority: priority ?? this.priority,
+      cooldownDays: cooldownDays ?? this.cooldownDays,
+      requiresJson: requiresJson ?? this.requiresJson,
+      whenJson: whenJson ?? this.whenJson,
+      copyNormal: copyNormal ?? this.copyNormal,
+      copyHonest: copyHonest ?? this.copyHonest,
+      ctaJson: ctaJson ?? this.ctaJson,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (domain.present) {
+      map['domain'] = Variable<String>(domain.value);
+    }
+    if (priority.present) {
+      map['priority'] = Variable<int>(priority.value);
+    }
+    if (cooldownDays.present) {
+      map['cooldown_days'] = Variable<int>(cooldownDays.value);
+    }
+    if (requiresJson.present) {
+      map['requires_json'] = Variable<String>(requiresJson.value);
+    }
+    if (whenJson.present) {
+      map['when_json'] = Variable<String>(whenJson.value);
+    }
+    if (copyNormal.present) {
+      map['copy_normal'] = Variable<String>(copyNormal.value);
+    }
+    if (copyHonest.present) {
+      map['copy_honest'] = Variable<String>(copyHonest.value);
+    }
+    if (ctaJson.present) {
+      map['cta_json'] = Variable<String>(ctaJson.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HerculRulesCompanion(')
+          ..write('id: $id, ')
+          ..write('domain: $domain, ')
+          ..write('priority: $priority, ')
+          ..write('cooldownDays: $cooldownDays, ')
+          ..write('requiresJson: $requiresJson, ')
+          ..write('whenJson: $whenJson, ')
+          ..write('copyNormal: $copyNormal, ')
+          ..write('copyHonest: $copyHonest, ')
+          ..write('ctaJson: $ctaJson, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $HerculMessageLogTable extends HerculMessageLog
+    with TableInfo<$HerculMessageLogTable, HerculMessageLogData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HerculMessageLogTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _ruleIdMeta = const VerificationMeta('ruleId');
+  @override
+  late final GeneratedColumn<String> ruleId = GeneratedColumn<String>(
+    'rule_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES hercul_rules (id)',
+    ),
+  );
+  static const VerificationMeta _lastFiredAtMeta = const VerificationMeta(
+    'lastFiredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastFiredAt = GeneratedColumn<DateTime>(
+    'last_fired_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [ruleId, lastFiredAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'hercul_message_log';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HerculMessageLogData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('rule_id')) {
+      context.handle(
+        _ruleIdMeta,
+        ruleId.isAcceptableOrUnknown(data['rule_id']!, _ruleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ruleIdMeta);
+    }
+    if (data.containsKey('last_fired_at')) {
+      context.handle(
+        _lastFiredAtMeta,
+        lastFiredAt.isAcceptableOrUnknown(
+          data['last_fired_at']!,
+          _lastFiredAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastFiredAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {ruleId};
+  @override
+  HerculMessageLogData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HerculMessageLogData(
+      ruleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rule_id'],
+      )!,
+      lastFiredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_fired_at'],
+      )!,
+    );
+  }
+
+  @override
+  $HerculMessageLogTable createAlias(String alias) {
+    return $HerculMessageLogTable(attachedDatabase, alias);
+  }
+}
+
+class HerculMessageLogData extends DataClass
+    implements Insertable<HerculMessageLogData> {
+  final String ruleId;
+  final DateTime lastFiredAt;
+  const HerculMessageLogData({required this.ruleId, required this.lastFiredAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['rule_id'] = Variable<String>(ruleId);
+    map['last_fired_at'] = Variable<DateTime>(lastFiredAt);
+    return map;
+  }
+
+  HerculMessageLogCompanion toCompanion(bool nullToAbsent) {
+    return HerculMessageLogCompanion(
+      ruleId: Value(ruleId),
+      lastFiredAt: Value(lastFiredAt),
+    );
+  }
+
+  factory HerculMessageLogData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HerculMessageLogData(
+      ruleId: serializer.fromJson<String>(json['ruleId']),
+      lastFiredAt: serializer.fromJson<DateTime>(json['lastFiredAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'ruleId': serializer.toJson<String>(ruleId),
+      'lastFiredAt': serializer.toJson<DateTime>(lastFiredAt),
+    };
+  }
+
+  HerculMessageLogData copyWith({String? ruleId, DateTime? lastFiredAt}) =>
+      HerculMessageLogData(
+        ruleId: ruleId ?? this.ruleId,
+        lastFiredAt: lastFiredAt ?? this.lastFiredAt,
+      );
+  HerculMessageLogData copyWithCompanion(HerculMessageLogCompanion data) {
+    return HerculMessageLogData(
+      ruleId: data.ruleId.present ? data.ruleId.value : this.ruleId,
+      lastFiredAt: data.lastFiredAt.present
+          ? data.lastFiredAt.value
+          : this.lastFiredAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HerculMessageLogData(')
+          ..write('ruleId: $ruleId, ')
+          ..write('lastFiredAt: $lastFiredAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(ruleId, lastFiredAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HerculMessageLogData &&
+          other.ruleId == this.ruleId &&
+          other.lastFiredAt == this.lastFiredAt);
+}
+
+class HerculMessageLogCompanion extends UpdateCompanion<HerculMessageLogData> {
+  final Value<String> ruleId;
+  final Value<DateTime> lastFiredAt;
+  final Value<int> rowid;
+  const HerculMessageLogCompanion({
+    this.ruleId = const Value.absent(),
+    this.lastFiredAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HerculMessageLogCompanion.insert({
+    required String ruleId,
+    required DateTime lastFiredAt,
+    this.rowid = const Value.absent(),
+  }) : ruleId = Value(ruleId),
+       lastFiredAt = Value(lastFiredAt);
+  static Insertable<HerculMessageLogData> custom({
+    Expression<String>? ruleId,
+    Expression<DateTime>? lastFiredAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (ruleId != null) 'rule_id': ruleId,
+      if (lastFiredAt != null) 'last_fired_at': lastFiredAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HerculMessageLogCompanion copyWith({
+    Value<String>? ruleId,
+    Value<DateTime>? lastFiredAt,
+    Value<int>? rowid,
+  }) {
+    return HerculMessageLogCompanion(
+      ruleId: ruleId ?? this.ruleId,
+      lastFiredAt: lastFiredAt ?? this.lastFiredAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (ruleId.present) {
+      map['rule_id'] = Variable<String>(ruleId.value);
+    }
+    if (lastFiredAt.present) {
+      map['last_fired_at'] = Variable<DateTime>(lastFiredAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HerculMessageLogCompanion(')
+          ..write('ruleId: $ruleId, ')
+          ..write('lastFiredAt: $lastFiredAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FastingStagesTable extends FastingStages
+    with TableInfo<$FastingStagesTable, FastingStageData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FastingStagesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _hourMeta = const VerificationMeta('hour');
+  @override
+  late final GeneratedColumn<int> hour = GeneratedColumn<int>(
+    'hour',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stageNameMeta = const VerificationMeta(
+    'stageName',
+  );
+  @override
+  late final GeneratedColumn<String> stageName = GeneratedColumn<String>(
+    'stage_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stageCategoryMeta = const VerificationMeta(
+    'stageCategory',
+  );
+  @override
+  late final GeneratedColumn<String> stageCategory = GeneratedColumn<String>(
+    'stage_category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _shortMessageMeta = const VerificationMeta(
+    'shortMessage',
+  );
+  @override
+  late final GeneratedColumn<String> shortMessage = GeneratedColumn<String>(
+    'short_message',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _detailMeta = const VerificationMeta('detail');
+  @override
+  late final GeneratedColumn<String> detail = GeneratedColumn<String>(
+    'detail',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    hour,
+    stageName,
+    stageCategory,
+    shortMessage,
+    detail,
+    icon,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'fasting_stages';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FastingStageData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('hour')) {
+      context.handle(
+        _hourMeta,
+        hour.isAcceptableOrUnknown(data['hour']!, _hourMeta),
+      );
+    }
+    if (data.containsKey('stage_name')) {
+      context.handle(
+        _stageNameMeta,
+        stageName.isAcceptableOrUnknown(data['stage_name']!, _stageNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stageNameMeta);
+    }
+    if (data.containsKey('stage_category')) {
+      context.handle(
+        _stageCategoryMeta,
+        stageCategory.isAcceptableOrUnknown(
+          data['stage_category']!,
+          _stageCategoryMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_stageCategoryMeta);
+    }
+    if (data.containsKey('short_message')) {
+      context.handle(
+        _shortMessageMeta,
+        shortMessage.isAcceptableOrUnknown(
+          data['short_message']!,
+          _shortMessageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_shortMessageMeta);
+    }
+    if (data.containsKey('detail')) {
+      context.handle(
+        _detailMeta,
+        detail.isAcceptableOrUnknown(data['detail']!, _detailMeta),
+      );
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {hour};
+  @override
+  FastingStageData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FastingStageData(
+      hour: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hour'],
+      )!,
+      stageName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stage_name'],
+      )!,
+      stageCategory: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stage_category'],
+      )!,
+      shortMessage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}short_message'],
+      )!,
+      detail: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}detail'],
+      ),
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      ),
+    );
+  }
+
+  @override
+  $FastingStagesTable createAlias(String alias) {
+    return $FastingStagesTable(attachedDatabase, alias);
+  }
+}
+
+class FastingStageData extends DataClass
+    implements Insertable<FastingStageData> {
+  final int hour;
+  final String stageName;
+  final String stageCategory;
+  final String shortMessage;
+  final String? detail;
+  final String? icon;
+  const FastingStageData({
+    required this.hour,
+    required this.stageName,
+    required this.stageCategory,
+    required this.shortMessage,
+    this.detail,
+    this.icon,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['hour'] = Variable<int>(hour);
+    map['stage_name'] = Variable<String>(stageName);
+    map['stage_category'] = Variable<String>(stageCategory);
+    map['short_message'] = Variable<String>(shortMessage);
+    if (!nullToAbsent || detail != null) {
+      map['detail'] = Variable<String>(detail);
+    }
+    if (!nullToAbsent || icon != null) {
+      map['icon'] = Variable<String>(icon);
+    }
+    return map;
+  }
+
+  FastingStagesCompanion toCompanion(bool nullToAbsent) {
+    return FastingStagesCompanion(
+      hour: Value(hour),
+      stageName: Value(stageName),
+      stageCategory: Value(stageCategory),
+      shortMessage: Value(shortMessage),
+      detail: detail == null && nullToAbsent
+          ? const Value.absent()
+          : Value(detail),
+      icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
+    );
+  }
+
+  factory FastingStageData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FastingStageData(
+      hour: serializer.fromJson<int>(json['hour']),
+      stageName: serializer.fromJson<String>(json['stageName']),
+      stageCategory: serializer.fromJson<String>(json['stageCategory']),
+      shortMessage: serializer.fromJson<String>(json['shortMessage']),
+      detail: serializer.fromJson<String?>(json['detail']),
+      icon: serializer.fromJson<String?>(json['icon']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'hour': serializer.toJson<int>(hour),
+      'stageName': serializer.toJson<String>(stageName),
+      'stageCategory': serializer.toJson<String>(stageCategory),
+      'shortMessage': serializer.toJson<String>(shortMessage),
+      'detail': serializer.toJson<String?>(detail),
+      'icon': serializer.toJson<String?>(icon),
+    };
+  }
+
+  FastingStageData copyWith({
+    int? hour,
+    String? stageName,
+    String? stageCategory,
+    String? shortMessage,
+    Value<String?> detail = const Value.absent(),
+    Value<String?> icon = const Value.absent(),
+  }) => FastingStageData(
+    hour: hour ?? this.hour,
+    stageName: stageName ?? this.stageName,
+    stageCategory: stageCategory ?? this.stageCategory,
+    shortMessage: shortMessage ?? this.shortMessage,
+    detail: detail.present ? detail.value : this.detail,
+    icon: icon.present ? icon.value : this.icon,
+  );
+  FastingStageData copyWithCompanion(FastingStagesCompanion data) {
+    return FastingStageData(
+      hour: data.hour.present ? data.hour.value : this.hour,
+      stageName: data.stageName.present ? data.stageName.value : this.stageName,
+      stageCategory: data.stageCategory.present
+          ? data.stageCategory.value
+          : this.stageCategory,
+      shortMessage: data.shortMessage.present
+          ? data.shortMessage.value
+          : this.shortMessage,
+      detail: data.detail.present ? data.detail.value : this.detail,
+      icon: data.icon.present ? data.icon.value : this.icon,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FastingStageData(')
+          ..write('hour: $hour, ')
+          ..write('stageName: $stageName, ')
+          ..write('stageCategory: $stageCategory, ')
+          ..write('shortMessage: $shortMessage, ')
+          ..write('detail: $detail, ')
+          ..write('icon: $icon')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(hour, stageName, stageCategory, shortMessage, detail, icon);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FastingStageData &&
+          other.hour == this.hour &&
+          other.stageName == this.stageName &&
+          other.stageCategory == this.stageCategory &&
+          other.shortMessage == this.shortMessage &&
+          other.detail == this.detail &&
+          other.icon == this.icon);
+}
+
+class FastingStagesCompanion extends UpdateCompanion<FastingStageData> {
+  final Value<int> hour;
+  final Value<String> stageName;
+  final Value<String> stageCategory;
+  final Value<String> shortMessage;
+  final Value<String?> detail;
+  final Value<String?> icon;
+  const FastingStagesCompanion({
+    this.hour = const Value.absent(),
+    this.stageName = const Value.absent(),
+    this.stageCategory = const Value.absent(),
+    this.shortMessage = const Value.absent(),
+    this.detail = const Value.absent(),
+    this.icon = const Value.absent(),
+  });
+  FastingStagesCompanion.insert({
+    this.hour = const Value.absent(),
+    required String stageName,
+    required String stageCategory,
+    required String shortMessage,
+    this.detail = const Value.absent(),
+    this.icon = const Value.absent(),
+  }) : stageName = Value(stageName),
+       stageCategory = Value(stageCategory),
+       shortMessage = Value(shortMessage);
+  static Insertable<FastingStageData> custom({
+    Expression<int>? hour,
+    Expression<String>? stageName,
+    Expression<String>? stageCategory,
+    Expression<String>? shortMessage,
+    Expression<String>? detail,
+    Expression<String>? icon,
+  }) {
+    return RawValuesInsertable({
+      if (hour != null) 'hour': hour,
+      if (stageName != null) 'stage_name': stageName,
+      if (stageCategory != null) 'stage_category': stageCategory,
+      if (shortMessage != null) 'short_message': shortMessage,
+      if (detail != null) 'detail': detail,
+      if (icon != null) 'icon': icon,
+    });
+  }
+
+  FastingStagesCompanion copyWith({
+    Value<int>? hour,
+    Value<String>? stageName,
+    Value<String>? stageCategory,
+    Value<String>? shortMessage,
+    Value<String?>? detail,
+    Value<String?>? icon,
+  }) {
+    return FastingStagesCompanion(
+      hour: hour ?? this.hour,
+      stageName: stageName ?? this.stageName,
+      stageCategory: stageCategory ?? this.stageCategory,
+      shortMessage: shortMessage ?? this.shortMessage,
+      detail: detail ?? this.detail,
+      icon: icon ?? this.icon,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (hour.present) {
+      map['hour'] = Variable<int>(hour.value);
+    }
+    if (stageName.present) {
+      map['stage_name'] = Variable<String>(stageName.value);
+    }
+    if (stageCategory.present) {
+      map['stage_category'] = Variable<String>(stageCategory.value);
+    }
+    if (shortMessage.present) {
+      map['short_message'] = Variable<String>(shortMessage.value);
+    }
+    if (detail.present) {
+      map['detail'] = Variable<String>(detail.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FastingStagesCompanion(')
+          ..write('hour: $hour, ')
+          ..write('stageName: $stageName, ')
+          ..write('stageCategory: $stageCategory, ')
+          ..write('shortMessage: $shortMessage, ')
+          ..write('detail: $detail, ')
+          ..write('icon: $icon')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -34528,12 +34713,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DietSchedulesTable dietSchedules = $DietSchedulesTable(this);
   late final $CarbCyclePlansTable carbCyclePlans = $CarbCyclePlansTable(this);
   late final $SyncCursorsTable syncCursors = $SyncCursorsTable(this);
-  late final $RepTrackingSettingsTable repTrackingSettings =
-      $RepTrackingSettingsTable(this);
-  late final $RepTrackingExercisePrefsTable repTrackingExercisePrefs =
-      $RepTrackingExercisePrefsTable(this);
-  late final $RepSetObservationsTable repSetObservations =
-      $RepSetObservationsTable(this);
   late final $FastingSchedulesTable fastingSchedules = $FastingSchedulesTable(
     this,
   );
@@ -34547,6 +34726,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CircuitExercisesTable circuitExercises = $CircuitExercisesTable(
     this,
   );
+  late final $AchievementsTable achievements = $AchievementsTable(this);
+  late final $HerculRulesTable herculRules = $HerculRulesTable(this);
+  late final $HerculMessageLogTable herculMessageLog = $HerculMessageLogTable(
+    this,
+  );
+  late final $FastingStagesTable fastingStages = $FastingStagesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -34597,14 +34782,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     dietSchedules,
     carbCyclePlans,
     syncCursors,
-    repTrackingSettings,
-    repTrackingExercisePrefs,
-    repSetObservations,
     fastingSchedules,
     buddySessionsLocal,
     buddyChoreographySlots,
     workoutCircuits,
     circuitExercises,
+    achievements,
+    herculRules,
+    herculMessageLog,
+    fastingStages,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -55046,6 +55232,12 @@ typedef $$ExerciseProgressionsTableCreateCompanionBuilder =
       Value<String> goal,
       Value<double> weeklyIncreasePct,
       Value<bool> enabled,
+      Value<String> progressionModel,
+      Value<int?> targetSets,
+      Value<int?> targetRepsMin,
+      Value<int?> targetRepsMax,
+      Value<bool> autoAddSets,
+      Value<int> autoAddSetsCount,
     });
 typedef $$ExerciseProgressionsTableUpdateCompanionBuilder =
     ExerciseProgressionsCompanion Function({
@@ -55058,6 +55250,12 @@ typedef $$ExerciseProgressionsTableUpdateCompanionBuilder =
       Value<String> goal,
       Value<double> weeklyIncreasePct,
       Value<bool> enabled,
+      Value<String> progressionModel,
+      Value<int?> targetSets,
+      Value<int?> targetRepsMin,
+      Value<int?> targetRepsMax,
+      Value<bool> autoAddSets,
+      Value<int> autoAddSetsCount,
     });
 
 final class $$ExerciseProgressionsTableReferences
@@ -55145,6 +55343,36 @@ class $$ExerciseProgressionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get progressionModel => $composableBuilder(
+    column: $table.progressionModel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetSets => $composableBuilder(
+    column: $table.targetSets,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetRepsMin => $composableBuilder(
+    column: $table.targetRepsMin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetRepsMax => $composableBuilder(
+    column: $table.targetRepsMax,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoAddSets => $composableBuilder(
+    column: $table.autoAddSets,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get autoAddSetsCount => $composableBuilder(
+    column: $table.autoAddSetsCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ExerciseCatalogTableFilterComposer get exerciseId {
     final $$ExerciseCatalogTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -55218,6 +55446,36 @@ class $$ExerciseProgressionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get progressionModel => $composableBuilder(
+    column: $table.progressionModel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetSets => $composableBuilder(
+    column: $table.targetSets,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetRepsMin => $composableBuilder(
+    column: $table.targetRepsMin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetRepsMax => $composableBuilder(
+    column: $table.targetRepsMax,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get autoAddSets => $composableBuilder(
+    column: $table.autoAddSets,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get autoAddSetsCount => $composableBuilder(
+    column: $table.autoAddSetsCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ExerciseCatalogTableOrderingComposer get exerciseId {
     final $$ExerciseCatalogTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -55276,6 +55534,36 @@ class $$ExerciseProgressionsTableAnnotationComposer
 
   GeneratedColumn<bool> get enabled =>
       $composableBuilder(column: $table.enabled, builder: (column) => column);
+
+  GeneratedColumn<String> get progressionModel => $composableBuilder(
+    column: $table.progressionModel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get targetSets => $composableBuilder(
+    column: $table.targetSets,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get targetRepsMin => $composableBuilder(
+    column: $table.targetRepsMin,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get targetRepsMax => $composableBuilder(
+    column: $table.targetRepsMax,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get autoAddSets => $composableBuilder(
+    column: $table.autoAddSets,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get autoAddSetsCount => $composableBuilder(
+    column: $table.autoAddSetsCount,
+    builder: (column) => column,
+  );
 
   $$ExerciseCatalogTableAnnotationComposer get exerciseId {
     final $$ExerciseCatalogTableAnnotationComposer composer = $composerBuilder(
@@ -55346,6 +55634,12 @@ class $$ExerciseProgressionsTableTableManager
                 Value<String> goal = const Value.absent(),
                 Value<double> weeklyIncreasePct = const Value.absent(),
                 Value<bool> enabled = const Value.absent(),
+                Value<String> progressionModel = const Value.absent(),
+                Value<int?> targetSets = const Value.absent(),
+                Value<int?> targetRepsMin = const Value.absent(),
+                Value<int?> targetRepsMax = const Value.absent(),
+                Value<bool> autoAddSets = const Value.absent(),
+                Value<int> autoAddSetsCount = const Value.absent(),
               }) => ExerciseProgressionsCompanion(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -55356,6 +55650,12 @@ class $$ExerciseProgressionsTableTableManager
                 goal: goal,
                 weeklyIncreasePct: weeklyIncreasePct,
                 enabled: enabled,
+                progressionModel: progressionModel,
+                targetSets: targetSets,
+                targetRepsMin: targetRepsMin,
+                targetRepsMax: targetRepsMax,
+                autoAddSets: autoAddSets,
+                autoAddSetsCount: autoAddSetsCount,
               ),
           createCompanionCallback:
               ({
@@ -55368,6 +55668,12 @@ class $$ExerciseProgressionsTableTableManager
                 Value<String> goal = const Value.absent(),
                 Value<double> weeklyIncreasePct = const Value.absent(),
                 Value<bool> enabled = const Value.absent(),
+                Value<String> progressionModel = const Value.absent(),
+                Value<int?> targetSets = const Value.absent(),
+                Value<int?> targetRepsMin = const Value.absent(),
+                Value<int?> targetRepsMax = const Value.absent(),
+                Value<bool> autoAddSets = const Value.absent(),
+                Value<int> autoAddSetsCount = const Value.absent(),
               }) => ExerciseProgressionsCompanion.insert(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -55378,6 +55684,12 @@ class $$ExerciseProgressionsTableTableManager
                 goal: goal,
                 weeklyIncreasePct: weeklyIncreasePct,
                 enabled: enabled,
+                progressionModel: progressionModel,
+                targetSets: targetSets,
+                targetRepsMin: targetRepsMin,
+                targetRepsMax: targetRepsMax,
+                autoAddSets: autoAddSets,
+                autoAddSetsCount: autoAddSetsCount,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -56973,881 +57285,6 @@ typedef $$SyncCursorsTableProcessedTableManager =
         BaseReferences<_$AppDatabase, $SyncCursorsTable, SyncCursorData>,
       ),
       SyncCursorData,
-      PrefetchHooks Function()
-    >;
-typedef $$RepTrackingSettingsTableCreateCompanionBuilder =
-    RepTrackingSettingsCompanion Function({
-      Value<int> id,
-      Value<DateTime?> consentGrantedAt,
-      Value<int> consentVersion,
-      Value<String?> defaultSource,
-      Value<String?> phonePlacement,
-      Value<bool> hapticsEnabled,
-      Value<bool> autoCountEnabled,
-    });
-typedef $$RepTrackingSettingsTableUpdateCompanionBuilder =
-    RepTrackingSettingsCompanion Function({
-      Value<int> id,
-      Value<DateTime?> consentGrantedAt,
-      Value<int> consentVersion,
-      Value<String?> defaultSource,
-      Value<String?> phonePlacement,
-      Value<bool> hapticsEnabled,
-      Value<bool> autoCountEnabled,
-    });
-
-class $$RepTrackingSettingsTableFilterComposer
-    extends Composer<_$AppDatabase, $RepTrackingSettingsTable> {
-  $$RepTrackingSettingsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get consentGrantedAt => $composableBuilder(
-    column: $table.consentGrantedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get consentVersion => $composableBuilder(
-    column: $table.consentVersion,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get defaultSource => $composableBuilder(
-    column: $table.defaultSource,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get phonePlacement => $composableBuilder(
-    column: $table.phonePlacement,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get hapticsEnabled => $composableBuilder(
-    column: $table.hapticsEnabled,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get autoCountEnabled => $composableBuilder(
-    column: $table.autoCountEnabled,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$RepTrackingSettingsTableOrderingComposer
-    extends Composer<_$AppDatabase, $RepTrackingSettingsTable> {
-  $$RepTrackingSettingsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get consentGrantedAt => $composableBuilder(
-    column: $table.consentGrantedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get consentVersion => $composableBuilder(
-    column: $table.consentVersion,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get defaultSource => $composableBuilder(
-    column: $table.defaultSource,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get phonePlacement => $composableBuilder(
-    column: $table.phonePlacement,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get hapticsEnabled => $composableBuilder(
-    column: $table.hapticsEnabled,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get autoCountEnabled => $composableBuilder(
-    column: $table.autoCountEnabled,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$RepTrackingSettingsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $RepTrackingSettingsTable> {
-  $$RepTrackingSettingsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get consentGrantedAt => $composableBuilder(
-    column: $table.consentGrantedAt,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get consentVersion => $composableBuilder(
-    column: $table.consentVersion,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get defaultSource => $composableBuilder(
-    column: $table.defaultSource,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get phonePlacement => $composableBuilder(
-    column: $table.phonePlacement,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get hapticsEnabled => $composableBuilder(
-    column: $table.hapticsEnabled,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get autoCountEnabled => $composableBuilder(
-    column: $table.autoCountEnabled,
-    builder: (column) => column,
-  );
-}
-
-class $$RepTrackingSettingsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $RepTrackingSettingsTable,
-          RepTrackingSettingData,
-          $$RepTrackingSettingsTableFilterComposer,
-          $$RepTrackingSettingsTableOrderingComposer,
-          $$RepTrackingSettingsTableAnnotationComposer,
-          $$RepTrackingSettingsTableCreateCompanionBuilder,
-          $$RepTrackingSettingsTableUpdateCompanionBuilder,
-          (
-            RepTrackingSettingData,
-            BaseReferences<
-              _$AppDatabase,
-              $RepTrackingSettingsTable,
-              RepTrackingSettingData
-            >,
-          ),
-          RepTrackingSettingData,
-          PrefetchHooks Function()
-        > {
-  $$RepTrackingSettingsTableTableManager(
-    _$AppDatabase db,
-    $RepTrackingSettingsTable table,
-  ) : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$RepTrackingSettingsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$RepTrackingSettingsTableOrderingComposer(
-                $db: db,
-                $table: table,
-              ),
-          createComputedFieldComposer: () =>
-              $$RepTrackingSettingsTableAnnotationComposer(
-                $db: db,
-                $table: table,
-              ),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<DateTime?> consentGrantedAt = const Value.absent(),
-                Value<int> consentVersion = const Value.absent(),
-                Value<String?> defaultSource = const Value.absent(),
-                Value<String?> phonePlacement = const Value.absent(),
-                Value<bool> hapticsEnabled = const Value.absent(),
-                Value<bool> autoCountEnabled = const Value.absent(),
-              }) => RepTrackingSettingsCompanion(
-                id: id,
-                consentGrantedAt: consentGrantedAt,
-                consentVersion: consentVersion,
-                defaultSource: defaultSource,
-                phonePlacement: phonePlacement,
-                hapticsEnabled: hapticsEnabled,
-                autoCountEnabled: autoCountEnabled,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<DateTime?> consentGrantedAt = const Value.absent(),
-                Value<int> consentVersion = const Value.absent(),
-                Value<String?> defaultSource = const Value.absent(),
-                Value<String?> phonePlacement = const Value.absent(),
-                Value<bool> hapticsEnabled = const Value.absent(),
-                Value<bool> autoCountEnabled = const Value.absent(),
-              }) => RepTrackingSettingsCompanion.insert(
-                id: id,
-                consentGrantedAt: consentGrantedAt,
-                consentVersion: consentVersion,
-                defaultSource: defaultSource,
-                phonePlacement: phonePlacement,
-                hapticsEnabled: hapticsEnabled,
-                autoCountEnabled: autoCountEnabled,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$RepTrackingSettingsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $RepTrackingSettingsTable,
-      RepTrackingSettingData,
-      $$RepTrackingSettingsTableFilterComposer,
-      $$RepTrackingSettingsTableOrderingComposer,
-      $$RepTrackingSettingsTableAnnotationComposer,
-      $$RepTrackingSettingsTableCreateCompanionBuilder,
-      $$RepTrackingSettingsTableUpdateCompanionBuilder,
-      (
-        RepTrackingSettingData,
-        BaseReferences<
-          _$AppDatabase,
-          $RepTrackingSettingsTable,
-          RepTrackingSettingData
-        >,
-      ),
-      RepTrackingSettingData,
-      PrefetchHooks Function()
-    >;
-typedef $$RepTrackingExercisePrefsTableCreateCompanionBuilder =
-    RepTrackingExercisePrefsCompanion Function({
-      Value<int> id,
-      required String exerciseSlug,
-      Value<bool> enabled,
-      Value<String?> preferredSource,
-      required DateTime updatedAt,
-    });
-typedef $$RepTrackingExercisePrefsTableUpdateCompanionBuilder =
-    RepTrackingExercisePrefsCompanion Function({
-      Value<int> id,
-      Value<String> exerciseSlug,
-      Value<bool> enabled,
-      Value<String?> preferredSource,
-      Value<DateTime> updatedAt,
-    });
-
-class $$RepTrackingExercisePrefsTableFilterComposer
-    extends Composer<_$AppDatabase, $RepTrackingExercisePrefsTable> {
-  $$RepTrackingExercisePrefsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get exerciseSlug => $composableBuilder(
-    column: $table.exerciseSlug,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get enabled => $composableBuilder(
-    column: $table.enabled,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get preferredSource => $composableBuilder(
-    column: $table.preferredSource,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$RepTrackingExercisePrefsTableOrderingComposer
-    extends Composer<_$AppDatabase, $RepTrackingExercisePrefsTable> {
-  $$RepTrackingExercisePrefsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get exerciseSlug => $composableBuilder(
-    column: $table.exerciseSlug,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get enabled => $composableBuilder(
-    column: $table.enabled,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get preferredSource => $composableBuilder(
-    column: $table.preferredSource,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$RepTrackingExercisePrefsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $RepTrackingExercisePrefsTable> {
-  $$RepTrackingExercisePrefsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get exerciseSlug => $composableBuilder(
-    column: $table.exerciseSlug,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get enabled =>
-      $composableBuilder(column: $table.enabled, builder: (column) => column);
-
-  GeneratedColumn<String> get preferredSource => $composableBuilder(
-    column: $table.preferredSource,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-}
-
-class $$RepTrackingExercisePrefsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $RepTrackingExercisePrefsTable,
-          RepTrackingExercisePrefData,
-          $$RepTrackingExercisePrefsTableFilterComposer,
-          $$RepTrackingExercisePrefsTableOrderingComposer,
-          $$RepTrackingExercisePrefsTableAnnotationComposer,
-          $$RepTrackingExercisePrefsTableCreateCompanionBuilder,
-          $$RepTrackingExercisePrefsTableUpdateCompanionBuilder,
-          (
-            RepTrackingExercisePrefData,
-            BaseReferences<
-              _$AppDatabase,
-              $RepTrackingExercisePrefsTable,
-              RepTrackingExercisePrefData
-            >,
-          ),
-          RepTrackingExercisePrefData,
-          PrefetchHooks Function()
-        > {
-  $$RepTrackingExercisePrefsTableTableManager(
-    _$AppDatabase db,
-    $RepTrackingExercisePrefsTable table,
-  ) : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$RepTrackingExercisePrefsTableFilterComposer(
-                $db: db,
-                $table: table,
-              ),
-          createOrderingComposer: () =>
-              $$RepTrackingExercisePrefsTableOrderingComposer(
-                $db: db,
-                $table: table,
-              ),
-          createComputedFieldComposer: () =>
-              $$RepTrackingExercisePrefsTableAnnotationComposer(
-                $db: db,
-                $table: table,
-              ),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> exerciseSlug = const Value.absent(),
-                Value<bool> enabled = const Value.absent(),
-                Value<String?> preferredSource = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-              }) => RepTrackingExercisePrefsCompanion(
-                id: id,
-                exerciseSlug: exerciseSlug,
-                enabled: enabled,
-                preferredSource: preferredSource,
-                updatedAt: updatedAt,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required String exerciseSlug,
-                Value<bool> enabled = const Value.absent(),
-                Value<String?> preferredSource = const Value.absent(),
-                required DateTime updatedAt,
-              }) => RepTrackingExercisePrefsCompanion.insert(
-                id: id,
-                exerciseSlug: exerciseSlug,
-                enabled: enabled,
-                preferredSource: preferredSource,
-                updatedAt: updatedAt,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$RepTrackingExercisePrefsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $RepTrackingExercisePrefsTable,
-      RepTrackingExercisePrefData,
-      $$RepTrackingExercisePrefsTableFilterComposer,
-      $$RepTrackingExercisePrefsTableOrderingComposer,
-      $$RepTrackingExercisePrefsTableAnnotationComposer,
-      $$RepTrackingExercisePrefsTableCreateCompanionBuilder,
-      $$RepTrackingExercisePrefsTableUpdateCompanionBuilder,
-      (
-        RepTrackingExercisePrefData,
-        BaseReferences<
-          _$AppDatabase,
-          $RepTrackingExercisePrefsTable,
-          RepTrackingExercisePrefData
-        >,
-      ),
-      RepTrackingExercisePrefData,
-      PrefetchHooks Function()
-    >;
-typedef $$RepSetObservationsTableCreateCompanionBuilder =
-    RepSetObservationsCompanion Function({
-      Value<int> id,
-      required String exerciseSlug,
-      required int sessionId,
-      Value<int?> setEntryId,
-      required DateTime recordedAt,
-      required String source,
-      Value<String?> placement,
-      required String sensorType,
-      required int detectedReps,
-      required int confirmedReps,
-      required double confidence,
-      Value<int?> suggestedRpeX10,
-      Value<int?> confirmedRpeX10,
-      required String featuresJson,
-    });
-typedef $$RepSetObservationsTableUpdateCompanionBuilder =
-    RepSetObservationsCompanion Function({
-      Value<int> id,
-      Value<String> exerciseSlug,
-      Value<int> sessionId,
-      Value<int?> setEntryId,
-      Value<DateTime> recordedAt,
-      Value<String> source,
-      Value<String?> placement,
-      Value<String> sensorType,
-      Value<int> detectedReps,
-      Value<int> confirmedReps,
-      Value<double> confidence,
-      Value<int?> suggestedRpeX10,
-      Value<int?> confirmedRpeX10,
-      Value<String> featuresJson,
-    });
-
-class $$RepSetObservationsTableFilterComposer
-    extends Composer<_$AppDatabase, $RepSetObservationsTable> {
-  $$RepSetObservationsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get exerciseSlug => $composableBuilder(
-    column: $table.exerciseSlug,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get sessionId => $composableBuilder(
-    column: $table.sessionId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get setEntryId => $composableBuilder(
-    column: $table.setEntryId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get recordedAt => $composableBuilder(
-    column: $table.recordedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get source => $composableBuilder(
-    column: $table.source,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get placement => $composableBuilder(
-    column: $table.placement,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get sensorType => $composableBuilder(
-    column: $table.sensorType,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get detectedReps => $composableBuilder(
-    column: $table.detectedReps,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get confirmedReps => $composableBuilder(
-    column: $table.confirmedReps,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get confidence => $composableBuilder(
-    column: $table.confidence,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get suggestedRpeX10 => $composableBuilder(
-    column: $table.suggestedRpeX10,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get confirmedRpeX10 => $composableBuilder(
-    column: $table.confirmedRpeX10,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get featuresJson => $composableBuilder(
-    column: $table.featuresJson,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$RepSetObservationsTableOrderingComposer
-    extends Composer<_$AppDatabase, $RepSetObservationsTable> {
-  $$RepSetObservationsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get exerciseSlug => $composableBuilder(
-    column: $table.exerciseSlug,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get sessionId => $composableBuilder(
-    column: $table.sessionId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get setEntryId => $composableBuilder(
-    column: $table.setEntryId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get recordedAt => $composableBuilder(
-    column: $table.recordedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get source => $composableBuilder(
-    column: $table.source,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get placement => $composableBuilder(
-    column: $table.placement,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get sensorType => $composableBuilder(
-    column: $table.sensorType,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get detectedReps => $composableBuilder(
-    column: $table.detectedReps,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get confirmedReps => $composableBuilder(
-    column: $table.confirmedReps,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get confidence => $composableBuilder(
-    column: $table.confidence,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get suggestedRpeX10 => $composableBuilder(
-    column: $table.suggestedRpeX10,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get confirmedRpeX10 => $composableBuilder(
-    column: $table.confirmedRpeX10,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get featuresJson => $composableBuilder(
-    column: $table.featuresJson,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$RepSetObservationsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $RepSetObservationsTable> {
-  $$RepSetObservationsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get exerciseSlug => $composableBuilder(
-    column: $table.exerciseSlug,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get sessionId =>
-      $composableBuilder(column: $table.sessionId, builder: (column) => column);
-
-  GeneratedColumn<int> get setEntryId => $composableBuilder(
-    column: $table.setEntryId,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<DateTime> get recordedAt => $composableBuilder(
-    column: $table.recordedAt,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get source =>
-      $composableBuilder(column: $table.source, builder: (column) => column);
-
-  GeneratedColumn<String> get placement =>
-      $composableBuilder(column: $table.placement, builder: (column) => column);
-
-  GeneratedColumn<String> get sensorType => $composableBuilder(
-    column: $table.sensorType,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get detectedReps => $composableBuilder(
-    column: $table.detectedReps,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get confirmedReps => $composableBuilder(
-    column: $table.confirmedReps,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get confidence => $composableBuilder(
-    column: $table.confidence,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get suggestedRpeX10 => $composableBuilder(
-    column: $table.suggestedRpeX10,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get confirmedRpeX10 => $composableBuilder(
-    column: $table.confirmedRpeX10,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get featuresJson => $composableBuilder(
-    column: $table.featuresJson,
-    builder: (column) => column,
-  );
-}
-
-class $$RepSetObservationsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $RepSetObservationsTable,
-          RepSetObservationData,
-          $$RepSetObservationsTableFilterComposer,
-          $$RepSetObservationsTableOrderingComposer,
-          $$RepSetObservationsTableAnnotationComposer,
-          $$RepSetObservationsTableCreateCompanionBuilder,
-          $$RepSetObservationsTableUpdateCompanionBuilder,
-          (
-            RepSetObservationData,
-            BaseReferences<
-              _$AppDatabase,
-              $RepSetObservationsTable,
-              RepSetObservationData
-            >,
-          ),
-          RepSetObservationData,
-          PrefetchHooks Function()
-        > {
-  $$RepSetObservationsTableTableManager(
-    _$AppDatabase db,
-    $RepSetObservationsTable table,
-  ) : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$RepSetObservationsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$RepSetObservationsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$RepSetObservationsTableAnnotationComposer(
-                $db: db,
-                $table: table,
-              ),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> exerciseSlug = const Value.absent(),
-                Value<int> sessionId = const Value.absent(),
-                Value<int?> setEntryId = const Value.absent(),
-                Value<DateTime> recordedAt = const Value.absent(),
-                Value<String> source = const Value.absent(),
-                Value<String?> placement = const Value.absent(),
-                Value<String> sensorType = const Value.absent(),
-                Value<int> detectedReps = const Value.absent(),
-                Value<int> confirmedReps = const Value.absent(),
-                Value<double> confidence = const Value.absent(),
-                Value<int?> suggestedRpeX10 = const Value.absent(),
-                Value<int?> confirmedRpeX10 = const Value.absent(),
-                Value<String> featuresJson = const Value.absent(),
-              }) => RepSetObservationsCompanion(
-                id: id,
-                exerciseSlug: exerciseSlug,
-                sessionId: sessionId,
-                setEntryId: setEntryId,
-                recordedAt: recordedAt,
-                source: source,
-                placement: placement,
-                sensorType: sensorType,
-                detectedReps: detectedReps,
-                confirmedReps: confirmedReps,
-                confidence: confidence,
-                suggestedRpeX10: suggestedRpeX10,
-                confirmedRpeX10: confirmedRpeX10,
-                featuresJson: featuresJson,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required String exerciseSlug,
-                required int sessionId,
-                Value<int?> setEntryId = const Value.absent(),
-                required DateTime recordedAt,
-                required String source,
-                Value<String?> placement = const Value.absent(),
-                required String sensorType,
-                required int detectedReps,
-                required int confirmedReps,
-                required double confidence,
-                Value<int?> suggestedRpeX10 = const Value.absent(),
-                Value<int?> confirmedRpeX10 = const Value.absent(),
-                required String featuresJson,
-              }) => RepSetObservationsCompanion.insert(
-                id: id,
-                exerciseSlug: exerciseSlug,
-                sessionId: sessionId,
-                setEntryId: setEntryId,
-                recordedAt: recordedAt,
-                source: source,
-                placement: placement,
-                sensorType: sensorType,
-                detectedReps: detectedReps,
-                confirmedReps: confirmedReps,
-                confidence: confidence,
-                suggestedRpeX10: suggestedRpeX10,
-                confirmedRpeX10: confirmedRpeX10,
-                featuresJson: featuresJson,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$RepSetObservationsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $RepSetObservationsTable,
-      RepSetObservationData,
-      $$RepSetObservationsTableFilterComposer,
-      $$RepSetObservationsTableOrderingComposer,
-      $$RepSetObservationsTableAnnotationComposer,
-      $$RepSetObservationsTableCreateCompanionBuilder,
-      $$RepSetObservationsTableUpdateCompanionBuilder,
-      (
-        RepSetObservationData,
-        BaseReferences<
-          _$AppDatabase,
-          $RepSetObservationsTable,
-          RepSetObservationData
-        >,
-      ),
-      RepSetObservationData,
       PrefetchHooks Function()
     >;
 typedef $$FastingSchedulesTableCreateCompanionBuilder =
@@ -59902,6 +59339,1117 @@ typedef $$CircuitExercisesTableProcessedTableManager =
       CircuitExerciseData,
       PrefetchHooks Function({bool circuitId, bool exerciseId})
     >;
+typedef $$AchievementsTableCreateCompanionBuilder =
+    AchievementsCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      required String id,
+      required DateTime unlockedAt,
+      Value<int> rowid,
+    });
+typedef $$AchievementsTableUpdateCompanionBuilder =
+    AchievementsCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<String> id,
+      Value<DateTime> unlockedAt,
+      Value<int> rowid,
+    });
+
+class $$AchievementsTableFilterComposer
+    extends Composer<_$AppDatabase, $AchievementsTable> {
+  $$AchievementsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get unlockedAt => $composableBuilder(
+    column: $table.unlockedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AchievementsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AchievementsTable> {
+  $$AchievementsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get unlockedAt => $composableBuilder(
+    column: $table.unlockedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AchievementsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AchievementsTable> {
+  $$AchievementsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get syncUuid =>
+      $composableBuilder(column: $table.syncUuid, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get unlockedAt => $composableBuilder(
+    column: $table.unlockedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$AchievementsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AchievementsTable,
+          Achievement,
+          $$AchievementsTableFilterComposer,
+          $$AchievementsTableOrderingComposer,
+          $$AchievementsTableAnnotationComposer,
+          $$AchievementsTableCreateCompanionBuilder,
+          $$AchievementsTableUpdateCompanionBuilder,
+          (
+            Achievement,
+            BaseReferences<_$AppDatabase, $AchievementsTable, Achievement>,
+          ),
+          Achievement,
+          PrefetchHooks Function()
+        > {
+  $$AchievementsTableTableManager(_$AppDatabase db, $AchievementsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AchievementsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AchievementsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AchievementsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<DateTime> unlockedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AchievementsCompanion(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                unlockedAt: unlockedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                required String id,
+                required DateTime unlockedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => AchievementsCompanion.insert(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                unlockedAt: unlockedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AchievementsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AchievementsTable,
+      Achievement,
+      $$AchievementsTableFilterComposer,
+      $$AchievementsTableOrderingComposer,
+      $$AchievementsTableAnnotationComposer,
+      $$AchievementsTableCreateCompanionBuilder,
+      $$AchievementsTableUpdateCompanionBuilder,
+      (
+        Achievement,
+        BaseReferences<_$AppDatabase, $AchievementsTable, Achievement>,
+      ),
+      Achievement,
+      PrefetchHooks Function()
+    >;
+typedef $$HerculRulesTableCreateCompanionBuilder =
+    HerculRulesCompanion Function({
+      required String id,
+      required String domain,
+      required int priority,
+      required int cooldownDays,
+      required String requiresJson,
+      required String whenJson,
+      required String copyNormal,
+      required String copyHonest,
+      Value<String?> ctaJson,
+      Value<int> rowid,
+    });
+typedef $$HerculRulesTableUpdateCompanionBuilder =
+    HerculRulesCompanion Function({
+      Value<String> id,
+      Value<String> domain,
+      Value<int> priority,
+      Value<int> cooldownDays,
+      Value<String> requiresJson,
+      Value<String> whenJson,
+      Value<String> copyNormal,
+      Value<String> copyHonest,
+      Value<String?> ctaJson,
+      Value<int> rowid,
+    });
+
+final class $$HerculRulesTableReferences
+    extends BaseReferences<_$AppDatabase, $HerculRulesTable, HerculRule> {
+  $$HerculRulesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$HerculMessageLogTable, List<HerculMessageLogData>>
+  _herculMessageLogRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.herculMessageLog,
+    aliasName: $_aliasNameGenerator(
+      db.herculRules.id,
+      db.herculMessageLog.ruleId,
+    ),
+  );
+
+  $$HerculMessageLogTableProcessedTableManager get herculMessageLogRefs {
+    final manager = $$HerculMessageLogTableTableManager(
+      $_db,
+      $_db.herculMessageLog,
+    ).filter((f) => f.ruleId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _herculMessageLogRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$HerculRulesTableFilterComposer
+    extends Composer<_$AppDatabase, $HerculRulesTable> {
+  $$HerculRulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get domain => $composableBuilder(
+    column: $table.domain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cooldownDays => $composableBuilder(
+    column: $table.cooldownDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get requiresJson => $composableBuilder(
+    column: $table.requiresJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get whenJson => $composableBuilder(
+    column: $table.whenJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get copyNormal => $composableBuilder(
+    column: $table.copyNormal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get copyHonest => $composableBuilder(
+    column: $table.copyHonest,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ctaJson => $composableBuilder(
+    column: $table.ctaJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> herculMessageLogRefs(
+    Expression<bool> Function($$HerculMessageLogTableFilterComposer f) f,
+  ) {
+    final $$HerculMessageLogTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.herculMessageLog,
+      getReferencedColumn: (t) => t.ruleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HerculMessageLogTableFilterComposer(
+            $db: $db,
+            $table: $db.herculMessageLog,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$HerculRulesTableOrderingComposer
+    extends Composer<_$AppDatabase, $HerculRulesTable> {
+  $$HerculRulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get domain => $composableBuilder(
+    column: $table.domain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cooldownDays => $composableBuilder(
+    column: $table.cooldownDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get requiresJson => $composableBuilder(
+    column: $table.requiresJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get whenJson => $composableBuilder(
+    column: $table.whenJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get copyNormal => $composableBuilder(
+    column: $table.copyNormal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get copyHonest => $composableBuilder(
+    column: $table.copyHonest,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ctaJson => $composableBuilder(
+    column: $table.ctaJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HerculRulesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HerculRulesTable> {
+  $$HerculRulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get domain =>
+      $composableBuilder(column: $table.domain, builder: (column) => column);
+
+  GeneratedColumn<int> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
+
+  GeneratedColumn<int> get cooldownDays => $composableBuilder(
+    column: $table.cooldownDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get requiresJson => $composableBuilder(
+    column: $table.requiresJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get whenJson =>
+      $composableBuilder(column: $table.whenJson, builder: (column) => column);
+
+  GeneratedColumn<String> get copyNormal => $composableBuilder(
+    column: $table.copyNormal,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get copyHonest => $composableBuilder(
+    column: $table.copyHonest,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get ctaJson =>
+      $composableBuilder(column: $table.ctaJson, builder: (column) => column);
+
+  Expression<T> herculMessageLogRefs<T extends Object>(
+    Expression<T> Function($$HerculMessageLogTableAnnotationComposer a) f,
+  ) {
+    final $$HerculMessageLogTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.herculMessageLog,
+      getReferencedColumn: (t) => t.ruleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HerculMessageLogTableAnnotationComposer(
+            $db: $db,
+            $table: $db.herculMessageLog,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$HerculRulesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HerculRulesTable,
+          HerculRule,
+          $$HerculRulesTableFilterComposer,
+          $$HerculRulesTableOrderingComposer,
+          $$HerculRulesTableAnnotationComposer,
+          $$HerculRulesTableCreateCompanionBuilder,
+          $$HerculRulesTableUpdateCompanionBuilder,
+          (HerculRule, $$HerculRulesTableReferences),
+          HerculRule,
+          PrefetchHooks Function({bool herculMessageLogRefs})
+        > {
+  $$HerculRulesTableTableManager(_$AppDatabase db, $HerculRulesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HerculRulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HerculRulesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HerculRulesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> domain = const Value.absent(),
+                Value<int> priority = const Value.absent(),
+                Value<int> cooldownDays = const Value.absent(),
+                Value<String> requiresJson = const Value.absent(),
+                Value<String> whenJson = const Value.absent(),
+                Value<String> copyNormal = const Value.absent(),
+                Value<String> copyHonest = const Value.absent(),
+                Value<String?> ctaJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HerculRulesCompanion(
+                id: id,
+                domain: domain,
+                priority: priority,
+                cooldownDays: cooldownDays,
+                requiresJson: requiresJson,
+                whenJson: whenJson,
+                copyNormal: copyNormal,
+                copyHonest: copyHonest,
+                ctaJson: ctaJson,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String domain,
+                required int priority,
+                required int cooldownDays,
+                required String requiresJson,
+                required String whenJson,
+                required String copyNormal,
+                required String copyHonest,
+                Value<String?> ctaJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HerculRulesCompanion.insert(
+                id: id,
+                domain: domain,
+                priority: priority,
+                cooldownDays: cooldownDays,
+                requiresJson: requiresJson,
+                whenJson: whenJson,
+                copyNormal: copyNormal,
+                copyHonest: copyHonest,
+                ctaJson: ctaJson,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$HerculRulesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({herculMessageLogRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (herculMessageLogRefs) db.herculMessageLog,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (herculMessageLogRefs)
+                    await $_getPrefetchedData<
+                      HerculRule,
+                      $HerculRulesTable,
+                      HerculMessageLogData
+                    >(
+                      currentTable: table,
+                      referencedTable: $$HerculRulesTableReferences
+                          ._herculMessageLogRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$HerculRulesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).herculMessageLogRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.ruleId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$HerculRulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HerculRulesTable,
+      HerculRule,
+      $$HerculRulesTableFilterComposer,
+      $$HerculRulesTableOrderingComposer,
+      $$HerculRulesTableAnnotationComposer,
+      $$HerculRulesTableCreateCompanionBuilder,
+      $$HerculRulesTableUpdateCompanionBuilder,
+      (HerculRule, $$HerculRulesTableReferences),
+      HerculRule,
+      PrefetchHooks Function({bool herculMessageLogRefs})
+    >;
+typedef $$HerculMessageLogTableCreateCompanionBuilder =
+    HerculMessageLogCompanion Function({
+      required String ruleId,
+      required DateTime lastFiredAt,
+      Value<int> rowid,
+    });
+typedef $$HerculMessageLogTableUpdateCompanionBuilder =
+    HerculMessageLogCompanion Function({
+      Value<String> ruleId,
+      Value<DateTime> lastFiredAt,
+      Value<int> rowid,
+    });
+
+final class $$HerculMessageLogTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $HerculMessageLogTable,
+          HerculMessageLogData
+        > {
+  $$HerculMessageLogTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $HerculRulesTable _ruleIdTable(_$AppDatabase db) =>
+      db.herculRules.createAlias(
+        $_aliasNameGenerator(db.herculMessageLog.ruleId, db.herculRules.id),
+      );
+
+  $$HerculRulesTableProcessedTableManager get ruleId {
+    final $_column = $_itemColumn<String>('rule_id')!;
+
+    final manager = $$HerculRulesTableTableManager(
+      $_db,
+      $_db.herculRules,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_ruleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$HerculMessageLogTableFilterComposer
+    extends Composer<_$AppDatabase, $HerculMessageLogTable> {
+  $$HerculMessageLogTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<DateTime> get lastFiredAt => $composableBuilder(
+    column: $table.lastFiredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$HerculRulesTableFilterComposer get ruleId {
+    final $$HerculRulesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ruleId,
+      referencedTable: $db.herculRules,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HerculRulesTableFilterComposer(
+            $db: $db,
+            $table: $db.herculRules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HerculMessageLogTableOrderingComposer
+    extends Composer<_$AppDatabase, $HerculMessageLogTable> {
+  $$HerculMessageLogTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<DateTime> get lastFiredAt => $composableBuilder(
+    column: $table.lastFiredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$HerculRulesTableOrderingComposer get ruleId {
+    final $$HerculRulesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ruleId,
+      referencedTable: $db.herculRules,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HerculRulesTableOrderingComposer(
+            $db: $db,
+            $table: $db.herculRules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HerculMessageLogTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HerculMessageLogTable> {
+  $$HerculMessageLogTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<DateTime> get lastFiredAt => $composableBuilder(
+    column: $table.lastFiredAt,
+    builder: (column) => column,
+  );
+
+  $$HerculRulesTableAnnotationComposer get ruleId {
+    final $$HerculRulesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ruleId,
+      referencedTable: $db.herculRules,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HerculRulesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.herculRules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HerculMessageLogTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HerculMessageLogTable,
+          HerculMessageLogData,
+          $$HerculMessageLogTableFilterComposer,
+          $$HerculMessageLogTableOrderingComposer,
+          $$HerculMessageLogTableAnnotationComposer,
+          $$HerculMessageLogTableCreateCompanionBuilder,
+          $$HerculMessageLogTableUpdateCompanionBuilder,
+          (HerculMessageLogData, $$HerculMessageLogTableReferences),
+          HerculMessageLogData,
+          PrefetchHooks Function({bool ruleId})
+        > {
+  $$HerculMessageLogTableTableManager(
+    _$AppDatabase db,
+    $HerculMessageLogTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HerculMessageLogTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HerculMessageLogTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HerculMessageLogTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> ruleId = const Value.absent(),
+                Value<DateTime> lastFiredAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HerculMessageLogCompanion(
+                ruleId: ruleId,
+                lastFiredAt: lastFiredAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String ruleId,
+                required DateTime lastFiredAt,
+                Value<int> rowid = const Value.absent(),
+              }) => HerculMessageLogCompanion.insert(
+                ruleId: ruleId,
+                lastFiredAt: lastFiredAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$HerculMessageLogTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({ruleId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (ruleId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.ruleId,
+                                referencedTable:
+                                    $$HerculMessageLogTableReferences
+                                        ._ruleIdTable(db),
+                                referencedColumn:
+                                    $$HerculMessageLogTableReferences
+                                        ._ruleIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$HerculMessageLogTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HerculMessageLogTable,
+      HerculMessageLogData,
+      $$HerculMessageLogTableFilterComposer,
+      $$HerculMessageLogTableOrderingComposer,
+      $$HerculMessageLogTableAnnotationComposer,
+      $$HerculMessageLogTableCreateCompanionBuilder,
+      $$HerculMessageLogTableUpdateCompanionBuilder,
+      (HerculMessageLogData, $$HerculMessageLogTableReferences),
+      HerculMessageLogData,
+      PrefetchHooks Function({bool ruleId})
+    >;
+typedef $$FastingStagesTableCreateCompanionBuilder =
+    FastingStagesCompanion Function({
+      Value<int> hour,
+      required String stageName,
+      required String stageCategory,
+      required String shortMessage,
+      Value<String?> detail,
+      Value<String?> icon,
+    });
+typedef $$FastingStagesTableUpdateCompanionBuilder =
+    FastingStagesCompanion Function({
+      Value<int> hour,
+      Value<String> stageName,
+      Value<String> stageCategory,
+      Value<String> shortMessage,
+      Value<String?> detail,
+      Value<String?> icon,
+    });
+
+class $$FastingStagesTableFilterComposer
+    extends Composer<_$AppDatabase, $FastingStagesTable> {
+  $$FastingStagesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get hour => $composableBuilder(
+    column: $table.hour,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stageName => $composableBuilder(
+    column: $table.stageName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stageCategory => $composableBuilder(
+    column: $table.stageCategory,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get shortMessage => $composableBuilder(
+    column: $table.shortMessage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get detail => $composableBuilder(
+    column: $table.detail,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FastingStagesTableOrderingComposer
+    extends Composer<_$AppDatabase, $FastingStagesTable> {
+  $$FastingStagesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get hour => $composableBuilder(
+    column: $table.hour,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stageName => $composableBuilder(
+    column: $table.stageName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stageCategory => $composableBuilder(
+    column: $table.stageCategory,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get shortMessage => $composableBuilder(
+    column: $table.shortMessage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get detail => $composableBuilder(
+    column: $table.detail,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FastingStagesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FastingStagesTable> {
+  $$FastingStagesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get hour =>
+      $composableBuilder(column: $table.hour, builder: (column) => column);
+
+  GeneratedColumn<String> get stageName =>
+      $composableBuilder(column: $table.stageName, builder: (column) => column);
+
+  GeneratedColumn<String> get stageCategory => $composableBuilder(
+    column: $table.stageCategory,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get shortMessage => $composableBuilder(
+    column: $table.shortMessage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get detail =>
+      $composableBuilder(column: $table.detail, builder: (column) => column);
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+}
+
+class $$FastingStagesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FastingStagesTable,
+          FastingStageData,
+          $$FastingStagesTableFilterComposer,
+          $$FastingStagesTableOrderingComposer,
+          $$FastingStagesTableAnnotationComposer,
+          $$FastingStagesTableCreateCompanionBuilder,
+          $$FastingStagesTableUpdateCompanionBuilder,
+          (
+            FastingStageData,
+            BaseReferences<
+              _$AppDatabase,
+              $FastingStagesTable,
+              FastingStageData
+            >,
+          ),
+          FastingStageData,
+          PrefetchHooks Function()
+        > {
+  $$FastingStagesTableTableManager(_$AppDatabase db, $FastingStagesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FastingStagesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FastingStagesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FastingStagesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> hour = const Value.absent(),
+                Value<String> stageName = const Value.absent(),
+                Value<String> stageCategory = const Value.absent(),
+                Value<String> shortMessage = const Value.absent(),
+                Value<String?> detail = const Value.absent(),
+                Value<String?> icon = const Value.absent(),
+              }) => FastingStagesCompanion(
+                hour: hour,
+                stageName: stageName,
+                stageCategory: stageCategory,
+                shortMessage: shortMessage,
+                detail: detail,
+                icon: icon,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> hour = const Value.absent(),
+                required String stageName,
+                required String stageCategory,
+                required String shortMessage,
+                Value<String?> detail = const Value.absent(),
+                Value<String?> icon = const Value.absent(),
+              }) => FastingStagesCompanion.insert(
+                hour: hour,
+                stageName: stageName,
+                stageCategory: stageCategory,
+                shortMessage: shortMessage,
+                detail: detail,
+                icon: icon,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FastingStagesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FastingStagesTable,
+      FastingStageData,
+      $$FastingStagesTableFilterComposer,
+      $$FastingStagesTableOrderingComposer,
+      $$FastingStagesTableAnnotationComposer,
+      $$FastingStagesTableCreateCompanionBuilder,
+      $$FastingStagesTableUpdateCompanionBuilder,
+      (
+        FastingStageData,
+        BaseReferences<_$AppDatabase, $FastingStagesTable, FastingStageData>,
+      ),
+      FastingStageData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -59995,15 +60543,6 @@ class $AppDatabaseManager {
       $$CarbCyclePlansTableTableManager(_db, _db.carbCyclePlans);
   $$SyncCursorsTableTableManager get syncCursors =>
       $$SyncCursorsTableTableManager(_db, _db.syncCursors);
-  $$RepTrackingSettingsTableTableManager get repTrackingSettings =>
-      $$RepTrackingSettingsTableTableManager(_db, _db.repTrackingSettings);
-  $$RepTrackingExercisePrefsTableTableManager get repTrackingExercisePrefs =>
-      $$RepTrackingExercisePrefsTableTableManager(
-        _db,
-        _db.repTrackingExercisePrefs,
-      );
-  $$RepSetObservationsTableTableManager get repSetObservations =>
-      $$RepSetObservationsTableTableManager(_db, _db.repSetObservations);
   $$FastingSchedulesTableTableManager get fastingSchedules =>
       $$FastingSchedulesTableTableManager(_db, _db.fastingSchedules);
   $$BuddySessionsLocalTableTableManager get buddySessionsLocal =>
@@ -60017,4 +60556,12 @@ class $AppDatabaseManager {
       $$WorkoutCircuitsTableTableManager(_db, _db.workoutCircuits);
   $$CircuitExercisesTableTableManager get circuitExercises =>
       $$CircuitExercisesTableTableManager(_db, _db.circuitExercises);
+  $$AchievementsTableTableManager get achievements =>
+      $$AchievementsTableTableManager(_db, _db.achievements);
+  $$HerculRulesTableTableManager get herculRules =>
+      $$HerculRulesTableTableManager(_db, _db.herculRules);
+  $$HerculMessageLogTableTableManager get herculMessageLog =>
+      $$HerculMessageLogTableTableManager(_db, _db.herculMessageLog);
+  $$FastingStagesTableTableManager get fastingStages =>
+      $$FastingStagesTableTableManager(_db, _db.fastingStages);
 }

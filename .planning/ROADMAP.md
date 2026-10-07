@@ -63,53 +63,69 @@ Plans:
 - [x] 09-02-PLAN.md — Retarget remaining providers onto trainingSnapshotProvider; delete dead cnsFatigueProvider/muscleRecoveryProvider and the duplicate recovery card
 - [x] 09-03-PLAN.md — Automated regression test proving soft-deleted sets are excluded from analytics
 
-## Phase 10: Assisted rep tracking
-
-**Goal:** Add an opt-in, on-device rep counter for pull-ups and dips that *proposes* a rep count — and, once calibrated, an RPE — at the end of a set, which the user reviews and confirms or edits. The tracker can never write a set.
-
-**Requirements:** REP-01–06
-
-**Depends on:** Phase 9 (merge order only — Phase 9 adds no tables, this phase takes schema v26)
-
-**Success:** Nothing under `lib/features/reps/` imports `workouts_repository.dart` or references `updateSet`, enforced by a static test; the authoritative detector is pure Dart on the phone and the Kotlin watch counter is provisional-only and never persisted; the three new tables are local-only with no `SyncColumns`/tombstones/outbox triggers and raw samples are discarded at set end; an RPE is offered only past the n ≥ 10 / ≥ 3 sessions / LOO MAE ≤ 1.0 gate; and recorded pull-up and dip traces verify counting accuracy, missed reps, false-positive resistance and the never-auto-complete guarantee.
-
-**Plans:** 6/7 plans executed
-
-Plans:
-- [x] 10-01-PLAN.md — Schema v26, RepMovement, consent/eligibility state, rep tracking repository (wave 1)
-- [x] 10-03a-PLAN.md — Wear Kotlin capture, both WearSyncPaths copies, phone-side routing (wave 1, Gradle-verified)
-- [ ] 10-02-PLAN.md — Pure-Dart rep detection engine and recorded trace fixtures (wave 2, Tasks 1-4 done, blocking human fixture-recording checkpoint remains)
-- [x] 10-03b-PLAN.md — Dart capture service, RepSuggestion/TrackerState contract, phone motion source (wave 3)
-- [x] 10-04-PLAN.md — Consent flow, live counter, review-and-confirm sheet (wave 4)
-- [x] 10-05-PLAN.md — Calibration learning and LOO-gated RPE suggestion (wave 5)
-- [x] 10-06-PLAN.md — In-app fixture-recording debug tool: checklist, capture flow, export (wave 6, does not close REP-06 itself)
-
-**Risk:** 10-02 is gated on a human task — recording real pull-up and dip traces on both a watch and a pocketed phone with ground-truth counts. Synthetic traces cannot meet the accuracy bar. 10-06 makes this easier to do opportunistically across real workouts but does not remove the requirement for a human to actually perform them.
-
 ## Phase 11: Gym Buddy — live shared workout
 
 **Goal:** Let two people train the same workout together in real time. One shares an active workout, the other joins by scanning a QR code from the `+` button, and from then on the exercise list stays in step between them — while each person's sets, reps, weights and measurements stay entirely their own.
 
 **Requirements:** BUD-01–06
 
-**Depends on:** Nothing functionally. Takes local schema v29 and a new Supabase migration; merge after Phase 10's v26–v28 chain has landed to avoid a schema-version race.
+**Depends on:** Nothing functionally. Takes local schema v29 and a new Supabase migration; v26–v28 were already spoken for by the time this landed.
 
 **Success:** Two phones running a shared session see the same exercise list within a second of any change; a change made with scope "only me" provably does not appear on the partner's device while "both" does; each participant's `WorkoutSessions` row is owned and synced by them alone, and a test proves no partner-owned set row is ever written into the other's tables or counted in their analytics; killing and reopening the app on one phone restores the shared exercise list from the durable event log rather than an empty session; and a static test proves `0003_sync_rls.sql`'s owner-only policies are unmodified, with cross-user reads confined to the new buddy tables.
 
-**Plans:** 4.5/11 plans executed
+**Plans:** 11/11 plans executed — corrected 2026-09-02, see the note below
+
+> **The plan ledger below was badly stale.** It showed waves 4–9 unchecked and
+> `REQUIREMENTS.md` showed all six BUD requirements as `[ ]`, but a session
+> that afternoon (2026-08-18/19) had already built essentially the entire
+> feature: `lib/features/buddy/` (18 files) with 74 passing tests covering
+> the gateway, channel service, choreography sender/applier, session
+> controller (host/join/leave/endForEveryone), and full UI (share sheet,
+> QR scanner, presence bar, scope toggle) — all wired into
+> `active_workout_view.dart` and the `+` quick-add menu. Nobody had gone back
+> and ticked the boxes. Re-verified 2026-09-02 by reading the actual code and
+> running the actual test suite rather than trusting this ledger; see
+> `REQUIREMENTS.md`'s BUD-01–06 entries for the evidence behind each mark.
+>
+> Two real gaps were found and closed in that same pass:
+> - **App-restart resume was missing** (BUD-04's "killing and reopening the
+>   app restores the shared exercise list" half). `BuddySessionController`
+>   only ever populated its state from a fresh host/join UI action, so a
+>   killed-and-reopened app silently dropped out of a live session even
+>   though the durable event log and `buddy_sessions_local`'s persisted
+>   `lastSeenSeq` were sitting right there. Added `resumeIfActive()`, called
+>   once at app startup (`app.dart`, same idiom as the fasting-schedule
+>   rehydrate next to it); tested in
+>   `test/buddy/buddy_session_controller_test.dart`.
+> - **No analytics non-interference test** (BUD-02's second half, 11-11's
+>   stated scope). Added `test/buddy/buddy_analytics_isolation_test.dart`,
+>   which pins that `TrainingSnapshot.load` — the shared data path every
+>   volume/analytics view has built on since the Phase 9 consolidation —
+>   never filters, weights or groups on `buddySessionId`; the field is inert
+>   to it by construction.
+>
+> **11-05 is written but not yet green.** `test/sync/live_buddy_test.dart`
+> exists (5 tests, exactly per `11-05-PLAN.md` Task 2) and self-skips
+> cleanly without credentials, but running it live surfaced a pre-existing,
+> unrelated bug: `.secrets/live_sync.json`'s `SUPABASE_URL` points at
+> `jioesomepkauponjrena` (SummitSki) rather than `ldzgyzigvbwofbswitrv`
+> (Herculex, where migration 0011 actually lives — confirmed live via
+> `npx supabase migration list` and a direct `pg_proc` query, so this is not
+> a schema-cache issue). Blocked on the correct anon key for the Herculex
+> project.
 
 Plans:
 - [x] 11-01-PLAN.md — Supabase CLI install, project link, migration workflow doc (wave 1)
 - [x] 11-02-PLAN.md — Wire contract, scope enum on the far side of the boundary, publisher seam, the two structural gates (wave 1)
 - [x] 11-03-PLAN.md — Drift v29: buddy mirror tables (local-only) and WorkoutSessions.buddySessionId (wave 2)
 - [x] 11-04-PLAN.md — Supabase 0011: buddy tables, plpgsql participation helper, three RPCs, broadcast-from-DB trigger (wave 2)
-- [~] 11-05-PLAN.md — db push done (0011 applied to `ldzgyzigvbwofbswitrv` 2026-08-18, recorded in `docs/supabase-migrations.md`); the live smoke-test suite `test/sync/live_buddy_test.dart` is still unwritten (wave 3)
-- [ ] 11-06-PLAN.md — Gateway, private channel service, and the pure ordering machine (wave 4)
-- [ ] 11-07-PLAN.md — The applier: slot mapping, placeholders, replay, and the BUD-06 remove gate (wave 5)
-- [ ] 11-08-PLAN.md — The sender: share policy, scope as control flow, optimistic rollback (wave 6)
-- [ ] 11-09-PLAN.md — Session lifecycle: host, join with auto-start, leave, teardown, Riverpod wiring (wave 7)
-- [ ] 11-10-PLAN.md — UI: share sheet with QR, scan-to-join in the + menu, scope toggle, presence and notices (wave 8)
-- [ ] 11-11-PLAN.md — BUD-02 isolation proof across two devices, and analytics non-interference (wave 9)
+- [~] 11-05-PLAN.md — db push done (0011 applied to `ldzgyzigvbwofbswitrv` 2026-08-18, recorded in `docs/supabase-migrations.md`); `test/sync/live_buddy_test.dart` written 2026-09-02 but blocked on `.secrets/live_sync.json` pointing at the wrong project (wave 3)
+- [x] 11-06-PLAN.md — Gateway (`buddy_remote_gateway.dart`), private channel service (`buddy_channel_service.dart`), and the pure ordering machine (`buddy_event_stream.dart`) (wave 4)
+- [x] 11-07-PLAN.md — The applier (`buddy_choreography_applier.dart`): slot mapping, placeholders, replay, and the BUD-06 remove gate (wave 5)
+- [x] 11-08-PLAN.md — The sender (`buddy_choreography_sender.dart`): share policy, scope as control flow (wave 6)
+- [x] 11-09-PLAN.md — Session lifecycle (`buddy_session_controller.dart`): host, join with auto-start, leave, teardown, Riverpod wiring, plus the 2026-09-02 resume-on-restart addition (wave 7)
+- [x] 11-10-PLAN.md — UI: share sheet with QR (`buddy_share_sheet.dart`), scan-to-join in the + menu (`buddy_join_scanner_view.dart`), scope toggle, presence bar and notices (wave 8)
+- [x] 11-11-PLAN.md — BUD-02 isolation proof across two devices (`buddy_two_device_test.dart`) and analytics non-interference (`buddy_analytics_isolation_test.dart`, added 2026-09-02) (wave 9)
 
 **Scope fence:** MVP is the live shared session only. VS comparison in history (BUD-07), the persistent friends model (BUD-08) and challenges (BUD-09) are deliberately deferred — they are separate phases that build on this one. Do not add a friends list, a challenge model or history comparison screens in this phase; the QR join token is a session token, not a relationship.
 
@@ -119,7 +135,7 @@ Plans:
 
 **Requirements:** EXR-01–05
 
-**Depends on:** Local schema v31 (v29 went to Gym Buddy and v30 to the rep-tracking switch, so 12-04 took v31 and Supabase 0013). Plan 12-04 touches `active_exercise_card.dart`, which GSD Phase 10 also edits and UI-rework Phase 7 wants to split — sequence it after Phase 10.
+**Depends on:** Local schema v31 (v29 went to Gym Buddy and v30 to the rep-tracking switch — the switch itself is gone, but the version number stays allocated to it historically — so 12-04 took v31 and Supabase 0013). Plan 12-04 touches `active_exercise_card.dart`, which UI-rework Phase 7 wants to split; that split is unblocked now that rep tracking is gone.
 
 **Success:** Searching "bench" returns one Bench Press that expands to its six bars rather than six top-level rows; `cardio`, `crossfit` and `mobility` are all non-empty and a test keeps them that way; every `loggingMetric` in the asset resolves against the `LoggingMetric` registry; and a Sled Push logs weight × distance while a Plank logs a duration, both round-tripping through history without inflating tonnage.
 
@@ -130,7 +146,7 @@ Plans:
 - [x] 12-02-PLAN.md — Coverage: 51 cardio, Olympic, CrossFit and mobility rows (wave 1)
 - [x] 12-03-PLAN.md — `LoggingMetric` registry, metric corrections, catalogue invariant tests (wave 1)
 - [x] 12-04-PLAN.md — Drift **v31** + Supabase **0013**: `durationSeconds`, `distanceM`, `calories` on `set_entries` (wave 2). Landed without a plan file; v30/0012 were taken by the rep-tracking switch and the product catalogue respectively.
-- [x] 12-05-PLAN.md — Metric-driven set-entry UI; tonnage exclusion for distance/cardio sets (wave 3, after Phase 10)
+- [x] 12-05-PLAN.md — Metric-driven set-entry UI; tonnage exclusion for distance/cardio sets (wave 3, sequenced after rep tracking's `active_exercise_card.dart` wiring to avoid a merge conflict — that wiring is since removed)
 
 **Scope fence:** Non-destructive. No catalogue row is deleted and no `set_entries.exercise_id` is remapped — variants stay as rows and the picker collapses them through `movementSlug`. Rounds-based work (AMRAP, EMOM, For Time) stays in `SetType` + `set_type_meta_json`; it does not become a logging metric.
 

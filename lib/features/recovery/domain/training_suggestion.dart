@@ -1,10 +1,10 @@
 // lib/features/recovery/domain/training_suggestion.dart
-import '../../analytics/domain/muscle_recovery_v3.dart';
-import '../../analytics/domain/muscle_volume_trend.dart';
-import 'deload_urgency.dart';
-import 'joint_model.dart';
-import 'joint_stress_advisor.dart';
-import 'muscle_deload_advisor.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/muscle_volume_trend.dart';
+import 'package:herculex/features/recovery/domain/deload_urgency.dart';
+import 'package:herculex/features/recovery/domain/joint_model.dart';
+import 'package:herculex/features/recovery/domain/joint_stress_advisor.dart';
+import 'package:herculex/features/recovery/domain/muscle_deload_advisor.dart';
 
 enum MuscleCategory { push, pull, legs, core }
 
@@ -79,24 +79,30 @@ abstract final class TrainingSuggestionEngine {
     required List<MuscleGroupRecovery> recovery,
     required List<MuscleDeloadSignal> deloadSignals,
     required List<JointStressResult> jointStress,
-    required Map<String, MuscleVolumeTrend> volumeTrends,
+    Map<String, MuscleVolumeTrend> volumeTrends = const {},
   }) {
     final deloadByMuscle = {for (final s in deloadSignals) s.muscle: s.urgency};
 
     final jointExcluded = <String>{
       for (final js in jointStress)
         if (js.urgency != DeloadUrgency.none)
-          for (final entry in (JointModel.influencingMuscles[js.joint] ?? const {}).entries)
+          for (final entry
+              in (JointModel.influencingMuscles[js.joint] ?? const {}).entries)
             if (entry.value >= _jointExclusionWeight) entry.key,
     };
 
-    final byCategory = {for (final c in MuscleCategory.values) c: <MuscleGroupRecovery>[]};
+    final byCategory = {
+      for (final c in MuscleCategory.values) c: <MuscleGroupRecovery>[],
+    };
     for (final r in recovery) {
       final category = MuscleCategories.byMuscle[r.muscle];
       if (category != null) byCategory[category]!.add(r);
     }
 
-    final totalWeeklyVolume = volumeTrends.values.fold(0.0, (s, t) => s + t.averageWeeklySets);
+    final totalWeeklyVolume = volumeTrends.values.fold(
+      0.0,
+      (s, t) => s + t.averageWeeklySets,
+    );
     final isEstablishedUser = totalWeeklyVolume > 10.0;
 
     bool usable(MuscleGroupRecovery r) {
@@ -118,7 +124,10 @@ abstract final class TrainingSuggestionEngine {
         c: () {
           final usables = byCategory[c]!.where(usable).toList();
           if (usables.isEmpty) return 0.0;
-          return usables.map((r) => r.recoveryScore).reduce((a, b) => a < b ? a : b) as double;
+          return usables
+              .map((r) => r.recoveryScore)
+              .reduce((a, b) => a < b ? a : b)
+              .toDouble();
         }(),
     };
 
@@ -130,12 +139,15 @@ abstract final class TrainingSuggestionEngine {
     );
 
     final inCategory = byCategory[best]!;
-    final scoreByMuscle = {for (final r in inCategory) r.muscle: r.recoveryScore};
-    final ready = inCategory
-        .where((r) => r.recoveryScore >= _trainableThreshold && usable(r))
-        .map((r) => r.muscle)
-        .toList()
-      ..sort((a, b) => scoreByMuscle[b]!.compareTo(scoreByMuscle[a]!));
+    final scoreByMuscle = {
+      for (final r in inCategory) r.muscle: r.recoveryScore,
+    };
+    final ready =
+        inCategory
+            .where((r) => r.recoveryScore >= _trainableThreshold && usable(r))
+            .map((r) => r.muscle)
+            .toList()
+          ..sort((a, b) => scoreByMuscle[b]!.compareTo(scoreByMuscle[a]!));
 
     return TrainingSuggestion(
       bestCategory: best,
@@ -144,8 +156,10 @@ abstract final class TrainingSuggestionEngine {
           .where((r) => deloadByMuscle[r.muscle] == DeloadUrgency.recommended)
           .map((r) => r.muscle)
           .toList(),
-      excludedJointPain:
-          inCategory.where((r) => jointExcluded.contains(r.muscle)).map((r) => r.muscle).toList(),
+      excludedJointPain: inCategory
+          .where((r) => jointExcluded.contains(r.muscle))
+          .map((r) => r.muscle)
+          .toList(),
       categoryReadinessScore: categoryScores[best]!,
       allCategoryScores: categoryScores,
     );

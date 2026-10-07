@@ -1,5 +1,5 @@
-import 'hercul_context.dart';
-import 'hercul_rule.dart';
+import 'package:herculex/features/hercul/domain/hercul_context.dart';
+import 'package:herculex/features/hercul/domain/hercul_rule.dart';
 
 /// Matches authored rules against the user's data and renders the copy.
 ///
@@ -109,8 +109,9 @@ abstract final class HerculEngine {
     });
   }
 
-  static final _placeholder =
-      RegExp(r'\{([a-zA-Z][\w.]*)(?::([^|}]+))?(?:\|(\w+))?\}');
+  static final _placeholder = RegExp(
+    r'\{([a-zA-Z][\w.]*)(?::([^|}]+))?(?:\|(\w+))?\}',
+  );
 
   static String _format(double value, String? format) {
     switch (format) {

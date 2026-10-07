@@ -27,8 +27,7 @@ class SecureAuthStorage extends LocalStorage {
   Future<String?> accessToken() => _storage.read(key: _key);
 
   @override
-  Future<bool> hasAccessToken() async =>
-      await _storage.read(key: _key) != null;
+  Future<bool> hasAccessToken() async => await _storage.read(key: _key) != null;
 
   @override
   Future<void> persistSession(String persistSessionString) =>

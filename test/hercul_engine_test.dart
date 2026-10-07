@@ -13,12 +13,7 @@ HerculContext _context({
   Map<String, SignalSeries> series = const {},
   Map<String, String> labels = const {},
 }) =>
-    HerculContext(
-      scalars: scalars,
-      series: series,
-      labels: labels,
-      now: _now,
-    );
+    HerculContext(scalars: scalars, series: series, labels: labels, now: _now);
 
 HerculRule _rule(
   String id, {
@@ -29,16 +24,15 @@ HerculRule _rule(
   List<String> requires = const [],
   String normal = 'normal copy',
   String honest = 'honest copy',
-}) =>
-    HerculRule(
-      id: id,
-      domain: domain,
-      priority: priority,
-      cooldownDays: cooldownDays,
-      requires: requires,
-      when: when,
-      copy: {HerculTone.normal: normal, HerculTone.honest: honest},
-    );
+}) => HerculRule(
+  id: id,
+  domain: domain,
+  priority: priority,
+  cooldownDays: cooldownDays,
+  requires: requires,
+  when: when,
+  copy: {HerculTone.normal: normal, HerculTone.honest: honest},
+);
 
 void main() {
   group('condition evaluation', () {
@@ -79,32 +73,34 @@ void main() {
       }
     });
 
-    test('label conditions compare text, and ordering them is not satisfied',
-        () {
-      const eq = HerculCondition(
-        signal: HerculSignals.goal,
-        op: ConditionOp.eq,
-        text: 'weightLoss',
-      );
-      expect(
-        eq.evaluate(_context(labels: {HerculSignals.goal: 'weightLoss'})),
-        isTrue,
-      );
-      expect(
-        eq.evaluate(_context(labels: {HerculSignals.goal: 'muscleGain'})),
-        isFalse,
-      );
+    test(
+      'label conditions compare text, and ordering them is not satisfied',
+      () {
+        const eq = HerculCondition(
+          signal: HerculSignals.goal,
+          op: ConditionOp.eq,
+          text: 'weightLoss',
+        );
+        expect(
+          eq.evaluate(_context(labels: {HerculSignals.goal: 'weightLoss'})),
+          isTrue,
+        );
+        expect(
+          eq.evaluate(_context(labels: {HerculSignals.goal: 'muscleGain'})),
+          isFalse,
+        );
 
-      const gt = HerculCondition(
-        signal: HerculSignals.goal,
-        op: ConditionOp.gt,
-        text: 'weightLoss',
-      );
-      expect(
-        gt.evaluate(_context(labels: {HerculSignals.goal: 'weightLoss'})),
-        isFalse,
-      );
-    });
+        const gt = HerculCondition(
+          signal: HerculSignals.goal,
+          op: ConditionOp.gt,
+          text: 'weightLoss',
+        );
+        expect(
+          gt.evaluate(_context(labels: {HerculSignals.goal: 'weightLoss'})),
+          isFalse,
+        );
+      },
+    );
 
     test('argument-keyed signals resolve per subject', () {
       const condition = HerculCondition(
@@ -113,9 +109,11 @@ void main() {
         op: ConditionOp.lt,
         value: 6,
       );
-      final context = _context(series: {
-        HerculSignals.weeklySets: {'Rear Delts': 3, 'Chest': 14},
-      });
+      final context = _context(
+        series: {
+          HerculSignals.weeklySets: {'Rear Delts': 3, 'Chest': 14},
+        },
+      );
       expect(condition.evaluate(context), isTrue);
       expect(
         const HerculCondition(
@@ -155,40 +153,40 @@ void main() {
           ],
         ),
       ];
-      expect(
-        HerculEngine.evaluate(context: _context(), rules: rules),
-        isEmpty,
-      );
+      expect(HerculEngine.evaluate(context: _context(), rules: rules), isEmpty);
     });
 
-    test('requires gates a signal the copy needs but the conditions do not', () {
-      final rules = [
-        _rule(
-          'needs-height',
-          requires: [HerculSignals.heightCm],
-          when: [
-            const HerculCondition(
-              signal: HerculSignals.cnsLoad,
-              op: ConditionOp.gt,
-              value: 0.1,
-            ),
-          ],
-        ),
-      ];
-      final withoutHeight = _context(scalars: {HerculSignals.cnsLoad: 0.9});
-      expect(
-        HerculEngine.evaluate(context: withoutHeight, rules: rules),
-        isEmpty,
-      );
+    test(
+      'requires gates a signal the copy needs but the conditions do not',
+      () {
+        final rules = [
+          _rule(
+            'needs-height',
+            requires: [HerculSignals.heightCm],
+            when: [
+              const HerculCondition(
+                signal: HerculSignals.cnsLoad,
+                op: ConditionOp.gt,
+                value: 0.1,
+              ),
+            ],
+          ),
+        ];
+        final withoutHeight = _context(scalars: {HerculSignals.cnsLoad: 0.9});
+        expect(
+          HerculEngine.evaluate(context: withoutHeight, rules: rules),
+          isEmpty,
+        );
 
-      final withHeight = _context(
-        scalars: {HerculSignals.cnsLoad: 0.9, HerculSignals.heightCm: 190},
-      );
-      expect(
-        HerculEngine.evaluate(context: withHeight, rules: rules),
-        hasLength(1),
-      );
-    });
+        final withHeight = _context(
+          scalars: {HerculSignals.cnsLoad: 0.9, HerculSignals.heightCm: 190},
+        );
+        expect(
+          HerculEngine.evaluate(context: withHeight, rules: rules),
+          hasLength(1),
+        );
+      },
+    );
 
     test('a rule inside its cooldown stays quiet', () {
       final rules = [
@@ -204,10 +202,14 @@ void main() {
           ],
         ),
       ];
-      final context =
-          _context(scalars: {HerculSignals.daysSinceLastWorkout: 3});
+      final context = _context(
+        scalars: {HerculSignals.daysSinceLastWorkout: 3},
+      );
 
-      expect(HerculEngine.evaluate(context: context, rules: rules), hasLength(1));
+      expect(
+        HerculEngine.evaluate(context: context, rules: rules),
+        hasLength(1),
+      );
       expect(
         HerculEngine.evaluate(
           context: context,
@@ -237,7 +239,12 @@ void main() {
       final rules = [
         _rule('low', priority: 10, domain: HerculDomain.volume, when: always),
         _rule('high', priority: 90, domain: HerculDomain.volume, when: always),
-        _rule('mid', priority: 50, domain: HerculDomain.nutrition, when: always),
+        _rule(
+          'mid',
+          priority: 50,
+          domain: HerculDomain.nutrition,
+          when: always,
+        ),
       ];
       final out = HerculEngine.evaluate(
         context: _context(scalars: {HerculSignals.cnsLoad: 0.5}),
@@ -256,7 +263,12 @@ void main() {
       ];
       final rules = [
         _rule('zulu', priority: 50, domain: HerculDomain.volume, when: always),
-        _rule('alpha', priority: 50, domain: HerculDomain.nutrition, when: always),
+        _rule(
+          'alpha',
+          priority: 50,
+          domain: HerculDomain.nutrition,
+          when: always,
+        ),
       ];
       final context = _context(scalars: {HerculSignals.cnsLoad: 0.5});
       final first = HerculEngine.evaluate(context: context, rules: rules);
@@ -311,10 +323,14 @@ void main() {
     );
 
     test('resolves scalars, arguments, labels and formats', () {
-      expect(HerculEngine.render('{profile.heightCm|int} cm', context),
-          '190 cm');
-      expect(HerculEngine.render('{nutrition.proteinPct7d|pct}%', context),
-          '78%');
+      expect(
+        HerculEngine.render('{profile.heightCm|int} cm', context),
+        '190 cm',
+      );
+      expect(
+        HerculEngine.render('{nutrition.proteinPct7d|pct}%', context),
+        '78%',
+      );
       expect(HerculEngine.render('{cns.acwr|1dp}x', context), '1.6x');
       expect(
         HerculEngine.render('{volume.weeklySets:Rear Delts|int} sets', context),
@@ -323,13 +339,15 @@ void main() {
       expect(HerculEngine.render('{profile.goal}', context), 'weightLoss');
     });
 
-    test('abs states a loss as a magnitude, so copy can supply the direction',
-        () {
-      expect(
-        HerculEngine.render('{body.weightDeltaKg:21|abs} kg', context),
-        '0.2 kg',
-      );
-    });
+    test(
+      'abs states a loss as a magnitude, so copy can supply the direction',
+      () {
+        expect(
+          HerculEngine.render('{body.weightDeltaKg:21|abs} kg', context),
+          '0.2 kg',
+        );
+      },
+    );
 
     test('an argument may itself contain a colon', () {
       // `exercise.e1rmRatio` is keyed "slugA:slugB", so the arg group has to
@@ -348,11 +366,16 @@ void main() {
       );
     });
 
-    test('an unresolved placeholder degrades to a dash rather than throwing',
-        () {
-      // A rule is data; a typo in one string must not take down the dashboard.
-      expect(HerculEngine.render('{nutrition.kcalPct7d|pct}%', context), '—%');
-    });
+    test(
+      'an unresolved placeholder degrades to a dash rather than throwing',
+      () {
+        // A rule is data; a typo in one string must not take down the dashboard.
+        expect(
+          HerculEngine.render('{nutrition.kcalPct7d|pct}%', context),
+          '—%',
+        );
+      },
+    );
   });
 
   group('shipped corpus', () {
@@ -360,10 +383,10 @@ void main() {
     late List<HerculRule> rules;
 
     setUpAll(() {
-      raw = (jsonDecode(
-        File('assets/data/hercul_rules.json').readAsStringSync(),
-      ) as List)
-          .cast<Map<String, dynamic>>();
+      raw =
+          (jsonDecode(File('assets/data/hercul_rules.json').readAsStringSync())
+                  as List)
+              .cast<Map<String, dynamic>>();
       rules = raw.map(HerculRule.fromJson).toList();
     });
 
@@ -443,8 +466,9 @@ void main() {
     });
 
     test('every placeholder in both tones resolves against the vocabulary', () {
-      final placeholder =
-          RegExp(r'\{([a-zA-Z][\w.]*)(?::([^|}]+))?(?:\|(\w+))?\}');
+      final placeholder = RegExp(
+        r'\{([a-zA-Z][\w.]*)(?::([^|}]+))?(?:\|(\w+))?\}',
+      );
       final problems = <String>[];
       for (final rule in rules) {
         for (final tone in HerculTone.values) {
@@ -474,10 +498,7 @@ void main() {
     test('an empty context fires nothing at all', () {
       // A fresh install has no training, food or bodyweight history. Hercul
       // must have nothing to say rather than something wrong to say.
-      expect(
-        HerculEngine.evaluate(context: _context(), rules: rules),
-        isEmpty,
-      );
+      expect(HerculEngine.evaluate(context: _context(), rules: rules), isEmpty);
     });
 
     test('the worked example fires with the copy it was written for', () {

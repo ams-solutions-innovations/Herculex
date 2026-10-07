@@ -1,7 +1,6 @@
+import 'package:herculex/features/buddy/data/buddy_event_publisher.dart';
+import 'package:herculex/features/buddy/domain/buddy_event.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../domain/buddy_event.dart';
-import 'buddy_event_publisher.dart';
 
 /// Minimal display identity of a buddy participant, denormalised at join time.
 class BuddyRemoteParticipant {
@@ -84,7 +83,8 @@ abstract interface class BuddyGateway implements BuddyEventPublisher {
 
 /// Production implementation of [BuddyGateway] wrapping [SupabaseClient].
 class SupabaseBuddyGateway implements BuddyGateway {
-  const SupabaseBuddyGateway({required SupabaseClient client}) : _client = client;
+  const SupabaseBuddyGateway({required SupabaseClient client})
+    : _client = client;
 
   final SupabaseClient _client;
 
@@ -174,12 +174,16 @@ class SupabaseBuddyGateway implements BuddyGateway {
 
     final list = response as List<dynamic>;
     return list
-        .map((row) => BuddyEvent.fromLogRow(Map<String, dynamic>.from(row as Map)))
+        .map(
+          (row) => BuddyEvent.fromLogRow(Map<String, dynamic>.from(row as Map)),
+        )
         .toList();
   }
 
   @override
-  Future<List<BuddyRemoteParticipant>> fetchParticipants(String buddySessionId) async {
+  Future<List<BuddyRemoteParticipant>> fetchParticipants(
+    String buddySessionId,
+  ) async {
     final response = await _client
         .from('buddy_participants')
         .select()
@@ -188,8 +192,9 @@ class SupabaseBuddyGateway implements BuddyGateway {
     final list = response as List<dynamic>;
     return list
         .map(
-          (row) =>
-              BuddyRemoteParticipant.fromJson(Map<String, dynamic>.from(row as Map)),
+          (row) => BuddyRemoteParticipant.fromJson(
+            Map<String, dynamic>.from(row as Map),
+          ),
         )
         .toList();
   }

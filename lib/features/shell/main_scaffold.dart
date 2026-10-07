@@ -2,28 +2,27 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
-
 import 'package:go_router/go_router.dart';
-
-import '../../services/app_shortcuts_service.dart';
-import '../../services/pending_ai_scan_service.dart';
-import '../../ui/hx_nav_bar.dart';
-import '../../widgets/live_workout_banner.dart';
-import '../dashboard/presentation/dashboard_providers.dart';
-import '../dashboard/presentation/dashboard_view.dart';
-import '../measurements/presentation/body_fat_ai_dialog.dart';
-import '../nutrition/domain/meal.dart';
-import '../nutrition/presentation/gemini_photo_analysis_dialog.dart';
-import '../nutrition/presentation/label_capture_dialog.dart';
-import '../nutrition/presentation/nutrition_view.dart';
-import '../profile/presentation/profile_view.dart';
-import '../workouts/presentation/exercise_ai_scan_dialog.dart';
-import '../workouts/presentation/workouts_providers.dart';
-import '../workouts/presentation/workouts_view.dart';
-import '../supplements/presentation/supplement_ai_scan_dialog.dart';
-import '../supplements/presentation/supplement_edit_sheet.dart';
-import 'quick_add_menu.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/design_system/components/hx_nav_bar.dart';
+import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
+import 'package:herculex/features/dashboard/presentation/dashboard_view.dart';
+import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
+import 'package:herculex/features/nutrition/domain/meal.dart';
+import 'package:herculex/features/nutrition/presentation/dialogs/gemini_photo_analysis_dialog.dart';
+import 'package:herculex/features/nutrition/presentation/dialogs/label_capture_dialog.dart';
+import 'package:herculex/features/nutrition/presentation/views/nutrition_view.dart';
+import 'package:herculex/features/profile/presentation/profile_view.dart';
+import 'package:herculex/features/shell/quick_add_menu.dart';
+import 'package:herculex/features/supplements/presentation/supplement_ai_scan_dialog.dart';
+import 'package:herculex/features/supplements/presentation/supplement_edit_sheet.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/presentation/dialogs/exercise_ai_scan_dialog.dart';
+import 'package:herculex/features/workouts/presentation/views/workouts_view.dart';
+import 'package:herculex/features/workouts/presentation/widgets/live_workout_banner.dart';
+import 'package:herculex/services/ai/pending_ai_scan_service.dart';
+import 'package:herculex/services/platform/app_shortcuts_service.dart';
+import 'package:image_picker/image_picker.dart';
 
 /// The four-tab home shell. Bottom-nav index drives which feature view
 /// shows; the nav bar's central "+" opens the quick-add menu instead of
@@ -54,7 +53,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: ref.read(mainTabIndexProvider));
+    _pageController = PageController(
+      initialPage: ref.read(mainTabIndexProvider),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(appShortcutsServiceProvider).initialize(context);
@@ -76,14 +77,15 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       await pendingService.clearPendingContext();
 
       final currentTab = ref.read(mainTabIndexProvider);
-      final type = pendingContext?.type ??
+      final type =
+          pendingContext?.type ??
           (currentTab == 1
               ? AiScanContextType.food
               : currentTab == 2
-                  ? AiScanContextType.exercise
-                  : currentTab == 3
-                      ? AiScanContextType.bodyFat
-                      : AiScanContextType.supplement);
+              ? AiScanContextType.exercise
+              : currentTab == 3
+              ? AiScanContextType.bodyFat
+              : AiScanContextType.supplement);
 
       if (!mounted) return;
 
@@ -143,16 +145,13 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
 
         case AiScanContextType.bodyFat:
           if (!mounted) return;
-          await BodyFatAiDialog.show(
-            context,
-            initialImage: file,
-          );
+          await BodyFatAiDialog.show(context, initialImage: file);
           break;
 
         case AiScanContextType.dreamPhysique:
           ref.read(mainTabIndexProvider.notifier).state = 3;
           if (mounted) {
-            context.push('/profile/dream-physique');
+            context.push(AppRoutes.dreamPhysique);
           }
           break;
 
@@ -217,7 +216,8 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
             physics: dashboardEditMode
                 ? const NeverScrollableScrollPhysics()
                 : null,
-            onPageChanged: (i) => ref.read(mainTabIndexProvider.notifier).state = i,
+            onPageChanged: (i) =>
+                ref.read(mainTabIndexProvider.notifier).state = i,
             children: _tabs,
           ),
           // LiveWorkoutBanner placed independently in the Stack to allow smooth alignment animation
@@ -230,13 +230,24 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 350),
                 curve: Curves.easeInOutCubic,
-                alignment: bannerAtTop ? Alignment.topCenter : Alignment.bottomCenter,
+                alignment: bannerAtTop
+                    ? Alignment.topCenter
+                    : Alignment.bottomCenter,
                 padding: EdgeInsets.only(
-                  top: bannerAtTop ? (MediaQuery.of(context).padding.top + 8.0) : 0.0,
-                  bottom: bannerAtTop ? 0.0 : (MediaQuery.of(context).padding.bottom + 92.0),
+                  top: bannerAtTop
+                      ? (MediaQuery.paddingOf(context).top + 8.0)
+                      : 0.0,
+                  bottom: bannerAtTop
+                      ? 0.0
+                      : (60.0 +
+                            (MediaQuery.paddingOf(context).bottom > 0
+                                ? MediaQuery.paddingOf(context).bottom + 8.0
+                                : 16.0) +
+                            8.0),
                 ),
                 child: LiveWorkoutBanner(
-                  onResume: () => ref.read(mainTabIndexProvider.notifier).state = 2,
+                  onResume: () =>
+                      ref.read(mainTabIndexProvider.notifier).state = 2,
                 ),
               ),
             ),

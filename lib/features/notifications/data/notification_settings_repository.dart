@@ -1,8 +1,7 @@
 import 'dart:async';
 
+import 'package:herculex/features/notifications/domain/notification_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../domain/notification_settings.dart';
 
 class NotificationSettingsRepository {
   static const _prefsKey = 'app_notification_settings_v1';

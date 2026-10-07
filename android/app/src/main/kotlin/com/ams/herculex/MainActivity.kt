@@ -203,18 +203,6 @@ class MainActivity : FlutterFragmentActivity() {
             }
         }
 
-        // Rep-capture traffic (`/herculex/reps/*`, 10-03b). One listener for
-        // all three paths, forwarded verbatim — this file never parses,
-        // reorders or recomputes a capture payload (REP-04/T-10-12).
-        PhoneWearListenerService.onRepMessageListener = { path, payload ->
-            runOnUiThread {
-                methodChannel?.invokeMethod(
-                    "onRepMessage",
-                    mapOf("path" to path, "payload" to payload),
-                )
-            }
-        }
-
         // ── Home-screen widget sync channel ──────────────────────────────────
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, widgetChannel)
             .setMethodCallHandler { call, result ->
@@ -761,12 +749,14 @@ class MainActivity : FlutterFragmentActivity() {
                     "isPlaying" to isPlaying,
                     "packageName" to controller.packageName,
                     "thumbnailUrl" to thumbnailBase64,
+                    "hasPermission" to true,
                 )
             }
         } catch (e: SecurityException) {
             Log.w("MediaInfo", "Notification listener access not granted for MediaNotificationListener", e)
+            return mapOf("track" to "", "artist" to "", "isPlaying" to false, "packageName" to "", "thumbnailUrl" to "", "hasPermission" to false)
         }
-        return mapOf("track" to "", "artist" to "", "isPlaying" to false, "packageName" to "", "thumbnailUrl" to "")
+        return mapOf("track" to "", "artist" to "", "isPlaying" to false, "packageName" to "", "thumbnailUrl" to "", "hasPermission" to true)
     }
 
     /// Replaces the `flutter_media_controller` plugin's own `mediaAction` —

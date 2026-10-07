@@ -1,4 +1,4 @@
-import '../../profile/domain/profile.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
 
 class MacroTargets {
   final int kcal;

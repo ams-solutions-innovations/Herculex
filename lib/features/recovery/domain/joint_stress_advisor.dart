@@ -1,10 +1,10 @@
 import 'package:health/health.dart';
 
-import '../../analytics/domain/muscle_recovery_v3.dart';
-import '../../analytics/domain/muscle_volume_trend.dart';
-import '../../analytics/domain/training_snapshot.dart';
-import 'deload_urgency.dart';
-import 'joint_model.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/muscle_volume_trend.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/recovery/domain/deload_urgency.dart';
+import 'package:herculex/features/recovery/domain/joint_model.dart';
 
 class JointStressResult {
   final String joint;
@@ -72,8 +72,11 @@ abstract final class JointStressAdvisor {
     for (final entry in weights.entries) {
       final trend = trends[entry.key];
       if (trend == null) continue;
-      final mrv = MuscleRecoveryV3.defaultWeeklyMrv[entry.key] ?? double.infinity;
-      final ratio = mrv.isFinite && mrv > 0 ? trend.averageWeeklySets / mrv : 0.0;
+      final mrv =
+          MuscleRecoveryV3.defaultWeeklyMrv[entry.key] ?? double.infinity;
+      final ratio = mrv.isFinite && mrv > 0
+          ? trend.averageWeeklySets / mrv
+          : 0.0;
       weightedSum += ratio * entry.value;
       weightSum += entry.value;
       contributions.add((entry.key, ratio * entry.value));
@@ -85,17 +88,20 @@ abstract final class JointStressAdvisor {
     final cardio = _cardioLoad(joint, wideExternalWorkouts, asOf);
     final avgWeeklyKm = (cardio.meters / 1000.0) / (_lookbackDays / 7.0);
     final cardioBump =
-        (avgWeeklyKm / _cardioKmPerWeekForFullBump * _maxCardioBump).clamp(0.0, _maxCardioBump);
+        (avgWeeklyKm / _cardioKmPerWeekForFullBump * _maxCardioBump).clamp(
+          0.0,
+          _maxCardioBump,
+        );
     final index = baseIndex + cardioBump;
 
     final isFlagged = flaggedSince != null;
     final urgency = !isFlagged
         ? DeloadUrgency.none
         : index >= _recommendedThreshold
-            ? DeloadUrgency.recommended
-            : index >= _watchThreshold
-                ? DeloadUrgency.watch
-                : DeloadUrgency.none;
+        ? DeloadUrgency.recommended
+        : index >= _watchThreshold
+        ? DeloadUrgency.watch
+        : DeloadUrgency.none;
 
     return JointStressResult(
       joint: joint,
@@ -106,7 +112,13 @@ abstract final class JointStressAdvisor {
       cardioContributed: cardio.sessions > 0,
       cardioDistanceKm: cardio.meters / 1000.0,
       urgency: urgency,
-      explanation: _explain(joint, topMuscles, cardio.sessions > 0, avgWeeklyKm, urgency),
+      explanation: _explain(
+        joint,
+        topMuscles,
+        cardio.sessions > 0,
+        avgWeeklyKm,
+        urgency,
+      ),
     );
   }
 
@@ -116,7 +128,8 @@ abstract final class JointStressAdvisor {
     DateTime asOf,
   ) {
     final activities = JointModel.cardioActivitiesByJoint[joint];
-    if (activities == null || activities.isEmpty) return (meters: 0.0, sessions: 0);
+    if (activities == null || activities.isEmpty)
+      return (meters: 0.0, sessions: 0);
 
     final cutoff = asOf.subtract(const Duration(days: _lookbackDays));
     var meters = 0.0;
@@ -144,7 +157,9 @@ abstract final class JointStressAdvisor {
     if (urgency == DeloadUrgency.none) {
       return 'Recent training load around the $joint looks manageable.';
     }
-    final muscleList = topMuscles.isEmpty ? 'the muscles around it' : topMuscles.join(', ');
+    final muscleList = topMuscles.isEmpty
+        ? 'the muscles around it'
+        : topMuscles.join(', ');
     final cardioNote = cardioContributed
         ? ', plus ~${avgWeeklyKm.toStringAsFixed(1)} km/week of running or walking'
         : '';

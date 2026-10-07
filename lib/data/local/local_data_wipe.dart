@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'database.dart';
+import 'package:herculex/data/local/database.dart';
 
 /// Erases every trace of the signed-in person from this device.
 ///
@@ -122,9 +122,6 @@ const _fullyClearedTables = [
   'cycle_settings',
   'external_events',
   // Local-only feature state
-  'rep_tracking_settings',
-  'rep_tracking_exercise_prefs',
-  'rep_set_observations',
   'buddy_sessions_local',
   'buddy_choreography_slots',
 ];

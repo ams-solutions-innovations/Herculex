@@ -1,45 +1,48 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../app/providers.dart';
-import '../core/notifications/in_app_notification_overlay.dart';
-import '../core/notifications/toast/hx_toast_overlay.dart';
-import '../core/units.dart';
-import '../data/local/database.dart';
-import '../features/analytics/presentation/analytics_providers.dart';
-import '../features/dashboard/presentation/dashboard_providers.dart';
-import '../features/fasting/data/fasting_schedule_action_queue.dart';
-import '../features/fasting/domain/fasting_schedule_occurrence.dart';
-import '../features/fasting/presentation/fasting_providers.dart';
-import '../features/gyms/presentation/gym_picker_sheet.dart';
-import '../features/measurements/presentation/quick_log_weight.dart';
-import '../features/notifications/data/notification_sync_service.dart';
-import '../features/notifications/presentation/notification_settings_provider.dart';
-import '../features/nutrition/presentation/barcode_scanner_view.dart';
-import '../features/nutrition/presentation/food_picker_sheet.dart';
-import '../features/nutrition/presentation/nutrition_providers.dart';
-import '../features/shell/main_scaffold.dart';
-import '../features/supplements/data/supplement_repository.dart';
-import '../features/supplements/domain/supplement.dart';
-import '../features/workouts/data/workout_notification_action_queue.dart';
-import '../features/workouts/data/workout_quick_action_settings.dart';
-import '../features/workouts/domain/ongoing_workout_surface_snapshot.dart';
-import '../features/workouts/domain/workout_notification_command.dart';
-import '../services/active_workout_surface_sync_policy.dart';
-import '../features/workouts/presentation/circuits_providers.dart';
-import '../features/workouts/presentation/exercise_picker_sheet.dart';
-import '../features/workouts/presentation/workout_bubble_controller.dart';
-import '../features/workouts/presentation/workouts_providers.dart';
-import '../services/widget_dashboard_sync.dart';
-import '../services/workout_bubble_service.dart';
-import '../services/workout_notification_service.dart';
-import '../theme/app_theme.dart';
-import '../theme/colors.dart';
-import '../theme/theme_provider.dart';
-import 'router.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/router.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_overlay.dart';
+import 'package:herculex/core/utils/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/theme/app_theme.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/theme_provider.dart';
+import 'package:herculex/features/analytics/application/analytics_providers.dart';
+import 'package:herculex/features/buddy/application/buddy_providers.dart';
+import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
+import 'package:herculex/features/fasting/data/fasting_schedule_action_queue.dart';
+import 'package:herculex/features/fasting/domain/fasting_plan.dart';
+import 'package:herculex/features/fasting/domain/fasting_schedule_occurrence.dart';
+import 'package:herculex/features/gyms/presentation/gym_picker_sheet.dart';
+import 'package:herculex/features/measurements/presentation/quick_log_weight.dart';
+import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
+import 'package:herculex/features/notifications/data/notification_sync_service.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/food_picker_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/views/barcode_scanner_view.dart';
+import 'package:herculex/features/shell/main_scaffold.dart';
+import 'package:herculex/features/supplements/data/supplement_repository.dart';
+import 'package:herculex/features/supplements/domain/supplement.dart';
+import 'package:herculex/features/workouts/application/circuits_providers.dart';
+import 'package:herculex/features/workouts/application/workout_bubble_controller.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/data/workout_notification_action_queue.dart';
+import 'package:herculex/features/workouts/data/workout_quick_action_settings.dart';
+import 'package:herculex/features/workouts/domain/ongoing_workout_surface_snapshot.dart';
+import 'package:herculex/features/workouts/domain/workout_notification_command.dart';
+import 'package:herculex/features/workouts/presentation/sheets/exercise_picker_sheet.dart';
+import 'package:herculex/services/platform/active_workout_surface_sync_policy.dart';
+import 'package:herculex/services/platform/widget_dashboard_sync.dart';
+import 'package:herculex/services/platform/workout_bubble_service.dart';
+import 'package:herculex/services/platform/workout_notification_service.dart';
 
 class HerculexApp extends ConsumerStatefulWidget {
   const HerculexApp({super.key});
@@ -53,6 +56,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   Timer? _workoutActionDrainTimer;
   bool _isDrainingWorkoutActions = false;
   Timer? _notificationSyncDebounce;
+  Timer? _fastingScheduleCheckTimer;
 
   /// Workout Bubble visibility inputs. The bubble is only ever shown while the
   /// app is in the background, so its state has to be tracked here rather than
@@ -91,10 +95,20 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     Future<void>.microtask(_refreshBubblePermission);
     Future<void>.microtask(_drainPendingWorkoutNotificationActions);
     Future<void>.microtask(_drainPendingFastingScheduleActions);
+    Future<void>.microtask(_checkAndAutoStartFastingSchedules);
+    _startFastingScheduleCheck();
     // An Android reboot clears exact alarms, and edits made offline before
     // the app last closed still need to reach the notification plugin —
     // full rehydrate on every launch, same reasoning as workout actions.
     Future<void>.microtask(_rehydrateFastingSchedules);
+    // Same reasoning again: buddySessionControllerProvider comes back with
+    // its default not-sharing state on every cold start, even when
+    // buddy_sessions_local still has a live row and the shared exercise
+    // list is sitting durably in the event log. Without this, a killed and
+    // reopened app silently drops out of an active Gym Buddy session.
+    Future<void>.microtask(
+      () => ref.read(buddySessionControllerProvider.notifier).resumeIfActive(),
+    );
     Future<void>.microtask(() {
       ref.read(notificationSyncServiceProvider).syncAll();
     });
@@ -108,7 +122,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         final args = (call.arguments as Map?)?.cast<String, dynamic>();
         final action = args?['action'] as String?;
         ref.read(mainTabIndexProvider.notifier).state = 2;
-        ref.read(routerProvider).go('/app');
+        ref.read(routerProvider).go(AppRoutes.app);
 
         if (action == 'add_exercise') {
           WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -123,7 +137,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
                 if (result.circuitId != null) {
                   if (!circuitIds.contains(result.circuitId!)) {
                     circuitIds.add(result.circuitId!);
-                    await ref.read(circuitsRepositoryProvider).addCircuitToSession(
+                    await ref
+                        .read(circuitsRepositoryProvider)
+                        .addCircuitToSession(
                           sessionId: activeSession.id,
                           circuitId: result.circuitId!,
                         );
@@ -156,27 +172,23 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         final route = call.arguments as String?;
         if (route == null) return;
         final router = ref.read(routerProvider);
-        router.go('/app');
+        router.go(AppRoutes.app);
         router.push(route);
         return;
       }
       if (call.method == 'openNutrition' && mounted) {
         ref.read(mainTabIndexProvider.notifier).state = 1;
-        ref.read(routerProvider).go('/app');
+        ref.read(routerProvider).go(AppRoutes.app);
         return;
       }
       if (call.method == 'openFoodSearch' && mounted) {
         ref.read(mainTabIndexProvider.notifier).state = 1;
-        ref.read(routerProvider).go('/app');
+        ref.read(routerProvider).go(AppRoutes.app);
         final ctx = context;
         if (ctx.mounted) {
           final now = DateTime.now();
           final date = DateTime(now.year, now.month, now.day);
-          await FoodPickerSheet.show(
-            ctx,
-            date: date,
-            mealKey: 'lunch',
-          );
+          await FoodPickerSheet.show(ctx, date: date, mealKey: 'lunch');
         }
         return;
       }
@@ -209,6 +221,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   void dispose() {
     _lifecycleListener.dispose();
     _stopPendingWorkoutActionDrain();
+    _stopFastingScheduleCheck();
     _notificationSyncDebounce?.cancel();
     WorkoutNotificationService.instance.cancel();
     WorkoutBubbleService.instance.hide();
@@ -217,6 +230,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
 
   void _onBackground() {
     _appBackgrounded = true;
+    _stopFastingScheduleCheck();
     _syncNotification();
     unawaited(_syncBubble());
   }
@@ -224,6 +238,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   void _onForeground() {
     _appBackgrounded = false;
     _drainPendingWorkoutNotificationActions();
+    _drainPendingFastingScheduleActions();
+    unawaited(_checkAndAutoStartFastingSchedules());
+    _startFastingScheduleCheck();
     _syncNotification();
     // Re-read on every resume: the user can revoke "Display over other apps"
     // from system settings at any time, and coming back is the only moment we
@@ -261,15 +278,16 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     // An awaited query above can outlive the session it was started for.
     if (ref.read(activeSessionProvider).valueOrNull?.id != session.id) return;
 
-    final stats = ref.read(activeSessionStatsProvider(session.id)).valueOrNull ??
+    final stats =
+        ref.read(activeSessionStatsProvider(session.id)).valueOrNull ??
         const LiveWorkoutStats();
     final weightFormat = ref.read(weightFormatProvider);
     final tonnageText = weightFormat.formatTonnage(stats.totalTonnageKg);
     final setsText = stats.totalSets == 0
         ? '0'
         : (stats.completedSets == stats.totalSets
-            ? '${stats.totalSets}'
-            : '${stats.completedSets} / ${stats.totalSets}');
+              ? '${stats.totalSets}'
+              : '${stats.completedSets} / ${stats.totalSets}');
 
     await WorkoutBubbleService.instance.show(
       sessionId: session.id,
@@ -548,6 +566,54 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       schedule.customTargetSeconds,
     );
     await repo.startSession(targetSeconds);
+
+    final notifEnabled = ref
+        .read(notificationSettingsProvider)
+        .fastingGoalReachedEnabled;
+    final plan = resolveSchedulePlan(schedule.planName);
+    final planLabel = plan == FastingPlan.custom
+        ? '${targetSeconds ~/ 3600}h'
+        : plan.nameString;
+    await ref
+        .read(fastingNotificationSchedulerProvider)
+        .scheduleFastingGoal(
+          DateTime.now().add(Duration(seconds: targetSeconds)),
+          planName: planLabel,
+          enabled: notifEnabled,
+        );
+  }
+
+  Future<void> _checkAndAutoStartFastingSchedules() async {
+    try {
+      final repo = ref.read(fastingRepositoryProvider);
+      final scheduler = ref.read(fastingScheduleServiceProvider);
+      final notifScheduler = ref.read(fastingNotificationSchedulerProvider);
+      final notifEnabled = ref
+          .read(notificationSettingsProvider)
+          .fastingGoalReachedEnabled;
+      await scheduler.checkAndAutoStartSchedules(
+        repository: repo,
+        notificationScheduler: notifScheduler,
+        goalNotificationEnabled: notifEnabled,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Fasting auto-start check error: $e');
+      }
+    }
+  }
+
+  void _startFastingScheduleCheck() {
+    if (_fastingScheduleCheckTimer?.isActive ?? false) return;
+    _fastingScheduleCheckTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => unawaited(_checkAndAutoStartFastingSchedules()),
+    );
+  }
+
+  void _stopFastingScheduleCheck() {
+    _fastingScheduleCheckTimer?.cancel();
+    _fastingScheduleCheckTimer = null;
   }
 
   /// Taps on home-screen widget buttons that act rather than just navigate
@@ -556,7 +622,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     final router = ref.read(routerProvider);
     void showTab(int tab) {
       ref.read(mainTabIndexProvider.notifier).state = tab;
-      router.go('/app');
+      router.go(AppRoutes.app);
     }
 
     switch (command) {
@@ -584,7 +650,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         final today = await ref.read(microWorkoutsTodayProvider.future);
         final item = today.where((m) => m.microWorkout.id == id).firstOrNull;
         if (item == null || item.doneForToday) return;
-        await ref.read(microWorkoutsRepositoryProvider).logCompletion(item.microWorkout);
+        await ref
+            .read(microWorkoutsRepositoryProvider)
+            .logCompletion(item.microWorkout);
     }
   }
 
@@ -592,8 +660,8 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     await _startFastFromScheduleIfNeeded(scheduleId);
     if (!mounted) return;
     final router = ref.read(routerProvider);
-    router.go('/app');
-    router.push('/fasting');
+    router.go(AppRoutes.app);
+    router.push(AppRoutes.fasting);
   }
 
   Future<void> _drainPendingFastingScheduleActions() async {
@@ -650,7 +718,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     final router = ref.watch(routerProvider);
     WorkoutNotificationService.onNotificationTap = () {
       ref.read(mainTabIndexProvider.notifier).state = 2;
-      router.go('/app');
+      router.go(AppRoutes.app);
     };
     WorkoutNotificationService.onFastingScheduleTap = _handleFastingScheduleTap;
 
@@ -672,26 +740,21 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     ref.listen(unitsProvider, (_, _) => _syncNotification());
     ref.listen(quickLoadStepProvider, (_, _) => _syncNotification());
     ref.listen(notificationSettingsProvider, (_, _) => _syncNotification());
-    ref.listen(workoutBubbleEnabledProvider, (_, _) => unawaited(_syncBubble()));
+    ref.listen(
+      workoutBubbleEnabledProvider,
+      (_, _) => unawaited(_syncBubble()),
+    );
 
     final activeSession = ref.watch(activeSessionProvider).asData?.value;
     if (activeSession != null) {
-      ref.listen(sessionExercisesProvider(activeSession.id), (_, next) {
+      ref.listen(activeWorkoutNotificationTargetProvider(activeSession.id), (
+        _,
+        next,
+      ) {
         if (next.hasValue) {
           _syncNotification();
         }
       });
-
-      final exercises =
-          ref.watch(sessionExercisesProvider(activeSession.id)).asData?.value ??
-          const [];
-      for (final exercise in exercises) {
-        ref.listen(setsForWorkoutExerciseProvider(exercise.id), (_, next) {
-          if (next.hasValue) {
-            _syncNotification();
-          }
-        });
-      }
     }
 
     final themeMode = ref.watch(themeModeProvider);
@@ -734,9 +797,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         return Container(
           decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
           child: InAppNotificationHost(
-            child: HxToastHost(
-              child: child ?? const SizedBox.shrink(),
-            ),
+            child: HxToastHost(child: child ?? const SizedBox.shrink()),
           ),
         );
       },

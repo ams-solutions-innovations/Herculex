@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../theme/tokens/tokens.dart';
-import '../../../../ui/ui.dart';
-import '../../domain/training_suggestion.dart';
-import '../recovery_providers.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/recovery/application/recovery_providers.dart';
+import 'package:herculex/features/recovery/domain/training_suggestion.dart';
 
 /// "What's best to train next" — the readiest push/pull/legs/core split,
 /// which of its muscles have actually cleared the trainable bar, and why
@@ -38,11 +37,18 @@ class NextWorkoutSuggestionCard extends ConsumerWidget {
               children: [
                 Text(
                   _categoryLabel(s.bestCategory),
-                  style: theme.textTheme.headlineSmall
-                      ?.copyWith(color: hx.domainRecovery, fontWeight: FontWeight.bold),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: hx.domainRecovery,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: HxSpace.x2),
-                Text(_summary(s), style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary)),
+                Text(
+                  _summary(s),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: hx.secondary,
+                  ),
+                ),
                 if (s.readyMuscles.isNotEmpty) ...[
                   const SizedBox(height: HxSpace.x3),
                   Wrap(
@@ -50,13 +56,21 @@ class NextWorkoutSuggestionCard extends ConsumerWidget {
                     runSpacing: HxSpace.x2,
                     children: [
                       for (final m in s.readyMuscles)
-                        HxTextPill(label: m, selected: true, accent: hx.domainRecovery),
+                        HxTextPill(
+                          label: m,
+                          selected: true,
+                          accent: hx.domainRecovery,
+                        ),
                     ],
                   ),
                 ],
-                if (s.excludedDeload.isNotEmpty || s.excludedJointPain.isNotEmpty) ...[
+                if (s.excludedDeload.isNotEmpty ||
+                    s.excludedJointPain.isNotEmpty) ...[
                   const SizedBox(height: HxSpace.x3),
-                  _ExclusionsNote(deload: s.excludedDeload, jointPain: s.excludedJointPain),
+                  _ExclusionsNote(
+                    deload: s.excludedDeload,
+                    jointPain: s.excludedJointPain,
+                  ),
                 ],
               ],
             ),
@@ -64,7 +78,8 @@ class NextWorkoutSuggestionCard extends ConsumerWidget {
               padding: EdgeInsets.symmetric(vertical: HxSpace.x4),
               child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
             ),
-            error: (e, _) => Text('Error: $e', style: theme.textTheme.bodySmall),
+            error: (e, _) =>
+                Text('Error: $e', style: theme.textTheme.bodySmall),
           ),
         ],
       ),
@@ -72,11 +87,11 @@ class NextWorkoutSuggestionCard extends ConsumerWidget {
   }
 
   String _categoryLabel(MuscleCategory c) => switch (c) {
-        MuscleCategory.push => 'Push',
-        MuscleCategory.pull => 'Pull',
-        MuscleCategory.legs => 'Legs',
-        MuscleCategory.core => 'Core',
-      };
+    MuscleCategory.push => 'Push',
+    MuscleCategory.pull => 'Pull',
+    MuscleCategory.legs => 'Legs',
+    MuscleCategory.core => 'Core',
+  };
 
   String _summary(TrainingSuggestion s) {
     final category = _categoryLabel(s.bestCategory).toLowerCase();
@@ -102,7 +117,8 @@ class _ExclusionsNote extends StatelessWidget {
     final theme = Theme.of(context);
     final hx = context.hx;
     final lines = [
-      if (deload.isNotEmpty) 'Skipping ${deload.join(', ')} — flagged for a deload.',
+      if (deload.isNotEmpty)
+        'Skipping ${deload.join(', ')} — flagged for a deload.',
       if (jointPain.isNotEmpty)
         "Skipping ${jointPain.join(', ')} — loads a joint you've flagged.",
     ];
@@ -113,7 +129,10 @@ class _ExclusionsNote extends StatelessWidget {
         for (final line in lines)
           Padding(
             padding: const EdgeInsets.only(top: 2),
-            child: Text(line, style: theme.textTheme.labelSmall?.copyWith(color: hx.secondary)),
+            child: Text(
+              line,
+              style: theme.textTheme.labelSmall?.copyWith(color: hx.secondary),
+            ),
           ),
       ],
     );

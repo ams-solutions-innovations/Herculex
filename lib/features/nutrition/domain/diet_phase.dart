@@ -14,9 +14,9 @@ enum DietPhase {
 
   /// Confirmation-button text: "Save Cut", "Save Bulk", "Save Maingain", "Save Target".
   String get saveLabel => switch (this) {
-        DietPhase.maintain => 'Save Target',
-        _ => 'Save $label',
-      };
+    DietPhase.maintain => 'Save Target',
+    _ => 'Save $label',
+  };
 }
 
 /// Pace preset for weekly weight adjustment or surplus/deficit.
@@ -76,87 +76,89 @@ class DietPhaseCalculator {
   static const bulkFatShare = 0.25;
 
   /// Standard pace presets for each dieting phase.
-  static List<DietPaceOption> paceOptionsFor(DietPhase phase) => switch (phase) {
+  static List<DietPaceOption> paceOptionsFor(DietPhase phase) =>
+      switch (phase) {
         DietPhase.cut => const [
-            DietPaceOption(
-              weeklyKg: 0.25,
-              kcalDelta: -250,
-              label: '0.25 kg/w (Mild)',
-              description: 'Minimal deficit to preserve maximum strength.',
-            ),
-            DietPaceOption(
-              weeklyKg: 0.50,
-              kcalDelta: -500,
-              label: '0.50 kg/w (Standard)',
-              description: 'Standard recommended pace for fat loss.',
-            ),
-            DietPaceOption(
-              weeklyKg: 0.75,
-              kcalDelta: -750,
-              label: '0.75 kg/w (Fast)',
-              description: 'Rapid fat loss with high protein intake.',
-            ),
-            DietPaceOption(
-              weeklyKg: 1.00,
-              kcalDelta: -1000,
-              label: '1.00 kg/w (Aggressive)',
-              description: 'Maximum pace (up to 1 kg/week).',
-            ),
-          ],
+          DietPaceOption(
+            weeklyKg: 0.25,
+            kcalDelta: -250,
+            label: '0.25 kg/w (Mild)',
+            description: 'Minimal deficit to preserve maximum strength.',
+          ),
+          DietPaceOption(
+            weeklyKg: 0.50,
+            kcalDelta: -500,
+            label: '0.50 kg/w (Standard)',
+            description: 'Standard recommended pace for fat loss.',
+          ),
+          DietPaceOption(
+            weeklyKg: 0.75,
+            kcalDelta: -750,
+            label: '0.75 kg/w (Fast)',
+            description: 'Rapid fat loss with high protein intake.',
+          ),
+          DietPaceOption(
+            weeklyKg: 1.00,
+            kcalDelta: -1000,
+            label: '1.00 kg/w (Aggressive)',
+            description: 'Maximum pace (up to 1 kg/week).',
+          ),
+        ],
         DietPhase.bulk => const [
-            DietPaceOption(
-              weeklyKg: 0.25,
-              kcalDelta: 250,
-              label: '0.25 kg/w (Lean)',
-              description: 'Lean surplus with minimal fat gain.',
-            ),
-            DietPaceOption(
-              weeklyKg: 0.50,
-              kcalDelta: 500,
-              label: '0.50 kg/w (Standard)',
-              description: 'Optimal pace for muscle building and strength.',
-            ),
-            DietPaceOption(
-              weeklyKg: 0.75,
-              kcalDelta: 750,
-              label: '0.75 kg/w (Fast)',
-              description: 'Fast weight gain and recovery.',
-            ),
-            DietPaceOption(
-              weeklyKg: 1.00,
-              kcalDelta: 1000,
-              label: '1.00 kg/w (Aggressive)',
-              description: 'Heavy surplus for maximum mass.',
-            ),
-          ],
+          DietPaceOption(
+            weeklyKg: 0.25,
+            kcalDelta: 250,
+            label: '0.25 kg/w (Lean)',
+            description: 'Lean surplus with minimal fat gain.',
+          ),
+          DietPaceOption(
+            weeklyKg: 0.50,
+            kcalDelta: 500,
+            label: '0.50 kg/w (Standard)',
+            description: 'Optimal pace for muscle building and strength.',
+          ),
+          DietPaceOption(
+            weeklyKg: 0.75,
+            kcalDelta: 750,
+            label: '0.75 kg/w (Fast)',
+            description: 'Fast weight gain and recovery.',
+          ),
+          DietPaceOption(
+            weeklyKg: 1.00,
+            kcalDelta: 1000,
+            label: '1.00 kg/w (Aggressive)',
+            description: 'Heavy surplus for maximum mass.',
+          ),
+        ],
         DietPhase.maingain => const [
-            DietPaceOption(
-              weeklyKg: 0.05,
-              kcalDelta: 75,
-              label: 'Recomp (+75 kcal)',
-              description: 'Body recomposition at stable weight with 2.2g/kg protein.',
-            ),
-            DietPaceOption(
-              weeklyKg: 0.15,
-              kcalDelta: 150,
-              label: 'Lean (+150 kcal)',
-              description: 'Slow lean muscle gain with minimal fat.',
-            ),
-            DietPaceOption(
-              weeklyKg: 0.25,
-              kcalDelta: 250,
-              label: 'Progressive (+250 kcal)',
-              description: 'Consistent progress in strength and hypertrophy.',
-            ),
-          ],
+          DietPaceOption(
+            weeklyKg: 0.05,
+            kcalDelta: 75,
+            label: 'Recomp (+75 kcal)',
+            description:
+                'Body recomposition at stable weight with 2.2g/kg protein.',
+          ),
+          DietPaceOption(
+            weeklyKg: 0.15,
+            kcalDelta: 150,
+            label: 'Lean (+150 kcal)',
+            description: 'Slow lean muscle gain with minimal fat.',
+          ),
+          DietPaceOption(
+            weeklyKg: 0.25,
+            kcalDelta: 250,
+            label: 'Progressive (+250 kcal)',
+            description: 'Consistent progress in strength and hypertrophy.',
+          ),
+        ],
         DietPhase.maintain => const [
-            DietPaceOption(
-              weeklyKg: 0.0,
-              kcalDelta: 0,
-              label: 'Maintenance (0 kcal)',
-              description: 'Complete caloric balance (TDEE).',
-            ),
-          ],
+          DietPaceOption(
+            weeklyKg: 0.0,
+            kcalDelta: 0,
+            label: 'Maintenance (0 kcal)',
+            description: 'Complete caloric balance (TDEE).',
+          ),
+        ],
       };
 
   /// Rewrites [baselineKcal] and the macro split for [phase].
@@ -181,10 +183,14 @@ class DietPhaseCalculator {
     if (calorieDeltaOverride != null) {
       delta = calorieDeltaOverride;
     } else if (pctOverride != null) {
-      final sign = phase == DietPhase.cut ? -1.0 : (phase == DietPhase.maintain ? 0.0 : 1.0);
+      final sign = phase == DietPhase.cut
+          ? -1.0
+          : (phase == DietPhase.maintain ? 0.0 : 1.0);
       delta = (baselineKcal * (sign * pctOverride / 100)).round();
     } else if (weeklyRateKg != null) {
-      final sign = phase == DietPhase.cut ? -1.0 : (phase == DietPhase.maintain ? 0.0 : 1.0);
+      final sign = phase == DietPhase.cut
+          ? -1.0
+          : (phase == DietPhase.maintain ? 0.0 : 1.0);
       delta = (sign * weeklyRateKg * 1000).round();
     } else {
       delta = switch (phase) {
@@ -203,7 +209,13 @@ class DietPhaseCalculator {
     }
 
     if (kcal <= 0) {
-      return const PhaseTargets(kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, deltaKcal: 0);
+      return const PhaseTargets(
+        kcal: 0,
+        proteinG: 0,
+        carbsG: 0,
+        fatG: 0,
+        deltaKcal: 0,
+      );
     }
 
     final proteinPerKg = switch (phase) {

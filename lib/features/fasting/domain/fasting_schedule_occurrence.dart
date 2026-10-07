@@ -4,7 +4,7 @@
 /// `weekday - 1`, so Monday is bit 0 and Sunday is bit 6.
 library;
 
-import 'fasting_plan.dart';
+import 'package:herculex/features/fasting/domain/fasting_plan.dart';
 
 const List<String> kWeekdayAbbrev = [
   'Mon',
@@ -50,6 +50,28 @@ DateTime? nextOccurrence({
     return candidate;
   }
   return null; // unreachable while daysOfWeek != 0
+}
+
+/// The most recent wall-clock instant on or before [from] that matches
+/// [daysOfWeek] at [startTimeMinutes]. Scans up to 7 calendar days backward.
+/// Returns null when [daysOfWeek] is 0.
+DateTime? mostRecentOccurrence({
+  required int daysOfWeek,
+  required int startTimeMinutes,
+  required DateTime from,
+}) {
+  if (daysOfWeek == 0) return null;
+  final hour = startTimeMinutes ~/ 60;
+  final minute = startTimeMinutes % 60;
+
+  for (var offset = 0; offset <= 7; offset++) {
+    final day = DateTime(from.year, from.month, from.day - offset);
+    if (!hasWeekday(daysOfWeek, day.weekday)) continue;
+    final candidate = DateTime(day.year, day.month, day.day, hour, minute);
+    if (candidate.isAfter(from)) continue;
+    return candidate;
+  }
+  return null;
 }
 
 /// The next [count] occurrences on/after [from], for schedule-editor

@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/features/workouts/presentation/equipment_icon.dart';
-import 'package:herculex/features/workouts/presentation/exercise_artwork.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/presentation/widgets/equipment_icon.dart';
+import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 
 void main() {
   group('EquipmentType.resolve', () {
@@ -27,7 +27,10 @@ void main() {
       expect(EquipmentType.resolve('Trap Bar'), EquipmentType.trapBar);
       expect(EquipmentType.resolve('Hex Bar'), EquipmentType.trapBar);
       expect(EquipmentType.resolve('Safety Bar'), EquipmentType.safetyBar);
-      expect(EquipmentType.resolve('Safety Squat Bar'), EquipmentType.safetyBar);
+      expect(
+        EquipmentType.resolve('Safety Squat Bar'),
+        EquipmentType.safetyBar,
+      );
       expect(EquipmentType.resolve('SSB'), EquipmentType.safetyBar);
       expect(EquipmentType.resolve('Axle Bar'), EquipmentType.axleBar);
       expect(EquipmentType.resolve('Cambered Bar'), EquipmentType.camberedBar);
@@ -39,11 +42,26 @@ void main() {
       expect(EquipmentType.resolve('smith'), EquipmentType.smith);
       expect(EquipmentType.resolve('Cable'), EquipmentType.cable);
       expect(EquipmentType.resolve('cable'), EquipmentType.cable);
-      expect(EquipmentType.resolve('Machine (Plate-Loaded)'), EquipmentType.machinePlate);
-      expect(EquipmentType.resolve('machine_plate'), EquipmentType.machinePlate);
-      expect(EquipmentType.resolve('Machine (Selectorized)'), EquipmentType.machineSelectorized);
-      expect(EquipmentType.resolve('machine_selectorized'), EquipmentType.machineSelectorized);
-      expect(EquipmentType.resolve('Machine'), EquipmentType.machineSelectorized);
+      expect(
+        EquipmentType.resolve('Machine (Plate-Loaded)'),
+        EquipmentType.machinePlate,
+      );
+      expect(
+        EquipmentType.resolve('machine_plate'),
+        EquipmentType.machinePlate,
+      );
+      expect(
+        EquipmentType.resolve('Machine (Selectorized)'),
+        EquipmentType.machineSelectorized,
+      );
+      expect(
+        EquipmentType.resolve('machine_selectorized'),
+        EquipmentType.machineSelectorized,
+      );
+      expect(
+        EquipmentType.resolve('Machine'),
+        EquipmentType.machineSelectorized,
+      );
     });
 
     test('resolves bodyweight and accessories', () {
@@ -58,11 +76,17 @@ void main() {
       expect(EquipmentType.resolve('TRX'), EquipmentType.trx);
       expect(EquipmentType.resolve('Landmine'), EquipmentType.landmine);
       expect(EquipmentType.resolve('Plate'), EquipmentType.plate);
-      expect(EquipmentType.resolve('Medicine Ball'), EquipmentType.medicineBall);
+      expect(
+        EquipmentType.resolve('Medicine Ball'),
+        EquipmentType.medicineBall,
+      );
       expect(EquipmentType.resolve('Sandbag'), EquipmentType.sandbag);
       expect(EquipmentType.resolve('Sled/Yoke'), EquipmentType.sled);
       expect(EquipmentType.resolve('Battle Ropes'), EquipmentType.battleRopes);
-      expect(EquipmentType.resolve('Climbing Rope'), EquipmentType.climbingRope);
+      expect(
+        EquipmentType.resolve('Climbing Rope'),
+        EquipmentType.climbingRope,
+      );
       expect(EquipmentType.resolve('Jump Rope'), EquipmentType.jumpRope);
       expect(EquipmentType.resolve('Neck Harness'), EquipmentType.neckHarness);
     });
@@ -71,10 +95,16 @@ void main() {
       expect(EquipmentType.resolve('Treadmill'), EquipmentType.treadmill);
       expect(EquipmentType.resolve('Rower'), EquipmentType.rower);
       expect(EquipmentType.resolve('Air Bike'), EquipmentType.airBike);
-      expect(EquipmentType.resolve('Stationary Bike'), EquipmentType.stationaryBike);
+      expect(
+        EquipmentType.resolve('Stationary Bike'),
+        EquipmentType.stationaryBike,
+      );
       expect(EquipmentType.resolve('Ski Erg'), EquipmentType.skiErg);
       expect(EquipmentType.resolve('Elliptical'), EquipmentType.elliptical);
-      expect(EquipmentType.resolve('Stair Climber'), EquipmentType.stairClimber);
+      expect(
+        EquipmentType.resolve('Stair Climber'),
+        EquipmentType.stairClimber,
+      );
     });
 
     test('handles all catalog equipments without throwing', () {
@@ -92,12 +122,18 @@ void main() {
   });
 
   group('EquipmentGlyph & ExerciseArtwork widgets', () {
-    testWidgets('EquipmentGlyph renders all equipment types without error', (tester) async {
+    testWidgets('EquipmentGlyph renders all equipment types without error', (
+      tester,
+    ) async {
       for (final type in EquipmentType.values) {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: EquipmentGlyph(variant: type.name, size: 32, color: Colors.amber),
+              body: EquipmentGlyph(
+                variant: type.name,
+                size: 32,
+                color: Colors.amber,
+              ),
             ),
           ),
         );
@@ -105,7 +141,9 @@ void main() {
       }
     });
 
-    testWidgets('ExerciseArtwork renders fallback equipment glyph', (tester) async {
+    testWidgets('ExerciseArtwork renders fallback equipment glyph', (
+      tester,
+    ) async {
       const fakeExercise = ExerciseCatalogData(
         id: 9999,
         name: 'Swiss Bar Floor Press',

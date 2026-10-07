@@ -47,7 +47,9 @@ void main() {
   test('slugs are kebab-case', () {
     final malformed = [
       for (final row in rows)
-        if (!RegExp(r'^[a-z0-9]+(-[a-z0-9]+)*$').hasMatch(row['slug'] as String))
+        if (!RegExp(
+          r'^[a-z0-9]+(-[a-z0-9]+)*$',
+        ).hasMatch(row['slug'] as String))
           row['slug'],
     ];
     expect(malformed, isEmpty);
@@ -161,7 +163,11 @@ void main() {
       for (final e in byMovement.entries)
         if (e.value.length > 1) e.key: e.value,
     };
-    expect(split, isEmpty, reason: 'movements spanning several patterns: $split');
+    expect(
+      split,
+      isEmpty,
+      reason: 'movements spanning several patterns: $split',
+    );
   });
 
   test('the importer lands every slug in the database, uniquely', () async {

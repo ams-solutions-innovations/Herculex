@@ -3,25 +3,28 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/measurements/data/measurements_repository.dart';
+import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
+import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../../../services/pending_ai_scan_service.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../data/measurements_repository.dart';
-
-import 'body_fat_ai_dialog.dart';
-
-final _allMeasurementsProvider =
-    StreamProvider<List<BodyMeasurementData>>((ref) {
+final _allMeasurementsProvider = StreamProvider<List<BodyMeasurementData>>((
+  ref,
+) {
   return ref.watch(measurementsRepositoryProvider).watchAll();
 });
 
-final _photosProvider =
-    StreamProvider.family<List<ProgressPhotoData>, String>((ref, pose) {
+final _photosProvider = StreamProvider.family<List<ProgressPhotoData>, String>((
+  ref,
+  pose,
+) {
   return ref.watch(measurementsRepositoryProvider).watchPhotos(pose: pose);
 });
 
@@ -75,91 +78,97 @@ class _MeasurementsViewState extends ConsumerState<MeasurementsView> {
     }
   }
 
+  int _tabIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     final allMeasurementsAsync = ref.watch(_allMeasurementsProvider);
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Measurements'),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.auto_awesome, color: AppColors.primary),
-              tooltip: 'Gemini AI Body Fat Estimate',
-              onPressed: () {
-                Haptics.selection();
-                BodyFatAiDialog.show(context);
-              },
-            ),
-          ],
-          bottom: const TabBar(
-            tabs: [Tab(text: 'Metrics'), Tab(text: 'Photos')],
-          ),
+    return HxScreenShell(
+      title: 'Measurements',
+      actions: [
+        IconButton(
+          icon: Icon(Icons.auto_awesome, color: AppColors.primary),
+          tooltip: 'Gemini AI Body Fat Estimate',
+          onPressed: () {
+            Haptics.selection();
+            BodyFatAiDialog.show(context);
+          },
         ),
-        body: TabBarView(
-          children: [
-            // ── Tab 1: Metrics (Stacked List View) ──
-            allMeasurementsAsync.when(
-              data: (allRows) {
-                // Group measurements by metric key
-                final Map<String, List<BodyMeasurementData>> grouped = {};
-                for (final row in allRows) {
-                  grouped.putIfAbsent(row.metric, () => []).add(row);
-                }
+      ],
+      children: [
+        HxTopTabs(
+          labels: const ['Metrics', 'Photos'],
+          index: _tabIndex,
+          onChanged: (i) => setState(() => _tabIndex = i),
+        ),
+        const SizedBox(height: 16),
+        if (_tabIndex == 0)
+          allMeasurementsAsync.when(
+            data: (allRows) {
+              // Group measurements by metric key
+              final Map<String, List<BodyMeasurementData>> grouped = {};
+              for (final row in allRows) {
+                grouped.putIfAbsent(row.metric, () => []).add(row);
+              }
 
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: MeasurementsRepository.builtInMetrics.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final metricKey =
-                        MeasurementsRepository.builtInMetrics[index];
-                    final label = _labels[metricKey] ?? metricKey;
-                    final unit = metricKey == 'bodyweight'
-                        ? 'kg'
-                        : (metricKey == 'body_fat' ? '%' : 'cm');
-                    final rows = grouped[metricKey] ?? [];
+              return Column(
+                children: [
+                  for (final metricKey
+                      in MeasurementsRepository.builtInMetrics) ...[
+                    Builder(
+                      builder: (context) {
+                        final label = _labels[metricKey] ?? metricKey;
+                        final unit = metricKey == 'bodyweight'
+                            ? 'kg'
+                            : (metricKey == 'body_fat' ? '%' : 'cm');
+                        final rows = grouped[metricKey] ?? [];
 
-                    final latest = rows.isNotEmpty ? rows.last : null;
-                    final previous = rows.length >= 2 ? rows[rows.length - 2] : null;
+                        final latest = rows.isNotEmpty ? rows.last : null;
+                        final previous = rows.length >= 2
+                            ? rows[rows.length - 2]
+                            : null;
 
-                    double? diff;
-                    if (latest != null && previous != null) {
-                      diff = latest.value - previous.value;
-                    }
+                        double? diff;
+                        if (latest != null && previous != null) {
+                          diff = latest.value - previous.value;
+                        }
 
-                    return _MetricStackedCard(
-                      metricKey: metricKey,
-                      label: label,
-                      unit: unit,
-                      icon: _getMetricIcon(metricKey),
-                      latest: latest,
-                      diff: diff,
-                      onTap: () {
-                        Haptics.selection();
-                        context.push('/measurements/$metricKey');
-                      },
-                      onAiTap: metricKey == 'body_fat'
-                          ? () {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _MetricStackedCard(
+                            metricKey: metricKey,
+                            label: label,
+                            unit: unit,
+                            icon: _getMetricIcon(metricKey),
+                            latest: latest,
+                            diff: diff,
+                            onTap: () {
                               Haptics.selection();
-                              BodyFatAiDialog.show(context);
-                            }
-                          : null,
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error loading metrics: $e')),
-            ),
-
-            // ── Tab 2: Progress Photos ──
-            _PhotosTab(onAddPhoto: _capturePhoto),
-          ],
-        ),
-      ),
+                              context.push(
+                                AppPaths.measurementDetail(metricKey),
+                              );
+                            },
+                            onAiTap: metricKey == 'body_fat'
+                                ? () {
+                                    Haptics.selection();
+                                    BodyFatAiDialog.show(context);
+                                  }
+                                : null,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('Error loading metrics: $e')),
+          )
+        else
+          _PhotosTab(onAddPhoto: _capturePhoto),
+      ],
     );
   }
 
@@ -204,7 +213,9 @@ class _MeasurementsViewState extends ConsumerState<MeasurementsView> {
     );
     if (pose == null || !mounted) return;
 
-    await ref.read(pendingAiScanServiceProvider).setPendingContext(
+    await ref
+        .read(pendingAiScanServiceProvider)
+        .setPendingContext(
           PendingAiScanContext(
             type: AiScanContextType.bodyFat,
             metricKey: pose,
@@ -219,7 +230,9 @@ class _MeasurementsViewState extends ConsumerState<MeasurementsView> {
     await ref.read(pendingAiScanServiceProvider).clearPendingContext();
     if (file == null || !mounted) return;
 
-    await ref.read(measurementsRepositoryProvider).addPhoto(
+    await ref
+        .read(measurementsRepositoryProvider)
+        .addPhoto(
           dateIso: DateFormat('yyyy-MM-dd').format(DateTime.now()),
           pose: pose,
           filePath: file.path,
@@ -258,7 +271,8 @@ class _MetricStackedCard extends StatelessWidget {
       final formattedDate = date != null
           ? DateFormat('d MMM').format(date)
           : latest!.dateIso;
-      valueSubtitle = '${latest!.value.toStringAsFixed(1)} $unit • $formattedDate';
+      valueSubtitle =
+          '${latest!.value.toStringAsFixed(1)} $unit • $formattedDate';
     }
 
     final isFatOrWeight = metricKey == 'bodyweight' || metricKey == 'body_fat';
@@ -291,11 +305,7 @@ class _MetricStackedCard extends StatelessWidget {
                     color: AppColors.primaryContainer.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 22,
-                    color: AppColors.primary,
-                  ),
+                  child: Icon(icon, size: 22, color: AppColors.primary),
                 ),
                 const SizedBox(width: 14),
 
@@ -317,16 +327,23 @@ class _MetricStackedCard extends StatelessWidget {
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.15),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.15,
+                                ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.auto_awesome,
-                                      size: 10, color: AppColors.primary),
+                                  Icon(
+                                    Icons.auto_awesome,
+                                    size: 10,
+                                    color: AppColors.primary,
+                                  ),
                                   const SizedBox(width: 2),
                                   Text(
                                     'AI',
@@ -444,13 +461,18 @@ class _PhotosTabState extends ConsumerState<_PhotosTab> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.photo_camera_outlined,
-                              size: 48,
-                              color: AppColors.secondary.withValues(alpha: 0.4)),
+                          Icon(
+                            Icons.photo_camera_outlined,
+                            size: 48,
+                            color: AppColors.secondary.withValues(alpha: 0.4),
+                          ),
                           const SizedBox(height: 12),
-                          Text('No $_pose photos yet',
-                              style: theme.textTheme.bodyMedium
-                                  ?.copyWith(color: AppColors.secondary)),
+                          Text(
+                            'No $_pose photos yet',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.secondary,
+                            ),
+                          ),
                         ],
                       ),
                     )
@@ -458,10 +480,10 @@ class _PhotosTabState extends ConsumerState<_PhotosTab> {
                       padding: const EdgeInsets.all(12),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
                       itemCount: photos.length,
                       itemBuilder: (context, i) {
                         final photo = photos[i];
@@ -487,7 +509,9 @@ class _PhotosTabState extends ConsumerState<_PhotosTab> {
                   onPressed: widget.onAddPhoto,
                   icon: const Icon(Icons.add_a_photo),
                   label: const Text('Add Photo'),
-                  style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                  ),
                 ),
               ),
             ),
@@ -516,8 +540,10 @@ class _PhotoCard extends StatelessWidget {
               ? Image.file(file, fit: BoxFit.cover)
               : Container(
                   color: AppColors.surfaceContainer,
-                  child: Icon(Icons.broken_image_outlined,
-                      color: AppColors.secondary),
+                  child: Icon(
+                    Icons.broken_image_outlined,
+                    color: AppColors.secondary,
+                  ),
                 ),
         ),
         Positioned(
@@ -530,9 +556,10 @@ class _PhotoCard extends StatelessWidget {
               color: Colors.black54,
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
             ),
-            child: Text(photo.dateIso,
-                style: theme.textTheme.labelSmall
-                    ?.copyWith(color: Colors.white)),
+            child: Text(
+              photo.dateIso,
+              style: theme.textTheme.labelSmall?.copyWith(color: Colors.white),
+            ),
           ),
         ),
         Positioned(

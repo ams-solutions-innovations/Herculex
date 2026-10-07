@@ -2,17 +2,16 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/nutrition/domain/macro_targets.dart';
+import 'package:herculex/features/profile/data/dream_physique_service.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:image_picker/image_picker.dart';
-
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../../../services/pending_ai_scan_service.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../ui/ui.dart';
-import '../../nutrition/domain/macro_targets.dart';
-import '../data/dream_physique_service.dart';
-import '../domain/profile.dart';
 
 class DreamPhysiqueView extends ConsumerStatefulWidget {
   const DreamPhysiqueView({super.key});
@@ -80,7 +79,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
   Future<void> _pickCurrentPhoto(ImageSource source) async {
     Haptics.light();
     try {
-      await ref.read(pendingAiScanServiceProvider).setPendingContext(
+      await ref
+          .read(pendingAiScanServiceProvider)
+          .setPendingContext(
             PendingAiScanContext(type: AiScanContextType.dreamPhysique),
           );
       final picker = ImagePicker();
@@ -105,7 +106,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
   Future<void> _pickTargetPhoto() async {
     Haptics.light();
     try {
-      await ref.read(pendingAiScanServiceProvider).setPendingContext(
+      await ref
+          .read(pendingAiScanServiceProvider)
+          .setPendingContext(
             PendingAiScanContext(type: AiScanContextType.dreamPhysique),
           );
       final picker = ImagePicker();
@@ -143,11 +146,16 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
 
   Future<void> _startAnalysis() async {
     if (_currentFiles.isEmpty) {
-      setState(() => _error = 'Please add at least one photo of your current physique.');
+      setState(
+        () =>
+            _error = 'Please add at least one photo of your current physique.',
+      );
       return;
     }
     if (_targetFile == null) {
-      setState(() => _error = 'Please select a target photo of your dream physique.');
+      setState(
+        () => _error = 'Please select a target photo of your dream physique.',
+      );
       return;
     }
 
@@ -167,7 +175,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         profile: profile,
         measurements: _measurements,
         targetGoalStyle: _selectedGoalStyle,
-        userNote: _userNoteCtrl.text.trim().isEmpty ? null : _userNoteCtrl.text.trim(),
+        userNote: _userNoteCtrl.text.trim().isEmpty
+            ? null
+            : _userNoteCtrl.text.trim(),
       );
 
       if (!mounted) return;
@@ -239,9 +249,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
@@ -251,8 +259,11 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.auto_awesome,
-                    color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -310,7 +321,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         const SizedBox(height: 4),
         Text(
           'Select from saved photos or upload a new one.',
-          style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.secondary,
+          ),
         ),
         const SizedBox(height: 12),
 
@@ -349,8 +362,11 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                             color: Colors.black.withValues(alpha: 0.7),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close,
-                              size: 12, color: Colors.white),
+                          child: const Icon(
+                            Icons.close,
+                            size: 12,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -381,8 +397,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
               itemBuilder: (context, index) {
                 final photo = _savedPhotos[index];
                 final file = File(photo.filePath);
-                final isSelected =
-                    _currentFiles.any((f) => f.path == file.path);
+                final isSelected = _currentFiles.any(
+                  (f) => f.path == file.path,
+                );
 
                 return GestureDetector(
                   onTap: () => _toggleSavedPhoto(photo),
@@ -416,8 +433,11 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Center(
-                              child: Icon(Icons.check_circle,
-                                  color: Colors.white, size: 22),
+                              child: Icon(
+                                Icons.check_circle,
+                                color: Colors.white,
+                                size: 22,
+                              ),
                             ),
                           ),
                         Positioned(
@@ -426,7 +446,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                           right: 2,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 1),
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black54,
                               borderRadius: BorderRadius.circular(4),
@@ -435,9 +457,10 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                               photo.pose.toUpperCase(),
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold),
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
@@ -462,7 +485,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         const SizedBox(height: 4),
         Text(
           'Upload a photo of the physique you want to achieve (from gallery or web).',
-          style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.secondary,
+          ),
         ),
         const SizedBox(height: 12),
 
@@ -494,7 +519,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                         right: 8,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.75),
                             borderRadius: BorderRadius.circular(8),
@@ -507,7 +534,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                               Text(
                                 'Change photo',
                                 style: TextStyle(
-                                    color: Colors.white, fontSize: 11),
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                ),
                               ),
                             ],
                           ),
@@ -518,8 +547,11 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                 : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_photo_alternate_outlined,
-                          size: 40, color: AppColors.primary),
+                      Icon(
+                        Icons.add_photo_alternate_outlined,
+                        size: 40,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(height: 8),
                       Text(
                         'Choose target photo from gallery',
@@ -587,10 +619,18 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _statSnippet('Weight', '${weight?.toStringAsFixed(1) ?? "--"} kg'),
-              _statSnippet('Height', '${height?.toStringAsFixed(0) ?? "--"} cm'),
-              _statSnippet('Daily Calories',
-                  macro != null ? '${macro.kcal} kcal' : '--'),
+              _statSnippet(
+                'Weight',
+                '${weight?.toStringAsFixed(1) ?? "--"} kg',
+              ),
+              _statSnippet(
+                'Height',
+                '${height?.toStringAsFixed(0) ?? "--"} cm',
+              ),
+              _statSnippet(
+                'Daily Calories',
+                macro != null ? '${macro.kcal} kcal' : '--',
+              ),
             ],
           ),
         ),
@@ -623,10 +663,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
   Widget _statSnippet(String label, String value) {
     return Column(
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 11, color: Colors.grey),
-        ),
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
         const SizedBox(height: 2),
         Text(
           value,
@@ -699,7 +736,8 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                         const SizedBox(height: 6),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: _currentFiles.isNotEmpty &&
+                          child:
+                              _currentFiles.isNotEmpty &&
                                   _currentFiles.first.existsSync()
                               ? Image.file(
                                   _currentFiles.first,
@@ -736,13 +774,18 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                             color: AppColors.primary.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(Icons.arrow_forward_rounded,
-                              color: AppColors.primary, size: 20),
+                          child: Icon(
+                            Icons.arrow_forward_rounded,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary,
                             borderRadius: BorderRadius.circular(10),
@@ -774,8 +817,8 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                         const SizedBox(height: 6),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: _targetFile != null &&
-                                  _targetFile!.existsSync()
+                          child:
+                              _targetFile != null && _targetFile!.existsSync()
                               ? Image.file(
                                   _targetFile!,
                                   height: 140,
@@ -861,8 +904,11 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         // ── Muscle Priority Matrix ──
         Row(
           children: [
-            Icon(Icons.format_list_bulleted,
-                size: 20, color: AppColors.primary),
+            Icon(
+              Icons.format_list_bulleted,
+              size: 20,
+              color: AppColors.primary,
+            ),
             const SizedBox(width: 8),
             Text(
               'Aesthetic Muscle Group Focus',
@@ -875,7 +921,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         const SizedBox(height: 4),
         Text(
           'To achieve target symmetry, prioritize these muscles:',
-          style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.secondary,
+          ),
         ),
         const SizedBox(height: 12),
 
@@ -1060,8 +1108,7 @@ class _MusclePriorityCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: badgeColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
@@ -1133,9 +1180,7 @@ class _SectionCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             content,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              height: 1.4,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
           ),
         ],
       ),

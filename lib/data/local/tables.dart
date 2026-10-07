@@ -351,6 +351,39 @@ class FoodCatalogueMeta extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class Achievements extends Table with SyncColumns, SyncTombstone {
+  TextColumn get id => text()();
+  DateTimeColumn get unlockedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// The coaching rules parsed from assets/data/hercul_rules.json.
+class HerculRules extends Table {
+  TextColumn get id => text()();
+  TextColumn get domain => text()();
+  IntColumn get priority => integer()();
+  IntColumn get cooldownDays => integer()();
+  TextColumn get requiresJson => text()();
+  TextColumn get whenJson => text()();
+  TextColumn get copyNormal => text()();
+  TextColumn get copyHonest => text()();
+  TextColumn get ctaJson => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Tracks when a coaching rule last fired, ensuring cooldowns survive restarts.
+class HerculMessageLog extends Table {
+  TextColumn get ruleId => text().references(HerculRules, #id)();
+  DateTimeColumn get lastFiredAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {ruleId};
+}
+
 /// Calorie + macro target, scoped by [appliesTo] (§19). One global row plus
 /// optional training-day / rest-day / weekday / specific-date overrides.
 @DataClassName('NutritionTargetData')
@@ -534,6 +567,20 @@ class FastingSchedules extends Table with SyncColumns, SyncTombstone {
   IntColumn get startTimeMinutes => integer()();
   BoolColumn get enabled => boolean().withDefault(const Constant(true))();
   BoolColumn get autoStart => boolean().withDefault(const Constant(false))();
+}
+
+/// Physiological fasting stages and bodily changes (v36, 1h to 72h).
+@DataClassName('FastingStageData')
+class FastingStages extends Table {
+  IntColumn get hour => integer()();
+  TextColumn get stageName => text()();
+  TextColumn get stageCategory => text()();
+  TextColumn get shortMessage => text()();
+  TextColumn get detail => text().nullable()();
+  TextColumn get icon => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {hour};
 }
 
 @DataClassName('ProgramData')
@@ -729,6 +776,15 @@ class ExerciseProgressions extends Table with SyncColumns, SyncTombstone {
   RealColumn get weeklyIncreasePct => real().withDefault(const Constant(5.0))();
   BoolColumn get enabled => boolean().withDefault(const Constant(true))();
 
+  // ── New Double Progression / Overrides (v40) ──
+  TextColumn get progressionModel =>
+      text().withDefault(const Constant('linear'))(); // linear | double
+  IntColumn get targetSets => integer().nullable()();
+  IntColumn get targetRepsMin => integer().nullable()();
+  IntColumn get targetRepsMax => integer().nullable()();
+  BoolColumn get autoAddSets => boolean().withDefault(const Constant(false))();
+  IntColumn get autoAddSetsCount => integer().withDefault(const Constant(3))();
+
   @override
   List<Set<Column>> get uniqueKeys => [
     {exerciseId},
@@ -746,6 +802,7 @@ class ScheduledWorkouts extends Table with SyncColumns, SyncTombstone {
     #id,
     onDelete: KeyAction.setNull,
   )();
+
   /// planned | in_progress | done | moved | skipped — see `ScheduleStatus`.
   TextColumn get status => text().withDefault(const Constant('planned'))();
 
@@ -835,11 +892,11 @@ class CycleSettings extends Table with SyncColumns, SyncTombstone {
 class JointPainLogs extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get dateIso => text()();
-  DateTimeColumn get loggedAt =>
-      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get loggedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get joint => text()(); // one of JointModel.joints
-  IntColumn get severity =>
-      integer().withDefault(const Constant(1))(); // 0=resolved, 1-3=mild/moderate/severe
+  IntColumn get severity => integer().withDefault(
+    const Constant(1),
+  )(); // 0=resolved, 1-3=mild/moderate/severe
   TextColumn get note => text().nullable()();
 }
 
@@ -958,11 +1015,8 @@ class WorkoutCircuits extends Table with SyncColumns, SyncTombstone {
 @DataClassName('CircuitExerciseData')
 class CircuitExercises extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get circuitId => integer().references(
-    WorkoutCircuits,
-    #id,
-    onDelete: KeyAction.cascade,
-  )();
+  IntColumn get circuitId =>
+      integer().references(WorkoutCircuits, #id, onDelete: KeyAction.cascade)();
   IntColumn get exerciseId => integer().references(
     ExerciseCatalog,
     #id,
@@ -1085,129 +1139,6 @@ class ProgressPhotos extends Table {
   TextColumn get notes => text().nullable()();
 }
 
-// ── Assisted rep tracking (v26) ────────────────────────────────────────────
-//
-// The three tables below are **local-only by design** (REP-04, Phase 10
-// CONTEXT "Persistence and sync"). None of them mixes in [SyncColumns] or
-// [SyncTombstone], and none appears in `syncedTableNames`
-// (`lib/data/local/migrations/sync_backfill.dart`) or in `syncTableSpecs`
-// (`lib/data/sync/sync_table_specs.dart`) — adding a name to either list
-// installs an outbox trigger and puts motion-derived data on the wire.
-// Calibration is specific to one user, on one device, in one placement, so
-// it is not meaningful anywhere else. `test/rep_local_only_test.dart` asserts
-// this positively against `sqlite_master` rather than by source grep.
-
-/// Single-row global rep-tracking consent and defaults.
-///
-/// [consentGrantedAt] is the master gate: null means the dedicated consent
-/// screen has not been completed and **no** rep-tracking code may run,
-/// regardless of any per-exercise preference row.
-@DataClassName('RepTrackingSettingData')
-class RepTrackingSettings extends Table {
-  IntColumn get id => integer().autoIncrement()();
-
-  /// Null ⇒ consent screen not completed. The single authority for whether
-  /// the tracker may run at all.
-  DateTimeColumn get consentGrantedAt => dateTime().nullable()();
-
-  /// Bumping this in code forces re-consent when data handling changes.
-  IntColumn get consentVersion => integer().withDefault(const Constant(1))();
-
-  /// wrist | phone
-  TextColumn get defaultSource => text().nullable()();
-
-  /// pocket_front | armband | null. Must be non-null before the phone source
-  /// is usable (REP-02).
-  TextColumn get phonePlacement => text().nullable()();
-  BoolColumn get hapticsEnabled => boolean().withDefault(const Constant(true))();
-
-  /// The single global switch (v30).
-  ///
-  /// Replaces per-exercise opt-in as the thing that turns tracking on.
-  /// Eligibility is now a property of the exercise — derived from
-  /// `assets/data/rep_tracking_profiles.json`, which covers the whole
-  /// catalogue — so asking the user to opt in exercise by exercise was asking
-  /// them to re-derive physics the app already knows.
-  ///
-  /// Defaults to false, and consent still gates it: this switch is only
-  /// reachable once the consent screen has been completed, and turning it on
-  /// can never bypass `consentGrantedAt`.
-  BoolColumn get autoCountEnabled =>
-      boolean().withDefault(const Constant(false))();
-}
-
-/// Per-exercise opt-in, keyed by [ExerciseCatalog.slug] rather than by
-/// `exerciseId` so a catalogue re-import cannot orphan a preference.
-@DataClassName('RepTrackingExercisePrefData')
-/// Per-exercise **override**, not opt-in.
-///
-/// Before v30 a row here with `enabled = true` was what turned tracking on for
-/// one exercise. From v30 the global switch does that, and this table only
-/// records deliberate exceptions: a row with `enabled = false` means "never
-/// track this one, even though it is measurable and the global switch is on".
-///
-/// The reinterpretation needs no data migration and loses no intent. A row
-/// left over from the old model with `enabled = false` was a user saying "not
-/// this exercise", which is exactly what it still means; a row with
-/// `enabled = true` becomes a no-op, which is also what the user wanted. What
-/// changes is the default for a **missing** row: it used to mean off and now
-/// means follow the global switch, which is safe because that switch defaults
-/// to off.
-class RepTrackingExercisePrefs extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  TextColumn get exerciseSlug => text()();
-  BoolColumn get enabled => boolean().withDefault(const Constant(false))();
-
-  /// wrist | phone. Null ⇒ fall back to [RepTrackingSettings.defaultSource].
-  TextColumn get preferredSource => text().nullable()();
-  DateTimeColumn get updatedAt => dateTime()();
-
-  @override
-  List<Set<Column>> get uniqueKeys => [
-    {exerciseSlug},
-  ];
-}
-
-/// One row per confirmed set that had tracking active — the calibration
-/// training set 10-05 consumes.
-///
-/// **No raw sample column of any kind.** Raw accelerometer arrays live in
-/// memory for the duration of the set and are discarded at set end (REP-04);
-/// only the derived feature vector ([featuresJson]) and the user-confirmed
-/// outcome persist.
-@DataClassName('RepSetObservationData')
-class RepSetObservations extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  TextColumn get exerciseSlug => text()();
-  IntColumn get sessionId => integer()();
-
-  /// Deliberately a plain nullable int and **not** a `references(...)` edge:
-  /// a discarded set must leave no dangling FK, and these rows must survive
-  /// set deletion so calibration history stays continuous.
-  IntColumn get setEntryId => integer().nullable()();
-  DateTimeColumn get recordedAt => dateTime()();
-
-  /// wrist | phone
-  TextColumn get source => text()();
-
-  /// pocket_front | armband | null (wrist source).
-  TextColumn get placement => text().nullable()();
-
-  /// linear_acceleration | accelerometer. Recorded because the two are not
-  /// interchangeable for calibration — a profile must not mix them.
-  TextColumn get sensorType => text()();
-  IntColumn get detectedReps => integer()();
-  IntColumn get confirmedReps => integer()();
-
-  /// 0–1.
-  RealColumn get confidence => real()();
-  IntColumn get suggestedRpeX10 => integer().nullable()();
-  IntColumn get confirmedRpeX10 => integer().nullable()();
-
-  /// The derived feature vector; its schema is owned by 10-02.
-  TextColumn get featuresJson => text()();
-}
-
 // ── Gym Buddy live workout (v29) ───────────────────────────────────────────
 //
 // The two tables below are **local-only by design** (BUD-02/BUD-04, phase 11
@@ -1226,8 +1157,8 @@ class RepSetObservations extends Table {
 @DataClassName('BuddySessionsLocalData')
 class BuddySessionsLocal extends Table {
   TextColumn get buddySessionId => text()(); // uuid, server-assigned
-  IntColumn get workoutSessionId => integer()
-      .references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
+  IntColumn get workoutSessionId =>
+      integer().references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
   TextColumn get role => text()(); // 'host' | 'guest'
   TextColumn get partnerDisplayName => text().nullable()();
   TextColumn get partnerAvatarUrl => text().nullable()();

@@ -54,13 +54,14 @@ abstract final class JointModel {
   /// joint's stress independent of the gym log. Knee-only today (running,
   /// walking and hiking all load it directly); extensible to other joints
   /// later without touching call sites.
-  static const cardioActivitiesByJoint = <String, List<HealthWorkoutActivityType>>{
-    'Knee': [
-      HealthWorkoutActivityType.RUNNING,
-      HealthWorkoutActivityType.RUNNING_TREADMILL,
-      HealthWorkoutActivityType.WALKING,
-      HealthWorkoutActivityType.WALKING_TREADMILL,
-      HealthWorkoutActivityType.HIKING,
-    ],
-  };
+  static const cardioActivitiesByJoint =
+      <String, List<HealthWorkoutActivityType>>{
+        'Knee': [
+          HealthWorkoutActivityType.RUNNING,
+          HealthWorkoutActivityType.RUNNING_TREADMILL,
+          HealthWorkoutActivityType.WALKING,
+          HealthWorkoutActivityType.WALKING_TREADMILL,
+          HealthWorkoutActivityType.HIKING,
+        ],
+      };
 }

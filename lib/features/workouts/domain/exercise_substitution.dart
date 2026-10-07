@@ -1,6 +1,19 @@
-import '../../../data/local/database.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/data/local/exercise_biomechanics.dart';
 
 class ExerciseSubstitution {
+  /// Synergistic muscle groups that can cross-substitute ONLY in compound movements.
+  static const Map<String, Set<String>> _compoundSynergies = {
+    'Chest': {'Shoulders', 'Triceps'},
+    'Shoulders': {'Chest', 'Triceps'},
+    'Triceps': {'Chest', 'Shoulders'},
+    'Back': {'Biceps', 'Rear Delts', 'Forearms', 'Traps'},
+    'Biceps': {'Back', 'Forearms'},
+    'Quads': {'Glutes', 'Adductors', 'Calves'},
+    'Glutes': {'Hamstrings', 'Quads'},
+    'Hamstrings': {'Glutes', 'Calves', 'Erectors'},
+  };
+
   /// Calculates the matching score between an [original] exercise and a [candidate].
   /// Returns a Map containing:
   /// - 'score': the total score used for sorting (including history boost)
@@ -15,35 +28,95 @@ class ExerciseSubstitution {
       return {'score': 0.0, 'percentage': 0.0, 'isHistoryMatch': false};
     }
 
-    // Strict constraint: Force vector must match (never substitute pull with push or static)
-    if (original.force.toLowerCase() != candidate.force.toLowerCase()) {
+    final origCoarse = ExerciseBiomechanics.coarseMuscle(
+      original.primaryMuscle,
+    );
+    final candCoarse = ExerciseBiomechanics.coarseMuscle(
+      candidate.primaryMuscle,
+    );
+
+    final isSameExactMuscle =
+        original.primaryMuscle.toLowerCase() ==
+        candidate.primaryMuscle.toLowerCase();
+    final isSameCoarseMuscle =
+        origCoarse.toLowerCase() == candCoarse.toLowerCase();
+
+    final origIsCompound = original.mechanics.toLowerCase() == 'compound';
+    final candIsCompound = candidate.mechanics.toLowerCase() == 'compound';
+    final isPushPullMatch =
+        original.force.toLowerCase() == candidate.force.toLowerCase();
+
+    // Strict muscle compatibility check:
+    // If coarse muscle does not match, check if cross-muscle synergy is valid
+    if (!isSameCoarseMuscle) {
+      // Cross-muscle substitution is ONLY allowed for compound movements with matching force and documented synergy
+      final hasSynergy =
+          _compoundSynergies[origCoarse]?.contains(candCoarse) == true;
+
+      if (!origIsCompound ||
+          !candIsCompound ||
+          !isPushPullMatch ||
+          !hasSynergy) {
+        // Complete mismatch (e.g. Quads for Chest, or isolation cross-muscle) -> DISQUALIFIED
+        return {'score': 0.0, 'percentage': 0.0, 'isHistoryMatch': false};
+      }
+    }
+
+    // Strict force vector check for isolation movements
+    if (!origIsCompound && !isPushPullMatch) {
       return {'score': 0.0, 'percentage': 0.0, 'isHistoryMatch': false};
     }
 
     double baseScore = 0.0;
 
-    // Mechanics match (isolation vs compound): 40 points
+    // A. Target Muscle Match (Up to 50 points)
+    if (isSameExactMuscle) {
+      baseScore += 50.0;
+    } else if (isSameCoarseMuscle) {
+      baseScore += 45.0;
+    } else {
+      // Synergistic compound muscle (e.g. Dips for Close-Grip Bench)
+      baseScore += 20.0;
+    }
+
+    // B. Movement Slug / Family / Pattern (Up to 25 points)
+    if (original.movementSlug != null &&
+        candidate.movementSlug != null &&
+        original.movementSlug == candidate.movementSlug) {
+      baseScore += 25.0;
+    } else if (original.movementFamily != null &&
+        candidate.movementFamily != null &&
+        original.movementFamily == candidate.movementFamily) {
+      baseScore += 20.0;
+    } else if (original.movementPattern != null &&
+        candidate.movementPattern != null &&
+        original.movementPattern == candidate.movementPattern) {
+      baseScore += 15.0;
+    }
+
+    // C. Mechanics Match (Compound vs Isolation) (Up to 15 points)
     if (original.mechanics.toLowerCase() == candidate.mechanics.toLowerCase()) {
-      baseScore += 40.0;
+      baseScore += 15.0;
+    } else {
+      baseScore += 5.0;
     }
 
-    // Movement plane match: 30 points
-    if (original.plane.toLowerCase() == candidate.plane.toLowerCase()) {
-      baseScore += 30.0;
+    // D. Force & Movement Plane (Up to 10 points)
+    if (isPushPullMatch) {
+      baseScore += 5.0;
     }
-
-    // Primary muscle match: 30 points
-    if (original.primaryMuscle.toLowerCase() == candidate.primaryMuscle.toLowerCase()) {
-      baseScore += 30.0;
+    if (original.plane.toLowerCase() == candidate.plane.toLowerCase() &&
+        original.plane.toLowerCase() != 'none') {
+      baseScore += 5.0;
     }
 
     final isHistoryMatch = recentExerciseIds.contains(candidate.id);
-    // History boost: +50 points to rank it higher in the suggestions list
-    final totalScore = baseScore + (isHistoryMatch ? 50.0 : 0.0);
+    // Subtle +4.0 ranking boost for history, breaking ties among genuine matches
+    final totalScore = baseScore + (isHistoryMatch ? 4.0 : 0.0);
 
     return {
       'score': totalScore,
-      'percentage': (baseScore / 100.0) * 100.0,
+      'percentage': baseScore.clamp(0.0, 100.0),
       'isHistoryMatch': isHistoryMatch,
     };
   }
@@ -70,14 +143,16 @@ class ExerciseSubstitution {
       final double percentage = match['percentage'] as double;
       final bool isHistoryMatch = match['isHistoryMatch'] as bool;
 
-      // Only include candidates that have some biomechanical overlap (e.g. force matches)
-      if (score > 0) {
-        results.add(RankedSubstitution(
-          exercise: candidate,
-          score: score,
-          percentage: percentage.round(),
-          isHistoryMatch: isHistoryMatch,
-        ));
+      // Only include candidates that have genuine biomechanical relevance
+      if (score > 0 && percentage >= 20.0) {
+        results.add(
+          RankedSubstitution(
+            exercise: candidate,
+            score: score,
+            percentage: percentage.round(),
+            isHistoryMatch: isHistoryMatch,
+          ),
+        );
       }
     }
 

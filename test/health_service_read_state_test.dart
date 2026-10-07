@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health/health.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/health/data/health_adapter.dart';
 import 'package:herculex/features/health/data/health_service.dart';
@@ -245,28 +245,31 @@ void main() {
     expect(read.value, isNull);
   });
 
-  test('writeWorkoutToHealth sends custom title, calories, and times', () async {
-    final start = DateTime(2026, 8, 13, 10, 0);
-    final end = DateTime(2026, 8, 13, 11, 15);
+  test(
+    'writeWorkoutToHealth sends custom title, calories, and times',
+    () async {
+      final start = DateTime(2026, 8, 13, 10, 0);
+      final end = DateTime(2026, 8, 13, 11, 15);
 
-    final success = await service.writeWorkoutToHealth(
-      activityName: 'Arm Day',
-      startTime: start,
-      endTime: end,
-      totalCaloriesBurned: 480,
-    );
+      final success = await service.writeWorkoutToHealth(
+        activityName: 'Arm Day',
+        startTime: start,
+        endTime: end,
+        totalCaloriesBurned: 480,
+      );
 
-    expect(success, isTrue);
-    expect(adapter.lastWrittenWorkout, isNotNull);
-    expect(adapter.lastWrittenWorkout!['title'], equals('Arm Day'));
-    expect(adapter.lastWrittenWorkout!['totalEnergyBurned'], equals(480));
-    expect(adapter.lastWrittenWorkout!['start'], equals(start));
-    expect(adapter.lastWrittenWorkout!['end'], equals(end));
-    expect(
-      adapter.lastWrittenWorkout!['activityType'],
-      equals(HealthWorkoutActivityType.STRENGTH_TRAINING),
-    );
-  });
+      expect(success, isTrue);
+      expect(adapter.lastWrittenWorkout, isNotNull);
+      expect(adapter.lastWrittenWorkout!['title'], equals('Arm Day'));
+      expect(adapter.lastWrittenWorkout!['totalEnergyBurned'], equals(480));
+      expect(adapter.lastWrittenWorkout!['start'], equals(start));
+      expect(adapter.lastWrittenWorkout!['end'], equals(end));
+      expect(
+        adapter.lastWrittenWorkout!['activityType'],
+        equals(HealthWorkoutActivityType.STRENGTH_TRAINING),
+      );
+    },
+  );
 
   test(
     'multi-source step resolution picks higher watch/Samsung Health steps over lower aggregate',

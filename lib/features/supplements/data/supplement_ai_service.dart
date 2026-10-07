@@ -1,10 +1,8 @@
-﻿import 'dart:io';
+import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../services/gemini_backend_service.dart';
-import '../domain/supplement.dart';
+import 'package:herculex/features/supplements/domain/supplement.dart';
+import 'package:herculex/services/ai/gemini_backend_service.dart';
 
 final supplementAiServiceProvider = Provider<SupplementAiService>((ref) {
   final backend = ref.watch(geminiBackendProvider);
@@ -117,8 +115,13 @@ class SupplementAiService {
   }
 
   String _normalizeNutrientKey(String raw) {
-    final lower = raw.toLowerCase().trim().replaceAll('-', '_').replaceAll(' ', '_');
-    if (lower == 'vit_d' || lower == 'vitamind' || lower == 'vitamin_d3') return 'vitamin_d';
+    final lower = raw
+        .toLowerCase()
+        .trim()
+        .replaceAll('-', '_')
+        .replaceAll(' ', '_');
+    if (lower == 'vit_d' || lower == 'vitamind' || lower == 'vitamin_d3')
+      return 'vitamin_d';
     if (lower == 'vit_c' || lower == 'vitaminc') return 'vitamin_c';
     if (lower == 'vit_b12' || lower == 'b12') return 'vitamin_b12';
     if (lower == 'omega3' || lower == 'omega_3_fatty_acids') return 'omega_3';

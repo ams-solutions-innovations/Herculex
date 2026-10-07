@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/fasting/data/fasting_notification_scheduler.dart';
 import 'package:herculex/features/fasting/data/fasting_repository.dart';
 import 'package:herculex/features/fasting/presentation/end_fast_dialog.dart';
-import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
 
 import 'support/test_database.dart';
 
@@ -73,20 +73,25 @@ void main() {
     );
   }
 
-  testWidgets('confirmEndFast dialog shows Save, Continue, and Discard options', (tester) async {
-    await repo.startSession(16 * 3600);
+  testWidgets(
+    'confirmEndFast dialog shows Save, Continue, and Discard options',
+    (tester) async {
+      await repo.startSession(16 * 3600);
 
-    await tester.pumpWidget(buildTestApp());
-    await tester.tap(find.text('TRIGGER'));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(buildTestApp());
+      await tester.tap(find.text('TRIGGER'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('End Fast'), findsOneWidget);
-    expect(find.text('Save'), findsOneWidget);
-    expect(find.text('Continue'), findsOneWidget);
-    expect(find.text('Discard'), findsOneWidget);
-  });
+      expect(find.text('End Fast'), findsOneWidget);
+      expect(find.text('Save'), findsOneWidget);
+      expect(find.text('Continue'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+    },
+  );
 
-  testWidgets('Tapping Save ends fast session and cancels notifications', (tester) async {
+  testWidgets('Tapping Save ends fast session and cancels notifications', (
+    tester,
+  ) async {
     await repo.startSession(16 * 3600);
 
     await tester.pumpWidget(buildTestApp());
@@ -106,7 +111,9 @@ void main() {
     expect(history.first.completed, isTrue);
   });
 
-  testWidgets('Tapping Continue leaves fast running and dismisses dialog', (tester) async {
+  testWidgets('Tapping Continue leaves fast running and dismisses dialog', (
+    tester,
+  ) async {
     final id = await repo.startSession(16 * 3600);
 
     await tester.pumpWidget(buildTestApp());
@@ -123,22 +130,25 @@ void main() {
     expect(active!.id, id);
   });
 
-  testWidgets('Tapping Discard deletes fast session and cancels notifications', (tester) async {
-    await repo.startSession(16 * 3600);
+  testWidgets(
+    'Tapping Discard deletes fast session and cancels notifications',
+    (tester) async {
+      await repo.startSession(16 * 3600);
 
-    await tester.pumpWidget(buildTestApp());
-    await tester.tap(find.text('TRIGGER'));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(buildTestApp());
+      await tester.tap(find.text('TRIGGER'));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Discard'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
 
-    expect(mockScheduler.cancelled, isTrue);
+      expect(mockScheduler.cancelled, isTrue);
 
-    final active = await repo.activeSession();
-    expect(active, isNull);
+      final active = await repo.activeSession();
+      expect(active, isNull);
 
-    final history = await repo.history();
-    expect(history, isEmpty);
-  });
+      final history = await repo.history();
+      expect(history, isEmpty);
+    },
+  );
 }

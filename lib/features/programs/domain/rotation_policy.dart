@@ -1,5 +1,5 @@
-import 'periodization.dart';
-import 'slot_role.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
+import 'package:herculex/features/programs/domain/slot_role.dart';
 
 /// How wide a slice of the exercise pool a slot may draw from in a given block
 /// phase. Only [PeriodizationModel.block] narrows this — the other models leave
@@ -71,13 +71,25 @@ class RotationPolicy {
       case PeriodizationModel.maxEffort:
         return switch (role) {
           SlotRole.main => const RotationPolicy(
-              everyWeeks: 2, minGapWeeks: 4, minPoolSize: 3),
+            everyWeeks: 2,
+            minGapWeeks: 4,
+            minPoolSize: 3,
+          ),
           SlotRole.supplemental => const RotationPolicy(
-              everyWeeks: 3, minGapWeeks: 3, minPoolSize: 2),
+            everyWeeks: 3,
+            minGapWeeks: 3,
+            minPoolSize: 2,
+          ),
           SlotRole.accessory || SlotRole.isolation => const RotationPolicy(
-              everyWeeks: 4, minGapWeeks: 2, minPoolSize: 1),
+            everyWeeks: 4,
+            minGapWeeks: 2,
+            minPoolSize: 1,
+          ),
           SlotRole.conditioning => const RotationPolicy(
-              everyWeeks: 2, minGapWeeks: 1, minPoolSize: 1),
+            everyWeeks: 2,
+            minGapWeeks: 1,
+            minPoolSize: 1,
+          ),
         };
 
       // You need the same lift long enough to read the heavy/medium/light wave,
@@ -85,13 +97,25 @@ class RotationPolicy {
       case PeriodizationModel.concurrent:
         return switch (role) {
           SlotRole.main => const RotationPolicy(
-              everyWeeks: 4, minGapWeeks: 4, minPoolSize: 2),
+            everyWeeks: 4,
+            minGapWeeks: 4,
+            minPoolSize: 2,
+          ),
           SlotRole.supplemental => const RotationPolicy(
-              everyWeeks: 3, minGapWeeks: 3, minPoolSize: 2),
+            everyWeeks: 3,
+            minGapWeeks: 3,
+            minPoolSize: 2,
+          ),
           SlotRole.accessory || SlotRole.isolation => const RotationPolicy(
-              everyWeeks: 3, minGapWeeks: 2, minPoolSize: 1),
+            everyWeeks: 3,
+            minGapWeeks: 2,
+            minPoolSize: 1,
+          ),
           SlotRole.conditioning => const RotationPolicy(
-              everyWeeks: 2, minGapWeeks: 1, minPoolSize: 1),
+            everyWeeks: 2,
+            minGapWeeks: 1,
+            minPoolSize: 1,
+          ),
         };
 
       // Locked inside a phase, forced at every phase boundary. The phase also
@@ -101,65 +125,67 @@ class RotationPolicy {
         final realization = tier == PoolTier.exactMain;
         return switch (role) {
           SlotRole.main => RotationPolicy(
-              everyWeeks: 0,
-              minGapWeeks: 3,
-              minPoolSize: 2,
-              tier: tier,
-              lockedInPhase: true,
-              forceOnPhaseChange: !realization,
-            ),
+            everyWeeks: 0,
+            minGapWeeks: 3,
+            minPoolSize: 2,
+            tier: tier,
+            lockedInPhase: true,
+            forceOnPhaseChange: !realization,
+          ),
           SlotRole.supplemental => RotationPolicy(
-              everyWeeks: 0,
-              minGapWeeks: 2,
-              minPoolSize: 2,
-              tier: tier,
-              lockedInPhase: true,
-              forceOnPhaseChange: true,
-            ),
+            everyWeeks: 0,
+            minGapWeeks: 2,
+            minPoolSize: 2,
+            tier: tier,
+            lockedInPhase: true,
+            forceOnPhaseChange: true,
+          ),
           SlotRole.accessory ||
           SlotRole.isolation ||
-          SlotRole.conditioning =>
-            RotationPolicy(
-              everyWeeks: 3,
-              minGapWeeks: 2,
-              minPoolSize: 1,
-              tier: tier,
-            ),
+          SlotRole.conditioning => RotationPolicy(
+            everyWeeks: 3,
+            minGapWeeks: 2,
+            minPoolSize: 1,
+            tier: tier,
+          ),
         };
 
       // The whole point is adding load to one lift, so the main slot is fixed.
       case PeriodizationModel.linear:
         return switch (role) {
           SlotRole.main => const RotationPolicy(
-              everyWeeks: 0, minGapWeeks: 0, minPoolSize: 1),
+            everyWeeks: 0,
+            minGapWeeks: 0,
+            minPoolSize: 1,
+          ),
           SlotRole.supplemental => const RotationPolicy(
-              everyWeeks: 4, minGapWeeks: 4, minPoolSize: 1),
-          SlotRole.accessory ||
-          SlotRole.isolation ||
-          SlotRole.conditioning =>
-            const RotationPolicy(
-                everyWeeks: 4, minGapWeeks: 2, minPoolSize: 1),
+            everyWeeks: 4,
+            minGapWeeks: 4,
+            minPoolSize: 1,
+          ),
+          SlotRole.accessory || SlotRole.isolation || SlotRole.conditioning =>
+            const RotationPolicy(everyWeeks: 4, minGapWeeks: 2, minPoolSize: 1),
         };
 
       case PeriodizationModel.none:
         return switch (role) {
           SlotRole.main || SlotRole.supplemental => const RotationPolicy(
-              everyWeeks: 2, minGapWeeks: 2, minPoolSize: 1),
-          SlotRole.accessory ||
-          SlotRole.isolation ||
-          SlotRole.conditioning =>
-            const RotationPolicy(
-                everyWeeks: 2, minGapWeeks: 1, minPoolSize: 1),
+            everyWeeks: 2,
+            minGapWeeks: 2,
+            minPoolSize: 1,
+          ),
+          SlotRole.accessory || SlotRole.isolation || SlotRole.conditioning =>
+            const RotationPolicy(everyWeeks: 2, minGapWeeks: 1, minPoolSize: 1),
         };
     }
   }
 
   static PoolTier poolTierForPhase(String? phase) => switch (phase) {
-        'accumulation' => PoolTier.volumeFriendly,
-        'transmutation' => PoolTier.competitionAdjacent,
-        'realization' => PoolTier.exactMain,
-        _ => PoolTier.any,
-      };
+    'accumulation' => PoolTier.volumeFriendly,
+    'transmutation' => PoolTier.competitionAdjacent,
+    'realization' => PoolTier.exactMain,
+    _ => PoolTier.any,
+  };
 
   /// The rotation epoch for [weekIndex]: a counter that increments exactly when
   /// a fresh exercise is due. Two weeks sharing an epoch must resolve to the
@@ -183,6 +209,7 @@ class RotationPolicy {
   }
 
   /// Convenience: the phase labels for a whole program under [model].
-  static List<String?> phasesFor(PeriodizationModel model, int weeks) =>
-      [for (final p in Periodization.plan(model, weeks)) p.blockPhase];
+  static List<String?> phasesFor(PeriodizationModel model, int weeks) => [
+    for (final p in Periodization.plan(model, weeks)) p.blockPhase,
+  ];
 }

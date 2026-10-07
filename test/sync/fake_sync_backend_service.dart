@@ -17,6 +17,13 @@ class FakeSyncBackendService implements SyncBackendService {
 
   int upsertFailuresRemaining = 0;
 
+  /// When set, the failures produced by [upsertFailuresRemaining] are typed
+  /// [SyncBackendException]s of this kind instead of bare `Exception`s —
+  /// standing in for what [SupabaseSyncBackendService] classifies a real
+  /// PostgrestException into. Leave null to keep the untyped behaviour the
+  /// older tests assert.
+  SyncErrorKind? upsertFailureKind;
+
   /// Set to make every [pull] throw, standing in for a server/network error.
   bool failPulls = false;
 
@@ -32,6 +39,10 @@ class FakeSyncBackendService implements SyncBackendService {
   Future<void> upsert(String table, Map<String, dynamic> row) async {
     if (upsertFailuresRemaining > 0) {
       upsertFailuresRemaining--;
+      final kind = upsertFailureKind;
+      if (kind != null) {
+        throw SyncBackendException(kind, 'simulated $kind upsert failure');
+      }
       throw Exception('simulated upsert failure');
     }
     // Recorded exactly as the client sent it, so tests can assert the client

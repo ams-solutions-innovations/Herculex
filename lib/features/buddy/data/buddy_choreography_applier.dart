@@ -1,10 +1,9 @@
 import 'package:drift/drift.dart';
-
-import '../../../data/local/database.dart';
-import '../../../data/sync/sync_id_resolver.dart';
-import '../../workouts/data/workouts_repository.dart';
-import '../domain/buddy_event.dart';
-import 'buddy_slot_store.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/data/sync/sync_id_resolver.dart';
+import 'package:herculex/features/buddy/data/buddy_slot_store.dart';
+import 'package:herculex/features/buddy/domain/buddy_event.dart';
+import 'package:herculex/features/workouts/data/workouts_repository.dart';
 
 enum BuddyApplyOutcome {
   applied,
@@ -25,11 +24,11 @@ class BuddyChoreographyApplier {
     required BuddySlotStore slots,
     required int localWorkoutSessionId,
     this.onNotice,
-  })  : _db = db,
-        _workouts = workouts,
-        _resolver = resolver,
-        _slots = slots,
-        _localWorkoutSessionId = localWorkoutSessionId;
+  }) : _db = db,
+       _workouts = workouts,
+       _resolver = resolver,
+       _slots = slots,
+       _localWorkoutSessionId = localWorkoutSessionId;
 
   final AppDatabase _db;
   final WorkoutsRepository _workouts;
@@ -142,13 +141,13 @@ class BuddyChoreographyApplier {
       } else {
         // BUD-06 resolution: keep local work and unlink slot
         await _slots.unlink(slot.slotId);
-        final exRow = await (_db.select(_db.workoutExercises)
-              ..where((t) => t.id.equals(weId)))
-            .getSingleOrNull();
+        final exRow = await (_db.select(
+          _db.workoutExercises,
+        )..where((t) => t.id.equals(weId))).getSingleOrNull();
         final catalogRow = exRow != null
-            ? await (_db.select(_db.exerciseCatalog)
-                  ..where((t) => t.id.equals(exRow.exerciseId)))
-                .getSingleOrNull()
+            ? await (_db.select(
+                _db.exerciseCatalog,
+              )..where((t) => t.id.equals(exRow.exerciseId))).getSingleOrNull()
             : null;
         final name = catalogRow?.name ?? 'Exercise';
         onNotice?.call(

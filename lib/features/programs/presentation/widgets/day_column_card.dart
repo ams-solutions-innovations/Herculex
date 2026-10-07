@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/utils/clock.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
+import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../core/clock.dart';
-import '../../../../data/local/database.dart';
-import '../../../../theme/colors.dart';
-import '../../../../theme/haptics.dart';
-import '../../domain/scheduled_workout_row.dart';
-import '../programs_providers.dart';
-import 'session_tile.dart';
 
 /// One day of the week board: a header that accepts sessions dragged in from
 /// other days, and a reorderable list of the sessions already on it.
@@ -123,7 +122,9 @@ class DayColumnCard extends ConsumerWidget {
                     final row = rows[i];
                     return Padding(
                       key: ValueKey('schedule_${row.id}'),
-                      padding: EdgeInsets.only(bottom: i == rows.length - 1 ? 0 : 8),
+                      padding: EdgeInsets.only(
+                        bottom: i == rows.length - 1 ? 0 : 8,
+                      ),
                       // Long-pressing the body drags to another day; the tile's
                       // own handle drives the reorder above. Splitting the two
                       // gestures keeps them from competing.
@@ -142,7 +143,11 @@ class DayColumnCard extends ConsumerWidget {
     );
   }
 
-  Widget _draggableTile(BuildContext context, ScheduledWorkoutRow row, int? dragIndex) {
+  Widget _draggableTile(
+    BuildContext context,
+    ScheduledWorkoutRow row,
+    int? dragIndex,
+  ) {
     return LongPressDraggable<int>(
       data: row.id,
       onDragStarted: Haptics.medium,
@@ -239,7 +244,9 @@ class DayColumnCard extends ConsumerWidget {
           Icon(Icons.beach_access_rounded, size: 14, color: AppColors.tertiary),
           const SizedBox(width: 6),
           Text(
-            event!.notes?.isNotEmpty == true ? '$label · ${event!.notes}' : label,
+            event!.notes?.isNotEmpty == true
+                ? '$label · ${event!.notes}'
+                : label,
             style: theme.textTheme.labelSmall?.copyWith(
               color: AppColors.tertiary,
             ),

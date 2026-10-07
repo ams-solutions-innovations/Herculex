@@ -1,5 +1,6 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/sync/sync_id_resolver.dart';
 import 'package:herculex/features/buddy/application/buddy_session_controller.dart';
@@ -15,7 +16,7 @@ import 'fake_buddy_gateway.dart';
 
 class FakeBuddyChannelService extends BuddyChannelService {
   FakeBuddyChannelService({required super.gateway})
-      : super(client: SupabaseClient('https://dummy.supabase.co', 'anon-key'));
+    : super(client: SupabaseClient('https://dummy.supabase.co', 'anon-key'));
 
   bool isConnected = false;
   String? connectedSessionId;
@@ -74,141 +75,302 @@ void main() {
   });
 
   group('host', () {
-    test('hosting with no active workout throws StateError and leaves no local session', () async {
-      await expectLater(
-        controller.hostFromActiveWorkout(),
-        throwsA(isA<StateError>()),
-      );
+    test(
+      'hosting with no active workout throws StateError and leaves no local session',
+      () async {
+        await expectLater(
+          controller.hostFromActiveWorkout(),
+          throwsA(isA<StateError>()),
+        );
 
-      final localSessions = await db.select(db.buddySessionsLocal).get();
-      expect(localSessions, isEmpty);
-    });
+        final localSessions = await db.select(db.buddySessionsLocal).get();
+        expect(localSessions, isEmpty);
+      },
+    );
 
-    test('hostFromActiveWorkout creates session, links workout, connects channel, and returns token', () async {
-      final workoutId = await workouts.startSession();
-      final token = await controller.hostFromActiveWorkout();
+    test(
+      'hostFromActiveWorkout creates session, links workout, connects channel, and returns token',
+      () async {
+        final workoutId = await workouts.startSession();
+        final token = await controller.hostFromActiveWorkout();
 
-      expect(token, isNotEmpty);
-      expect(controller.state.isHost, isTrue);
-      expect(controller.state.pendingJoinToken, token);
-      expect(controller.state.buddySessionId, isNotNull);
+        expect(token, isNotEmpty);
+        expect(controller.state.isHost, isTrue);
+        expect(controller.state.pendingJoinToken, token);
+        expect(controller.state.buddySessionId, isNotNull);
 
-      // Verify local workout row gained buddySessionId
-      final workout = await (db.select(db.workoutSessions)
-            ..where((t) => t.id.equals(workoutId)))
-          .getSingle();
-      expect(workout.buddySessionId, controller.state.buddySessionId);
+        // Verify local workout row gained buddySessionId
+        final workout = await (db.select(
+          db.workoutSessions,
+        )..where((t) => t.id.equals(workoutId))).getSingle();
+        expect(workout.buddySessionId, controller.state.buddySessionId);
 
-      // Verify BuddySessionsLocal entry
-      final local = await (db.select(db.buddySessionsLocal)
-            ..where((t) => t.buddySessionId.equals(controller.state.buddySessionId!)))
-          .getSingle();
-      expect(local.role, 'host');
-      expect(local.lastSeenSeq, 0);
+        // Verify BuddySessionsLocal entry
+        final local =
+            await (db.select(db.buddySessionsLocal)..where(
+                  (t) =>
+                      t.buddySessionId.equals(controller.state.buddySessionId!),
+                ))
+                .getSingle();
+        expect(local.role, 'host');
+        expect(local.lastSeenSeq, 0);
 
-      // Verify channel service connected
-      expect(channelService.isConnected, isTrue);
-      expect(channelService.connectedSessionId, controller.state.buddySessionId);
-    });
+        // Verify channel service connected
+        expect(channelService.isConnected, isTrue);
+        expect(
+          channelService.connectedSessionId,
+          controller.state.buddySessionId,
+        );
+      },
+    );
   });
 
   group('join', () {
-    test('joinFromScan with malformed payload rejects before calling gateway', () async {
-      await expectLater(
-        controller.joinFromScan('bad-non-qr-string'),
-        throwsA(isA<BuddyJoinRejected>()),
-      );
-      expect(gateway.joinCallCount, 0);
-    });
+    test(
+      'joinFromScan with malformed payload rejects before calling gateway',
+      () async {
+        await expectLater(
+          controller.joinFromScan('bad-non-qr-string'),
+          throwsA(isA<BuddyJoinRejected>()),
+        );
+        expect(gateway.joinCallCount, 0);
+      },
+    );
 
-    test('joinFromScan with no active workout auto-starts local workout and links it', () async {
-      final joinPayload = const BuddyJoinPayload('valid-token-123').encode();
+    test(
+      'joinFromScan with no active workout auto-starts local workout and links it',
+      () async {
+        final joinPayload = const BuddyJoinPayload('valid-token-123').encode();
 
-      await controller.joinFromScan(joinPayload);
+        await controller.joinFromScan(joinPayload);
 
-      expect(controller.state.isHost, isFalse);
-      expect(controller.state.buddySessionId, isNotNull);
-      expect(controller.state.isLive, isTrue);
+        expect(controller.state.isHost, isFalse);
+        expect(controller.state.buddySessionId, isNotNull);
+        expect(controller.state.isLive, isTrue);
 
-      final activeWorkouts = await (db.select(db.workoutSessions)
-            ..where((t) => t.endedAt.isNull()))
-          .get();
-      expect(activeWorkouts, hasLength(1));
-      expect(activeWorkouts.single.buddySessionId, controller.state.buddySessionId);
+        final activeWorkouts = await (db.select(
+          db.workoutSessions,
+        )..where((t) => t.endedAt.isNull())).get();
+        expect(activeWorkouts, hasLength(1));
+        expect(
+          activeWorkouts.single.buddySessionId,
+          controller.state.buddySessionId,
+        );
 
-      final local = await (db.select(db.buddySessionsLocal)
-            ..where((t) => t.buddySessionId.equals(controller.state.buddySessionId!)))
-          .getSingle();
-      expect(local.role, 'guest');
-    });
+        final local =
+            await (db.select(db.buddySessionsLocal)..where(
+                  (t) =>
+                      t.buddySessionId.equals(controller.state.buddySessionId!),
+                ))
+                .getSingle();
+        expect(local.role, 'guest');
+      },
+    );
 
-    test('joinFromScan with existing active workout links that session without starting a second', () async {
-      final existingWorkoutId = await workouts.startSession();
-      final joinPayload = const BuddyJoinPayload('valid-token-456').encode();
+    test(
+      'joinFromScan with existing active workout links that session without starting a second',
+      () async {
+        final existingWorkoutId = await workouts.startSession();
+        final joinPayload = const BuddyJoinPayload('valid-token-456').encode();
 
-      await controller.joinFromScan(joinPayload);
+        await controller.joinFromScan(joinPayload);
 
-      final activeWorkouts = await (db.select(db.workoutSessions)
-            ..where((t) => t.endedAt.isNull()))
-          .get();
-      expect(activeWorkouts, hasLength(1));
-      expect(activeWorkouts.single.id, existingWorkoutId);
-      expect(activeWorkouts.single.buddySessionId, controller.state.buddySessionId);
-    });
+        final activeWorkouts = await (db.select(
+          db.workoutSessions,
+        )..where((t) => t.endedAt.isNull())).get();
+        expect(activeWorkouts, hasLength(1));
+        expect(activeWorkouts.single.id, existingWorkoutId);
+        expect(
+          activeWorkouts.single.buddySessionId,
+          controller.state.buddySessionId,
+        );
+      },
+    );
 
-    test('join rejection on invalid token throws BuddyJoinRejected and does not leave dangling workout', () async {
-      gateway.failJoinWith = const BuddyJoinRejected('Invalid or expired join code');
-      final joinPayload = const BuddyJoinPayload('rejected-token').encode();
+    test(
+      'join rejection on invalid token throws BuddyJoinRejected and does not leave dangling workout',
+      () async {
+        gateway.failJoinWith = const BuddyJoinRejected(
+          'Invalid or expired join code',
+        );
+        final joinPayload = const BuddyJoinPayload('rejected-token').encode();
 
-      await expectLater(
-        controller.joinFromScan(joinPayload),
-        throwsA(isA<BuddyJoinRejected>()),
-      );
+        await expectLater(
+          controller.joinFromScan(joinPayload),
+          throwsA(isA<BuddyJoinRejected>()),
+        );
 
-      final activeWorkouts = await (db.select(db.workoutSessions)
-            ..where((t) => t.endedAt.isNull()))
-          .get();
-      expect(activeWorkouts, isEmpty);
-      expect(await db.select(db.buddySessionsLocal).get(), isEmpty);
-    });
+        final activeWorkouts = await (db.select(
+          db.workoutSessions,
+        )..where((t) => t.endedAt.isNull())).get();
+        expect(activeWorkouts, isEmpty);
+        expect(await db.select(db.buddySessionsLocal).get(), isEmpty);
+      },
+    );
   });
 
   group('leave', () {
-    test('leave disconnects channel and clears state while preserving workout and buddySessionId link', () async {
-      final workoutId = await workouts.startSession();
-      await controller.hostFromActiveWorkout();
+    test(
+      'leave disconnects channel and clears state while preserving workout and buddySessionId link',
+      () async {
+        final workoutId = await workouts.startSession();
+        await controller.hostFromActiveWorkout();
+        final buddySessionId = controller.state.buddySessionId!;
+
+        await controller.leave();
+
+        expect(channelService.isConnected, isFalse);
+        expect(controller.state.isSharing, isFalse);
+
+        // Local workout is still running
+        final workout = await (db.select(
+          db.workoutSessions,
+        )..where((t) => t.id.equals(workoutId))).getSingle();
+        expect(workout.endedAt, isNull);
+        expect(workout.buddySessionId, buddySessionId);
+
+        // BuddySessionsLocal marked as ended
+        final local = await (db.select(
+          db.buddySessionsLocal,
+        )..where((t) => t.buddySessionId.equals(buddySessionId))).getSingle();
+        expect(local.endedAt, isNotNull);
+
+        // Calling leave again is a safe no-op
+        await expectLater(controller.leave(), completes);
+      },
+    );
+
+    test(
+      'endForEveryone appends sessionEnded event when called by host',
+      () async {
+        await workouts.startSession();
+        await controller.hostFromActiveWorkout();
+
+        await controller.endForEveryone();
+
+        expect(
+          gateway.events.any((e) => e.kind == BuddyEventKind.sessionEnded),
+          isTrue,
+        );
+        expect(controller.state.isSharing, isFalse);
+      },
+    );
+  });
+
+  group('resumeIfActive', () {
+    test(
+      'no local session: leaves state untouched and connects nothing',
+      () async {
+        await controller.resumeIfActive();
+
+        expect(controller.state.isSharing, isFalse);
+        expect(channelService.isConnected, isFalse);
+      },
+    );
+
+    test(
+      'a live local session reconnects from its persisted lastSeenSeq, not 0',
+      () async {
+        // Simulates a killed-and-reopened app: a host session that already
+        // exchanged some events, so lastSeenSeq is not the fresh-host 0 a
+        // reconnect must not regress to (that would replay events the
+        // applier already applied before the process died).
+        await workouts.startSession();
+        await controller.hostFromActiveWorkout();
+        final buddySessionId = controller.state.buddySessionId!;
+
+        await (db.update(db.buddySessionsLocal)
+              ..where((t) => t.buddySessionId.equals(buddySessionId)))
+            .write(const BuddySessionsLocalCompanion(lastSeenSeq: Value(7)));
+
+        // Fresh controller: the previous one's provider-held state is gone,
+        // exactly as it would be after a process restart.
+        final channelService2 = FakeBuddyChannelService(gateway: gateway);
+        final controller2 = BuddySessionController(
+          db: db,
+          gateway: gateway,
+          channelService: channelService2,
+          workouts: workouts,
+          resolver: resolver,
+          currentUserId: currentUserId,
+          currentDisplayName: 'Martin',
+        );
+        addTearDown(controller2.dispose);
+
+        await controller2.resumeIfActive();
+
+        expect(controller2.state.isSharing, isTrue);
+        expect(controller2.state.buddySessionId, buddySessionId);
+        expect(controller2.state.isHost, isTrue);
+        expect(channelService2.isConnected, isTrue);
+        expect(channelService2.connectedSessionId, buddySessionId);
+        expect(channelService2.connectedLastSeenSeq, 7);
+
+        // The token from before the restart is spent — a resume must not
+        // resurrect it and show a stale QR code.
+        expect(controller2.state.pendingJoinToken, isNull);
+      },
+    );
+
+    test('a guest resumes as guest, not host', () async {
+      await workouts.startSession();
+      final joinPayload = const BuddyJoinPayload('valid-token-789').encode();
+      await controller.joinFromScan(joinPayload);
       final buddySessionId = controller.state.buddySessionId!;
 
-      await controller.leave();
+      final channelService2 = FakeBuddyChannelService(gateway: gateway);
+      final controller2 = BuddySessionController(
+        db: db,
+        gateway: gateway,
+        channelService: channelService2,
+        workouts: workouts,
+        resolver: resolver,
+        currentUserId: currentUserId,
+        currentDisplayName: 'Martin',
+      );
+      addTearDown(controller2.dispose);
 
-      expect(channelService.isConnected, isFalse);
-      expect(controller.state.isSharing, isFalse);
+      await controller2.resumeIfActive();
 
-      // Local workout is still running
-      final workout = await (db.select(db.workoutSessions)
-            ..where((t) => t.id.equals(workoutId)))
-          .getSingle();
-      expect(workout.endedAt, isNull);
-      expect(workout.buddySessionId, buddySessionId);
-
-      // BuddySessionsLocal marked as ended
-      final local = await (db.select(db.buddySessionsLocal)
-            ..where((t) => t.buddySessionId.equals(buddySessionId)))
-          .getSingle();
-      expect(local.endedAt, isNotNull);
-
-      // Calling leave again is a safe no-op
-      await expectLater(controller.leave(), completes);
+      expect(controller2.state.isHost, isFalse);
+      expect(controller2.state.buddySessionId, buddySessionId);
     });
 
-    test('endForEveryone appends sessionEnded event when called by host', () async {
-      await workouts.startSession();
-      await controller.hostFromActiveWorkout();
+    test(
+      'the linked workout already ended: closes the local row instead of resuming',
+      () async {
+        final workoutId = await workouts.startSession();
+        await controller.hostFromActiveWorkout();
+        final buddySessionId = controller.state.buddySessionId!;
 
-      await controller.endForEveryone();
+        // The workout finished (or was discarded) while the app was closed —
+        // nothing about that path touches buddy_sessions_local, so a resume
+        // has to reconcile it rather than reconnect a channel for a workout
+        // that no longer exists.
+        await workouts.endSession(workoutId);
 
-      expect(gateway.events.any((e) => e.kind == BuddyEventKind.sessionEnded), isTrue);
-      expect(controller.state.isSharing, isFalse);
-    });
+        final channelService2 = FakeBuddyChannelService(gateway: gateway);
+        final controller2 = BuddySessionController(
+          db: db,
+          gateway: gateway,
+          channelService: channelService2,
+          workouts: workouts,
+          resolver: resolver,
+          currentUserId: currentUserId,
+          currentDisplayName: 'Martin',
+        );
+        addTearDown(controller2.dispose);
+
+        await controller2.resumeIfActive();
+
+        expect(controller2.state.isSharing, isFalse);
+        expect(channelService2.isConnected, isFalse);
+
+        final local = await (db.select(
+          db.buddySessionsLocal,
+        )..where((t) => t.buddySessionId.equals(buddySessionId))).getSingle();
+        expect(local.endedAt, isNotNull);
+      },
+    );
   });
 }

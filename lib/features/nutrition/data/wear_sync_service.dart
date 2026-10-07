@@ -1,7 +1,8 @@
 import 'dart:convert';
-import 'package:flutter/services.dart';
+
 import 'package:flutter/foundation.dart';
-import '../../../core/notifications/in_app_notification_model.dart';
+import 'package:flutter/services.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
 
 enum _WatchEventType { started, updated, ended }
 
@@ -38,33 +39,6 @@ class WearSyncService {
   static set onWatchMediaCommand(Function(String?)? handler) {
     _onWatchMediaCommand = handler;
   }
-
-  // Rep-capture traffic (`/herculex/reps/*`, 10-03). The native host
-  // (`PhoneWearListenerService.onRepMessageListener`) forwards all three
-  // paths through a single `onRepMessage` method call carrying `path` and
-  // `payload`; this class demultiplexes by path into the three setters
-  // below so `RepCaptureService` can mirror the same one-setter-per-event
-  // idiom the workout sync service uses, without parsing a sample value
-  // itself (REP-04 — this file only ever forwards raw JSON strings).
-  static Function(String?)? _onWatchRepCaptureStart;
-  static Function(String?)? _onWatchRepSamples;
-  static Function(String?)? _onWatchRepCaptureEnd;
-
-  static set onWatchRepCaptureStart(Function(String?)? handler) {
-    _onWatchRepCaptureStart = handler;
-  }
-
-  static set onWatchRepSamples(Function(String?)? handler) {
-    _onWatchRepSamples = handler;
-  }
-
-  static set onWatchRepCaptureEnd(Function(String?)? handler) {
-    _onWatchRepCaptureEnd = handler;
-  }
-
-  static const String repCaptureStartPath = '/herculex/reps/capture_start';
-  static const String repSamplesPath = '/herculex/reps/samples';
-  static const String repCaptureEndPath = '/herculex/reps/capture_end';
 
   /// Watch events that arrived before the handlers below were registered.
   ///
@@ -164,7 +138,9 @@ class WearSyncService {
           );
           break;
         case 'onWatchWorkoutSavedAsTemplate':
-          _onWatchWorkoutSavedAsTemplate?.call(call.arguments?['entityId'] as String?);
+          _onWatchWorkoutSavedAsTemplate?.call(
+            call.arguments?['entityId'] as String?,
+          );
           break;
         case 'onWatchFastingCommand':
           _deliverFastingCommand(call.arguments?['command_json'] as String?);
@@ -179,16 +155,12 @@ class WearSyncService {
           _deliverRamblerCommand(call.arguments?['command_json'] as String?);
           break;
         case 'onWatchMediaCommand':
-          _onWatchMediaCommand?.call(call.arguments?['command_json'] as String?);
+          _onWatchMediaCommand?.call(
+            call.arguments?['command_json'] as String?,
+          );
           break;
         case 'onRequestSync':
           onRequestSync?.call();
-          break;
-        case 'onRepMessage':
-          _deliverRepMessage(
-            call.arguments?['path'] as String?,
-            call.arguments?['payload'] as String?,
-          );
           break;
       }
     });
@@ -266,23 +238,6 @@ class WearSyncService {
     }
   }
 
-  /// Demultiplexes one `onRepMessage` call by wire path. No sample value is
-  /// parsed or inspected here — the raw JSON string is handed straight to
-  /// whichever setter matches, exactly as the native host sent it.
-  static void _deliverRepMessage(String? path, String? payload) {
-    switch (path) {
-      case repCaptureStartPath:
-        _onWatchRepCaptureStart?.call(payload);
-        break;
-      case repSamplesPath:
-        _onWatchRepSamples?.call(payload);
-        break;
-      case repCaptureEndPath:
-        _onWatchRepCaptureEnd?.call(payload);
-        break;
-    }
-  }
-
   static void _deliverMacroCommand(String? commandJson) {
     final handler = _onWatchMacroCommand;
     if (handler == null) {
@@ -327,9 +282,6 @@ class WearSyncService {
     _onWatchQuickAddCommand = null;
     _onWatchMacroCommand = null;
     _onWatchRamblerCommand = null;
-    _onWatchRepCaptureStart = null;
-    _onWatchRepSamples = null;
-    _onWatchRepCaptureEnd = null;
     onRequestSync = null;
     _pendingWatchEvents.clear();
     _pendingFastingCommands.clear();
@@ -490,9 +442,7 @@ class WearSyncService {
 
   Future<void> syncMediaState(String mediaJson) async {
     try {
-      await _channel.invokeMethod('syncMediaState', {
-        'media_json': mediaJson,
-      });
+      await _channel.invokeMethod('syncMediaState', {'media_json': mediaJson});
     } on PlatformException catch (e) {
       debugPrint('Failed to sync media state to wear: ${e.message}');
     }
@@ -528,9 +478,7 @@ class WearSyncService {
 
   Future<void> endWorkoutOnWatch(String entityId) async {
     try {
-      await _channel.invokeMethod('endWorkoutOnWatch', {
-        'entity_id': entityId,
-      });
+      await _channel.invokeMethod('endWorkoutOnWatch', {'entity_id': entityId});
       debugPrint('Ended workout on watch');
     } on PlatformException catch (e) {
       debugPrint('Failed to end workout on watch: ${e.message}');

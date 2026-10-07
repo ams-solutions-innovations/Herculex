@@ -169,9 +169,9 @@ void main() {
 
       // 5. orphan template_exercise deleted.
       expect(
-        await (db.select(
-          db.templateExercises,
-        )..where((t) => t.id.equals(orphanTemplateExerciseId))).getSingleOrNull(),
+        await (db.select(db.templateExercises)
+              ..where((t) => t.id.equals(orphanTemplateExerciseId)))
+            .getSingleOrNull(),
         isNull,
       );
       expect(report.deleted['template_exercises'], greaterThanOrEqualTo(1));
@@ -257,49 +257,52 @@ void main() {
       await tempDir.delete(recursive: true);
     });
 
-    test('reaches the current schema version and repairs a planted orphan', () async {
-      // The v22 table shapes are byte-identical to v23's — Phase 2 adds no
-      // columns, only a data repair and indexes — so building a real,
-      // fully-shaped database via the normal onCreate path and then
-      // rewinding its stamped user_version to 22 is a faithful "v22-shaped
-      // file DB", without hand-transcribing ~30 tables of DDL the way
-      // schema_v21_test.dart's fixture does for its narrower slice.
-      var db = AppDatabase.forTesting(NativeDatabase(dbFile));
-      await db.customSelect('SELECT 1').getSingle(); // force onCreate
-      // RB-04 Phase 3: beforeOpen now turns real FK enforcement on for every
-      // database, including this one. Planting an orphan below simulates
-      // data that could only exist pre-Phase-3, so enforcement has to be
-      // turned back off first — otherwise the insert itself throws instead
-      // of landing as an orphan for the migration to repair.
-      await db.customStatement('PRAGMA foreign_keys = OFF');
+    test(
+      'reaches the current schema version and repairs a planted orphan',
+      () async {
+        // The v22 table shapes are byte-identical to v23's — Phase 2 adds no
+        // columns, only a data repair and indexes — so building a real,
+        // fully-shaped database via the normal onCreate path and then
+        // rewinding its stamped user_version to 22 is a faithful "v22-shaped
+        // file DB", without hand-transcribing ~30 tables of DDL the way
+        // schema_v21_test.dart's fixture does for its narrower slice.
+        var db = AppDatabase.forTesting(NativeDatabase(dbFile));
+        await db.customSelect('SELECT 1').getSingle(); // force onCreate
+        // RB-04 Phase 3: beforeOpen now turns real FK enforcement on for every
+        // database, including this one. Planting an orphan below simulates
+        // data that could only exist pre-Phase-3, so enforcement has to be
+        // turned back off first — otherwise the insert itself throws instead
+        // of landing as an orphan for the migration to repair.
+        await db.customStatement('PRAGMA foreign_keys = OFF');
 
-      final sessionId = await db
-          .into(db.workoutSessions)
-          .insert(WorkoutSessionsCompanion.insert(startedAt: DateTime(2026)));
-      await db
-          .into(db.workoutExercises)
-          .insert(
-            WorkoutExercisesCompanion.insert(
-              sessionId: sessionId,
-              exerciseId: 999999,
-              orderIndex: 0,
-            ),
-          );
-      await db.customStatement('PRAGMA user_version = 22');
-      await db.close();
+        final sessionId = await db
+            .into(db.workoutSessions)
+            .insert(WorkoutSessionsCompanion.insert(startedAt: DateTime(2026)));
+        await db
+            .into(db.workoutExercises)
+            .insert(
+              WorkoutExercisesCompanion.insert(
+                sessionId: sessionId,
+                exerciseId: 999999,
+                orderIndex: 0,
+              ),
+            );
+        await db.customStatement('PRAGMA user_version = 22');
+        await db.close();
 
-      db = AppDatabase.forTesting(NativeDatabase(dbFile));
-      await db.customSelect('SELECT 1').getSingle(); // force onUpgrade
-      addTearDown(db.close);
+        db = AppDatabase.forTesting(NativeDatabase(dbFile));
+        await db.customSelect('SELECT 1').getSingle(); // force onUpgrade
+        addTearDown(db.close);
 
-      final versionRow = await db
-          .customSelect('PRAGMA user_version')
-          .getSingle();
-      expect(versionRow.data.values.first, db.schemaVersion);
+        final versionRow = await db
+            .customSelect('PRAGMA user_version')
+            .getSingle();
+        expect(versionRow.data.values.first, db.schemaVersion);
 
-      expectNoForeignKeyViolations(await foreignKeyViolations(db));
-      expect(await db.select(db.workoutExercises).get(), isEmpty);
-      expect(await db.select(db.workoutSessions).get(), hasLength(1));
-    });
+        expectNoForeignKeyViolations(await foreignKeyViolations(db));
+        expect(await db.select(db.workoutExercises).get(), isEmpty);
+        expect(await db.select(db.workoutSessions).get(), hasLength(1));
+      },
+    );
   });
 }

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../theme/colors.dart';
-import '../../../../theme/haptics.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../dashboard_providers.dart';
-import 'dashboard_shared.dart';
 /// Interactive Workout Calendar widget on the dashboard (§18).
 /// Offers Day and Week view toggle modes for viewing scheduled workouts and completed sessions.
 class WorkoutCalendarCard extends ConsumerWidget {
@@ -30,7 +31,11 @@ class WorkoutCalendarCard extends ConsumerWidget {
               Expanded(
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 22),
+                    Icon(
+                      Icons.calendar_month_rounded,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
@@ -113,16 +118,26 @@ class WorkoutCalendarCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildWeekView(BuildContext context, WidgetRef ref, DateTime selectedDate) {
-    final weekSummaryAsync = ref.watch(weekCalendarSummaryProvider(selectedDate));
+  Widget _buildWeekView(
+    BuildContext context,
+    WidgetRef ref,
+    DateTime selectedDate,
+  ) {
+    final weekSummaryAsync = ref.watch(
+      weekCalendarSummaryProvider(selectedDate),
+    );
 
     return weekSummaryAsync.when(
       data: (summaries) {
         final selectedSummary = summaries.firstWhere(
-          (s) => s.date.year == selectedDate.year &&
+          (s) =>
+              s.date.year == selectedDate.year &&
               s.date.month == selectedDate.month &&
               s.date.day == selectedDate.day,
-          orElse: () => summaries.firstWhere((s) => s.isToday, orElse: () => summaries.first),
+          orElse: () => summaries.firstWhere(
+            (s) => s.isToday,
+            orElse: () => summaries.first,
+          ),
         );
 
         return Column(
@@ -142,13 +157,24 @@ class WorkoutCalendarCard extends ConsumerWidget {
           ],
         );
       },
-      loading: () => const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: CircularProgressIndicator(),
+        ),
+      ),
       error: (e, _) => Text('Error loading calendar: $e'),
     );
   }
 
-  Widget _buildDayPill(BuildContext context, WidgetRef ref, CalendarDaySummary summary, DateTime selectedDate) {
-    final isSelected = summary.date.year == selectedDate.year &&
+  Widget _buildDayPill(
+    BuildContext context,
+    WidgetRef ref,
+    CalendarDaySummary summary,
+    DateTime selectedDate,
+  ) {
+    final isSelected =
+        summary.date.year == selectedDate.year &&
         summary.date.month == selectedDate.month &&
         summary.date.day == selectedDate.day;
 
@@ -193,7 +219,9 @@ class WorkoutCalendarCard extends ConsumerWidget {
                 '${summary.date.day}',
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: summary.isToday || isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontWeight: summary.isToday || isSelected
+                      ? FontWeight.bold
+                      : FontWeight.w500,
                   color: summary.isToday ? AppColors.primary : null,
                 ),
               ),
@@ -238,7 +266,11 @@ class WorkoutCalendarCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildDayDetailsCard(BuildContext context, WidgetRef ref, CalendarDaySummary summary) {
+  Widget _buildDayDetailsCard(
+    BuildContext context,
+    WidgetRef ref,
+    CalendarDaySummary summary,
+  ) {
     final theme = Theme.of(context);
     final dateStr = DateFormat('EEEE, MMM d').format(summary.date);
 
@@ -257,19 +289,28 @@ class WorkoutCalendarCard extends ConsumerWidget {
             children: [
               Text(
                 summary.isToday ? 'Today ($dateStr)' : dateStr,
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               if (summary.hasCompleted) ...[
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Text(
                     'Workout Completed',
-                    style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -279,22 +320,30 @@ class WorkoutCalendarCard extends ConsumerWidget {
           if (!summary.hasScheduled && !summary.hasCompleted)
             Text(
               'Rest Day — No workouts scheduled.',
-              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
             ),
           if (summary.hasScheduled) ...[
             for (final sched in summary.scheduledWorkouts) ...[
               Row(
                 children: [
                   Icon(
-                    sched.status == 'done' ? Icons.check_circle : Icons.schedule,
-                    color: sched.status == 'done' ? Colors.green : AppColors.primary,
+                    sched.status == 'done'
+                        ? Icons.check_circle
+                        : Icons.schedule,
+                    color: sched.status == 'done'
+                        ? Colors.green
+                        : AppColors.primary,
                     size: 16,
                   ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       'Scheduled Workout (${sched.status.toUpperCase()})',
-                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -305,28 +354,40 @@ class WorkoutCalendarCard extends ConsumerWidget {
             const SizedBox(height: 6),
             for (final sess in summary.completedSessions) ...[
               InkWell(
-                onTap: () => context.push('/workout-history/${sess.id}'),
+                onTap: () => context.push(AppPaths.workoutHistory(sess.id)),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(
                     children: [
-                      Icon(Icons.fitness_center, color: AppColors.primary, size: 16),
+                      Icon(
+                        Icons.fitness_center,
+                        color: AppColors.primary,
+                        size: 16,
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           (sess.name != null && sess.name!.trim().isNotEmpty)
                               ? sess.name!.trim()
                               : (sess.notes != null && sess.notes!.isNotEmpty
-                                  ? sess.notes!
-                                  : 'Workout Session #${sess.id}'),
-                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                                    ? sess.notes!
+                                    : 'Workout Session #${sess.id}'),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                       Text(
                         DateFormat('HH:mm').format(sess.startedAt),
-                        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.secondary,
+                        ),
                       ),
-                      Icon(Icons.chevron_right, size: 18, color: AppColors.secondary),
+                      Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: AppColors.secondary,
+                      ),
                     ],
                   ),
                 ),
@@ -338,17 +399,27 @@ class WorkoutCalendarCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildDayView(BuildContext context, WidgetRef ref, DateTime selectedDate) {
+  Widget _buildDayView(
+    BuildContext context,
+    WidgetRef ref,
+    DateTime selectedDate,
+  ) {
     final theme = Theme.of(context);
-    final weekSummaryAsync = ref.watch(weekCalendarSummaryProvider(selectedDate));
+    final weekSummaryAsync = ref.watch(
+      weekCalendarSummaryProvider(selectedDate),
+    );
 
     return weekSummaryAsync.when(
       data: (summaries) {
         final summary = summaries.firstWhere(
-          (s) => s.date.year == selectedDate.year &&
+          (s) =>
+              s.date.year == selectedDate.year &&
               s.date.month == selectedDate.month &&
               s.date.day == selectedDate.day,
-          orElse: () => summaries.firstWhere((s) => s.isToday, orElse: () => summaries.first),
+          orElse: () => summaries.firstWhere(
+            (s) => s.isToday,
+            orElse: () => summaries.first,
+          ),
         );
 
         return Column(
@@ -369,12 +440,18 @@ class WorkoutCalendarCard extends ConsumerWidget {
                   child: Column(
                     children: [
                       Text(
-                        summary.isToday ? 'Today' : DateFormat('EEEE').format(selectedDate),
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        summary.isToday
+                            ? 'Today'
+                            : DateFormat('EEEE').format(selectedDate),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       Text(
                         DateFormat('MMM d, yyyy').format(selectedDate),
-                        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.secondary,
+                        ),
                       ),
                     ],
                   ),
@@ -394,7 +471,12 @@ class WorkoutCalendarCard extends ConsumerWidget {
           ],
         );
       },
-      loading: () => const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: CircularProgressIndicator(),
+        ),
+      ),
       error: (e, _) => Text('Error: $e'),
     );
   }

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/workouts/data/circuits_repository.dart';
 import 'package:herculex/features/workouts/data/templates_repository.dart';
@@ -32,7 +32,11 @@ void main() {
         restSeconds: 120,
         notes: 'Keep rest tight',
         exercises: const [
-          CircuitExerciseInput(exerciseId: 1, targetReps: 10, targetWeightKg: 80.0),
+          CircuitExerciseInput(
+            exerciseId: 1,
+            targetReps: 10,
+            targetWeightKg: 80.0,
+          ),
           CircuitExerciseInput(exerciseId: 2, targetReps: 12),
           CircuitExerciseInput(exerciseId: 3, targetReps: 15),
         ],
@@ -59,7 +63,11 @@ void main() {
         rounds: 3,
         restSeconds: 90,
         exercises: const [
-          CircuitExerciseInput(exerciseId: 1, targetReps: 8, targetWeightKg: 60.0),
+          CircuitExerciseInput(
+            exerciseId: 1,
+            targetReps: 8,
+            targetWeightKg: 60.0,
+          ),
         ],
       );
 
@@ -90,9 +98,7 @@ void main() {
         name: 'To Delete',
         rounds: 3,
         restSeconds: 60,
-        exercises: const [
-          CircuitExerciseInput(exerciseId: 1, targetReps: 10),
-        ],
+        exercises: const [CircuitExerciseInput(exerciseId: 1, targetReps: 10)],
       );
 
       await circuitsRepo.deleteCircuit(circuit.id);
@@ -105,73 +111,109 @@ void main() {
   });
 
   group('Circuit integration with Sessions and Templates', () {
-    test('addCircuitToSession creates linked superset group with planned sets', () async {
-      final circuit = await circuitsRepo.createCircuit(
-        name: 'Core Circuit',
-        rounds: 3,
-        restSeconds: 90,
-        exercises: const [
-          CircuitExerciseInput(exerciseId: 1, targetReps: 10, targetWeightKg: 50.0),
-          CircuitExerciseInput(exerciseId: 2, targetReps: 12),
-        ],
-      );
+    test(
+      'addCircuitToSession creates linked superset group with planned sets',
+      () async {
+        final circuit = await circuitsRepo.createCircuit(
+          name: 'Core Circuit',
+          rounds: 3,
+          restSeconds: 90,
+          exercises: const [
+            CircuitExerciseInput(
+              exerciseId: 1,
+              targetReps: 10,
+              targetWeightKg: 50.0,
+            ),
+            CircuitExerciseInput(exerciseId: 2, targetReps: 12),
+          ],
+        );
 
-      final sessionId = await workoutsRepo.startSession();
-      final exerciseIds = await circuitsRepo.addCircuitToSession(
-        sessionId: sessionId,
-        circuitId: circuit.id,
-      );
+        final sessionId = await workoutsRepo.startSession();
+        final exerciseIds = await circuitsRepo.addCircuitToSession(
+          sessionId: sessionId,
+          circuitId: circuit.id,
+        );
 
-      expect(exerciseIds.length, 2);
+        expect(exerciseIds.length, 2);
 
-      final sessionExercises = await workoutsRepo.watchSessionExercises(sessionId).first;
-      expect(sessionExercises.length, 2);
-      expect(sessionExercises[0].supersetGroup, isNotNull);
-      expect(sessionExercises[0].supersetGroup, sessionExercises[1].supersetGroup);
-      expect(sessionExercises[0].targetRestSeconds, 90);
+        final sessionExercises = await workoutsRepo
+            .watchSessionExercises(sessionId)
+            .first;
+        expect(sessionExercises.length, 2);
+        expect(sessionExercises[0].supersetGroup, isNotNull);
+        expect(
+          sessionExercises[0].supersetGroup,
+          sessionExercises[1].supersetGroup,
+        );
+        expect(sessionExercises[0].targetRestSeconds, 90);
 
-      // Verify each exercise has 3 sets planned
-      final sets1 = await workoutsRepo.watchSetsForWorkoutExercise(sessionExercises[0].id).first;
-      expect(sets1.length, 3);
-      expect(sets1[0].reps, 10);
-      expect(sets1[0].weightKg, 50.0);
+        // Verify each exercise has 3 sets planned
+        final sets1 = await workoutsRepo
+            .watchSetsForWorkoutExercise(sessionExercises[0].id)
+            .first;
+        expect(sets1.length, 3);
+        expect(sets1[0].reps, 10);
+        expect(sets1[0].weightKg, 50.0);
 
-      final sets2 = await workoutsRepo.watchSetsForWorkoutExercise(sessionExercises[1].id).first;
-      expect(sets2.length, 3);
-      expect(sets2[0].reps, 12);
-    });
+        final sets2 = await workoutsRepo
+            .watchSetsForWorkoutExercise(sessionExercises[1].id)
+            .first;
+        expect(sets2.length, 3);
+        expect(sets2[0].reps, 12);
+      },
+    );
 
-    test('addCircuitToTemplate creates linked template exercises with planned sets', () async {
-      final circuit = await circuitsRepo.createCircuit(
-        name: 'Arms Circuit',
-        rounds: 4,
-        restSeconds: 75,
-        exercises: const [
-          CircuitExerciseInput(exerciseId: 1, targetReps: 8, targetWeightKg: 40.0),
-          CircuitExerciseInput(exerciseId: 3, targetReps: 12, targetWeightKg: 20.0),
-        ],
-      );
+    test(
+      'addCircuitToTemplate creates linked template exercises with planned sets',
+      () async {
+        final circuit = await circuitsRepo.createCircuit(
+          name: 'Arms Circuit',
+          rounds: 4,
+          restSeconds: 75,
+          exercises: const [
+            CircuitExerciseInput(
+              exerciseId: 1,
+              targetReps: 8,
+              targetWeightKg: 40.0,
+            ),
+            CircuitExerciseInput(
+              exerciseId: 3,
+              targetReps: 12,
+              targetWeightKg: 20.0,
+            ),
+          ],
+        );
 
-      final template = await templatesRepo.createTemplate(name: 'Upper Body Routine');
-      final teIds = await circuitsRepo.addCircuitToTemplate(
-        templateId: template.id,
-        circuitId: circuit.id,
-      );
+        final template = await templatesRepo.createTemplate(
+          name: 'Upper Body Routine',
+        );
+        final teIds = await circuitsRepo.addCircuitToTemplate(
+          templateId: template.id,
+          circuitId: circuit.id,
+        );
 
-      expect(teIds.length, 2);
+        expect(teIds.length, 2);
 
-      final templateExercises = await templatesRepo.watchTemplateExercises(template.id).first;
-      expect(templateExercises.length, 2);
-      expect(templateExercises[0].supersetGroup, isNotNull);
-      expect(templateExercises[0].supersetGroup, templateExercises[1].supersetGroup);
-      expect(templateExercises[0].targetRestSeconds, 75);
-      expect(templateExercises[0].targetSets, 4);
+        final templateExercises = await templatesRepo
+            .watchTemplateExercises(template.id)
+            .first;
+        expect(templateExercises.length, 2);
+        expect(templateExercises[0].supersetGroup, isNotNull);
+        expect(
+          templateExercises[0].supersetGroup,
+          templateExercises[1].supersetGroup,
+        );
+        expect(templateExercises[0].targetRestSeconds, 75);
+        expect(templateExercises[0].targetSets, 4);
 
-      final sets1 = await templatesRepo.getTemplateSets(templateExercises[0].id);
-      expect(sets1.length, 4);
-      expect(sets1[0].targetReps, 8);
-      expect(sets1[0].targetWeightKg, 40.0);
-    });
+        final sets1 = await templatesRepo.getTemplateSets(
+          templateExercises[0].id,
+        );
+        expect(sets1.length, 4);
+        expect(sets1[0].targetReps, 8);
+        expect(sets1[0].targetWeightKg, 40.0);
+      },
+    );
 
     test('startSessionFromCircuit launches workout with the circuit', () async {
       final circuit = await circuitsRepo.createCircuit(
@@ -179,7 +221,11 @@ void main() {
         rounds: 3,
         restSeconds: 100,
         exercises: const [
-          CircuitExerciseInput(exerciseId: 1, targetReps: 10, targetWeightKg: 60.0),
+          CircuitExerciseInput(
+            exerciseId: 1,
+            targetReps: 10,
+            targetWeightKg: 60.0,
+          ),
           CircuitExerciseInput(exerciseId: 2, targetReps: 10),
           CircuitExerciseInput(exerciseId: 3, targetReps: 15),
         ],
@@ -191,11 +237,19 @@ void main() {
       expect(session!.id, sessionId);
       expect(session.name, 'Full Body Circuit');
 
-      final sessionExercises = await workoutsRepo.watchSessionExercises(sessionId).first;
+      final sessionExercises = await workoutsRepo
+          .watchSessionExercises(sessionId)
+          .first;
       expect(sessionExercises.length, 3);
       expect(sessionExercises[0].supersetGroup, isNotNull);
-      expect(sessionExercises[0].supersetGroup, sessionExercises[1].supersetGroup);
-      expect(sessionExercises[1].supersetGroup, sessionExercises[2].supersetGroup);
+      expect(
+        sessionExercises[0].supersetGroup,
+        sessionExercises[1].supersetGroup,
+      );
+      expect(
+        sessionExercises[1].supersetGroup,
+        sessionExercises[2].supersetGroup,
+      );
     });
   });
 }

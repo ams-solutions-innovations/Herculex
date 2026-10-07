@@ -1,12 +1,9 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_importer.dart';
 import 'package:herculex/features/programs/data/program_csv_io.dart';
-import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/program_csv.dart';
 import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
-import 'package:herculex/features/programs/domain/split_template.dart';
 
 import 'support/test_database.dart';
 
@@ -15,17 +12,21 @@ void main() {
 
   group('ProgramVolumeCalculator', () {
     test('computes weekly sets per muscle group from Natural Superman CSV', () {
-      final csv = File('assets/programs/natural_superman.csv').readAsStringSync();
+      final csv = File(
+        'assets/programs/natural_superman.csv',
+      ).readAsStringSync();
       final doc = ProgramCsv.decode(csv);
 
       final breakdown = ProgramVolumeCalculator.computeFromCsv(doc);
 
       expect(breakdown.isNotEmpty, isTrue);
-      expect(breakdown.weeks, hasLength(4));
+      expect(breakdown.weeks, hasLength(12));
 
       // Check average weekly volume
-      final avgVolumes = {for (final e in breakdown.averageWeeklyVolumes) e.muscle: e.sets};
-      
+      final avgVolumes = {
+        for (final e in breakdown.averageWeeklyVolumes) e.muscle: e.sets,
+      };
+
       // Natural Superman focuses heavily on Chest, Back, Shoulders, Biceps, Traps, Neck, Abs, Quads
       expect(avgVolumes['Chest'], greaterThan(0));
       expect(avgVolumes['Back'], greaterThan(0));
@@ -65,7 +66,9 @@ week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equi
       final breakdown = ProgramVolumeCalculator.computeFromCsv(doc);
 
       expect(breakdown.weeks, hasLength(2));
-      final week0Volumes = {for (final e in breakdown.weeks[0].volumes) e.muscle: e.sets};
+      final week0Volumes = {
+        for (final e in breakdown.weeks[0].volumes) e.muscle: e.sets,
+      };
 
       expect(week0Volumes['Chest'], 4.0);
       expect(week0Volumes['Back'], 4.0);
@@ -83,15 +86,22 @@ week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equi
       await ExerciseImporter.runFromJson(db, raw);
 
       final io = ProgramCsvIo(db);
-      final csv = File('assets/programs/natural_superman.csv').readAsStringSync();
+      final csv = File(
+        'assets/programs/natural_superman.csv',
+      ).readAsStringSync();
       final programId = await io.importProgram(csv);
 
-      final breakdown = await ProgramVolumeCalculator.computeFromDatabase(db, programId);
+      final breakdown = await ProgramVolumeCalculator.computeFromDatabase(
+        db,
+        programId,
+      );
 
       expect(breakdown.isNotEmpty, isTrue);
-      expect(breakdown.weeks, hasLength(4));
+      expect(breakdown.weeks, hasLength(12));
 
-      final avgMap = {for (final e in breakdown.averageWeeklyVolumes) e.muscle: e.sets};
+      final avgMap = {
+        for (final e in breakdown.averageWeeklyVolumes) e.muscle: e.sets,
+      };
       expect(avgMap['Chest'], greaterThan(0));
       expect(avgMap['Back'], greaterThan(0));
       expect(avgMap['Shoulders'], greaterThan(0));

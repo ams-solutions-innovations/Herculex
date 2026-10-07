@@ -1,9 +1,9 @@
 import 'dart:math';
 
 import 'package:health/health.dart';
-import '../../../data/local/database.dart';
-import '../../health/domain/external_workout_cns_mapper.dart';
-import 'training_snapshot.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/health/domain/external_workout_cns_mapper.dart';
 
 /// Recovery status for one of the 19 tracked muscle groups (V2 §2).
 class MuscleGroupRecovery {
@@ -50,9 +50,25 @@ typedef FatigueContribution = ({double value, double halfLifeHours});
 class MuscleRecoveryV3 {
   /// The 19 muscle groups mandated by the spec.
   static const groups = [
-    'Chest', 'Back', 'Lats', 'Traps', 'Front Delts', 'Side Delts',
-    'Rear Delts', 'Biceps', 'Triceps', 'Forearms', 'Abs', 'Obliques', 'Neck',
-    'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Adductors', 'Abductors',
+    'Chest',
+    'Back',
+    'Lats',
+    'Traps',
+    'Front Delts',
+    'Side Delts',
+    'Rear Delts',
+    'Biceps',
+    'Triceps',
+    'Forearms',
+    'Abs',
+    'Obliques',
+    'Neck',
+    'Quads',
+    'Hamstrings',
+    'Glutes',
+    'Calves',
+    'Adductors',
+    'Abductors',
   ];
 
   /// Maps source dataset muscle names onto the 19 display groups.
@@ -85,10 +101,24 @@ class MuscleRecoveryV3 {
   /// Default weekly MRV (maximum recoverable volume) in hard sets per muscle.
   /// Conservative literature-typical values; user-tunable later.
   static const defaultWeeklyMrv = <String, double>{
-    'Chest': 22, 'Back': 25, 'Lats': 22, 'Traps': 20, 'Front Delts': 16,
-    'Side Delts': 25, 'Rear Delts': 25, 'Biceps': 20, 'Triceps': 18,
-    'Forearms': 20, 'Abs': 25, 'Obliques': 20, 'Neck': 15, 'Quads': 20,
-    'Hamstrings': 16, 'Glutes': 16, 'Calves': 20, 'Adductors': 16,
+    'Chest': 22,
+    'Back': 25,
+    'Lats': 22,
+    'Traps': 20,
+    'Front Delts': 16,
+    'Side Delts': 25,
+    'Rear Delts': 25,
+    'Biceps': 20,
+    'Triceps': 18,
+    'Forearms': 20,
+    'Abs': 25,
+    'Obliques': 20,
+    'Neck': 15,
+    'Quads': 20,
+    'Hamstrings': 16,
+    'Glutes': 16,
+    'Calves': 20,
+    'Adductors': 16,
     'Abductors': 16,
   };
 
@@ -114,13 +144,13 @@ class MuscleRecoveryV3 {
                 (roleWeight[r.role] ?? 0) *
                     r.contribution *
                     (r.muscle == 'Hip Flexors' ? 0.25 : 1.0),
-              )
+              ),
           ]
         : [
             (
               alias[rs.exercise.primaryMuscle] ?? rs.exercise.primaryMuscle,
               rs.exercise.primaryMuscle == 'Hip Flexors' ? 0.25 : 1.0,
-            )
+            ),
           ];
   }
 
@@ -158,7 +188,8 @@ class MuscleRecoveryV3 {
 
       // Higher systemic recovery cost decays more slowly.
       final halfLife = 18.0 + 6.0 * rs.exercise.recoveryImpact; // 24–48h
-      final perSet = _perSetBase *
+      final perSet =
+          _perSetBase *
           (rs.exercise.recoveryImpact / 3.0) *
           rpeFactor *
           rs.setType.cnsFactor *
@@ -168,7 +199,10 @@ class MuscleRecoveryV3 {
         if (!contributions.containsKey(muscle)) continue;
         // Fat grips & thick-bar work hammer the forearms harder (§8).
         final mult = muscle == 'Forearms' ? rs.forearmMultiplier : 1.0;
-        contributions[muscle]!.add((value: perSet * w * mult, halfLifeHours: halfLife));
+        contributions[muscle]!.add((
+          value: perSet * w * mult,
+          halfLifeHours: halfLife,
+        ));
       }
     }
 
@@ -186,10 +220,15 @@ class MuscleRecoveryV3 {
         continue;
       }
 
-      final impact = ExternalWorkoutCnsMapper.getImpactFor(wv.workoutActivityType);
-      final durationMinutes = workout.dateTo.difference(workout.dateFrom).inMinutes;
+      final impact = ExternalWorkoutCnsMapper.getImpactFor(
+        wv.workoutActivityType,
+      );
+      final durationMinutes = workout.dateTo
+          .difference(workout.dateFrom)
+          .inMinutes;
 
-      final isWalking = wv.workoutActivityType == HealthWorkoutActivityType.WALKING;
+      final isWalking =
+          wv.workoutActivityType == HealthWorkoutActivityType.WALKING;
       final equivalentSets = (durationMinutes / 60.0) * (isWalking ? 3.0 : 6.0);
 
       final halfLife = 18.0 + 6.0 * (impact.baseCnsScore * 10);
@@ -199,8 +238,12 @@ class MuscleRecoveryV3 {
         final w = entry.value;
         if (!contributions.containsKey(muscle)) continue;
 
-        final perSet = _perSetBase * (impact.baseCnsScore) * exp(-hours * ln2 / halfLife);
-        contributions[muscle]!.add((value: perSet * w * equivalentSets, halfLifeHours: halfLife));
+        final perSet =
+            _perSetBase * (impact.baseCnsScore) * exp(-hours * ln2 / halfLife);
+        contributions[muscle]!.add((
+          value: perSet * w * equivalentSets,
+          halfLifeHours: halfLife,
+        ));
       }
     }
 
@@ -250,14 +293,20 @@ class MuscleRecoveryV3 {
         continue;
       }
 
-      final impact = ExternalWorkoutCnsMapper.getImpactFor(wv.workoutActivityType);
-      final durationMinutes = workout.dateTo.difference(workout.dateFrom).inMinutes;
-      final isWalking = wv.workoutActivityType == HealthWorkoutActivityType.WALKING;
+      final impact = ExternalWorkoutCnsMapper.getImpactFor(
+        wv.workoutActivityType,
+      );
+      final durationMinutes = workout.dateTo
+          .difference(workout.dateFrom)
+          .inMinutes;
+      final isWalking =
+          wv.workoutActivityType == HealthWorkoutActivityType.WALKING;
       final equivalentSets = (durationMinutes / 60.0) * (isWalking ? 3.0 : 6.0);
 
       for (final entry in impact.muscleInvolvement.entries) {
         if (weeklySets.containsKey(entry.key)) {
-          weeklySets[entry.key] = weeklySets[entry.key]! + (entry.value * equivalentSets);
+          weeklySets[entry.key] =
+              weeklySets[entry.key]! + (entry.value * equivalentSets);
         }
       }
     }

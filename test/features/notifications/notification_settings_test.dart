@@ -86,25 +86,28 @@ void main() {
   });
 
   group('NotificationSettingsRepository', () {
-    test('loads default settings when prefs are empty and persists changes', () async {
-      SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
-      final repo = NotificationSettingsRepository(prefs);
+    test(
+      'loads default settings when prefs are empty and persists changes',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final repo = NotificationSettingsRepository(prefs);
 
-      final initial = repo.load();
-      expect(initial.mealRemindersEnabled, isTrue);
+        final initial = repo.load();
+        expect(initial.mealRemindersEnabled, isTrue);
 
-      final modified = initial.copyWith(
-        mealRemindersEnabled: false,
-        restTimerAlertsEnabled: false,
-      );
-      await repo.save(modified);
+        final modified = initial.copyWith(
+          mealRemindersEnabled: false,
+          restTimerAlertsEnabled: false,
+        );
+        await repo.save(modified);
 
-      final reloaded = repo.load();
-      expect(reloaded.mealRemindersEnabled, isFalse);
-      expect(reloaded.restTimerAlertsEnabled, isFalse);
+        final reloaded = repo.load();
+        expect(reloaded.mealRemindersEnabled, isFalse);
+        expect(reloaded.restTimerAlertsEnabled, isFalse);
 
-      repo.dispose();
-    });
+        repo.dispose();
+      },
+    );
   });
 }

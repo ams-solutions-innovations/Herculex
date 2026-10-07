@@ -1,10 +1,10 @@
 import 'package:health/health.dart';
 
-import '../../analytics/domain/cns_trends.dart';
-import '../../analytics/domain/muscle_recovery_v3.dart';
-import '../../analytics/domain/muscle_volume_trend.dart';
-import '../../analytics/domain/training_snapshot.dart';
-import 'deload_urgency.dart';
+import 'package:herculex/features/analytics/domain/cns_trends.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/muscle_volume_trend.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/recovery/domain/deload_urgency.dart';
 
 /// One muscle's reactive (not prescriptive — see `ProgramWeek.isDeload` for
 /// planned periodization deloads) deload signal, scored from three
@@ -50,7 +50,11 @@ abstract final class MuscleDeloadAdvisor {
     required DateTime asOf,
     required CnsTrendsResult cnsTrends,
   }) {
-    final trends = MuscleVolumeTrends.compute(snapshot: snapshot, asOf: asOf, weekCount: 8);
+    final trends = MuscleVolumeTrends.compute(
+      snapshot: snapshot,
+      asOf: asOf,
+      weekCount: 8,
+    );
 
     // Recovery score history isn't persisted anywhere — MuscleRecoveryV3 is a
     // cheap pure function over the already-loaded snapshot, so "the last 14
@@ -98,8 +102,8 @@ abstract final class MuscleDeloadAdvisor {
     final urgency = score >= 4
         ? DeloadUrgency.recommended
         : score >= 2
-            ? DeloadUrgency.watch
-            : DeloadUrgency.none;
+        ? DeloadUrgency.watch
+        : DeloadUrgency.none;
 
     return MuscleDeloadSignal(
       muscle: muscle,

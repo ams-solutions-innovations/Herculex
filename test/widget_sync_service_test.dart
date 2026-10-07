@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/services/widget_sync_service.dart';
-import 'package:herculex/theme/tokens/hx_colors.dart';
+import 'package:herculex/design_system/tokens/hx_colors.dart';
+import 'package:herculex/services/platform/widget_sync_service.dart';
 
 /// Payload contract between [WidgetSyncService] and the Android widget
 /// channel handler in MainActivity.kt, which stores these for the
@@ -17,9 +17,9 @@ void main() {
     calls.clear();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      calls.add(call);
-      return null;
-    });
+          calls.add(call);
+          return null;
+        });
   });
 
   tearDown(() {
@@ -27,21 +27,24 @@ void main() {
         .setMockMethodCallHandler(channel, null);
   });
 
-  test('syncRecovery sends the most fatigued muscles as name/score maps', () async {
-    await WidgetSyncService().syncRecovery(
-      scorePct: 78,
-      muscles: const [('Quads', 42), ('Hamstrings', 58)],
-    );
+  test(
+    'syncRecovery sends the most fatigued muscles as name/score maps',
+    () async {
+      await WidgetSyncService().syncRecovery(
+        scorePct: 78,
+        muscles: const [('Quads', 42), ('Hamstrings', 58)],
+      );
 
-    expect(calls.single.method, 'syncRecovery');
-    expect(calls.single.arguments, {
-      'scorePct': 78,
-      'muscles': [
-        {'name': 'Quads', 'score': 42},
-        {'name': 'Hamstrings', 'score': 58},
-      ],
-    });
-  });
+      expect(calls.single.method, 'syncRecovery');
+      expect(calls.single.arguments, {
+        'scorePct': 78,
+        'muscles': [
+          {'name': 'Quads', 'score': 42},
+          {'name': 'Hamstrings', 'score': 58},
+        ],
+      });
+    },
+  );
 
   test('syncFasting sends epoch millis and nulls when idle', () async {
     final start = DateTime.utc(2026, 10, 7, 6, 30);
@@ -80,27 +83,56 @@ void main() {
     final dark = (args['dark'] as Map).cast<String, int>();
     final light = (args['light'] as Map).cast<String, int>();
     expect(dark['primary'], HxColors.pinkyDark.primary.toARGB32());
-    expect(light['surface'], HxColors.pinkyLight.surfaceContainerLowest.toARGB32());
+    expect(
+      light['surface'],
+      HxColors.pinkyLight.surfaceContainerLowest.toARGB32(),
+    );
     // Every key HxWidgetPalette.fromJson reads.
     expect(dark.keys, unorderedEquals(light.keys));
-    expect(dark.keys, containsAll(<String>[
-      'surface', 'surfaceVariant', 'outlineVariant', 'onSurface', 'secondary',
-      'primary', 'onPrimary', 'kcal', 'protein', 'carbs', 'fat', 'success',
-      'warning', 'danger', 'recovery', 'fasting', 'nutrition',
-    ]));
+    expect(
+      dark.keys,
+      containsAll(<String>[
+        'surface',
+        'surfaceVariant',
+        'outlineVariant',
+        'onSurface',
+        'secondary',
+        'primary',
+        'onPrimary',
+        'kcal',
+        'protein',
+        'carbs',
+        'fat',
+        'success',
+        'warning',
+        'danger',
+        'recovery',
+        'fasting',
+        'nutrition',
+      ]),
+    );
   });
 
-  test('syncWidgetData sends key + payload and skips unchanged payloads', () async {
-    final sync = WidgetSyncService();
-    await sync.syncWidgetData('volume', {'sets': 64});
-    await sync.syncWidgetData('volume', {'sets': 64});
-    await sync.syncWidgetData('volume', {'sets': 65});
-    await sync.syncWidgetData('volume', null);
+  test(
+    'syncWidgetData sends key + payload and skips unchanged payloads',
+    () async {
+      final sync = WidgetSyncService();
+      await sync.syncWidgetData('volume', {'sets': 64});
+      await sync.syncWidgetData('volume', {'sets': 64});
+      await sync.syncWidgetData('volume', {'sets': 65});
+      await sync.syncWidgetData('volume', null);
 
-    expect(calls.map((c) => c.arguments), [
-      {'key': 'volume', 'data': {'sets': 64}},
-      {'key': 'volume', 'data': {'sets': 65}},
-      {'key': 'volume', 'data': null},
-    ]);
-  });
+      expect(calls.map((c) => c.arguments), [
+        {
+          'key': 'volume',
+          'data': {'sets': 64},
+        },
+        {
+          'key': 'volume',
+          'data': {'sets': 65},
+        },
+        {'key': 'volume', 'data': null},
+      ]);
+    },
+  );
 }

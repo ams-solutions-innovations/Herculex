@@ -8,11 +8,8 @@ void main() {
   group('Health Integration Tests', () {
     test('Climbing affects Back and Forearms more heavily', () {
       final now = DateTime.now();
-      
-      final snapshot = const TrainingSnapshot(
-        sets: [],
-        exerciseMuscles: [],
-      );
+
+      final snapshot = const TrainingSnapshot(sets: [], exerciseMuscles: []);
 
       final climbingWorkout = HealthDataPoint(
         uuid: 'test1',
@@ -39,9 +36,15 @@ void main() {
         asOf: now,
       );
 
-      final backRecovery = muscle.firstWhere((e) => e.muscle == 'Back').recoveryScore;
-      final forearmsRecovery = muscle.firstWhere((e) => e.muscle == 'Forearms').recoveryScore;
-      final chestRecovery = muscle.firstWhere((e) => e.muscle == 'Chest').recoveryScore;
+      final backRecovery = muscle
+          .firstWhere((e) => e.muscle == 'Back')
+          .recoveryScore;
+      final forearmsRecovery = muscle
+          .firstWhere((e) => e.muscle == 'Forearms')
+          .recoveryScore;
+      final chestRecovery = muscle
+          .firstWhere((e) => e.muscle == 'Chest')
+          .recoveryScore;
 
       expect(backRecovery, lessThan(chestRecovery));
       expect(forearmsRecovery, lessThan(chestRecovery));
@@ -49,10 +52,7 @@ void main() {
 
     test('Running affects Quads, Hamstrings, Calves', () {
       final now = DateTime.now();
-      final snapshot = const TrainingSnapshot(
-        sets: [],
-        exerciseMuscles: [],
-      );
+      final snapshot = const TrainingSnapshot(sets: [], exerciseMuscles: []);
 
       final runningWorkout = HealthDataPoint(
         uuid: 'test2',
@@ -74,36 +74,43 @@ void main() {
       );
 
       final muscle = MuscleRecoveryV3.compute(
-        snapshot: snapshot, 
+        snapshot: snapshot,
         externalWorkouts: [runningWorkout],
         asOf: now,
       );
 
-      final quadsRecovery = muscle.firstWhere((e) => e.muscle == 'Quads').recoveryScore;
-      final chestRecovery = muscle.firstWhere((e) => e.muscle == 'Chest').recoveryScore;
+      final quadsRecovery = muscle
+          .firstWhere((e) => e.muscle == 'Quads')
+          .recoveryScore;
+      final chestRecovery = muscle
+          .firstWhere((e) => e.muscle == 'Chest')
+          .recoveryScore;
 
       expect(quadsRecovery, lessThan(chestRecovery));
     });
 
-    test('SessionSummary calculates estimated calories and retains photoPath', () {
-      final start = DateTime(2026, 8, 21, 9, 0);
-      final end = DateTime(2026, 8, 21, 10, 0); // 60 min
+    test(
+      'SessionSummary calculates estimated calories and retains photoPath',
+      () {
+        final start = DateTime(2026, 8, 21, 9, 0);
+        final end = DateTime(2026, 8, 21, 10, 0); // 60 min
 
-      final summary = SessionSummary.fromSnapshot(
-        snapshot: const TrainingSnapshot(sets: [], exerciseMuscles: []),
-        sessionId: 1,
-        name: 'Arm Day',
-        startedAt: start,
-        endedAt: end,
-        photoPath: '/storage/emulated/0/workout_1.jpg',
-        savedCalories: 450,
-      );
+        final summary = SessionSummary.fromSnapshot(
+          snapshot: const TrainingSnapshot(sets: [], exerciseMuscles: []),
+          sessionId: 1,
+          name: 'Arm Day',
+          startedAt: start,
+          endedAt: end,
+          photoPath: '/storage/emulated/0/workout_1.jpg',
+          savedCalories: 450,
+        );
 
-      expect(summary.name, equals('Arm Day'));
-      expect(summary.durationLabel, equals('1h 0m'));
-      expect(summary.caloriesBurned, equals(450));
-      expect(summary.caloriesLabel, equals('450 kcal'));
-      expect(summary.photoPath, equals('/storage/emulated/0/workout_1.jpg'));
-    });
+        expect(summary.name, equals('Arm Day'));
+        expect(summary.durationLabel, equals('1h 0m'));
+        expect(summary.caloriesBurned, equals(450));
+        expect(summary.caloriesLabel, equals('450 kcal'));
+        expect(summary.photoPath, equals('/storage/emulated/0/workout_1.jpg'));
+      },
+    );
   });
 }

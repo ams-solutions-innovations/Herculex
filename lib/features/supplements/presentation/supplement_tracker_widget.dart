@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../theme/tokens/tokens.dart';
-import '../../dashboard/presentation/dashboard_providers.dart';
-import '../../dashboard/presentation/widgets/dashboard_shared.dart';
-import '../domain/supplement.dart';
-import 'supplement_ai_scan_dialog.dart';
-import 'supplement_edit_sheet.dart';
-import 'supplement_providers.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/features/supplements/application/supplement_providers.dart';
+import 'package:herculex/features/supplements/domain/supplement.dart';
+import 'package:herculex/features/supplements/presentation/supplement_ai_scan_dialog.dart';
+import 'package:herculex/features/supplements/presentation/supplement_edit_sheet.dart';
 
 /// Dashboard widget — a checkbox-based daily supplement tracker.
 ///
@@ -26,14 +23,22 @@ class SupplementTrackerWidget extends ConsumerWidget {
 
     return stateAsync.when(
       data: (state) => _buildCard(context, theme, ref, state),
-      loading: () => _buildCard(context, theme, ref,
-          const SupplementDayState(supplements: [], takenIds: {})),
+      loading: () => _buildCard(
+        context,
+        theme,
+        ref,
+        const SupplementDayState(supplements: [], takenIds: {}),
+      ),
       error: (_, e) => const SizedBox.shrink(),
     );
   }
 
-  Widget _buildCard(BuildContext context, ThemeData theme, WidgetRef ref,
-      SupplementDayState state) {
+  Widget _buildCard(
+    BuildContext context,
+    ThemeData theme,
+    WidgetRef ref,
+    SupplementDayState state,
+  ) {
     const accent = Color(0xFF9B59B6);
 
     return dashboardCard(
@@ -41,25 +46,26 @@ class SupplementTrackerWidget extends ConsumerWidget {
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // ── Header ──────────────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 12, 0),
+            padding: const EdgeInsets.fromLTRB(16, 14, 8, 0),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(9),
+                  padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
                     color: const Color(0xFF9B59B6).withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.medication_outlined,
-                    size: 20,
+                    size: 18,
                     color: Color(0xFF9B59B6),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,16 +75,20 @@ class SupplementTrackerWidget extends ConsumerWidget {
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: const Color(0xFF9B59B6),
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
+                          letterSpacing: 0.8,
                           fontSize: 10,
                         ),
                       ),
                       Text(
                         state.totalCount == 0
-                            ? 'Track what you take each day'
+                            ? 'Track daily doses'
                             : '${state.takenCount} of ${state.totalCount} taken today',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: AppColors.secondary),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.secondary,
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -87,7 +97,9 @@ class SupplementTrackerWidget extends ConsumerWidget {
                 if (state.totalCount > 0)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: state.progress >= 1.0
                           ? Colors.green.withValues(alpha: 0.15)
@@ -96,24 +108,29 @@ class SupplementTrackerWidget extends ConsumerWidget {
                     ),
                     child: Text(
                       state.progress >= 1.0
-                          ? '✓ All done'
+                          ? '✓ Done'
                           : '${(state.progress * 100).round()}%',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: state.progress >= 1.0
                             ? Colors.green
                             : const Color(0xFF9B59B6),
                         fontWeight: FontWeight.bold,
-                        fontSize: 11,
+                        fontSize: 10.5,
                       ),
                     ),
                   ),
                 // Add button
                 IconButton(
-                  icon: const Icon(Icons.add_circle_outline, size: 22),
+                  icon: const Icon(Icons.add_circle_outline, size: 20),
                   color: AppColors.secondary,
                   tooltip: 'Add supplement',
-                  onPressed: () =>
-                      SupplementEditSheet.show(context),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  onPressed: () => SupplementEditSheet.show(context),
                 ),
               ],
             ),
@@ -121,9 +138,9 @@ class SupplementTrackerWidget extends ConsumerWidget {
 
           // ── Progress bar ────────────────────────────────────────────────
           if (state.totalCount > 0) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: TweenAnimationBuilder<double>(
@@ -132,7 +149,7 @@ class SupplementTrackerWidget extends ConsumerWidget {
                   curve: Curves.easeOut,
                   builder: (_, value, child) => LinearProgressIndicator(
                     value: value,
-                    minHeight: 6,
+                    minHeight: 5,
                     backgroundColor: AppColors.surfaceVariant,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       value >= 1.0 ? Colors.green : const Color(0xFF9B59B6),
@@ -145,26 +162,34 @@ class SupplementTrackerWidget extends ConsumerWidget {
 
           // ── Supplement rows ─────────────────────────────────────────────
           if (state.supplements.isEmpty)
-            _EmptyState(onAdd: () => SupplementEditSheet.show(context))
+            Flexible(
+              child: _EmptyState(
+                onAdd: () => SupplementEditSheet.show(context),
+              ),
+            )
           else
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
-              child: Column(
-                children: [
-                  for (final s in state.supplements)
-                    _SupplementRow(
-                      supplement: s,
-                      isTaken: state.isTaken(s.id),
-                      onToggle: (taken) {
-                        Haptics.selection();
-                        ref
-                            .read(supplementRepositoryProvider)
-                            .markTaken(s.id, taken);
-                      },
-                      onEdit: () =>
-                          SupplementEditSheet.show(context, existing: s),
-                    ),
-                ],
+            Flexible(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(6, 4, 6, 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final s in state.supplements)
+                      _SupplementRow(
+                        supplement: s,
+                        isTaken: state.isTaken(s.id),
+                        onToggle: (taken) {
+                          Haptics.selection();
+                          ref
+                              .read(supplementRepositoryProvider)
+                              .markTaken(s.id, taken);
+                        },
+                        onEdit: () =>
+                            SupplementEditSheet.show(context, existing: s),
+                      ),
+                  ],
+                ),
               ),
             ),
         ],
@@ -218,9 +243,7 @@ class _SupplementRow extends StatelessWidget {
               height: 26,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isTaken
-                    ? const Color(0xFF9B59B6)
-                    : Colors.transparent,
+                color: isTaken ? const Color(0xFF9B59B6) : Colors.transparent,
                 border: Border.all(
                   color: isTaken
                       ? const Color(0xFF9B59B6)
@@ -243,8 +266,7 @@ class _SupplementRow extends StatelessWidget {
                   Text(
                     supplement.name,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      decoration:
-                          isTaken ? TextDecoration.lineThrough : null,
+                      decoration: isTaken ? TextDecoration.lineThrough : null,
                       color: isTaken ? AppColors.secondary : null,
                       fontWeight: FontWeight.w500,
                     ),
@@ -339,38 +361,41 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // The parent Column uses crossAxisAlignment.start, so the empty state has
-    // to claim the full width itself or it hugs the left edge.
     return SizedBox(
       width: double.infinity,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Icon(
               Icons.medication_outlined,
-              size: 40,
+              size: 28,
               color: AppColors.secondary.withValues(alpha: 0.5),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
             Text(
               'No supplements yet',
               textAlign: TextAlign.center,
-              style: theme.textTheme.titleSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               'Scan a tub or add one by hand to start tracking doses.',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: AppColors.secondary),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+                fontSize: 11,
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Wrap(
-              spacing: 10,
-              runSpacing: 10,
+              spacing: 8,
+              runSpacing: 8,
               alignment: WrapAlignment.center,
               children: [
                 FilledButton.icon(
@@ -383,21 +408,21 @@ class _EmptyState extends StatelessWidget {
                       );
                     }
                   },
-                  icon: const Icon(Icons.auto_awesome, size: 16),
+                  icon: const Icon(Icons.auto_awesome, size: 15),
                   label: const Text('AI Foto sken'),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF9B59B6),
                     foregroundColor: Colors.white,
                     shape: const StadiumBorder(),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 11,
+                      horizontal: 14,
+                      vertical: 8,
                     ),
                   ),
                 ),
                 OutlinedButton.icon(
                   onPressed: onAdd,
-                  icon: const Icon(Icons.add, size: 16),
+                  icon: const Icon(Icons.add, size: 15),
                   label: const Text('Ročni vnos'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF9B59B6),
@@ -406,8 +431,8 @@ class _EmptyState extends StatelessWidget {
                     ),
                     shape: const StadiumBorder(),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 11,
+                      horizontal: 14,
+                      vertical: 8,
                     ),
                   ),
                 ),

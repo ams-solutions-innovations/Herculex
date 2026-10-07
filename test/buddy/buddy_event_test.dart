@@ -146,9 +146,7 @@ void main() {
         slotId: 's1',
         ref: BuddyExerciseRef(slug: 'barbell-back-squat'),
       ).toJson();
-      final sessionEndedJson = BuddySessionEndedPayload(
-        endedBy: 'u1',
-      ).toJson();
+      final sessionEndedJson = BuddySessionEndedPayload(endedBy: 'u1').toJson();
 
       for (final json in [
         addJson,

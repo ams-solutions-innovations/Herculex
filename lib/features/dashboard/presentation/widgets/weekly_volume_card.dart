@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../theme/colors.dart';
-import '../../../../theme/haptics.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../analytics/presentation/analytics_providers.dart';
-import 'dashboard_shared.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/analytics/application/analytics_providers.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
 
 /// This week's total volume mini-card (§18). Tapping navigates to the dedicated
 /// Muscle Volume Overview page.
@@ -30,7 +30,7 @@ class WeeklyVolumeMiniCard extends ConsumerWidget {
           ),
           onTap: () {
             Haptics.selection();
-            context.push('/muscle-volume');
+            context.push(AppRoutes.muscleVolume);
           },
           child: isCompact
               ? Column(
@@ -74,9 +74,7 @@ class WeeklyVolumeMiniCard extends ConsumerWidget {
                 )
               : Row(
                   children: [
-                    Expanded(
-                      child: dashboardTitle(context, 'Total Volume'),
-                    ),
+                    Expanded(child: dashboardTitle(context, 'Total Volume')),
                     volume.when(
                       data: (v) => Text(
                         '${v.totalSets} sets',

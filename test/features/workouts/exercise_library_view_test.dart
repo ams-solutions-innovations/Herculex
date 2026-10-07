@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
-import 'package:herculex/features/workouts/presentation/exercise_library_view.dart';
-import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/presentation/views/exercise_library_view.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -82,8 +82,8 @@ void main() {
               list = list
                   .where(
                     (e) => e.name.toLowerCase().contains(
-                          filter.query!.toLowerCase(),
-                        ),
+                      filter.query!.toLowerCase(),
+                    ),
                   )
                   .toList();
             }
@@ -99,9 +99,7 @@ void main() {
             return AsyncValue.data(list);
           }),
         ],
-        child: const MaterialApp(
-          home: ExerciseLibraryView(),
-        ),
+        child: const MaterialApp(home: ExerciseLibraryView()),
       ),
     );
 
@@ -131,37 +129,36 @@ void main() {
     expect(find.text('3 exercises'), findsOneWidget);
   });
 
-  testWidgets('ExerciseLibraryView filters custom exercises when chip selected', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    'ExerciseLibraryView filters custom exercises when chip selected',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          exerciseSearchProvider.overrideWith((ref, filter) {
-            return AsyncValue.data(sampleExercises);
-          }),
-        ],
-        child: const MaterialApp(
-          home: ExerciseLibraryView(),
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            exerciseSearchProvider.overrideWith((ref, filter) {
+              return AsyncValue.data(sampleExercises);
+            }),
+          ],
+          child: const MaterialApp(home: ExerciseLibraryView()),
         ),
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    // Tap the "Custom" filter chip
-    await tester.tap(find.widgetWithText(FilterChip, 'Custom'));
-    await tester.pumpAndSettle();
+      // Tap the "Custom" filter chip
+      await tester.tap(find.widgetWithText(FilterChip, 'Custom'));
+      await tester.pumpAndSettle();
 
-    // Now only custom exercise should appear in the list
-    expect(find.text('Custom Cable Fly'), findsOneWidget);
-    expect(find.text('Barbell Bench Press'), findsNothing);
-    expect(find.text('Incline Dumbbell Curl'), findsNothing);
-    expect(find.text('1 exercise'), findsOneWidget);
-  });
+      // Now only custom exercise should appear in the list
+      expect(find.text('Custom Cable Fly'), findsOneWidget);
+      expect(find.text('Barbell Bench Press'), findsNothing);
+      expect(find.text('Incline Dumbbell Curl'), findsNothing);
+      expect(find.text('1 exercise'), findsOneWidget);
+    },
+  );
 }

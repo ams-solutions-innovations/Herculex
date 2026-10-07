@@ -16,7 +16,6 @@
     <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" tools:ignore="ProtectedPermissions" />
 
     <!-- Mirrors the phone module: the watch caches the same training and
          nutrition data, so it opts out of backup and device transfer too. -->
@@ -49,16 +48,6 @@
             android:name=".workout.WorkoutOngoingService"
             android:exported="false"
             android:foregroundServiceType="health" />
-
-        <service
-            android:name=".media.MediaNotificationListenerService"
-            android:exported="true"
-            android:label="Herculex Media Controls"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService" />
-            </intent-filter>
-        </service>
 
         <service
             android:name=".complication.CaloriesComplicationService"

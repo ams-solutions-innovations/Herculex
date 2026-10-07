@@ -2,9 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../services/gemini_backend_service.dart';
-import '../domain/nutrition_label.dart';
+import 'package:herculex/features/nutrition/domain/nutrition_label.dart';
+import 'package:herculex/services/ai/gemini_backend_service.dart';
 
 class GeminiFoodAnalysisResult {
   final String name;
@@ -43,7 +42,8 @@ class GeminiFoodAnalysisResult {
       fatPer100g: (json['fatPer100g'] as num?)?.toDouble() ?? 0.0,
       fiberPer100g: (json['fiberPer100g'] as num?)?.toDouble(),
       rating: (json['rating'] as num?)?.toDouble() ?? 7.0,
-      ratingReason: json['ratingReason'] as String? ?? 'Evaluated with Gemini AI.',
+      ratingReason:
+          json['ratingReason'] as String? ?? 'Evaluated with Gemini AI.',
     );
   }
 }
@@ -65,6 +65,12 @@ class GeminiBarcodeProductResult {
   final double? sodiumMgPer100g;
   final double confidence;
 
+  /// The URLs the grounded search actually read, when the server returned
+  /// any. Carried through to `product_catalogue_submissions` on publish:
+  /// the model's own answer is not evidence of anything, but the pages it
+  /// read are, and without them a wrong shared number is unfalsifiable.
+  final List<String> groundingSources;
+
   const GeminiBarcodeProductResult({
     required this.found,
     required this.name,
@@ -77,6 +83,7 @@ class GeminiBarcodeProductResult {
     this.fiberPer100g,
     this.sodiumMgPer100g,
     required this.confidence,
+    this.groundingSources = const [],
   });
 
   factory GeminiBarcodeProductResult.fromJson(Map<String, dynamic> json) {
@@ -95,8 +102,17 @@ class GeminiBarcodeProductResult {
         0.0,
         1.0,
       ),
+      groundingSources:
+          (json['groundingSources'] as List?)?.whereType<String>().toList() ??
+          const [],
     );
   }
+
+  /// What gets stored alongside the community submission. Null when the
+  /// lookup was ungrounded — an absent evidence trail is more honest than an
+  /// empty one that looks like it was checked.
+  Object? get evidence =>
+      groundingSources.isEmpty ? null : {'groundingSources': groundingSources};
 }
 
 class RamblerFoodItem {
@@ -134,14 +150,18 @@ class RamblerFoodItem {
     return RamblerFoodItem(
       name: json['name'] as String? ?? 'Food item',
       servingGrams: servingGrams,
-      portionAmount: (json['portionAmount'] as num?)?.toDouble() ?? servingGrams,
+      portionAmount:
+          (json['portionAmount'] as num?)?.toDouble() ?? servingGrams,
       portionUnit: json['portionUnit'] as String? ?? 'g',
       kcalPer100g: (json['kcalPer100g'] as num?)?.toDouble() ?? 0.0,
       proteinPer100g: (json['proteinPer100g'] as num?)?.toDouble() ?? 0.0,
       carbsPer100g: (json['carbsPer100g'] as num?)?.toDouble() ?? 0.0,
       fatPer100g: (json['fatPer100g'] as num?)?.toDouble() ?? 0.0,
       fiberPer100g: (json['fiberPer100g'] as num?)?.toDouble(),
-      confidence: ((json['confidence'] as num?)?.toDouble() ?? 0.9).clamp(0.0, 1.0),
+      confidence: ((json['confidence'] as num?)?.toDouble() ?? 0.9).clamp(
+        0.0,
+        1.0,
+      ),
     );
   }
 
@@ -178,7 +198,9 @@ class RamblerFoodResult {
         if (it is Map<String, dynamic>) {
           itemsList.add(RamblerFoodItem.fromJson(it));
         } else if (it is Map) {
-          itemsList.add(RamblerFoodItem.fromJson(Map<String, dynamic>.from(it)));
+          itemsList.add(
+            RamblerFoodItem.fromJson(Map<String, dynamic>.from(it)),
+          );
         }
       }
     }

@@ -64,32 +64,25 @@ void main() {
       }
     });
 
-    test(
-      'buddy_sessions_local has none of the three SyncColumns/SyncTombstone '
-      'columns',
-      () async {
-        final db = await openTestDatabase();
-        addTearDown(db.close);
+    test('buddy_sessions_local has none of the three SyncColumns/SyncTombstone '
+        'columns', () async {
+      final db = await openTestDatabase();
+      addTearDown(db.close);
 
-        final columns = await db
-            .customSelect('PRAGMA table_info(buddy_sessions_local)')
-            .get();
-        final names = columns.map((r) => r.read<String>('name')).toSet();
+      final columns = await db
+          .customSelect('PRAGMA table_info(buddy_sessions_local)')
+          .get();
+      final names = columns.map((r) => r.read<String>('name')).toSet();
 
-        for (final forbidden in const [
-          'sync_uuid',
-          'updated_at',
-          'deleted_at',
-        ]) {
-          expect(
-            names,
-            isNot(contains(forbidden)),
-            reason:
-                '$forbidden would only exist if SyncColumns/SyncTombstone '
-                'were mixed in',
-          );
-        }
-      },
-    );
+      for (final forbidden in const ['sync_uuid', 'updated_at', 'deleted_at']) {
+        expect(
+          names,
+          isNot(contains(forbidden)),
+          reason:
+              '$forbidden would only exist if SyncColumns/SyncTombstone '
+              'were mixed in',
+        );
+      }
+    });
   });
 }

@@ -1,0 +1,578 @@
+[
+  {
+    "hour": 1,
+    "stageName": "Prebava in absorpcija",
+    "stageCategory": "Prebava",
+    "shortMessage": "Telo prebavlja zadnji obrok; glukoza in inzulin v krvi narasteta.",
+    "detail": "V prvi uri po obroku prebavni sistem aktivno razgrajuje zaužito hrano. Hranila prehajajo v krvni obtok.",
+    "icon": "restaurant"
+  },
+  {
+    "hour": 2,
+    "stageName": "Polnjenje glikogenskih zalog",
+    "stageCategory": "Prebava",
+    "shortMessage": "Višek glukoze se shranjuje kot glikogen v jetrih in mišicah.",
+    "detail": "Inzulin spodbuja celice k privzemu glukoze ter polnjenju zalog glikogena v jetrih in skeletnih mišicah.",
+    "icon": "battery_charging_full"
+  },
+  {
+    "hour": 3,
+    "stageName": "Absorpcijski vrhunec",
+    "stageCategory": "Prebava",
+    "shortMessage": "Hranila se razporejajo po telesu, raven glukoze se počasi stabilizira.",
+    "detail": "Prebavni trakt zaključuje primarno absorpcijo makrohranil, energija se uporablja za trenutne celične potrebe.",
+    "icon": "trending_flat"
+  },
+  {
+    "hour": 4,
+    "stageName": "Zgodnja post-absorpcija",
+    "stageCategory": "Krvni sladkor",
+    "shortMessage": "Želodec se izprazni, raven inzulina začne postopoma upadati.",
+    "detail": "Prebava hrane v želodcu se zaključuje. Telo prehaja iz stanja hranjenja v fazo začetnega počitka.",
+    "icon": "hourglass_empty"
+  },
+  {
+    "hour": 5,
+    "stageName": "Umirjanje prebavil",
+    "stageCategory": "Krvni sladkor",
+    "shortMessage": "Prebavni sistem se umirja, inzulin se približuje izhodiščni ravni.",
+    "detail": "Občutek sitosti se počasi zmanjšuje, telo porabi večino proste glukoze iz krvnega obtoka.",
+    "icon": "spa"
+  },
+  {
+    "hour": 6,
+    "stageName": "Stabilizacija krvnega sladkorja",
+    "stageCategory": "Krvni sladkor",
+    "shortMessage": "Inzulin pade na izhodiščno raven; jetra začnejo porabljati zaloge glikogena.",
+    "detail": "Prebava je povsem zaključena. Krvni sladkor se normalizira, jetra začnejo postopoma sproščati glikogen za vzdrževanje stalne energije.",
+    "icon": "balance"
+  },
+  {
+    "hour": 7,
+    "stageName": "Počitek trebušne slinavke",
+    "stageCategory": "Krvni sladkor",
+    "shortMessage": "Trebušna slinavka zmanjša izločanje inzulina, prebavni trakt popolnoma počiva.",
+    "detail": "Zaradi nizkega inzulina se razbremeni celoten presnovni sistem, kar ugodno vpliva na prebavila.",
+    "icon": "bedtime"
+  },
+  {
+    "hour": 8,
+    "stageName": "Aktivacija glukagona",
+    "stageCategory": "Krvni sladkor",
+    "shortMessage": "Hormon glukagon začne sproščati shranjeno energijo iz jeter.",
+    "detail": "Razmerje med inzulinom in glukagonom se obrne. Glukagon pošilja signal jetrom za razgradnjo glikogena v glukozo.",
+    "icon": "bolt"
+  },
+  {
+    "hour": 9,
+    "stageName": "Poraba jetrnega glikogena",
+    "stageCategory": "Krvni sladkor",
+    "shortMessage": "Jetra intenzivno pretvarjajo glikogen za oskrbo možganov in organov.",
+    "detail": "Telo nemoteno deluje na zalogah jetrnega sladkorja, medtem ko se prebavila čistijo.",
+    "icon": "autorenew"
+  },
+  {
+    "hour": 10,
+    "stageName": "Začetek lipolize",
+    "stageCategory": "Ketoza & Maščobe",
+    "shortMessage": "Telo začne sproščati maščobne kisline iz maščobnih celic kot vir goriva.",
+    "detail": "Ker se zaloge glikogena zmanjšujejo, se aktivira encim lipaza, ki odpira maščobne celice za energijo.",
+    "icon": "local_fire_department"
+  },
+  {
+    "hour": 11,
+    "stageName": "Zmanjšanje vnetnih parametrov",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Prebavni trakt je popolnoma razbremenjen; vnetni označevalci začnejo upadati.",
+    "detail": "Odsotnost vnosa hrane omogoča črevesni steni obnovo in zmanjšanje sistemskega vnetja v telesu.",
+    "icon": "favorite"
+  },
+  {
+    "hour": 12,
+    "stageName": "Metabolični preklop (Vstop v ketozo)",
+    "stageCategory": "Ketoza & Maščobe",
+    "shortMessage": "Zaloge glikogena so pri koncu. Telo začne pospešeno kuriti maščobe in ustvarjati ketone.",
+    "detail": "Glavni presnovni preklop: telo prehaja iz porabe sladkorja na porabo maščob. V jetrih nastajajo prva ketonska telesa.",
+    "icon": "swap_horiz"
+  },
+  {
+    "hour": 13,
+    "stageName": "Pospešena razgradnja maščob",
+    "stageCategory": "Ketoza & Maščobe",
+    "shortMessage": "Maščobno tkivo postaja primarni vir energije za vaše mišice in organe.",
+    "detail": "Raven prostih maščobnih kislin v krvi doseže visoko raven, kar pospešuje presnovo maščobnih oblog.",
+    "icon": "whatshot"
+  },
+  {
+    "hour": 14,
+    "stageName": "Povečana občutljivost na inzulin",
+    "stageCategory": "Krvni sladkor",
+    "shortMessage": "Celice postajajo bolj občutljive na inzulin; glikemični nadzor se izboljšuje.",
+    "detail": "Zaradi dolgotrajno nizkega inzulina se inzulinski receptorji na celičnih membranah očistijo in ponovno senzibilizirajo.",
+    "icon": "health_and_safety"
+  },
+  {
+    "hour": 15,
+    "stageName": "Dvig rastnega hormona (HGH)",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Raven rastnega hormona začne naraščati, kar ščiti vaše mišice.",
+    "detail": "Človeški rastni hormon (HGH) se dvigne, da zaščiti mišično maso pred razgradnjo in spodbudi porabo maščob.",
+    "icon": "fitness_center"
+  },
+  {
+    "hour": 16,
+    "stageName": "Optimalno kurjenje maščob (16:8)",
+    "stageCategory": "Ketoza & Maščobe",
+    "shortMessage": "Zlati standard prekinitvenega posta! Telo je v polnem teku porabe maščobnih zalog.",
+    "detail": "Dosegli ste 16 ur posta. Oksidacija maščob je na vrhuncu, presnovna fleksibilnost je maksimalno aktivirana.",
+    "icon": "stars"
+  },
+  {
+    "hour": 17,
+    "stageName": "Priprava na celično čiščenje",
+    "stageCategory": "Avtofagija",
+    "shortMessage": "Celice začnejo prepoznavati poškodovane beljakovine za reciklažo.",
+    "detail": "Aktivirajo se celični senzorji za pomanjkanje hranil (AMPK), ki pripravijo celice na proces avtofagije.",
+    "icon": "build"
+  },
+  {
+    "hour": 18,
+    "stageName": "Zagon avtofagije",
+    "stageCategory": "Avtofagija",
+    "shortMessage": "Začne se avtofagija – telo reciklira poškodovane celice, odpadke in beljakovine.",
+    "detail": "Začenja se avtofagija (Nobelova nagrada 2016). Celice razgrajujejo celične smeti in reciklirajo neuporabne komponente v nov gradbeni material.",
+    "icon": "recycling"
+  },
+  {
+    "hour": 19,
+    "stageName": "Povečanje ravni ketonov",
+    "stageCategory": "Ketoza & Maščobe",
+    "shortMessage": "Koncentracija ketonov v krvi narašča; stabilna energija za telo in možgane.",
+    "detail": "Beta-hidroksibutirat (BHB) postaja pomemben vir energije, lakota se pogosto zmanjša.",
+    "icon": "insights"
+  },
+  {
+    "hour": 20,
+    "stageName": "Mentalna jasnost in fokus",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Ketoni prehajajo krvno-možgansko pregrado in izboljšujejo osredotočenost.",
+    "detail": "Možgani prejemajo čisto energijo iz ketonov, kar zmanjšuje možgansko meglo in spodbuja zbranost.",
+    "icon": "psychology"
+  },
+  {
+    "hour": 21,
+    "stageName": "Globoka avtofagija",
+    "stageCategory": "Avtofagija",
+    "shortMessage": "Celično čiščenje se pospešuje v jetrih, mišicah in ledvicah.",
+    "detail": "Avtofagne vakuole pospešeno požirajo disfunkcionalne celične delce in uničujejo vnetne molekule.",
+    "icon": "cleaning_services"
+  },
+  {
+    "hour": 22,
+    "stageName": "Zaviranje mTOR poti",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Zaviranje mTOR spodbuja obnovo celic in zavira procese staranja.",
+    "detail": "Ko je signal mTOR ugasnjen, telo vso energijo usmeri v popravilo DNK in celično dolgoživost.",
+    "icon": "lock_reset"
+  },
+  {
+    "hour": 23,
+    "stageName": "Porast možganskega faktorja (BDNF)",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "BDNF spodbuja rast novih nevronskih povezav in ščiti živčne celice.",
+    "detail": "Povišan BDNF (Brain-Derived Neurotrophic Factor) deluje nevroprotektivno in krepi kognitivne funkcije.",
+    "icon": "lightbulb"
+  },
+  {
+    "hour": 24,
+    "stageName": "24-urni mejnik: Polna avtofagija",
+    "stageCategory": "Avtofagija",
+    "shortMessage": "24 ur posta! Glikogen je povsem porabljen, avtofagija deluje s polno močjo.",
+    "detail": "Čestitke za celodnevni post! Telo je 100% prilagojeno na maščobe, raven sistemskega vnetja strmo pada.",
+    "icon": "workspace_premium"
+  },
+  {
+    "hour": 25,
+    "stageName": "Mitohondrijska biogeneza",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Celice spodbujajo nastanek novih in učinkovitejših mitohondrijev.",
+    "detail": "Energetske elektrarne v celicah (mitohondriji) se obnavljajo za večjo celično energijo.",
+    "icon": "electric_bolt"
+  },
+  {
+    "hour": 26,
+    "stageName": "Zmanjšanje oksidativnega stresa",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Aktivirajo se močni telesni antioksidativni encimi (glutation).",
+    "detail": "Naravni antioksidativni mehanizmi ščitijo celice pred prostimi radikali in vnetji.",
+    "icon": "shield"
+  },
+  {
+    "hour": 27,
+    "stageName": "Mobilizacija visceralne maščobe",
+    "stageCategory": "Ketoza & Maščobe",
+    "shortMessage": "Telo ciljano črpa energijo iz globoke trebušne (visceralne) maščobe.",
+    "detail": "Visceralna maščoba okoli notranjih organov se intenzivno uporablja za energijo.",
+    "icon": "tune"
+  },
+  {
+    "hour": 28,
+    "stageName": "Nevroprotekcija",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Ketonska telesa ščitijo nevrone pred degenerativnimi spremembami.",
+    "detail": "Stabilna preskrba z beta-hidroksibutiratom ščiti možgansko tkivo pred stresom.",
+    "icon": "memory"
+  },
+  {
+    "hour": 29,
+    "stageName": "Krepitev črevesne pregrade",
+    "stageCategory": "Prebava",
+    "shortMessage": "Tesni stiki v črevesnem epiteliju se krepijo in zmanjšujejo prepustnost.",
+    "detail": "Črevesna sluznica se obnavlja, kar zmanjšuje vdor endotoksinov v krvni obtok.",
+    "icon": "verified_user"
+  },
+  {
+    "hour": 30,
+    "stageName": "Odstranjevanje poškodovanih celic",
+    "stageCategory": "Avtofagija",
+    "shortMessage": "Telo pospešeno odstranjuje nefunkcionalne celice (apoptoza).",
+    "detail": "Stare, poškodovane celice, ki jih ni mogoče popraviti, se varno razgradijo.",
+    "icon": "delete_sweep"
+  },
+  {
+    "hour": 31,
+    "stageName": "Umirjanje krvnega tlaka",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Žilni tonus se sprosti, izločanje odvečnega natrija znižuje pritisk.",
+    "detail": "Srčno-žilni sistem deluje z manj napora, arterije se sproščajo.",
+    "icon": "monitor_heart"
+  },
+  {
+    "hour": 32,
+    "stageName": "Stabilna glukoneogeneza",
+    "stageCategory": "Krvni sladkor",
+    "shortMessage": "Jetra vzdržujejo natančno minimalno raven glukoze iz glicerola in aminokislin.",
+    "detail": "Telo samodejno proizvaja točno toliko glukoze, kolikor jo potrebujejo določene celice.",
+    "icon": "speed"
+  },
+  {
+    "hour": 33,
+    "stageName": "Globoko jetrno razstrupljanje",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Jetrni encimi delujejo s polno zmogljivostjo za čiščenje presnovnih ostankov.",
+    "detail": "Jetra so prosta prebavnih obremenitev in se posvečajo filtraciji krvi.",
+    "icon": "water_drop"
+  },
+  {
+    "hour": 34,
+    "stageName": "Optimalna raven kateholaminov",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Blag dvig adrenalina pospešuje budnost in ohranja bazalni metabolizem.",
+    "detail": "Presnova se ne upočasni; hormon noradrenalin vzdržuje visoko porabo kalorij.",
+    "icon": "battery_charging_full"
+  },
+  {
+    "hour": 35,
+    "stageName": "Globoka ketogeneza",
+    "stageCategory": "Ketoza & Maščobe",
+    "shortMessage": "Ketoza doseže stabilno visoko raven za dolgotrajno vzdržljivost.",
+    "detail": "Proizvodnja ketonov je stalna in zanesljiva, lakota je pogosto povsem odsotna.",
+    "icon": "dynamic_form"
+  },
+  {
+    "hour": 36,
+    "stageName": "36-urni mejnik: Vrhunec avtofagije & 300% HGH",
+    "stageCategory": "Avtofagija",
+    "shortMessage": "36 ur posta! Avtofagija doseže vrh, raven rastnega hormona se dvigne za 300%.",
+    "detail": "Izjemen mejnik. Avtofagija v možganih in jetrih deluje na maksimumu. HGH izjemno ščiti pusto mišično maso.",
+    "icon": "military_tech"
+  },
+  {
+    "hour": 37,
+    "stageName": "Popravilo poškodovane DNK",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Encimi za popravilo DNK popravljajo celične mutacije.",
+    "detail": "Zaradi nizke presnovne obremenitve imajo celice čas za popravilo genetskega materiala.",
+    "icon": "biotech"
+  },
+  {
+    "hour": 38,
+    "stageName": "Aktivacija sirtuinov (SIRT1)",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Geni dolgoživosti (sirtuini) spodbujajo mladostno delovanje celic.",
+    "detail": "SIRT1 in SIRT3 encimi spodbujajo popravilo celic in zavirajo vnetne mediatorje.",
+    "icon": "auto_awesome"
+  },
+  {
+    "hour": 39,
+    "stageName": "Čiščenje amiloidnih plakov",
+    "stageCategory": "Avtofagija",
+    "shortMessage": "Nevronska avtofagija razgrajuje napačno zvite beljakovine v možganih.",
+    "detail": "Čiščenje možganskih celic preprečuje kopičenje škodljivih proteinskih skupkov.",
+    "icon": "grain"
+  },
+  {
+    "hour": 40,
+    "stageName": "Zaviranje NF-kB poti",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Glavna vnetna kaskada v telesu je močno zavrta.",
+    "detail": "Sistemsko vnetje pade na najnižje možne ravni, kar lajša bolečine v sklepih in tkivih.",
+    "icon": "healing"
+  },
+  {
+    "hour": 41,
+    "stageName": "Regeneracija črevesnih matičnih celic",
+    "stageCategory": "Prebava",
+    "shortMessage": "Matične celice v črevesju začenjajo obnovo sluznične plasti.",
+    "detail": "Post spodbuja obnovo črevesnega epitela za boljšo absorpcijo v prihodnje.",
+    "icon": "layers"
+  },
+  {
+    "hour": 42,
+    "stageName": "Visoka metabolična učinkovitost",
+    "stageCategory": "Ketoza & Maščobe",
+    "shortMessage": "Telo energijo pridobiva izjemno učinkovito z minimalnimi presnovnimi odpadki.",
+    "detail": "Ketonska presnova ustvarja manj prostih radikalov na enoto energije kot glukoza.",
+    "icon": "energy_savings_leaf"
+  },
+  {
+    "hour": 43,
+    "stageName": "Zmanjšanje glikacijskih produktov (AGEs)",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Upad krvnega sladkorja zmanjšuje nastajanje škodljivih sprijemkov sladkorjev in beljakovin.",
+    "detail": "Zmanjšana glikacija ohranja elastičnost ožilja in kože.",
+    "icon": "clean_hands"
+  },
+  {
+    "hour": 44,
+    "stageName": "Čiščenje senescentnih celic",
+    "stageCategory": "Avtofagija",
+    "shortMessage": "Telo prepoznava in odstranjuje postarane 'zombi' celice.",
+    "detail": "Senescentne celice, ki povzročajo vnetje v tkivih, se pospešeno čistijo.",
+    "icon": "filter_alt"
+  },
+  {
+    "hour": 45,
+    "stageName": "Globoka kognitivna regeneracija",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Možganski ritmi so sinhronizirani, raven stresa se zmanjšuje.",
+    "detail": "Ketoni v možganih zvišujejo raven nevrotransmiterja GABA, kar prinaša miren fokus.",
+    "icon": "self_improvement"
+  },
+  {
+    "hour": 46,
+    "stageName": "Razbremenitev jetrnih maščob",
+    "stageCategory": "Ketoza & Maščobe",
+    "shortMessage": "Jetra so se povsem osvobodila odvečnih maščobnih zalog.",
+    "detail": "Jetrna funkcija in encimski profil se občutno normalizirata.",
+    "icon": "check_circle_outline"
+  },
+  {
+    "hour": 47,
+    "stageName": "Priprava na obnovo imunskega sistema",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Stare bele krvne celice se razgrajujejo za reciklažo.",
+    "detail": "Signal za prenovo imunskega sistema se aktivira v kostnem mozgu.",
+    "icon": "alarm"
+  },
+  {
+    "hour": 48,
+    "stageName": "48-urni mejnik: Zagon obnove imunskega sistema",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "48 ur posta! Stari levkociti se reciklirajo, raven HGH poskoči do 500%.",
+    "detail": "Dva polna dneva posta. Raziskave kažejo zagon hematopoeze in obnove belih krvnih telesc. Maksimalna zaščita mišic.",
+    "icon": "shield_moon"
+  },
+  {
+    "hour": 49,
+    "stageName": "Aktivacija hematopoetskih matičnih celic",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Kostni mozeg začenja proizvodnjo svežih, nepoškodovanih imunskih celic.",
+    "detail": "Matične celice v kostnem mozgu se prebujajo iz mirovanja za regeneracijo.",
+    "icon": "vital_signs"
+  },
+  {
+    "hour": 50,
+    "stageName": "Močan padec IGF-1",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Znižan IGF-1 preklopi telo iz načina rasti v način globoke samoobrambe in popravil.",
+    "detail": "Nizka raven IGF-1 je povezana z dolgoživostjo in odpornostjo na celične poškodbe.",
+    "icon": "shield"
+  },
+  {
+    "hour": 51,
+    "stageName": "Mitofagija: Čiščenje mitohondrijev",
+    "stageCategory": "Avtofagija",
+    "shortMessage": "Nefunkcionalni mitohondriji se razgradijo, da ne proizvajajo celičnega stresa.",
+    "detail": "Mitofagija zagotavlja, da preživijo le najbolj vitalni viri celične energije.",
+    "icon": "restart_alt"
+  },
+  {
+    "hour": 52,
+    "stageName": "Popolna glikemična nevtralnost",
+    "stageCategory": "Krvni sladkor",
+    "shortMessage": "Nič nihanj krvnega sladkorja; stabilna in predvidljiva oskrba z energijo.",
+    "detail": "Telo je popolnoma adaptirano na presnovo maščob in ketonov.",
+    "icon": "straighten"
+  },
+  {
+    "hour": 53,
+    "stageName": "Stimulacija nevrogeneze",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Nastanek novih nevronskih poti v hipokampusu.",
+    "detail": "Krepitev možganskih centrov za spomin in prostorsko orientacijo.",
+    "icon": "hub"
+  },
+  {
+    "hour": 54,
+    "stageName": "Obnova celičnih membran",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Fosfolipidi se reciklirajo in vgrajujejo v prožne, zdrave celične membrane.",
+    "detail": "Boljša prepustnost celic za hranila in signale ob zaključku posta.",
+    "icon": "grid_view"
+  },
+  {
+    "hour": 55,
+    "stageName": "Zmanjšanje vaskularnega vnetja",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Endotelijske celice žilne stene se obnavljajo in mehčajo.",
+    "detail": "Izboljšana funkcija endotelija in večja elastičnost arterij.",
+    "icon": "favorite_border"
+  },
+  {
+    "hour": 56,
+    "stageName": "Oksidacija globokih lipidov",
+    "stageCategory": "Ketoza & Maščobe",
+    "shortMessage": "Telo kuri dolgoverižne maščobne kisline za visoko raven energije.",
+    "detail": "Intenzivna poraba maščobnih rezerv po vsem telesu.",
+    "icon": "local_fire_department"
+  },
+  {
+    "hour": 57,
+    "stageName": "Povečana odpornost proti stresu",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Toplotno-šokovni proteini (HSP) ščitijo celično strukturo pred stresom.",
+    "detail": "Hormetični učinek posta krepi splošno odpornost organizma.",
+    "icon": "security"
+  },
+  {
+    "hour": 58,
+    "stageName": "Zaviranje vnetnih citokinov",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Ravni IL-6 in TNF-alfa v tkivih dosežejo minimalne vrednosti.",
+    "detail": "Močan protivnetni učinek na kronična vnetna žarišča v telesu.",
+    "icon": "sentiment_very_satisfied"
+  },
+  {
+    "hour": 59,
+    "stageName": "Epigenetska modulacija",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Epigenetske oznake se usmerjajo v gene za dolgoživost in regeneracijo.",
+    "detail": "Metilacija in acetilacija histonov spodbujata mladostno izražanje genov.",
+    "icon": "dna"
+  },
+  {
+    "hour": 60,
+    "stageName": "Ponastavitev hormonskih receptorjev",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Receptorji za leptin, inzulin in ščitnične hormone postajajo bolj odzivni.",
+    "detail": "Ponastavitev občutljivosti za sitost in metabolizem po prekinitvi posta.",
+    "icon": "settings_backup_restore"
+  },
+  {
+    "hour": 61,
+    "stageName": "Zaviranje onkogenih signalov",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Ugasnjene poti rasti preprečujejo nenadzorovano delitev atipičnih celic.",
+    "detail": "Pomanjkanje glukoze in inzulina deluje selektivno proti poškodovanim celicam.",
+    "icon": "block"
+  },
+  {
+    "hour": 62,
+    "stageName": "Maksimalna učinkovitost ATP",
+    "stageCategory": "Ketoza & Maščobe",
+    "shortMessage": "Mitohondriji proizvajajo maksimalno količino celične energije iz ketonov.",
+    "detail": "Čista energija za vse vitalne procese brez presnovnih nihanj.",
+    "icon": "offline_bolt"
+  },
+  {
+    "hour": 63,
+    "stageName": "Čiščenje limfnega sistema",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Limfni obtok učinkovito izpira celični odpad iz medceličnega prostora.",
+    "detail": "Zmanjšanje zadrževanja vode in otekanja v telesnih tkivih.",
+    "icon": "water"
+  },
+  {
+    "hour": 64,
+    "stageName": "Kardioprotekcija",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Zmanjšana oksidativna obremenitev srčne mišice in žilnega sistema.",
+    "detail": "Srce s pridom uporablja ketone kot zelo učinkovito gorivo.",
+    "icon": "favorite"
+  },
+  {
+    "hour": 65,
+    "stageName": "Remodelacija kolagena",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Avtofagija razgrajuje poškodovan kolagen in pripravlja sintezo novega.",
+    "detail": "Obnova ekstracelularnega matriksa v vezivnih tkivih in koži.",
+    "icon": "flare"
+  },
+  {
+    "hour": 66,
+    "stageName": "Vrhunec ravni BDNF",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Maksimalna stimulacija nevronske plastičnosti in spomina.",
+    "detail": "Možganska regeneracija na najvišjem nivoju v celotnem postu.",
+    "icon": "psychology_alt"
+  },
+  {
+    "hour": 67,
+    "stageName": "Proliferacija prekurzorskih celic",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Matične celice v organih so pripravljene na obnovo tkiv ob prvem obroku.",
+    "detail": "Telo je v stanju maksimalne regenerativne pripravljenosti.",
+    "icon": "all_inclusive"
+  },
+  {
+    "hour": 68,
+    "stageName": "Minimalni vnetni biomarkerji",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "hs-CRP in vnetni parametri so na svojem absolutnem minimumu.",
+    "detail": "Celostno zmanjšanje vnetnega bremena v celotnem organizmu.",
+    "icon": "verified"
+  },
+  {
+    "hour": 69,
+    "stageName": "Uravnoteženje avtoimunskega odziva",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Imunski sistem se umiri in modulira pretirane imunske reakcije.",
+    "detail": "Zmanjšanje tveganja za avtoimunske flare-upe in kronična vnetja.",
+    "icon": "balance"
+  },
+  {
+    "hour": 70,
+    "stageName": "Vrhunec regeneracije matičnih celic",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "Matične celice so na vrhuncu aktivnosti po vseh organskih sistemih.",
+    "detail": "Globoka regeneracija prebavil, imunskega sistema in kože.",
+    "icon": "diamond"
+  },
+  {
+    "hour": 71,
+    "stageName": "Priprava na prekinitev posta",
+    "stageCategory": "Prebava",
+    "shortMessage": "Prebavni encimi se pripravljajo na optimalen izkoristek prvih hranil.",
+    "detail": "Telo je pripravljeno na nežen prvi obrok z lahko prebavljivimi beljakovinami in maščobami.",
+    "icon": "soup_kitchen"
+  },
+  {
+    "hour": 72,
+    "stageName": "72-urni mejnik: Celovita imunska in celična prenova",
+    "stageCategory": "Regeneracija",
+    "shortMessage": "72 ur posta! Popoln reset imunskega sistema, zaključen cikel avtofagije in maksimalna prenova.",
+    "detail": "Čestitke za izjemen dosežek 3-dnevnega posta! Dosegli ste popolno regeneracijo imunskega sistema z matičnimi celicami in celovito celično čiščenje. Post prekinite počasi z lahko hrano.",
+    "icon": "emoji_events"
+  }
+]

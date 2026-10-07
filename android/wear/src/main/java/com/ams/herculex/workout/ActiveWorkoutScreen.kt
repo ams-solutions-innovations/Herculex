@@ -189,13 +189,18 @@ fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewMode
                             }
                         }
                 ) {
-                    val fallbackIcon = exercise.template.name.take(1).uppercase()
                     OneUiPill(
                         modifier = Modifier.padding(start = if (isLinked) 12.dp else 0.dp),
                         title = exercise.template.name,
                         statValue = "${exercise.completedSets}/${exercise.template.targetSets}",
                         statLabel = statLabelText,
-                        icon = fallbackIcon,
+                        iconComposable = {
+                            ExerciseArtwork(
+                                name = exercise.template.name,
+                                slug = exercise.template.slug,
+                                size = 38.dp,
+                            )
+                        },
                         style = if (isCurrent) OneUiPillStyle.RoyalBlue else OneUiPillStyle.SlateNavy,
                         onClick = {
                             viewModel.selectExerciseInSession(index)

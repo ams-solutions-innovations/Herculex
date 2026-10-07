@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/fasting/data/fasting_repository.dart';
 
@@ -28,35 +28,41 @@ void main() {
       await db.close();
     });
 
-    test('createSchedule persists all fields and defaults enabled to true', () async {
-      final id = await repo.createSchedule(
-        planName: 'h16',
-        daysOfWeek: 0x1F,
-        startTimeMinutes: 20 * 60,
-        autoStart: true,
-      );
+    test(
+      'createSchedule persists all fields and defaults enabled to true',
+      () async {
+        final id = await repo.createSchedule(
+          planName: 'h16',
+          daysOfWeek: 0x1F,
+          startTimeMinutes: 20 * 60,
+          autoStart: true,
+        );
 
-      final saved = await repo.schedule(id);
-      expect(saved, isNotNull);
-      expect(saved!.planName, 'h16');
-      expect(saved.customTargetSeconds, isNull);
-      expect(saved.daysOfWeek, 0x1F);
-      expect(saved.startTimeMinutes, 20 * 60);
-      expect(saved.enabled, isTrue);
-      expect(saved.autoStart, isTrue);
-    });
+        final saved = await repo.schedule(id);
+        expect(saved, isNotNull);
+        expect(saved!.planName, 'h16');
+        expect(saved.customTargetSeconds, isNull);
+        expect(saved.daysOfWeek, 0x1F);
+        expect(saved.startTimeMinutes, 20 * 60);
+        expect(saved.enabled, isTrue);
+        expect(saved.autoStart, isTrue);
+      },
+    );
 
-    test('createSchedule stores customTargetSeconds for a custom plan', () async {
-      final id = await repo.createSchedule(
-        planName: 'custom',
-        customTargetSeconds: 20 * 3600,
-        daysOfWeek: 0x7F,
-        startTimeMinutes: 6 * 60,
-      );
+    test(
+      'createSchedule stores customTargetSeconds for a custom plan',
+      () async {
+        final id = await repo.createSchedule(
+          planName: 'custom',
+          customTargetSeconds: 20 * 3600,
+          daysOfWeek: 0x7F,
+          startTimeMinutes: 6 * 60,
+        );
 
-      final saved = await repo.schedule(id);
-      expect(saved!.customTargetSeconds, 20 * 3600);
-    });
+        final saved = await repo.schedule(id);
+        expect(saved!.customTargetSeconds, 20 * 3600);
+      },
+    );
 
     test('watchSchedules orders by startTimeMinutes', () async {
       await repo.createSchedule(

@@ -41,25 +41,28 @@ void main() {
       expect(day4Phase, equals(CyclePhase.menstrual));
     });
 
-    test('predicts follicular phase after period until ovulation (days 5-11)', () {
-      // Day 5
-      final day5Phase = CyclePredictor.predictPhase(
-        date: DateTime(2026, 8, 6),
-        lastPeriodStart: periodStart,
-        avgCycleDays: 28,
-        avgPeriodDays: 5,
-      );
-      expect(day5Phase, equals(CyclePhase.follicular));
+    test(
+      'predicts follicular phase after period until ovulation (days 5-11)',
+      () {
+        // Day 5
+        final day5Phase = CyclePredictor.predictPhase(
+          date: DateTime(2026, 8, 6),
+          lastPeriodStart: periodStart,
+          avgCycleDays: 28,
+          avgPeriodDays: 5,
+        );
+        expect(day5Phase, equals(CyclePhase.follicular));
 
-      // Day 11
-      final day11Phase = CyclePredictor.predictPhase(
-        date: DateTime(2026, 8, 12),
-        lastPeriodStart: periodStart,
-        avgCycleDays: 28,
-        avgPeriodDays: 5,
-      );
-      expect(day11Phase, equals(CyclePhase.follicular));
-    });
+        // Day 11
+        final day11Phase = CyclePredictor.predictPhase(
+          date: DateTime(2026, 8, 12),
+          lastPeriodStart: periodStart,
+          avgCycleDays: 28,
+          avgPeriodDays: 5,
+        );
+        expect(day11Phase, equals(CyclePhase.follicular));
+      },
+    );
 
     test('predicts ovulatory phase during ovulation window (days 12-15)', () {
       // Day 13
@@ -94,32 +97,38 @@ void main() {
   });
 
   group('CycleAwareAdjuster Suggestions', () {
-    test('provides volume reductions and recovery recommendations for menstrual phase', () {
-      final adj = CycleAwareAdjuster.suggest(
-        phase: CyclePhase.menstrual,
-        dayOfCycle: 1,
-        totalCycleDays: 28,
-        daysUntilNextPeriod: 27,
-      );
+    test(
+      'provides volume reductions and recovery recommendations for menstrual phase',
+      () {
+        final adj = CycleAwareAdjuster.suggest(
+          phase: CyclePhase.menstrual,
+          dayOfCycle: 1,
+          totalCycleDays: 28,
+          daysUntilNextPeriod: 27,
+        );
 
-      expect(adj.volumeFactor, equals(0.8));
-      expect(adj.statusLabel, contains('VOLUME REDUCED 20%'));
-      expect(adj.trainingRecommendation, contains('deload volume'));
-      expect(adj.nutritionRecommendation, contains('iron'));
-    });
+        expect(adj.volumeFactor, equals(0.8));
+        expect(adj.statusLabel, contains('VOLUME REDUCED 20%'));
+        expect(adj.trainingRecommendation, contains('deload volume'));
+        expect(adj.nutritionRecommendation, contains('iron'));
+      },
+    );
 
-    test('provides volume boost and strength recommendations for follicular phase', () {
-      final adj = CycleAwareAdjuster.suggest(
-        phase: CyclePhase.follicular,
-        dayOfCycle: 7,
-        totalCycleDays: 28,
-        daysUntilNextPeriod: 21,
-      );
+    test(
+      'provides volume boost and strength recommendations for follicular phase',
+      () {
+        final adj = CycleAwareAdjuster.suggest(
+          phase: CyclePhase.follicular,
+          dayOfCycle: 7,
+          totalCycleDays: 28,
+          daysUntilNextPeriod: 21,
+        );
 
-      expect(adj.volumeFactor, equals(1.1));
-      expect(adj.statusLabel, contains('VOLUME BOOSTED +10%'));
-      expect(adj.trainingRecommendation, contains('progressive overload'));
-    });
+        expect(adj.volumeFactor, equals(1.1));
+        expect(adj.statusLabel, contains('VOLUME BOOSTED +10%'));
+        expect(adj.trainingRecommendation, contains('progressive overload'));
+      },
+    );
 
     test('provides peak intensity guidance for ovulatory phase', () {
       final adj = CycleAwareAdjuster.suggest(
@@ -200,22 +209,25 @@ void main() {
       expect(clearedAdj.isManualOverride, isFalse);
     });
 
-    test('ingesting health / Flo period dates updates cycle settings and logs entries', () async {
-      final periodDates = [
-        DateTime(2026, 8, 10),
-        DateTime(2026, 8, 11),
-        DateTime(2026, 8, 12),
-      ];
+    test(
+      'ingesting health / Flo period dates updates cycle settings and logs entries',
+      () async {
+        final periodDates = [
+          DateTime(2026, 8, 10),
+          DateTime(2026, 8, 11),
+          DateTime(2026, 8, 12),
+        ];
 
-      await repo.ingestHealthPeriodDates(periodDates);
+        await repo.ingestHealthPeriodDates(periodDates);
 
-      final settings = await repo.getSettings();
-      expect(settings, isNotNull);
-      expect(settings!.lastPeriodStart, equals(DateTime(2026, 8, 12)));
+        final settings = await repo.getSettings();
+        expect(settings, isNotNull);
+        expect(settings!.lastPeriodStart, equals(DateTime(2026, 8, 12)));
 
-      final recentLogs = await repo.watchRecentLogs().first;
-      expect(recentLogs.length, equals(3));
-      expect(recentLogs.any((l) => l.dateIso == '2026-08-10'), isTrue);
-    });
+        final recentLogs = await repo.watchRecentLogs().first;
+        expect(recentLogs.length, equals(3));
+        expect(recentLogs.any((l) => l.dateIso == '2026-08-10'), isTrue);
+      },
+    );
   });
 }

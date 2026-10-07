@@ -1,4 +1,4 @@
-import 'training_snapshot.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 
 class BalanceResult {
   final double pushPercentage;
@@ -19,9 +19,7 @@ class BalanceResult {
 }
 
 class BalanceAnalyzer {
-  static BalanceResult summary({
-    required List<ResolvedSet> sets,
-  }) {
+  static BalanceResult summary({required List<ResolvedSet> sets}) {
     double pushTonnage = 0;
     double pullTonnage = 0;
 
@@ -29,7 +27,10 @@ class BalanceAnalyzer {
       final force = resolvedSet.exercise.force.toLowerCase();
       final muscle = resolvedSet.exercise.primaryMuscle.toLowerCase();
 
-      if (force == 'push' || muscle == 'chest' || muscle == 'shoulders' || muscle == 'triceps') {
+      if (force == 'push' ||
+          muscle == 'chest' ||
+          muscle == 'shoulders' ||
+          muscle == 'triceps') {
         pushTonnage += resolvedSet.tonnageKg;
       } else if (force == 'pull' || muscle == 'back' || muscle == 'biceps') {
         pullTonnage += resolvedSet.tonnageKg;

@@ -2,18 +2,19 @@ import 'dart:developer' show log;
 
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:herculex/data/local/accessory_seed.dart';
+import 'package:herculex/data/local/exercise_importer.dart';
+import 'package:herculex/data/local/exercise_merge.dart';
+import 'package:herculex/data/local/exercise_merges.dart';
+import 'package:herculex/data/local/fk_repair.dart';
+import 'package:herculex/data/local/migrations/nutrition_snapshot_backfill.dart';
+import 'package:herculex/data/local/migrations/sync_backfill.dart';
+import 'package:herculex/data/local/migrations/sync_triggers.dart';
+import 'package:herculex/data/local/tables.dart';
+import 'package:herculex/features/fasting/data/fasting_stage_importer.dart';
+import 'package:herculex/features/hercul/data/hercul_rule_importer.dart';
+import 'package:herculex/features/nutrition/data/food_catalogue_importer.dart';
 import 'package:uuid/uuid.dart';
-
-import 'accessory_seed.dart';
-import 'exercise_importer.dart';
-import 'exercise_merge.dart';
-import 'exercise_merges.dart';
-import 'fk_repair.dart';
-import 'migrations/nutrition_snapshot_backfill.dart';
-import 'migrations/sync_backfill.dart';
-import 'migrations/sync_triggers.dart';
-import '../../features/nutrition/data/food_catalogue_importer.dart';
-import 'tables.dart';
 
 part 'database.g.dart';
 
@@ -64,11 +65,6 @@ part 'database.g.dart';
     DietSchedules,
     CarbCyclePlans,
     SyncCursors,
-    // Assisted rep tracking (v26). Local-only: never added to
-    // syncedTableNames or syncTableSpecs.
-    RepTrackingSettings,
-    RepTrackingExercisePrefs,
-    RepSetObservations,
     FastingSchedules,
     // Gym Buddy (v29). Local-only: never added to syncedTableNames or
     // syncTableSpecs.
@@ -77,6 +73,12 @@ part 'database.g.dart';
     // Workout Circuits (v34)
     WorkoutCircuits,
     CircuitExercises,
+    // Gamification & Hercul Coaching Engine (v35)
+    Achievements,
+    HerculRules,
+    HerculMessageLog,
+    // Physiological fasting stages (v36)
+    FastingStages,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -86,7 +88,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 34;
+  int get schemaVersion => 38;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -94,6 +96,8 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
       await ExerciseImporter.runFromAsset(this);
       await AccessorySeed.run(this);
+      await HerculRuleImporter.runFromAsset(this);
+      await FastingStageImporter.runFromAsset(this);
       if (seedFoodCatalogue) {
         await FoodCatalogueImporter.runIfNeeded(this);
       }
@@ -408,7 +412,9 @@ class AppDatabase extends _$AppDatabase {
         }
         for (final entry in report.deleted.entries) {
           if (entry.value > 0) {
-            log('Migration v23: deleted ${entry.value} orphan rows from ${entry.key}');
+            log(
+              'Migration v23: deleted ${entry.value} orphan rows from ${entry.key}',
+            );
           }
         }
         if (report.residualViolations > 0) {
@@ -649,15 +655,11 @@ class AppDatabase extends _$AppDatabase {
 
         await installSyncTriggers(this);
       }
-      if (from < 26) {
-        // Assisted rep tracking (Phase 10). Three local-only tables — no
-        // sync columns, no outbox trigger, no entry in syncedTableNames.
-        // No backfill: the absence of a row correctly means "no consent
-        // given" and "not enabled for this exercise".
-        await m.createTable(repTrackingSettings);
-        await m.createTable(repTrackingExercisePrefs);
-        await m.createTable(repSetObservations);
-      }
+      // from < 26 used to create three local-only assisted-rep-tracking
+      // tables here. The feature was removed (v38 drops them for any device
+      // that has them); no-op rather than deleted so the version numbering
+      // stays historically accurate and every later `if (from < N)` step
+      // keeps meaning exactly what it always meant.
       if (from < 27) {
         // UI rework Phase 6: recurring fasting "notify to start" schedules.
         // Synced (SyncColumns + SyncTombstone), so it needs the same
@@ -714,7 +716,10 @@ class AppDatabase extends _$AppDatabase {
         }
 
         await tryAddColumn(programDays, programDays.startTimeMinutes);
-        await tryAddColumn(scheduledWorkouts, scheduledWorkouts.startTimeMinutes);
+        await tryAddColumn(
+          scheduledWorkouts,
+          scheduledWorkouts.startTimeMinutes,
+        );
       }
       if (from < 29) {
         // Gym Buddy (Phase 11). Two local-only tables — no sync columns, no
@@ -745,42 +750,19 @@ class AppDatabase extends _$AppDatabase {
 
         await tryAddColumn(workoutSessions, workoutSessions.buddySessionId);
       }
-      if (from < 30 && to >= 30) {
-        // Assisted rep tracking gains its single global switch. Per-exercise
-        // opt-in is replaced by capability profiles derived from the
-        // catalogue, so what the user configures is one setting rather than
-        // one decision per exercise.
-        //
-        // Local-only table, so no sync columns, no tombstone and no outbox
-        // trigger — the same idiom as the v26 block that created it.
-        //
-        // Needs the `to >=` half of the guard for the reason spelled out in
-        // the v28 and v29 comments above: SchemaVerifier.migrateAndValidate
-        // fakes intermediate target versions and addColumn has no
-        // IF NOT EXISTS.
-        //
-        // NOTE ON VERSION ALLOCATION: this took the next free number rather
-        // than skipping one for GSD 12-04, which was then unlanded and also
-        // wanted a version. Leaving a hole would have been the dangerous
-        // option — a user who upgraded to 31 before 12-04 landed would then
-        // have `from = 31` and would never run its `from < 30` step at all.
-        // 12-04 duly took v31; see the block below.
-        Future<void> tryAddColumn(
-          TableInfo<Table, dynamic> table,
-          GeneratedColumn column,
-        ) async {
-          try {
-            await m.addColumn(table, column);
-          } catch (_) {
-            // Column already exists on this fixture; see comment above.
-          }
-        }
-
-        await tryAddColumn(
-          repTrackingSettings,
-          repTrackingSettings.autoCountEnabled,
-        );
-      }
+      // from < 30 used to add assisted-rep-tracking's global-switch column
+      // here (on a table the v26 step above no longer creates, now that the
+      // feature is removed). No-op for the same reason the v26 step is a
+      // no-op rather than deleted: version numbering must stay historically
+      // accurate, so a device sitting on v29 still takes exactly the same
+      // `from < N` steps it always did, minus the ones that no longer apply.
+      //
+      // NOTE ON VERSION ALLOCATION, preserved from the original comment:
+      // v30 took the next free number rather than skipping one for GSD
+      // 12-04, which was then unlanded and also wanted a version. Leaving a
+      // hole would have been the dangerous option — a user who upgraded to
+      // 31 before 12-04 landed would then have `from = 31` and would never
+      // run its `from < 30` step at all. 12-04 duly took v31; see below.
       if (from < 31 && to >= 31) {
         // GSD 12-04 (EXR-05): a set is stored in the unit its exercise is
         // actually measured in. Three nullable columns on `set_entries`, no
@@ -850,6 +832,80 @@ class AppDatabase extends _$AppDatabase {
         );
         await installSyncTriggers(this);
       }
+      if (from < 35) {
+        await m.createTable(achievements);
+        await m.createTable(herculRules);
+        await m.createTable(herculMessageLog);
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_achievements '
+          'ON achievements(sync_uuid)',
+        );
+        await installSyncTriggers(this);
+        await HerculRuleImporter.runFromAsset(this);
+      }
+      if (from < 36) {
+        await m.createTable(fastingStages);
+        await FastingStageImporter.runFromAsset(this);
+      }
+      if (from < 37) {
+        // Double progression + per-exercise overrides. All six columns are
+        // added rather than the table recreated, so existing progression
+        // rows keep their goal/weeklyIncreasePct settings. The three
+        // non-nullable ones carry defaults ('linear', false, 3), which is
+        // exactly the previous behaviour, so untouched rows keep progressing
+        // the way they did before the upgrade.
+        //
+        // Added column-by-column against what the table actually has, rather
+        // than unconditionally, because the hand-written migration fixtures
+        // land on both sides of this step:
+        //
+        //  - schema_v21_test.dart and friends build a *narrow* v20/v23
+        //    database containing only the tables that test cares about, so
+        //    `exercise_progressions` (created by the v11 step) is absent
+        //    entirely — an unguarded ALTER there turns "this fixture is
+        //    narrow" into "the database cannot be opened".
+        //  - fk_repair_test.dart builds its fixture from the *current* table
+        //    definitions, so the six columns are already present before
+        //    onUpgrade runs, and a plain ALTER fails with "duplicate column".
+        //
+        // pragma_table_info returns no rows for a table that does not exist,
+        // so the empty case covers the first bullet without a second query.
+        // Still specific rather than a blanket try/catch, so a genuinely
+        // failed ALTER on a real device surfaces instead of being swallowed.
+        final progressionCols = await customSelect(
+          "SELECT name FROM pragma_table_info('exercise_progressions')",
+        ).get();
+        final have = progressionCols.map((r) => r.read<String>('name')).toSet();
+        if (have.isNotEmpty) {
+          final newColumns = <String, GeneratedColumn<Object>>{
+            'progression_model': exerciseProgressions.progressionModel,
+            'target_sets': exerciseProgressions.targetSets,
+            'target_reps_min': exerciseProgressions.targetRepsMin,
+            'target_reps_max': exerciseProgressions.targetRepsMax,
+            'auto_add_sets': exerciseProgressions.autoAddSets,
+            'auto_add_sets_count': exerciseProgressions.autoAddSetsCount,
+          };
+          for (final entry in newColumns.entries) {
+            if (!have.contains(entry.key)) {
+              await m.addColumn(exerciseProgressions, entry.value);
+            }
+          }
+        }
+      }
+      if (from < 38) {
+        // Assisted rep tracking (v26) is removed. All three tables were
+        // local-only from the start — never in syncedTableNames or
+        // syncTableSpecs — so there is no remote side to clean up and no
+        // outbox rows to worry about; this is a plain local DROP.
+        //
+        // `IF EXISTS` because the hand-written migration fixtures in
+        // schema_v21_test.dart and friends build a *narrow* pre-v26 database
+        // that never had these tables to begin with — same reasoning as the
+        // v37 step's `pragma_table_info` guard just above.
+        await customStatement('DROP TABLE IF EXISTS rep_set_observations');
+        await customStatement('DROP TABLE IF EXISTS rep_tracking_exercise_prefs');
+        await customStatement('DROP TABLE IF EXISTS rep_tracking_settings');
+      }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is
     // issued. It cannot live in onCreate/onUpgrade — those run inside a
@@ -882,6 +938,13 @@ class AppDatabase extends _$AppDatabase {
       ).getSingleOrNull();
       if (catalogueExists != null) {
         await ExerciseImporter.runFromAsset(this);
+      }
+      final fastingStagesExists = await customSelect(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+        "AND name = 'fasting_stages'",
+      ).getSingleOrNull();
+      if (fastingStagesExists != null) {
+        await FastingStageImporter.runFromAsset(this);
       }
     },
   );

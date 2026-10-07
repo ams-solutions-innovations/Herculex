@@ -1,4 +1,4 @@
-import 'set_type.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 
 /// Band attached to a set, resolved to its tension.
 class BandContribution {
@@ -56,6 +56,5 @@ class EffectiveLoad {
     required double effectiveKg,
     required int reps,
     SetType setType = SetType.standard,
-  }) =>
-      effectiveKg * reps * setType.volumeFactor;
+  }) => effectiveKg * reps * setType.volumeFactor;
 }

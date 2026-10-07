@@ -40,11 +40,10 @@ enum LoggingMetric {
   repsTime('reps_time', 'Reps & Time', [SetField.reps, SetField.duration]),
   time('time', 'Time', [SetField.duration]),
   distance('distance', 'Distance', [SetField.distance]),
-  timeDistance(
-    'time_distance',
-    'Time & Distance',
-    [SetField.duration, SetField.distance],
-  ),
+  timeDistance('time_distance', 'Time & Distance', [
+    SetField.duration,
+    SetField.distance,
+  ]),
   weightTime('weight_time', 'Weight & Time', [
     SetField.weight,
     SetField.duration,
@@ -54,11 +53,10 @@ enum LoggingMetric {
     SetField.distance,
   ]),
   calories('calories', 'Calories', [SetField.calories]),
-  timeCalories(
-    'time_calories',
-    'Time & Calories',
-    [SetField.duration, SetField.calories],
-  );
+  timeCalories('time_calories', 'Time & Calories', [
+    SetField.duration,
+    SetField.calories,
+  ]);
 
   const LoggingMetric(this.id, this.label, this.fields);
 
@@ -83,8 +81,10 @@ enum LoggingMetric {
 
   /// Unknown ids fall back to the catalog default rather than throwing —
   /// a custom row written by an older build must still open.
-  static LoggingMetric fromId(String? id) =>
-      values.firstWhere((m) => m.id == id, orElse: () => LoggingMetric.weightReps);
+  static LoggingMetric fromId(String? id) => values.firstWhere(
+    (m) => m.id == id,
+    orElse: () => LoggingMetric.weightReps,
+  );
 
   /// Every id the catalog is allowed to contain. Used by the catalog
   /// validation test to keep the asset and this registry in step.

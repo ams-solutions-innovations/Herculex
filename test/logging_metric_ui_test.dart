@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/units.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
-import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
 import 'package:herculex/features/workouts/domain/set_metric_format.dart';
-import 'package:herculex/features/workouts/presentation/active_exercise_card.dart';
+import 'package:herculex/features/workouts/presentation/widgets/active_exercise_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/test_database.dart';
@@ -54,8 +53,9 @@ void main() {
             loggingMetric: Value(loggingMetric),
           ),
         );
-    return (db.select(db.exerciseCatalog)..where((t) => t.id.equals(id)))
-        .getSingle();
+    return (db.select(
+      db.exerciseCatalog,
+    )..where((t) => t.id.equals(id))).getSingle();
   }
 
   /// A session with one exercise and one empty set, ready to be logged into.
@@ -286,27 +286,30 @@ void main() {
       }
     });
 
-    test('a weight_reps summary is unchanged from the old hardcoded string', () {
-      final set = SetEntryData(
-        id: 1,
-        workoutExerciseId: 1,
-        setIndex: 0,
-        weightKg: 60,
-        reps: 8,
-        isWarmup: false,
-        isCompleted: true,
-        setType: 'standard',
-      );
-      expect(
-        SetMetricFormat.summariseSet(
-          set,
-          metric: LoggingMetric.weightReps,
-          weight: const WeightFormat(MeasurementUnit.metric),
-          distance: const DistanceFormat(MeasurementUnit.metric),
-        ),
-        '60 kg × 8',
-      );
-    });
+    test(
+      'a weight_reps summary is unchanged from the old hardcoded string',
+      () {
+        final set = SetEntryData(
+          id: 1,
+          workoutExerciseId: 1,
+          setIndex: 0,
+          weightKg: 60,
+          reps: 8,
+          isWarmup: false,
+          isCompleted: true,
+          setType: 'standard',
+        );
+        expect(
+          SetMetricFormat.summariseSet(
+            set,
+            metric: LoggingMetric.weightReps,
+            weight: const WeightFormat(MeasurementUnit.metric),
+            distance: const DistanceFormat(MeasurementUnit.metric),
+          ),
+          '60 kg × 8',
+        );
+      },
+    );
 
     test('a non-rep summary reads in its own units', () {
       final sled = SetEntryData(

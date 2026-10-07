@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
+import 'package:herculex/features/fasting/domain/fasting_plan.dart';
+import 'package:herculex/features/fasting/domain/fasting_schedule_occurrence.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../data/local/database.dart';
-import '../../../../theme/colors.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../../ui/ui.dart';
-import '../../../../widgets/premium_button.dart';
-import '../../domain/fasting_plan.dart';
-import '../../domain/fasting_schedule_occurrence.dart';
-import '../fasting_providers.dart';
 
 /// Add/edit sheet for one [FastingScheduleData] row. Pass [existing] to
 /// edit — its id and current values seed the form and a delete action
@@ -70,7 +69,7 @@ class _FastingScheduleEditorSheetState
       _startTime = const TimeOfDay(hour: 20, minute: 0);
       _plan = FastingPlan.h16;
       _customHours = 16;
-      _autoStart = false;
+      _autoStart = true;
       _enabled = true;
     }
   }
@@ -116,8 +115,10 @@ class _FastingScheduleEditorSheetState
         children: [
           Text(
             'REPEAT',
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: hx.secondary, letterSpacing: 1.0),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: hx.secondary,
+              letterSpacing: 1.0,
+            ),
           ),
           const SizedBox(height: 8),
           Row(
@@ -130,8 +131,10 @@ class _FastingScheduleEditorSheetState
           const SizedBox(height: 20),
           Text(
             'TIME',
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: hx.secondary, letterSpacing: 1.0),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: hx.secondary,
+              letterSpacing: 1.0,
+            ),
           ),
           const SizedBox(height: 8),
           _tile(
@@ -143,8 +146,10 @@ class _FastingScheduleEditorSheetState
           const SizedBox(height: 20),
           Text(
             'PLAN',
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: hx.secondary, letterSpacing: 1.0),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: hx.secondary,
+              letterSpacing: 1.0,
+            ),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -168,8 +173,7 @@ class _FastingScheduleEditorSheetState
             contentPadding: EdgeInsets.zero,
             title: const Text('Start automatically'),
             subtitle: Text(
-              'Tapping the reminder starts the fast right away instead of '
-              'just opening the app.',
+              'Automatically starts the fast when the scheduled time arrives.',
               style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
             ),
             value: _autoStart,
@@ -188,8 +192,10 @@ class _FastingScheduleEditorSheetState
             const SizedBox(height: 12),
             Text(
               'NEXT REMINDERS',
-              style: theme.textTheme.labelSmall
-                  ?.copyWith(color: hx.secondary, letterSpacing: 1.0),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: hx.secondary,
+                letterSpacing: 1.0,
+              ),
             ),
             const SizedBox(height: 8),
             for (final occurrence in preview)
@@ -230,8 +236,9 @@ class _FastingScheduleEditorSheetState
             const SizedBox(width: 12),
             Text(
               label,
-              style: theme.textTheme.bodyLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const Spacer(),
             Icon(Icons.edit, size: 14, color: hx.domainFasting),
@@ -308,7 +315,10 @@ class _FastingScheduleEditorSheetState
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: _startTime);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _startTime,
+    );
     if (picked != null) setState(() => _startTime = picked);
   }
 
@@ -319,14 +329,19 @@ class _FastingScheduleEditorSheetState
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => AlertDialog(
           backgroundColor: AppColors.surfaceContainerLowest,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           title: const Text('Custom Fast Duration'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 '$tempHours hours',
-                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
               Slider(
@@ -340,7 +355,10 @@ class _FastingScheduleEditorSheetState
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('CANCEL'),
+            ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, tempHours),
               child: const Text('SET DURATION'),
@@ -359,8 +377,9 @@ class _FastingScheduleEditorSheetState
     final repo = ref.read(fastingRepositoryProvider);
     final scheduler = ref.read(fastingScheduleServiceProvider);
     final existing = widget.existing;
-    final customTargetSeconds =
-        _plan == FastingPlan.custom ? _customHours * 3600 : null;
+    final customTargetSeconds = _plan == FastingPlan.custom
+        ? _customHours * 3600
+        : null;
 
     final int id;
     if (existing != null) {
@@ -395,7 +414,9 @@ class _FastingScheduleEditorSheetState
     if (existing == null || _saving) return;
     setState(() => _saving = true);
 
-    await ref.read(fastingScheduleServiceProvider).cancelForSchedule(existing.id);
+    await ref
+        .read(fastingScheduleServiceProvider)
+        .cancelForSchedule(existing.id);
     await ref.read(fastingRepositoryProvider).deleteSchedule(existing.id);
 
     if (mounted) Navigator.of(context).pop();

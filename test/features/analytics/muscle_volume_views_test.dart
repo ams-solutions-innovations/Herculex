@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/design_system/theme/app_theme.dart';
+import 'package:herculex/features/analytics/application/muscle_volume_providers.dart';
 import 'package:herculex/features/analytics/domain/muscle_volume_details.dart';
-import 'package:herculex/features/analytics/presentation/muscle_volume_detail_view.dart';
-import 'package:herculex/features/analytics/presentation/muscle_volume_overview_view.dart';
-import 'package:herculex/features/analytics/presentation/muscle_volume_providers.dart';
+import 'package:herculex/features/analytics/presentation/views/muscle_volume_detail_view.dart';
+import 'package:herculex/features/analytics/presentation/views/muscle_volume_overview_view.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
-import 'package:herculex/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -121,40 +121,41 @@ void main() {
     ],
   );
 
-  testWidgets('MuscleVolumeOverviewView renders headline metrics and muscle items', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    'MuscleVolumeOverviewView renders headline metrics and muscle items',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          muscleVolumeOverviewProvider.overrideWith(
-            (ref) => dummyOverviewData,
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            muscleVolumeOverviewProvider.overrideWith(
+              (ref) => dummyOverviewData,
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.darkTheme,
+            home: const MuscleVolumeOverviewView(),
           ),
-        ],
-        child: MaterialApp(
-          theme: AppTheme.darkTheme,
-          home: const MuscleVolumeOverviewView(),
         ),
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    expect(find.text('Volume Breakdown'), findsOneWidget);
-    expect(find.text('TOTAL VOLUME'), findsOneWidget);
-    expect(find.text('Chest'), findsOneWidget);
-    expect(find.text('Quads'), findsOneWidget);
-    expect(find.text('Abs'), findsOneWidget);
-  });
+      expect(find.text('Volume Breakdown'), findsOneWidget);
+      expect(find.text('TOTAL VOLUME'), findsOneWidget);
+      expect(find.text('Chest'), findsOneWidget);
+      expect(find.text('Quads'), findsOneWidget);
+      expect(find.text('Abs'), findsOneWidget);
+    },
+  );
 
   testWidgets('MuscleVolumeDetailView renders muscle stats and exercise logs', (
     tester,
@@ -171,9 +172,9 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          muscleVolumeDetailProvider('Chest').overrideWith(
-            (ref) => dummyDetailData,
-          ),
+          muscleVolumeDetailProvider(
+            'Chest',
+          ).overrideWith((ref) => dummyDetailData),
         ],
         child: MaterialApp(
           theme: AppTheme.darkTheme,
@@ -186,7 +187,10 @@ void main() {
 
     expect(find.text('Chest Volume'), findsOneWidget);
     expect(find.text('Chest & Triceps Hypertrophy • 15:30'), findsOneWidget);
-    expect(find.text('Barbell Bench Press'), findsNWidgets(2)); // Most frequent tag + exercise item
+    expect(
+      find.text('Barbell Bench Press'),
+      findsNWidgets(2),
+    ); // Most frequent tag + exercise item
     expect(find.text('Primary (100%)'), findsOneWidget);
     expect(find.text('View'), findsOneWidget);
   });

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../theme/colors.dart';
-import '../../../health/domain/cycle_adjuster.dart';
-import '../../../health/presentation/cycle_providers.dart';
-import 'dashboard_shared.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/features/health/application/cycle_providers.dart';
+import 'package:herculex/features/health/domain/cycle_adjuster.dart';
 
 /// Cycle-phase focus card (§18). Live reactive card showing current phase,
 /// physiological recommendations, volume adjustments, and tap to view cycle tracker.
@@ -40,87 +40,90 @@ class CycleFocusCard extends ConsumerWidget {
 
         return dashboardCard(
           accent: phaseColor,
-          onTap: () => context.push('/cycle'),
+          onTap: () => context.push(AppRoutes.cycle),
           padding: const EdgeInsets.all(20),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: phaseColor.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(phase.icon, color: phaseColor, size: 22),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: phaseColor.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            phase.title,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                child: Icon(phase.icon, color: phaseColor, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          phase.title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: phaseColor.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              adjustment.isManualOverride
-                                  ? 'OVERRIDE'
-                                  : 'DAY ${adjustment.dayOfCycle + 1}',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: phaseColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        adjustment.trainingRecommendation,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                          height: 1.3,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Text(
-                            adjustment.statusLabel,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: phaseColor.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            adjustment.isManualOverride
+                                ? 'OVERRIDE'
+                                : 'DAY ${adjustment.dayOfCycle + 1}',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: phaseColor,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const Spacer(),
-                          Text(
-                            'Track & Sync ›',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: phaseColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      adjustment.trainingRecommendation,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                        height: 1.3,
                       ),
-                    ],
-                  ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text(
+                          adjustment.statusLabel,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: phaseColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          'Track & Sync ›',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: phaseColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
         );
       },
     );

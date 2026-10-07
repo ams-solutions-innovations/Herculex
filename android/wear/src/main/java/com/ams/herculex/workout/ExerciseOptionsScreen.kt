@@ -64,7 +64,7 @@ fun ExerciseOptionsScreen(navController: NavController, viewModel: WorkoutViewMo
             OneUiPill(
                 title = "Add Exercise",
                 icon = "+",
-                style = OneUiPillStyle.SlateNavy,
+                style = OneUiPillStyle.AccentBlue,
                 onClick = { navController.navigate("select_exercise/add/-1") },
             )
         }
@@ -74,7 +74,7 @@ fun ExerciseOptionsScreen(navController: NavController, viewModel: WorkoutViewMo
             OneUiPill(
                 title = "Substitute Exercise",
                 icon = "⇄",
-                style = OneUiPillStyle.SlateNavy,
+                style = OneUiPillStyle.RoyalBlue,
                 onClick = { navController.navigate("manage_exercise/substitute") },
             )
         }
@@ -84,7 +84,7 @@ fun ExerciseOptionsScreen(navController: NavController, viewModel: WorkoutViewMo
             OneUiPill(
                 title = "Remove Exercise",
                 icon = "✕",
-                style = OneUiPillStyle.SlateNavy,
+                style = OneUiPillStyle.DangerTransparent,
                 onClick = { navController.navigate("manage_exercise/remove") },
             )
         }

@@ -1,11 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../fasting/presentation/fasting_providers.dart';
-import '../../nutrition/presentation/meal_slots_provider.dart';
-import '../../supplements/presentation/supplement_providers.dart';
-import '../presentation/notification_settings_provider.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
+import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
+import 'package:herculex/features/nutrition/application/meal_slots_provider.dart';
+import 'package:herculex/features/supplements/application/supplement_providers.dart';
 
 /// Coordinates and synchronizes all local notifications (meals, supplements,
 /// fasting, daily check-in) whenever user data or notification settings change.
@@ -81,11 +80,12 @@ class NotificationSyncService {
       final settings = _ref.read(notificationSettingsProvider);
       final repo = _ref.read(fastingRepositoryProvider);
       final scheduler = _ref.read(fastingScheduleServiceProvider);
-      final schedules = _ref.read(fastingSchedulesProvider).asData?.value ??
-          await repo
-              .watchSchedules()
-              .first
-              .timeout(const Duration(seconds: 2), onTimeout: () => const []);
+      final schedules =
+          _ref.read(fastingSchedulesProvider).asData?.value ??
+          await repo.watchSchedules().first.timeout(
+            const Duration(seconds: 2),
+            onTimeout: () => const [],
+          );
       await scheduler.rescheduleAll(
         schedules,
         enabled: settings.fastingScheduleRemindersEnabled,
@@ -102,6 +102,8 @@ class NotificationSyncService {
   }
 }
 
-final notificationSyncServiceProvider = Provider<NotificationSyncService>((ref) {
+final notificationSyncServiceProvider = Provider<NotificationSyncService>((
+  ref,
+) {
   return NotificationSyncService(ref);
 });

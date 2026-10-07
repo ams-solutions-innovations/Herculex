@@ -1,9 +1,8 @@
 import 'package:drift/drift.dart';
-
-import '../../../data/local/database.dart';
-import '../domain/periodization.dart';
-import '../domain/program_csv.dart';
-import 'programs_repository.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/data/programs_repository.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
+import 'package:herculex/features/programs/domain/program_csv.dart';
 
 /// Database glue for program CSV import/export (V2 §12). The pure codec is
 /// [ProgramCsv]; this resolves exercise names against the catalog (alias-
@@ -15,20 +14,22 @@ class ProgramCsvIo {
   ProgramCsvIo(this._db) : _programs = ProgramsRepository(_db);
 
   Future<String> exportProgram(int programId) async {
-    final program = await (_db.select(_db.programs)
-          ..where((t) => t.id.equals(programId)))
-        .getSingle();
-    final weeks = await (_db.select(_db.programWeeks)
-          ..where((t) => t.programId.equals(programId))
-          ..orderBy([(t) => OrderingTerm(expression: t.weekIndex)]))
-        .get();
+    final program = await (_db.select(
+      _db.programs,
+    )..where((t) => t.id.equals(programId))).getSingle();
+    final weeks =
+        await (_db.select(_db.programWeeks)
+              ..where((t) => t.programId.equals(programId))
+              ..orderBy([(t) => OrderingTerm(expression: t.weekIndex)]))
+            .get();
 
     final rows = <ProgramCsvRow>[];
     for (final week in weeks) {
-      final days = await (_db.select(_db.programDays)
-            ..where((t) => t.programWeekId.equals(week.id))
-            ..orderBy([(t) => OrderingTerm(expression: t.dayOfWeek)]))
-          .get();
+      final days =
+          await (_db.select(_db.programDays)
+                ..where((t) => t.programWeekId.equals(week.id))
+                ..orderBy([(t) => OrderingTerm(expression: t.dayOfWeek)]))
+              .get();
       for (final day in days) {
         // Resolved rather than read from ProgramDayExercises directly, so a
         // day whose content comes from a linked template still exports. The
@@ -36,40 +37,46 @@ class ProgramCsvIo {
         // re-importing produces an equivalent program with inline exercises.
         final exercises = await _programs.resolveDayExercises(day.id);
         for (final resolved in exercises) {
-          final ex = await (_db.select(_db.exerciseCatalog)
-                ..where((t) => t.id.equals(resolved.exerciseId)))
-              .getSingle();
+          final ex = await (_db.select(
+            _db.exerciseCatalog,
+          )..where((t) => t.id.equals(resolved.exerciseId))).getSingle();
           final pde = resolved.fromTemplate
               ? null
               : await (_db.select(_db.programDayExercises)
-                    ..where((t) =>
-                        t.programDayId.equals(day.id) &
-                        t.exerciseId.equals(resolved.exerciseId))
-                    ..limit(1))
-                  .getSingleOrNull();
-          rows.add(ProgramCsvRow(
-            weekIndex: week.weekIndex,
-            dayOfWeek: day.dayOfWeek,
-            dayName: day.name,
-            exerciseName: ex.name,
-            sets: resolved.targetSets,
-            repsMin: resolved.targetRepsMin,
-            repsMax: resolved.targetRepsMax,
-            rpe: pde?.targetRpe,
-            setType: pde?.setType ?? 'standard',
-            percentOf1Rm: pde?.percentOf1Rm,
-            equipmentVariant: pde?.equipmentVariant,
-          ));
+                      ..where(
+                        (t) =>
+                            t.programDayId.equals(day.id) &
+                            t.exerciseId.equals(resolved.exerciseId),
+                      )
+                      ..limit(1))
+                    .getSingleOrNull();
+          rows.add(
+            ProgramCsvRow(
+              weekIndex: week.weekIndex,
+              dayOfWeek: day.dayOfWeek,
+              dayName: day.name,
+              exerciseName: ex.name,
+              sets: resolved.targetSets,
+              repsMin: resolved.targetRepsMin,
+              repsMax: resolved.targetRepsMax,
+              rpe: pde?.targetRpe,
+              setType: pde?.setType ?? 'standard',
+              percentOf1Rm: pde?.percentOf1Rm,
+              equipmentVariant: pde?.equipmentVariant,
+            ),
+          );
         }
       }
     }
 
-    return ProgramCsv.encode(ProgramCsvDocument(
-      name: program.name,
-      weeks: program.weeks,
-      periodizationModel: program.periodizationModel,
-      rows: rows,
-    ));
+    return ProgramCsv.encode(
+      ProgramCsvDocument(
+        name: program.name,
+        weeks: program.weeks,
+        periodizationModel: program.periodizationModel,
+        rows: rows,
+      ),
+    );
   }
 
   /// Imports a CSV document as a new program. Exercise names resolve against
@@ -100,9 +107,15 @@ class ProgramCsvIo {
       final key = row.exerciseName.toLowerCase();
       var ex = byName[key];
       ex ??= catalog
-          .where((e) =>
-              e.aka != null &&
-              e.aka!.toLowerCase().split(',').map((a) => a.trim()).contains(key))
+          .where(
+            (e) =>
+                e.aka != null &&
+                e.aka!
+                    .toLowerCase()
+                    .split(',')
+                    .map((a) => a.trim())
+                    .contains(key),
+          )
           .firstOrNull;
       if (ex == null) {
         missing.add(row.exerciseName);
@@ -112,11 +125,14 @@ class ProgramCsvIo {
     }
     if (missing.isNotEmpty) {
       throw ProgramCsvFormatException(
-          'Unknown exercises: ${missing.join(', ')}');
+        'Unknown exercises: ${missing.join(', ')}',
+      );
     }
 
     return _db.transaction(() async {
-      final programId = await _db.into(_db.programs).insert(
+      final programId = await _db
+          .into(_db.programs)
+          .insert(
             ProgramsCompanion.insert(
               name: doc.name,
               description: Value(description),
@@ -127,7 +143,9 @@ class ProgramCsvIo {
           );
 
       for (final week in plan) {
-        final weekId = await _db.into(_db.programWeeks).insert(
+        final weekId = await _db
+            .into(_db.programWeeks)
+            .insert(
               ProgramWeeksCompanion.insert(
                 programId: programId,
                 weekIndex: week.weekIndex,
@@ -137,14 +155,17 @@ class ProgramCsvIo {
               ),
             );
 
-        final weekRows =
-            doc.rows.where((r) => r.weekIndex == week.weekIndex).toList();
+        final weekRows = doc.rows
+            .where((r) => r.weekIndex == week.weekIndex)
+            .toList();
         final dayKeys = <(int, String), int>{}; // (dayOfWeek, name) → dayId
         for (final row in weekRows) {
           final key = (row.dayOfWeek, row.dayName);
           var dayId = dayKeys[key];
           if (dayId == null) {
-            dayId = await _db.into(_db.programDays).insert(
+            dayId = await _db
+                .into(_db.programDays)
+                .insert(
                   ProgramDaysCompanion.insert(
                     programWeekId: weekId,
                     dayOfWeek: row.dayOfWeek,
@@ -153,14 +174,16 @@ class ProgramCsvIo {
                 );
             dayKeys[key] = dayId;
           }
-          final orderIndex =
-              weekRows.where((r) => (r.dayOfWeek, r.dayName) == key).toList()
-                  .indexOf(row);
-          await _db.into(_db.programDayExercises).insert(
+          final orderIndex = weekRows
+              .where((r) => (r.dayOfWeek, r.dayName) == key)
+              .toList()
+              .indexOf(row);
+          await _db
+              .into(_db.programDayExercises)
+              .insert(
                 ProgramDayExercisesCompanion.insert(
                   programDayId: dayId,
-                  exerciseId:
-                      resolved[row.exerciseName.toLowerCase()]!.id,
+                  exerciseId: resolved[row.exerciseName.toLowerCase()]!.id,
                   targetSets: Value(row.sets),
                   targetRepsMin: Value(row.repsMin),
                   targetRepsMax: Value(row.repsMax),

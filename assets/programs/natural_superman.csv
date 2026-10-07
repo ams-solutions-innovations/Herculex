@@ -1,5 +1,5 @@
 # Herculex Program,name,weeks,periodization
-program,Natural Superman,4,linear
+program,Natural Superman,12,linear
 week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equipment
 0,1,Upper Body,Barbell Bench Press,4,4,10,8,standard,,barbell
 0,1,Upper Body,Single-Arm Dumbbell Row,4,6,12,8,standard,,dumbbell
@@ -121,3 +121,243 @@ week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equi
 3,7,Active Recovery,Dumbbell Shrug,4,15,20,7,standard,,dumbbell
 3,7,Active Recovery,Band Triceps Pushdown,4,15,30,7,standard,,band
 3,7,Active Recovery,Plank,3,60,60,7,standard,,
+4,1,Upper Body,Barbell Bench Press,4,4,10,8,standard,,barbell
+4,1,Upper Body,Single-Arm Dumbbell Row,4,6,12,8,standard,,dumbbell
+4,1,Upper Body,Overhead Press,4,6,10,8,standard,,barbell
+4,1,Upper Body,EZ Bar Curl,4,8,12,8,standard,,barbell
+4,1,Upper Body,Decline Crunch,4,10,15,8,standard,,
+4,1,Upper Body,Cable Fly (High to Low),4,12,15,8,standard,,cable
+4,1,Upper Body,Upright Row (Barbell),4,10,15,8,standard,,barbell
+4,1,Upper Body,Hammer Curl,4,8,12,8,standard,,dumbbell
+4,3,Lower Body,Barbell Back Squat,4,6,8,8,standard,,barbell
+4,3,Lower Body,Machine Neck Extension,4,12,20,8,standard,,machine
+4,3,Lower Body,Romanian Deadlift,4,8,12,8,standard,,barbell
+4,3,Lower Body,Bayesian Curl,4,10,12,8,standard,,cable
+4,3,Lower Body,Seated Calf Raise,4,15,20,8,standard,,machine
+4,3,Lower Body,Pull-Up (Wide Grip),4,6,10,8,standard,,
+4,3,Lower Body,Overhead Shrug,4,12,15,8,standard,,barbell
+4,3,Lower Body,Overhead Cable Tricep,4,10,12,8,standard,,cable
+4,5,Full Body,Incline Barbell Bench,4,6,12,8,standard,,barbell
+4,5,Full Body,Kroc Row,4,8,12,8,standard,,dumbbell
+4,5,Full Body,Farmers Walk,3,10,12,8,standard,,dumbbell
+4,5,Full Body,Cable Lateral Raise,3,12,15,8,standard,,cable
+4,5,Full Body,Dumbbell Russian Twist,3,15,20,8,standard,,dumbbell
+4,5,Full Body,Leg Extension,4,15,20,8,standard,,machine
+4,5,Full Body,Reverse Barbell Curl,4,10,12,8,standard,,barbell
+4,5,Full Body,Machine Neck Curl,4,10,15,8,standard,,machine
+4,7,Active Recovery,Standing Calf Raise,6,12,20,7,standard,,machine
+4,7,Active Recovery,Band Neck Extension,4,15,25,7,standard,,band
+4,7,Active Recovery,Band Neck Flexion,4,15,25,7,standard,,band
+4,7,Active Recovery,Dumbbell Shrug,4,15,20,7,standard,,dumbbell
+4,7,Active Recovery,Band Triceps Pushdown,4,15,30,7,standard,,band
+4,7,Active Recovery,Plank,3,60,60,7,standard,,
+5,1,Upper Body,Barbell Bench Press,4,4,10,8,standard,,barbell
+5,1,Upper Body,Single-Arm Dumbbell Row,4,6,12,8,standard,,dumbbell
+5,1,Upper Body,Overhead Press,4,6,10,8,standard,,barbell
+5,1,Upper Body,EZ Bar Curl,4,8,12,8,standard,,barbell
+5,1,Upper Body,Decline Crunch,4,10,15,8,standard,,
+5,1,Upper Body,Cable Fly (High to Low),4,12,15,8,standard,,cable
+5,1,Upper Body,Upright Row (Barbell),4,10,15,8,standard,,barbell
+5,1,Upper Body,Hammer Curl,4,8,12,8,standard,,dumbbell
+5,3,Lower Body,Barbell Back Squat,4,6,8,8,standard,,barbell
+5,3,Lower Body,Machine Neck Extension,4,12,20,8,standard,,machine
+5,3,Lower Body,Romanian Deadlift,4,8,12,8,standard,,barbell
+5,3,Lower Body,Bayesian Curl,4,10,12,8,standard,,cable
+5,3,Lower Body,Seated Calf Raise,4,15,20,8,standard,,machine
+5,3,Lower Body,Pull-Up (Wide Grip),4,6,10,8,standard,,
+5,3,Lower Body,Overhead Shrug,4,12,15,8,standard,,barbell
+5,3,Lower Body,Overhead Cable Tricep,4,10,12,8,standard,,cable
+5,5,Full Body,Incline Barbell Bench,4,6,12,8,standard,,barbell
+5,5,Full Body,Kroc Row,4,8,12,8,standard,,dumbbell
+5,5,Full Body,Farmers Walk,3,10,12,8,standard,,dumbbell
+5,5,Full Body,Cable Lateral Raise,3,12,15,8,standard,,cable
+5,5,Full Body,Dumbbell Russian Twist,3,15,20,8,standard,,dumbbell
+5,5,Full Body,Leg Extension,4,15,20,8,standard,,machine
+5,5,Full Body,Reverse Barbell Curl,4,10,12,8,standard,,barbell
+5,5,Full Body,Machine Neck Curl,4,10,15,8,standard,,machine
+5,7,Active Recovery,Standing Calf Raise,6,12,20,7,standard,,machine
+5,7,Active Recovery,Band Neck Extension,4,15,25,7,standard,,band
+5,7,Active Recovery,Band Neck Flexion,4,15,25,7,standard,,band
+5,7,Active Recovery,Dumbbell Shrug,4,15,20,7,standard,,dumbbell
+5,7,Active Recovery,Band Triceps Pushdown,4,15,30,7,standard,,band
+5,7,Active Recovery,Plank,3,60,60,7,standard,,
+6,1,Upper Body,Barbell Bench Press,4,4,10,8,standard,,barbell
+6,1,Upper Body,Single-Arm Dumbbell Row,4,6,12,8,standard,,dumbbell
+6,1,Upper Body,Overhead Press,4,6,10,8,standard,,barbell
+6,1,Upper Body,EZ Bar Curl,4,8,12,8,standard,,barbell
+6,1,Upper Body,Decline Crunch,4,10,15,8,standard,,
+6,1,Upper Body,Cable Fly (High to Low),4,12,15,8,standard,,cable
+6,1,Upper Body,Upright Row (Barbell),4,10,15,8,standard,,barbell
+6,1,Upper Body,Hammer Curl,4,8,12,8,standard,,dumbbell
+6,3,Lower Body,Barbell Back Squat,4,6,8,8,standard,,barbell
+6,3,Lower Body,Machine Neck Extension,4,12,20,8,standard,,machine
+6,3,Lower Body,Romanian Deadlift,4,8,12,8,standard,,barbell
+6,3,Lower Body,Bayesian Curl,4,10,12,8,standard,,cable
+6,3,Lower Body,Seated Calf Raise,4,15,20,8,standard,,machine
+6,3,Lower Body,Pull-Up (Wide Grip),4,6,10,8,standard,,
+6,3,Lower Body,Overhead Shrug,4,12,15,8,standard,,barbell
+6,3,Lower Body,Overhead Cable Tricep,4,10,12,8,standard,,cable
+6,5,Full Body,Incline Barbell Bench,4,6,12,8,standard,,barbell
+6,5,Full Body,Kroc Row,4,8,12,8,standard,,dumbbell
+6,5,Full Body,Farmers Walk,3,10,12,8,standard,,dumbbell
+6,5,Full Body,Cable Lateral Raise,3,12,15,8,standard,,cable
+6,5,Full Body,Dumbbell Russian Twist,3,15,20,8,standard,,dumbbell
+6,5,Full Body,Leg Extension,4,15,20,8,standard,,machine
+6,5,Full Body,Reverse Barbell Curl,4,10,12,8,standard,,barbell
+6,5,Full Body,Machine Neck Curl,4,10,15,8,standard,,machine
+6,7,Active Recovery,Standing Calf Raise,6,12,20,7,standard,,machine
+6,7,Active Recovery,Band Neck Extension,4,15,25,7,standard,,band
+6,7,Active Recovery,Band Neck Flexion,4,15,25,7,standard,,band
+6,7,Active Recovery,Dumbbell Shrug,4,15,20,7,standard,,dumbbell
+6,7,Active Recovery,Band Triceps Pushdown,4,15,30,7,standard,,band
+6,7,Active Recovery,Plank,3,60,60,7,standard,,
+7,1,Upper Body,Barbell Bench Press,4,4,10,8,standard,,barbell
+7,1,Upper Body,Single-Arm Dumbbell Row,4,6,12,8,standard,,dumbbell
+7,1,Upper Body,Overhead Press,4,6,10,8,standard,,barbell
+7,1,Upper Body,EZ Bar Curl,4,8,12,8,standard,,barbell
+7,1,Upper Body,Decline Crunch,4,10,15,8,standard,,
+7,1,Upper Body,Cable Fly (High to Low),4,12,15,8,standard,,cable
+7,1,Upper Body,Upright Row (Barbell),4,10,15,8,standard,,barbell
+7,1,Upper Body,Hammer Curl,4,8,12,8,standard,,dumbbell
+7,3,Lower Body,Barbell Back Squat,4,6,8,8,standard,,barbell
+7,3,Lower Body,Machine Neck Extension,4,12,20,8,standard,,machine
+7,3,Lower Body,Romanian Deadlift,4,8,12,8,standard,,barbell
+7,3,Lower Body,Bayesian Curl,4,10,12,8,standard,,cable
+7,3,Lower Body,Seated Calf Raise,4,15,20,8,standard,,machine
+7,3,Lower Body,Pull-Up (Wide Grip),4,6,10,8,standard,,
+7,3,Lower Body,Overhead Shrug,4,12,15,8,standard,,barbell
+7,3,Lower Body,Overhead Cable Tricep,4,10,12,8,standard,,cable
+7,5,Full Body,Incline Barbell Bench,4,6,12,8,standard,,barbell
+7,5,Full Body,Kroc Row,4,8,12,8,standard,,dumbbell
+7,5,Full Body,Farmers Walk,3,10,12,8,standard,,dumbbell
+7,5,Full Body,Cable Lateral Raise,3,12,15,8,standard,,cable
+7,5,Full Body,Dumbbell Russian Twist,3,15,20,8,standard,,dumbbell
+7,5,Full Body,Leg Extension,4,15,20,8,standard,,machine
+7,5,Full Body,Reverse Barbell Curl,4,10,12,8,standard,,barbell
+7,5,Full Body,Machine Neck Curl,4,10,15,8,standard,,machine
+7,7,Active Recovery,Standing Calf Raise,6,12,20,7,standard,,machine
+7,7,Active Recovery,Band Neck Extension,4,15,25,7,standard,,band
+7,7,Active Recovery,Band Neck Flexion,4,15,25,7,standard,,band
+7,7,Active Recovery,Dumbbell Shrug,4,15,20,7,standard,,dumbbell
+7,7,Active Recovery,Band Triceps Pushdown,4,15,30,7,standard,,band
+7,7,Active Recovery,Plank,3,60,60,7,standard,,
+8,1,Upper Body,Barbell Bench Press,4,4,10,8,standard,,barbell
+8,1,Upper Body,Single-Arm Dumbbell Row,4,6,12,8,standard,,dumbbell
+8,1,Upper Body,Overhead Press,4,6,10,8,standard,,barbell
+8,1,Upper Body,EZ Bar Curl,4,8,12,8,standard,,barbell
+8,1,Upper Body,Decline Crunch,4,10,15,8,standard,,
+8,1,Upper Body,Cable Fly (High to Low),4,12,15,8,standard,,cable
+8,1,Upper Body,Upright Row (Barbell),4,10,15,8,standard,,barbell
+8,1,Upper Body,Hammer Curl,4,8,12,8,standard,,dumbbell
+8,3,Lower Body,Barbell Back Squat,4,6,8,8,standard,,barbell
+8,3,Lower Body,Machine Neck Extension,4,12,20,8,standard,,machine
+8,3,Lower Body,Romanian Deadlift,4,8,12,8,standard,,barbell
+8,3,Lower Body,Bayesian Curl,4,10,12,8,standard,,cable
+8,3,Lower Body,Seated Calf Raise,4,15,20,8,standard,,machine
+8,3,Lower Body,Pull-Up (Wide Grip),4,6,10,8,standard,,
+8,3,Lower Body,Overhead Shrug,4,12,15,8,standard,,barbell
+8,3,Lower Body,Overhead Cable Tricep,4,10,12,8,standard,,cable
+8,5,Full Body,Incline Barbell Bench,4,6,12,8,standard,,barbell
+8,5,Full Body,Kroc Row,4,8,12,8,standard,,dumbbell
+8,5,Full Body,Farmers Walk,3,10,12,8,standard,,dumbbell
+8,5,Full Body,Cable Lateral Raise,3,12,15,8,standard,,cable
+8,5,Full Body,Dumbbell Russian Twist,3,15,20,8,standard,,dumbbell
+8,5,Full Body,Leg Extension,4,15,20,8,standard,,machine
+8,5,Full Body,Reverse Barbell Curl,4,10,12,8,standard,,barbell
+8,5,Full Body,Machine Neck Curl,4,10,15,8,standard,,machine
+8,7,Active Recovery,Standing Calf Raise,6,12,20,7,standard,,machine
+8,7,Active Recovery,Band Neck Extension,4,15,25,7,standard,,band
+8,7,Active Recovery,Band Neck Flexion,4,15,25,7,standard,,band
+8,7,Active Recovery,Dumbbell Shrug,4,15,20,7,standard,,dumbbell
+8,7,Active Recovery,Band Triceps Pushdown,4,15,30,7,standard,,band
+8,7,Active Recovery,Plank,3,60,60,7,standard,,
+9,1,Upper Body,Barbell Bench Press,4,4,10,8,standard,,barbell
+9,1,Upper Body,Single-Arm Dumbbell Row,4,6,12,8,standard,,dumbbell
+9,1,Upper Body,Overhead Press,4,6,10,8,standard,,barbell
+9,1,Upper Body,EZ Bar Curl,4,8,12,8,standard,,barbell
+9,1,Upper Body,Decline Crunch,4,10,15,8,standard,,
+9,1,Upper Body,Cable Fly (High to Low),4,12,15,8,standard,,cable
+9,1,Upper Body,Upright Row (Barbell),4,10,15,8,standard,,barbell
+9,1,Upper Body,Hammer Curl,4,8,12,8,standard,,dumbbell
+9,3,Lower Body,Barbell Back Squat,4,6,8,8,standard,,barbell
+9,3,Lower Body,Machine Neck Extension,4,12,20,8,standard,,machine
+9,3,Lower Body,Romanian Deadlift,4,8,12,8,standard,,barbell
+9,3,Lower Body,Bayesian Curl,4,10,12,8,standard,,cable
+9,3,Lower Body,Seated Calf Raise,4,15,20,8,standard,,machine
+9,3,Lower Body,Pull-Up (Wide Grip),4,6,10,8,standard,,
+9,3,Lower Body,Overhead Shrug,4,12,15,8,standard,,barbell
+9,3,Lower Body,Overhead Cable Tricep,4,10,12,8,standard,,cable
+9,5,Full Body,Incline Barbell Bench,4,6,12,8,standard,,barbell
+9,5,Full Body,Kroc Row,4,8,12,8,standard,,dumbbell
+9,5,Full Body,Farmers Walk,3,10,12,8,standard,,dumbbell
+9,5,Full Body,Cable Lateral Raise,3,12,15,8,standard,,cable
+9,5,Full Body,Dumbbell Russian Twist,3,15,20,8,standard,,dumbbell
+9,5,Full Body,Leg Extension,4,15,20,8,standard,,machine
+9,5,Full Body,Reverse Barbell Curl,4,10,12,8,standard,,barbell
+9,5,Full Body,Machine Neck Curl,4,10,15,8,standard,,machine
+9,7,Active Recovery,Standing Calf Raise,6,12,20,7,standard,,machine
+9,7,Active Recovery,Band Neck Extension,4,15,25,7,standard,,band
+9,7,Active Recovery,Band Neck Flexion,4,15,25,7,standard,,band
+9,7,Active Recovery,Dumbbell Shrug,4,15,20,7,standard,,dumbbell
+9,7,Active Recovery,Band Triceps Pushdown,4,15,30,7,standard,,band
+9,7,Active Recovery,Plank,3,60,60,7,standard,,
+10,1,Upper Body,Barbell Bench Press,4,4,10,8,standard,,barbell
+10,1,Upper Body,Single-Arm Dumbbell Row,4,6,12,8,standard,,dumbbell
+10,1,Upper Body,Overhead Press,4,6,10,8,standard,,barbell
+10,1,Upper Body,EZ Bar Curl,4,8,12,8,standard,,barbell
+10,1,Upper Body,Decline Crunch,4,10,15,8,standard,,
+10,1,Upper Body,Cable Fly (High to Low),4,12,15,8,standard,,cable
+10,1,Upper Body,Upright Row (Barbell),4,10,15,8,standard,,barbell
+10,1,Upper Body,Hammer Curl,4,8,12,8,standard,,dumbbell
+10,3,Lower Body,Barbell Back Squat,4,6,8,8,standard,,barbell
+10,3,Lower Body,Machine Neck Extension,4,12,20,8,standard,,machine
+10,3,Lower Body,Romanian Deadlift,4,8,12,8,standard,,barbell
+10,3,Lower Body,Bayesian Curl,4,10,12,8,standard,,cable
+10,3,Lower Body,Seated Calf Raise,4,15,20,8,standard,,machine
+10,3,Lower Body,Pull-Up (Wide Grip),4,6,10,8,standard,,
+10,3,Lower Body,Overhead Shrug,4,12,15,8,standard,,barbell
+10,3,Lower Body,Overhead Cable Tricep,4,10,12,8,standard,,cable
+10,5,Full Body,Incline Barbell Bench,4,6,12,8,standard,,barbell
+10,5,Full Body,Kroc Row,4,8,12,8,standard,,dumbbell
+10,5,Full Body,Farmers Walk,3,10,12,8,standard,,dumbbell
+10,5,Full Body,Cable Lateral Raise,3,12,15,8,standard,,cable
+10,5,Full Body,Dumbbell Russian Twist,3,15,20,8,standard,,dumbbell
+10,5,Full Body,Leg Extension,4,15,20,8,standard,,machine
+10,5,Full Body,Reverse Barbell Curl,4,10,12,8,standard,,barbell
+10,5,Full Body,Machine Neck Curl,4,10,15,8,standard,,machine
+10,7,Active Recovery,Standing Calf Raise,6,12,20,7,standard,,machine
+10,7,Active Recovery,Band Neck Extension,4,15,25,7,standard,,band
+10,7,Active Recovery,Band Neck Flexion,4,15,25,7,standard,,band
+10,7,Active Recovery,Dumbbell Shrug,4,15,20,7,standard,,dumbbell
+10,7,Active Recovery,Band Triceps Pushdown,4,15,30,7,standard,,band
+10,7,Active Recovery,Plank,3,60,60,7,standard,,
+11,1,Upper Body,Barbell Bench Press,4,4,10,8,standard,,barbell
+11,1,Upper Body,Single-Arm Dumbbell Row,4,6,12,8,standard,,dumbbell
+11,1,Upper Body,Overhead Press,4,6,10,8,standard,,barbell
+11,1,Upper Body,EZ Bar Curl,4,8,12,8,standard,,barbell
+11,1,Upper Body,Decline Crunch,4,10,15,8,standard,,
+11,1,Upper Body,Cable Fly (High to Low),4,12,15,8,standard,,cable
+11,1,Upper Body,Upright Row (Barbell),4,10,15,8,standard,,barbell
+11,1,Upper Body,Hammer Curl,4,8,12,8,standard,,dumbbell
+11,3,Lower Body,Barbell Back Squat,4,6,8,8,standard,,barbell
+11,3,Lower Body,Machine Neck Extension,4,12,20,8,standard,,machine
+11,3,Lower Body,Romanian Deadlift,4,8,12,8,standard,,barbell
+11,3,Lower Body,Bayesian Curl,4,10,12,8,standard,,cable
+11,3,Lower Body,Seated Calf Raise,4,15,20,8,standard,,machine
+11,3,Lower Body,Pull-Up (Wide Grip),4,6,10,8,standard,,
+11,3,Lower Body,Overhead Shrug,4,12,15,8,standard,,barbell
+11,3,Lower Body,Overhead Cable Tricep,4,10,12,8,standard,,cable
+11,5,Full Body,Incline Barbell Bench,4,6,12,8,standard,,barbell
+11,5,Full Body,Kroc Row,4,8,12,8,standard,,dumbbell
+11,5,Full Body,Farmers Walk,3,10,12,8,standard,,dumbbell
+11,5,Full Body,Cable Lateral Raise,3,12,15,8,standard,,cable
+11,5,Full Body,Dumbbell Russian Twist,3,15,20,8,standard,,dumbbell
+11,5,Full Body,Leg Extension,4,15,20,8,standard,,machine
+11,5,Full Body,Reverse Barbell Curl,4,10,12,8,standard,,barbell
+11,5,Full Body,Machine Neck Curl,4,10,15,8,standard,,machine
+11,7,Active Recovery,Standing Calf Raise,6,12,20,7,standard,,machine
+11,7,Active Recovery,Band Neck Extension,4,15,25,7,standard,,band
+11,7,Active Recovery,Band Neck Flexion,4,15,25,7,standard,,band
+11,7,Active Recovery,Dumbbell Shrug,4,15,20,7,standard,,dumbbell
+11,7,Active Recovery,Band Triceps Pushdown,4,15,30,7,standard,,band
+11,7,Active Recovery,Plank,3,60,60,7,standard,,

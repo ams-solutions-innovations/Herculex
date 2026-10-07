@@ -2,25 +2,31 @@ import 'dart:convert';
 
 /// Schedule type for a supplement reminder.
 enum SupplementSchedule {
-  none,        // no reminder
-  time,        // remind at a specific time of day
+  none, // no reminder
+  time, // remind at a specific time of day
   postWorkout, // remind when the workout ends
 }
 
 extension SupplementScheduleX on SupplementSchedule {
   String get id {
     switch (this) {
-      case SupplementSchedule.none:        return 'none';
-      case SupplementSchedule.time:        return 'time';
-      case SupplementSchedule.postWorkout: return 'post_workout';
+      case SupplementSchedule.none:
+        return 'none';
+      case SupplementSchedule.time:
+        return 'time';
+      case SupplementSchedule.postWorkout:
+        return 'post_workout';
     }
   }
 
   static SupplementSchedule fromId(String id) {
     switch (id) {
-      case 'time':         return SupplementSchedule.time;
-      case 'post_workout': return SupplementSchedule.postWorkout;
-      default:             return SupplementSchedule.none;
+      case 'time':
+        return SupplementSchedule.time;
+      case 'post_workout':
+        return SupplementSchedule.postWorkout;
+      default:
+        return SupplementSchedule.none;
     }
   }
 }
@@ -80,8 +86,7 @@ class Supplement {
     return '$fmt $unit';
   }
 
-  bool get contributesNutrients =>
-      nutrients.values.any((v) => v > 0);
+  bool get contributesNutrients => nutrients.values.any((v) => v > 0);
 
   Supplement copyWith({
     String? name,
@@ -111,28 +116,30 @@ class Supplement {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        if (brand != null) 'brand': brand,
-        if (barcode != null) 'barcode': barcode,
-        if (doseAmount != null) 'doseAmount': doseAmount,
-        if (doseUnit != null) 'doseUnit': doseUnit,
-        if (nutrients.isNotEmpty) 'nutrients': nutrients,
-        'schedule': schedule.id,
-        if (timeHHMM != null) 'timeHHMM': timeHHMM,
-      };
+    'id': id,
+    'name': name,
+    if (brand != null) 'brand': brand,
+    if (barcode != null) 'barcode': barcode,
+    if (doseAmount != null) 'doseAmount': doseAmount,
+    if (doseUnit != null) 'doseUnit': doseUnit,
+    if (nutrients.isNotEmpty) 'nutrients': nutrients,
+    'schedule': schedule.id,
+    if (timeHHMM != null) 'timeHHMM': timeHHMM,
+  };
 
   factory Supplement.fromJson(Map<String, dynamic> json) => Supplement(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        brand: json['brand'] as String?,
-        barcode: json['barcode'] as String?,
-        doseAmount: (json['doseAmount'] as num?)?.toDouble(),
-        doseUnit: json['doseUnit'] as String?,
-        nutrients: _nutrientsFromJson(json['nutrients']),
-        schedule: SupplementScheduleX.fromId((json['schedule'] as String?) ?? 'none'),
-        timeHHMM: json['timeHHMM'] as String?,
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    brand: json['brand'] as String?,
+    barcode: json['barcode'] as String?,
+    doseAmount: (json['doseAmount'] as num?)?.toDouble(),
+    doseUnit: json['doseUnit'] as String?,
+    nutrients: _nutrientsFromJson(json['nutrients']),
+    schedule: SupplementScheduleX.fromId(
+      (json['schedule'] as String?) ?? 'none',
+    ),
+    timeHHMM: json['timeHHMM'] as String?,
+  );
 
   /// Tolerant of the pre-v2 shape (no `nutrients` key) and of malformed
   /// values, so a bad write can never brick the supplement list.
@@ -148,7 +155,9 @@ class Supplement {
 
   static List<Supplement> listFromJson(String raw) {
     final list = jsonDecode(raw) as List<dynamic>;
-    return list.map((e) => Supplement.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => Supplement.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   static String listToJson(List<Supplement> supplements) =>

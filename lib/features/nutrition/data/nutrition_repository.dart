@@ -1,13 +1,12 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
-
-import '../../../core/clock.dart';
-import '../../../data/local/database.dart';
-import '../domain/barcode_utils.dart';
-import '../domain/daily_totals.dart';
-import '../domain/meal.dart';
-import 'openfoodfacts_client.dart';
+import 'package:herculex/core/utils/clock.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/data/openfoodfacts_client.dart';
+import 'package:herculex/features/nutrition/domain/barcode_utils.dart';
+import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/nutrition/domain/meal.dart';
 
 class NutritionRepository {
   final AppDatabase _db;
@@ -49,7 +48,9 @@ class NutritionRepository {
   /// by `deletedAt` — history needs to resolve a food regardless of whether
   /// it's still visible in catalogue search.
   Future<FoodData?> foodById(int id) {
-    return (_db.select(_db.foods)..where((t) => t.id.equals(id))).getSingleOrNull();
+    return (_db.select(
+      _db.foods,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
   /// Batched counterpart of [foodById] for call sites resolving several ids
@@ -80,10 +81,11 @@ class NutritionRepository {
 
   Future<FoodData?> _findByBarcode(List<String> barcodes) async {
     for (final barcode in barcodes) {
-      final exact = await (_db.select(_db.foods)
-            ..where((t) => t.barcode.equals(barcode))
-            ..where((t) => t.deletedAt.isNull()))
-          .getSingleOrNull();
+      final exact =
+          await (_db.select(_db.foods)
+                ..where((t) => t.barcode.equals(barcode))
+                ..where((t) => t.deletedAt.isNull()))
+              .getSingleOrNull();
       if (exact != null) return exact;
     }
     return null;
@@ -310,11 +312,8 @@ class NutritionRepository {
     required int id,
     required double grams,
   }) async {
-    await (_db.update(_db.recipeIngredients)..where((t) => t.id.equals(id))).write(
-      RecipeIngredientsCompanion(
-        grams: Value(grams),
-      ),
-    );
+    await (_db.update(_db.recipeIngredients)..where((t) => t.id.equals(id)))
+        .write(RecipeIngredientsCompanion(grams: Value(grams)));
   }
 
   /// Macros per serving for a recipe.
@@ -413,19 +412,27 @@ class NutritionRepository {
             snapshotBasis: food == null
                 ? const Value.absent()
                 : Value(food.referenceBasis),
-            snapshotName: food == null ? const Value.absent() : Value(food.name),
-            snapshotBrand: food == null ? const Value.absent() : Value(food.brand),
-            snapshotKcal:
-                food == null ? const Value.absent() : Value(food.kcalPer100g),
+            snapshotName: food == null
+                ? const Value.absent()
+                : Value(food.name),
+            snapshotBrand: food == null
+                ? const Value.absent()
+                : Value(food.brand),
+            snapshotKcal: food == null
+                ? const Value.absent()
+                : Value(food.kcalPer100g),
             snapshotProteinG: food == null
                 ? const Value.absent()
                 : Value(food.proteinPer100g),
-            snapshotCarbsG:
-                food == null ? const Value.absent() : Value(food.carbsPer100g),
-            snapshotFatG:
-                food == null ? const Value.absent() : Value(food.fatPer100g),
-            snapshotFiberG:
-                food == null ? const Value.absent() : Value(food.fiberPer100g),
+            snapshotCarbsG: food == null
+                ? const Value.absent()
+                : Value(food.carbsPer100g),
+            snapshotFatG: food == null
+                ? const Value.absent()
+                : Value(food.fatPer100g),
+            snapshotFiberG: food == null
+                ? const Value.absent()
+                : Value(food.fiberPer100g),
             snapshotSodiumMg: food == null
                 ? const Value.absent()
                 : Value(food.sodiumMgPer100g),
@@ -505,22 +512,29 @@ class NutritionRepository {
             snapshotBasis: per == null
                 ? const Value.absent()
                 : const Value('recipe serving'),
-            snapshotName:
-                recipe == null ? const Value.absent() : Value(recipe.name),
+            snapshotName: recipe == null
+                ? const Value.absent()
+                : Value(recipe.name),
             snapshotKcal: per == null ? const Value.absent() : Value(per.kcal),
-            snapshotProteinG:
-                per == null ? const Value.absent() : Value(per.proteinG),
-            snapshotCarbsG:
-                per == null ? const Value.absent() : Value(per.carbsG),
+            snapshotProteinG: per == null
+                ? const Value.absent()
+                : Value(per.proteinG),
+            snapshotCarbsG: per == null
+                ? const Value.absent()
+                : Value(per.carbsG),
             snapshotFatG: per == null ? const Value.absent() : Value(per.fatG),
-            snapshotFiberG:
-                per == null ? const Value.absent() : Value(per.fiberG),
-            snapshotSodiumMg:
-                per == null ? const Value.absent() : Value(per.sodiumMg),
-            snapshotPotassiumMg:
-                per == null ? const Value.absent() : Value(per.potassiumMg),
-            snapshotCholesterolMg:
-                per == null ? const Value.absent() : Value(per.cholesterolMg),
+            snapshotFiberG: per == null
+                ? const Value.absent()
+                : Value(per.fiberG),
+            snapshotSodiumMg: per == null
+                ? const Value.absent()
+                : Value(per.sodiumMg),
+            snapshotPotassiumMg: per == null
+                ? const Value.absent()
+                : Value(per.potassiumMg),
+            snapshotCholesterolMg: per == null
+                ? const Value.absent()
+                : Value(per.cholesterolMg),
             snapshotMicrosJson: per == null
                 ? const Value.absent()
                 : Value(_encodeMicrosOrNull(per.micros)),
@@ -533,10 +547,9 @@ class NutritionRepository {
   }
 
   Future<void> restoreEntry(FoodEntryData entry) async {
-    await _db.into(_db.foodEntries).insert(
-          entry.toCompanion(false),
-          mode: InsertMode.insertOrReplace,
-        );
+    await _db
+        .into(_db.foodEntries)
+        .insert(entry.toCompanion(false), mode: InsertMode.insertOrReplace);
   }
 
   Future<void> updateEntry({
@@ -551,12 +564,15 @@ class NutritionRepository {
     await (_db.update(_db.foodEntries)..where((t) => t.id.equals(id))).write(
       FoodEntriesCompanion(
         servings: servings != null ? Value(servings) : const Value.absent(),
-        gramsOverride:
-            gramsOverride != null ? Value(gramsOverride) : const Value.absent(),
-        portionAmount:
-            portionAmount != null ? Value(portionAmount) : const Value.absent(),
-        portionUnit:
-            portionUnit != null ? Value(portionUnit) : const Value.absent(),
+        gramsOverride: gramsOverride != null
+            ? Value(gramsOverride)
+            : const Value.absent(),
+        portionAmount: portionAmount != null
+            ? Value(portionAmount)
+            : const Value.absent(),
+        portionUnit: portionUnit != null
+            ? Value(portionUnit)
+            : const Value.absent(),
         meal: mealKey != null ? Value(mealKey) : const Value.absent(),
         loggedAt: loggedAt != null ? Value(loggedAt) : const Value.absent(),
       ),
@@ -709,7 +725,12 @@ class NutritionRepository {
   }
 
   double _portionFactor(FoodData food, double amount, String unit) =>
-      _portionFactorForBasis(food.referenceBasis, food.servingGrams, amount, unit);
+      _portionFactorForBasis(
+        food.referenceBasis,
+        food.servingGrams,
+        amount,
+        unit,
+      );
 
   /// Basis-driven core of [_portionFactor], extracted so the snapshot read
   /// path ([_totalsForFoodSnapshot]) can reproduce the exact same math off
@@ -1016,10 +1037,11 @@ class NutritionRepository {
     final topIds = counts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final ids = topIds.take(limit).map((e) => e.key).toList();
-    final foods = await (_db.select(_db.foods)
-          ..where((t) => t.id.isIn(ids))
-          ..where((t) => t.deletedAt.isNull()))
-        .get();
+    final foods =
+        await (_db.select(_db.foods)
+              ..where((t) => t.id.isIn(ids))
+              ..where((t) => t.deletedAt.isNull()))
+            .get();
     // Preserve frequency order.
     final byId = {for (final f in foods) f.id: f};
     return [for (final id in ids) byId[id]].whereType<FoodData>().toList();
@@ -1030,7 +1052,9 @@ class NutritionRepository {
   Stream<List<FoodData>> watchRecentlyLoggedFoods({int? limit}) {
     final q = _db.select(_db.foodEntries)
       ..where((t) => t.foodId.isNotNull())
-      ..orderBy([(t) => OrderingTerm(expression: t.loggedAt, mode: OrderingMode.desc)]);
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.loggedAt, mode: OrderingMode.desc),
+      ]);
 
     return q.watch().asyncMap((entries) async {
       final seenIds = <int>{};
@@ -1062,11 +1086,11 @@ class NutritionRepository {
     final cutoff = _clock.now().subtract(const Duration(days: 90));
     final q = _db.select(_db.foodEntries)
       ..where(
-        (t) =>
-            t.foodId.isNotNull() &
-            t.loggedAt.isBiggerOrEqualValue(cutoff),
+        (t) => t.foodId.isNotNull() & t.loggedAt.isBiggerOrEqualValue(cutoff),
       )
-      ..orderBy([(t) => OrderingTerm(expression: t.loggedAt, mode: OrderingMode.desc)]);
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.loggedAt, mode: OrderingMode.desc),
+      ]);
 
     return q.watch().asyncMap((entries) async {
       if (entries.isEmpty) return <FoodData>[];
@@ -1118,10 +1142,9 @@ class NutritionRepository {
       if (scores.isEmpty) return <FoodData>[];
 
       // Minimum score threshold to qualify as a relevant suggestion
-      final candidateEntries = scores.entries
-          .where((entry) => entry.value >= 3.0)
-          .toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
+      final candidateEntries =
+          scores.entries.where((entry) => entry.value >= 3.0).toList()
+            ..sort((a, b) => b.value.compareTo(a.value));
 
       if (candidateEntries.isEmpty) return <FoodData>[];
 
@@ -1159,8 +1182,10 @@ class NutritionRepository {
         await (_db.select(_db.foodEntries)
               ..where((t) => t.foodId.isIn(foodIds))
               ..orderBy([
-                (t) =>
-                    OrderingTerm(expression: t.loggedAt, mode: OrderingMode.desc),
+                (t) => OrderingTerm(
+                  expression: t.loggedAt,
+                  mode: OrderingMode.desc,
+                ),
               ]))
             .get();
     final result = <int, String>{};

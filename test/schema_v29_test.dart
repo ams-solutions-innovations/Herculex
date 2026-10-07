@@ -10,7 +10,7 @@ import 'package:herculex/data/local/database.dart';
 
 import 'generated_migrations/schema.dart';
 import 'generated_migrations/schema_v28.dart' as v28;
-import 'generated_migrations/schema_v34.dart' as v34;
+import 'generated_migrations/schema_v38.dart' as v38;
 
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
@@ -27,9 +27,9 @@ void main() {
         // `schema_v26_test.dart` for why `Migrator.createTable` makes any
         // other target wrong. Every assertion below is about the v29 step
         // and survives the retarget.
-        newVersion: 34,
+        newVersion: 38,
         createOld: v28.DatabaseAtV28.new,
-        createNew: v34.DatabaseAtV34.new,
+        createNew: v38.DatabaseAtV38.new,
         openTestedDatabase: AppDatabase.forTesting,
         createItems: (batch, oldDb) {
           // `gyms` is untouched by v29; the canary proving the migration is
@@ -77,9 +77,7 @@ void main() {
             // The table must exist and be queryable post-migration; an
             // empty result set (rather than an exception) is exactly what
             // "created but not backfilled" should look like.
-            final rows = await newDb
-                .customSelect('SELECT * FROM $table')
-                .get();
+            final rows = await newDb.customSelect('SELECT * FROM $table').get();
             expect(rows, isEmpty);
           }
         },

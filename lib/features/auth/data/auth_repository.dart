@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import '../domain/auth_provider_service.dart';
-import '../domain/auth_session.dart';
-import 'local_auth_repository.dart';
+import 'package:herculex/features/auth/data/local_auth_repository.dart';
+import 'package:herculex/features/auth/domain/auth_provider_service.dart';
+import 'package:herculex/features/auth/domain/auth_session.dart';
 
 /// Facade over the credential provider ([AuthProviderService]) and the local
 /// session cache ([LocalAuthRepository]).

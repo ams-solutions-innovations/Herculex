@@ -1,17 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/utils/env.dart';
+import 'package:herculex/data/sync/sync_id_resolver.dart';
+import 'package:herculex/features/buddy/application/buddy_choreography_sender.dart';
+import 'package:herculex/features/buddy/application/buddy_session_controller.dart';
+import 'package:herculex/features/buddy/application/buddy_share_policy.dart';
+import 'package:herculex/features/buddy/data/buddy_channel_service.dart';
+import 'package:herculex/features/buddy/data/buddy_remote_gateway.dart';
+import 'package:herculex/features/buddy/data/buddy_slot_store.dart';
+import 'package:herculex/features/buddy/data/unconfigured_buddy_gateway.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../../../app/providers.dart';
-import '../../../core/env.dart';
-import '../../../data/sync/sync_id_resolver.dart';
-import '../../workouts/presentation/workouts_providers.dart';
-import '../data/buddy_channel_service.dart';
-import '../data/buddy_remote_gateway.dart';
-import '../data/buddy_slot_store.dart';
-import '../data/unconfigured_buddy_gateway.dart';
-import 'buddy_choreography_sender.dart';
-import 'buddy_session_controller.dart';
-import 'buddy_share_policy.dart';
 
 final syncIdResolverProvider = Provider<SyncIdResolver>((ref) {
   return SyncIdResolver(ref.watch(appDatabaseProvider));
@@ -78,16 +77,17 @@ final buddySessionControllerProvider =
       return controller;
     });
 
-final buddyChoreographySenderProvider = Provider.family<
-  BuddyChoreographySender,
-  ({String buddySessionId, int localWorkoutSessionId})
->((ref, arg) {
-  return BuddyChoreographySender(
-    publisher: ref.watch(buddyGatewayProvider),
-    slots: ref.watch(buddySlotStoreProvider(arg.buddySessionId)),
-    workouts: ref.watch(workoutsRepositoryProvider),
-    resolver: ref.watch(syncIdResolverProvider),
-    buddySessionId: arg.buddySessionId,
-    localWorkoutSessionId: arg.localWorkoutSessionId,
-  );
-});
+final buddyChoreographySenderProvider =
+    Provider.family<
+      BuddyChoreographySender,
+      ({String buddySessionId, int localWorkoutSessionId})
+    >((ref, arg) {
+      return BuddyChoreographySender(
+        publisher: ref.watch(buddyGatewayProvider),
+        slots: ref.watch(buddySlotStoreProvider(arg.buddySessionId)),
+        workouts: ref.watch(workoutsRepositoryProvider),
+        resolver: ref.watch(syncIdResolverProvider),
+        buddySessionId: arg.buddySessionId,
+        localWorkoutSessionId: arg.localWorkoutSessionId,
+      );
+    });

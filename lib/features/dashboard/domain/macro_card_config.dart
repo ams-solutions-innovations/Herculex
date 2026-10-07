@@ -45,8 +45,10 @@ class MacroCardConfig {
     MacroCardEntry(DashboardMacro.fat),
   ]);
 
-  List<DashboardMacro> get visibleMacros =>
-      [for (final e in entries) if (e.visible) e.macro];
+  List<DashboardMacro> get visibleMacros => [
+    for (final e in entries)
+      if (e.visible) e.macro,
+  ];
 
   MacroCardConfig toggle(DashboardMacro macro, bool visible) {
     return MacroCardConfig([

@@ -1,10 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:health/health.dart';
-
-import '../../../core/clock.dart';
-import '../../../data/local/database.dart';
-import '../domain/health_read_state.dart';
-import 'health_adapter.dart';
+import 'package:herculex/core/utils/clock.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/health/data/health_adapter.dart';
+import 'package:herculex/features/health/domain/health_read_state.dart';
 
 class HealthService {
   final AppDatabase _db;
@@ -221,8 +220,8 @@ class HealthService {
       try {
         final fallbackType =
             activityType == HealthWorkoutActivityType.STRENGTH_TRAINING
-                ? HealthWorkoutActivityType.WEIGHTLIFTING
-                : HealthWorkoutActivityType.STRENGTH_TRAINING;
+            ? HealthWorkoutActivityType.WEIGHTLIFTING
+            : HealthWorkoutActivityType.STRENGTH_TRAINING;
         return await _health.writeWorkoutData(
           activityType: fallbackType,
           title: activityName,
@@ -271,10 +270,11 @@ class HealthService {
   }
 
   Future<int> getDaysOfStepHistory() async {
-    final samples = await (_db.selectOnly(_db.healthSamples, distinct: true)
-          ..addColumns([_db.healthSamples.dateIso])
-          ..where(_db.healthSamples.kind.equals('steps')))
-        .get();
+    final samples =
+        await (_db.selectOnly(_db.healthSamples, distinct: true)
+              ..addColumns([_db.healthSamples.dateIso])
+              ..where(_db.healthSamples.kind.equals('steps')))
+            .get();
     return samples.length;
   }
 

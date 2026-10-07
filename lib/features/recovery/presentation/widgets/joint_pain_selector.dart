@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../theme/tokens/tokens.dart';
-import '../../../../ui/ui.dart';
-import '../../data/joint_pain_repository.dart';
-import '../../domain/joint_model.dart';
-import '../recovery_providers.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/recovery/application/recovery_providers.dart';
+import 'package:herculex/features/recovery/data/joint_pain_repository.dart';
+import 'package:herculex/features/recovery/domain/joint_model.dart';
 
 /// Lets the user flag which joints hurt. Tapping a joint opens a sheet to
 /// set severity, add a note, or mark it resolved — writes go straight
@@ -57,14 +56,19 @@ class JointPainSelector extends ConsumerWidget {
               height: 32,
               child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
             ),
-            error: (e, _) => Text('Error: $e', style: theme.textTheme.bodySmall),
+            error: (e, _) =>
+                Text('Error: $e', style: theme.textTheme.bodySmall),
           ),
         ],
       ),
     );
   }
 
-  void _openSheet(BuildContext context, String joint, JointPainStatus? current) {
+  void _openSheet(
+    BuildContext context,
+    String joint,
+    JointPainStatus? current,
+  ) {
     HxSheet.show(
       context,
       builder: (_) => _JointPainSheet(joint: joint, current: current),
@@ -86,7 +90,9 @@ class _JointPainSheetState extends ConsumerState<_JointPainSheet> {
   static const _severityLabels = {1: 'Mild', 2: 'Moderate', 3: 'Severe'};
 
   late int _severity = widget.current?.severity ?? 0;
-  late final _noteController = TextEditingController(text: widget.current?.note);
+  late final _noteController = TextEditingController(
+    text: widget.current?.note,
+  );
 
   @override
   void dispose() {
@@ -152,7 +158,9 @@ class _JointPainSheetState extends ConsumerState<_JointPainSheet> {
 
   void _save(int severity) {
     final note = _noteController.text.trim();
-    ref.read(jointPainRepositoryProvider).setStatus(
+    ref
+        .read(jointPainRepositoryProvider)
+        .setStatus(
           joint: widget.joint,
           severity: severity,
           note: note.isEmpty ? null : note,

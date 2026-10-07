@@ -1,12 +1,12 @@
 import 'dart:math' as math;
 
-import '../../../core/notifications/in_app_notification_model.dart';
-import '../../../core/units.dart';
-import '../../../data/local/database.dart';
-import '../../analytics/domain/muscle_recovery_v3.dart';
-import '../../analytics/domain/training_snapshot.dart';
-import '../../workouts/domain/one_rep_max.dart';
-import '../../workouts/domain/set_type.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
+import 'package:herculex/core/utils/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/workouts/domain/one_rep_max.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 
 /// Evaluates workouts, completed sets, and fasts for new personal records
 /// and milestones to trigger in-app gamification notifications.
@@ -34,13 +34,17 @@ class AchievementEvaluator {
     final notifications = <InAppNotificationItem>[];
 
     // Filter past completed sets for this exercise from previous workouts
-    final pastSets = snapshot.sets.where((rs) =>
-        rs.exercise.id == exerciseId &&
-        rs.session.id != currentSessionId &&
-        rs.set.isCompleted &&
-        !rs.set.isWarmup &&
-        rs.set.reps > 0 &&
-        rs.effectiveKg > 0).toList();
+    final pastSets = snapshot.sets
+        .where(
+          (rs) =>
+              rs.exercise.id == exerciseId &&
+              rs.session.id != currentSessionId &&
+              rs.set.isCompleted &&
+              !rs.set.isWarmup &&
+              rs.set.reps > 0 &&
+              rs.effectiveKg > 0,
+        )
+        .toList();
 
     // 1. Estimated 1RM & Weight PR
     final currentE1Rm = OneRepMax.estimate(weightKg: effectiveKg, reps: reps);
@@ -50,7 +54,9 @@ class AchievementEvaluator {
 
       for (final rs in pastSets) {
         final est = OneRepMax.estimate(
-            weightKg: rs.effectiveKg, reps: rs.set.reps);
+          weightKg: rs.effectiveKg,
+          reps: rs.set.reps,
+        );
         if (est != null && (pastBestE1Rm == null || est > pastBestE1Rm)) {
           pastBestE1Rm = est;
         }
@@ -80,8 +86,9 @@ class AchievementEvaluator {
         .toList();
 
     if (sameWeightPastSets.isNotEmpty) {
-      final maxPastRepsAtWeight =
-          sameWeightPastSets.map((rs) => rs.set.reps).reduce(math.max);
+      final maxPastRepsAtWeight = sameWeightPastSets
+          .map((rs) => rs.set.reps)
+          .reduce(math.max);
       if (reps > maxPastRepsAtWeight) {
         notifications.add(
           InAppNotificationItem.repPr(
@@ -96,15 +103,18 @@ class AchievementEvaluator {
 
     // 3. Accessory PR: Raw / No-Belt Record or specific accessory combo
     final isRawNoBelt = !accessoryNames.any(
-        (a) => a.toLowerCase().contains('belt'));
+      (a) => a.toLowerCase().contains('belt'),
+    );
 
     if (isRawNoBelt && pastSets.isNotEmpty) {
-      final pastRawSets = pastSets.where((rs) =>
-          !rs.accessoryNames.any((a) => a.toLowerCase().contains('belt')));
+      final pastRawSets = pastSets.where(
+        (rs) => !rs.accessoryNames.any((a) => a.toLowerCase().contains('belt')),
+      );
 
       if (pastRawSets.isNotEmpty) {
-        final pastBestRawKg =
-            pastRawSets.map((rs) => rs.effectiveKg).reduce(math.max);
+        final pastBestRawKg = pastRawSets
+            .map((rs) => rs.effectiveKg)
+            .reduce(math.max);
         if (effectiveKg > pastBestRawKg + 0.4) {
           notifications.add(
             InAppNotificationItem.accessoryPr(
@@ -129,14 +139,20 @@ class AchievementEvaluator {
           : pastSetsBySession.values.reduce(math.max);
 
       if (pastBestExTonnage > 0) {
-        final currentExSets = snapshot.sets.where((rs) =>
-            rs.exercise.id == exerciseId &&
-            rs.session.id == currentSessionId &&
-            rs.set.isCompleted &&
-            !rs.set.isWarmup).toList();
+        final currentExSets = snapshot.sets
+            .where(
+              (rs) =>
+                  rs.exercise.id == exerciseId &&
+                  rs.session.id == currentSessionId &&
+                  rs.set.isCompleted &&
+                  !rs.set.isWarmup,
+            )
+            .toList();
 
         final currentPriorVol = currentExSets.fold<double>(
-            0.0, (sum, rs) => sum + rs.tonnageKg);
+          0.0,
+          (sum, rs) => sum + rs.tonnageKg,
+        );
         final currentTotalVol = currentPriorVol + (effectiveKg * reps);
 
         if (currentTotalVol > pastBestExTonnage + 20.0 &&
@@ -197,13 +213,17 @@ class AchievementEvaluator {
 
     // 1. Total Workout Session Tonnage PR
     final currentTonnage = currentSessionSets.fold<double>(
-        0.0, (sum, rs) => sum + rs.tonnageKg);
+      0.0,
+      (sum, rs) => sum + rs.tonnageKg,
+    );
 
     if (currentTonnage > 0 && pastSetsBySession.isNotEmpty) {
       var pastBestTonnage = 0.0;
       for (final sessionSets in pastSetsBySession.values) {
         final sessionTonnage = sessionSets.fold<double>(
-            0.0, (sum, rs) => sum + rs.tonnageKg);
+          0.0,
+          (sum, rs) => sum + rs.tonnageKg,
+        );
         if (sessionTonnage > pastBestTonnage) {
           pastBestTonnage = sessionTonnage;
         }
@@ -240,14 +260,14 @@ class AchievementEvaluator {
     // Current session volume per muscle group
     final currentMuscleVolume = <String, double>{};
     for (final rs in currentSessionSets) {
-      final muscles = musclesByExercise[rs.exercise.id] ??
+      final muscles =
+          musclesByExercise[rs.exercise.id] ??
           [
             MuscleRecoveryV3.alias[rs.exercise.primaryMuscle] ??
-                rs.exercise.primaryMuscle
+                rs.exercise.primaryMuscle,
           ];
       for (final m in muscles) {
-        currentMuscleVolume[m] =
-            (currentMuscleVolume[m] ?? 0.0) + rs.tonnageKg;
+        currentMuscleVolume[m] = (currentMuscleVolume[m] ?? 0.0) + rs.tonnageKg;
       }
     }
 
@@ -256,10 +276,11 @@ class AchievementEvaluator {
     for (final sessionSets in pastSetsBySession.values) {
       final sessionMuscleVolume = <String, double>{};
       for (final rs in sessionSets) {
-        final muscles = musclesByExercise[rs.exercise.id] ??
+        final muscles =
+            musclesByExercise[rs.exercise.id] ??
             [
               MuscleRecoveryV3.alias[rs.exercise.primaryMuscle] ??
-                  rs.exercise.primaryMuscle
+                  rs.exercise.primaryMuscle,
             ];
         for (final m in muscles) {
           sessionMuscleVolume[m] =
@@ -331,12 +352,23 @@ class AchievementEvaluator {
     }
 
     // 4. Workout Count Milestones (1st, 10th, 25th, 50th, 100th, 250th, 500th, 1000th)
-    const milestoneCounts = {1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 500, 1000};
+    const milestoneCounts = {
+      1,
+      5,
+      10,
+      25,
+      50,
+      75,
+      100,
+      150,
+      200,
+      250,
+      500,
+      1000,
+    };
     if (milestoneCounts.contains(totalCompletedWorkouts)) {
       notifications.add(
-        InAppNotificationItem.workoutMilestone(
-          count: totalCompletedWorkouts,
-        ),
+        InAppNotificationItem.workoutMilestone(count: totalCompletedWorkouts),
       );
     }
 
@@ -427,30 +459,35 @@ class AchievementEvaluator {
 
     // 2. Evaluate all exercise-level PRs achieved in this workout
     final currentSessionSets = snapshot.sets
-        .where((rs) =>
-            rs.session.id == currentSessionId &&
-            rs.set.isCompleted &&
-            !rs.set.isWarmup &&
-            rs.set.reps > 0 &&
-            rs.effectiveKg > 0)
+        .where(
+          (rs) =>
+              rs.session.id == currentSessionId &&
+              rs.set.isCompleted &&
+              !rs.set.isWarmup &&
+              rs.set.reps > 0 &&
+              rs.effectiveKg > 0,
+        )
         .toList();
 
     final exerciseIds = currentSessionSets.map((rs) => rs.exercise.id).toSet();
 
     for (final exId in exerciseIds) {
-      final sessionExSets =
-          currentSessionSets.where((rs) => rs.exercise.id == exId).toList();
+      final sessionExSets = currentSessionSets
+          .where((rs) => rs.exercise.id == exId)
+          .toList();
       if (sessionExSets.isEmpty) continue;
       final exName = sessionExSets.first.exercise.name;
 
       final pastExSets = snapshot.sets
-          .where((rs) =>
-              rs.exercise.id == exId &&
-              rs.session.id != currentSessionId &&
-              rs.set.isCompleted &&
-              !rs.set.isWarmup &&
-              rs.set.reps > 0 &&
-              rs.effectiveKg > 0)
+          .where(
+            (rs) =>
+                rs.exercise.id == exId &&
+                rs.session.id != currentSessionId &&
+                rs.set.isCompleted &&
+                !rs.set.isWarmup &&
+                rs.set.reps > 0 &&
+                rs.effectiveKg > 0,
+          )
           .toList();
 
       if (pastExSets.isEmpty) continue;
@@ -458,8 +495,10 @@ class AchievementEvaluator {
       // Check best 1RM in current session vs past best 1RM
       double? currentBestE1Rm;
       for (final rs in sessionExSets) {
-        final est =
-            OneRepMax.estimate(weightKg: rs.effectiveKg, reps: rs.set.reps);
+        final est = OneRepMax.estimate(
+          weightKg: rs.effectiveKg,
+          reps: rs.set.reps,
+        );
         if (est != null && (currentBestE1Rm == null || est > currentBestE1Rm)) {
           currentBestE1Rm = est;
         }
@@ -467,8 +506,10 @@ class AchievementEvaluator {
 
       double? pastBestE1Rm;
       for (final rs in pastExSets) {
-        final est =
-            OneRepMax.estimate(weightKg: rs.effectiveKg, reps: rs.set.reps);
+        final est = OneRepMax.estimate(
+          weightKg: rs.effectiveKg,
+          reps: rs.set.reps,
+        );
         if (est != null && (pastBestE1Rm == null || est > pastBestE1Rm)) {
           pastBestE1Rm = est;
         }

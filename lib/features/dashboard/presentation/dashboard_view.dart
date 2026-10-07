@@ -2,25 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/design_system/components/glass_container.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
+import 'package:herculex/features/dashboard/domain/dashboard_config.dart';
+import 'package:herculex/features/dashboard/presentation/dashboard_widgets.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/hercul_insights_card.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
+import 'package:herculex/features/fasting/domain/fasting_plan.dart';
+import 'package:herculex/features/fasting/presentation/end_fast_dialog.dart';
+import 'package:herculex/features/fasting/presentation/widgets/fasting_stage_icon.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/supplements/presentation/supplement_tracker_widget.dart';
 import 'package:intl/intl.dart';
-
-import '../../../app/providers.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../theme/tokens/tokens.dart';
-import '../../../widgets/glass_container.dart';
-import '../../nutrition/domain/daily_totals.dart';
-import '../../nutrition/presentation/nutrition_providers.dart';
-import '../../fasting/domain/fasting_plan.dart';
-import '../../fasting/presentation/end_fast_dialog.dart';
-import '../../fasting/presentation/fasting_providers.dart';
-import '../../profile/domain/profile.dart';
-import '../domain/dashboard_config.dart';
-import 'dashboard_providers.dart';
-import 'dashboard_widgets.dart';
-import '../../supplements/presentation/supplement_tracker_widget.dart';
-
-
 
 class DashboardView extends ConsumerWidget {
   const DashboardView({super.key});
@@ -36,7 +36,10 @@ class DashboardView extends ConsumerWidget {
 
     final visibleEntries = [
       for (final e in config.widgets.asMap().entries)
-        if (e.value.visible) e,
+        if (e.value.visible &&
+            (isFemale ||
+                e.value.types.any((t) => t != DashboardWidgetType.cycle)))
+          e,
     ];
 
     return Scaffold(
@@ -48,8 +51,7 @@ class DashboardView extends ConsumerWidget {
               child: _DoneEditingButton(
                 onTap: () {
                   Haptics.selection();
-                  ref.read(dashboardEditModeProvider.notifier).state =
-                      false;
+                  ref.read(dashboardEditModeProvider.notifier).state = false;
                 },
               ),
             )
@@ -111,8 +113,8 @@ class DashboardView extends ConsumerWidget {
                     StaggeredGridTile.fit(
                       crossAxisCellCount:
                           entry.value.effectiveSize == DashboardWidgetSize.half
-                              ? 1
-                              : 2,
+                          ? 1
+                          : 2,
                       child: Builder(
                         key: ValueKey(entry.value.id),
                         builder: (context) {
@@ -121,9 +123,10 @@ class DashboardView extends ConsumerWidget {
                           final validTypes = isFemale
                               ? w.types
                               : w.types
-                                  .where(
-                                      (t) => t != DashboardWidgetType.cycle)
-                                  .toList();
+                                    .where(
+                                      (t) => t != DashboardWidgetType.cycle,
+                                    )
+                                    .toList();
                           if (validTypes.isEmpty) {
                             return const SizedBox.shrink();
                           }
@@ -131,13 +134,12 @@ class DashboardView extends ConsumerWidget {
                           void enterEditMode() {
                             if (editMode) return;
                             Haptics.heavy();
-                            ref
-                                .read(dashboardEditModeProvider.notifier)
-                                .state = true;
+                            ref.read(dashboardEditModeProvider.notifier).state =
+                                true;
                           }
 
                           final Widget rendered = validTypes.length > 1
-                              ? _StackedDashboardWidget(
+                              ? StackedDashboardWidget(
                                   types: validTypes,
                                   theme: theme,
                                   renderWidget: (type) =>
@@ -146,10 +148,7 @@ class DashboardView extends ConsumerWidget {
                                 )
                               : GestureDetector(
                                   onLongPress: editMode ? null : enterEditMode,
-                                  child: _renderWidget(
-                                    validTypes.first,
-                                    theme,
-                                  ),
+                                  child: _renderWidget(validTypes.first, theme),
                                 );
 
                           final tile = _EditableDashboardTile(
@@ -165,7 +164,10 @@ class DashboardView extends ConsumerWidget {
                           // to a new position (reorder), like a home-screen
                           // widget grid. Dropping onto another tile swaps
                           // their slot order.
-                          final tileWidth = _tileWidth(context, w.effectiveSize);
+                          final tileWidth = _tileWidth(
+                            context,
+                            w.effectiveSize,
+                          );
                           return LongPressDraggable<int>(
                             data: index,
                             onDragStarted: Haptics.medium,
@@ -180,24 +182,23 @@ class DashboardView extends ConsumerWidget {
                                       borderRadius: BorderRadius.circular(28),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black
-                                              .withValues(alpha: 0.35),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.35,
+                                          ),
                                           blurRadius: 24,
                                           spreadRadius: 4,
                                           offset: const Offset(0, 10),
                                         ),
                                         BoxShadow(
-                                          color: context.hx.primary
-                                              .withValues(alpha: 0.35),
+                                          color: context.hx.primary.withValues(
+                                            alpha: 0.35,
+                                          ),
                                           blurRadius: 16,
                                           spreadRadius: 1,
                                         ),
                                       ],
                                     ),
-                                    child: Opacity(
-                                      opacity: 0.95,
-                                      child: tile,
-                                    ),
+                                    child: Opacity(opacity: 0.95, child: tile),
                                   ),
                                 ),
                               ),
@@ -261,9 +262,7 @@ class DashboardView extends ConsumerWidget {
   /// grid's 24px page padding and 16px column gap.
   double _tileWidth(BuildContext context, DashboardWidgetSize size) {
     final available = MediaQuery.sizeOf(context).width - 48;
-    return size == DashboardWidgetSize.half
-        ? (available - 16) / 2
-        : available;
+    return size == DashboardWidgetSize.half ? (available - 16) / 2 : available;
   }
 
   /// Maps a dashboard widget type to its renderer.
@@ -303,6 +302,8 @@ class DashboardView extends ConsumerWidget {
         return const NutritionStreakCard();
       case DashboardWidgetType.workoutStreak:
         return const WorkoutStreakCard();
+      case DashboardWidgetType.herculInsights:
+        return const HerculInsightsCard();
     }
   }
 
@@ -338,11 +339,13 @@ class _LiveMacrosGridWrapper extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final n = DateTime.now();
     final today = DateTime(n.year, n.month, n.day);
-    
+
     return LiveMacrosGrid(
-      totals: ref.watch(dailyTotalsProvider(today)).asData?.value ??
+      totals:
+          ref.watch(dailyTotalsProvider(today)).asData?.value ??
           DailyTotals.empty,
-      targets: ref.watch(effectiveTargetsProvider(today)).asData?.value ??
+      targets:
+          ref.watch(effectiveTargetsProvider(today)).asData?.value ??
           ref.watch(baselineTargetsProvider),
     );
   }
@@ -368,6 +371,7 @@ class FastingTimerWidget extends ConsumerWidget {
           final target = Duration(seconds: active.targetSeconds);
           final remaining = target - elapsed;
           final isOverTarget = !isQuickFast && remaining.isNegative;
+          final currentStage = ref.watch(currentFastingStageProvider);
 
           final progress = isQuickFast || target.inSeconds == 0
               ? null
@@ -379,13 +383,19 @@ class FastingTimerWidget extends ConsumerWidget {
 
           String durationString(Duration duration) {
             final hours = duration.inHours.abs().toString().padLeft(2, '0');
-            final minutes = (duration.inMinutes.abs() % 60).toString().padLeft(2, '0');
-            final seconds = (duration.inSeconds.abs() % 60).toString().padLeft(2, '0');
+            final minutes = (duration.inMinutes.abs() % 60).toString().padLeft(
+              2,
+              '0',
+            );
+            final seconds = (duration.inSeconds.abs() % 60).toString().padLeft(
+              2,
+              '0',
+            );
             return "$hours:$minutes:$seconds";
           }
 
           return InkWell(
-            onTap: () => context.push('/fasting'),
+            onTap: () => context.push(AppRoutes.fasting),
             borderRadius: BorderRadius.circular(28),
             child: Container(
               padding: const EdgeInsets.all(32),
@@ -399,9 +409,7 @@ class FastingTimerWidget extends ConsumerWidget {
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(
-                  color: accent.withValues(alpha: 0.3),
-                ),
+                border: Border.all(color: accent.withValues(alpha: 0.3)),
               ),
               child: Column(
                 children: [
@@ -414,8 +422,8 @@ class FastingTimerWidget extends ConsumerWidget {
                         isQuickFast
                             ? "QUICK FAST"
                             : isOverTarget
-                                ? "FASTING COMPLETE"
-                                : "INTERMITTENT FASTING",
+                            ? "FASTING COMPLETE"
+                            : "INTERMITTENT FASTING",
                         style: theme.textTheme.labelLarge?.copyWith(
                           color: accent,
                           letterSpacing: 1.2,
@@ -443,33 +451,104 @@ class FastingTimerWidget extends ConsumerWidget {
                         children: [
                           Text(
                             durationString(
-                                isOverTarget || isQuickFast ? elapsed : remaining),
-                            style: theme.textTheme.displayLarge?.copyWith(fontSize: 32, fontWeight: FontWeight.bold),
+                              isOverTarget || isQuickFast ? elapsed : remaining,
+                            ),
+                            style: theme.textTheme.displayLarge?.copyWith(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           Text(
-                            isOverTarget || isQuickFast ? "ELAPSED" : "REMAINING",
-                            style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0),
+                            isOverTarget || isQuickFast
+                                ? "ELAPSED"
+                                : "REMAINING",
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: AppColors.secondary,
+                              letterSpacing: 1.0,
+                            ),
                           ),
                         ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  if (currentStage != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(
+                          alpha: context.hx.isDark ? 0.18 : 0.12,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: accent.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            getFastingStageIcon(currentStage.icon),
+                            size: 14,
+                            color: accent,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              "${currentStage.hour}. ura: ${currentStage.stageName}",
+                              style: TextStyle(
+                                color: accent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("STARTED", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, fontSize: 10)),
-                          Text(startedStr, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          Text(
+                            "STARTED",
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: AppColors.secondary,
+                              fontSize: 10,
+                            ),
+                          ),
+                          Text(
+                            startedStr,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text(isQuickFast ? "TARGET" : "TARGET END", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, fontSize: 10)),
-                          Text(isQuickFast ? "None" : targetEndStr, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          Text(
+                            isQuickFast ? "TARGET" : "TARGET END",
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: AppColors.secondary,
+                              fontSize: 10,
+                            ),
+                          ),
+                          Text(
+                            isQuickFast ? "None" : targetEndStr,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -480,7 +559,10 @@ class FastingTimerWidget extends ConsumerWidget {
                     onTap: () => confirmEndFast(context, ref),
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: accent,
                         borderRadius: BorderRadius.circular(20),
@@ -488,11 +570,19 @@ class FastingTimerWidget extends ConsumerWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.stop_circle_outlined, color: Colors.white, size: 18),
+                          const Icon(
+                            Icons.stop_circle_outlined,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             "END FAST",
-                            style: theme.textTheme.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
                           ),
                         ],
                       ),
@@ -503,8 +593,10 @@ class FastingTimerWidget extends ConsumerWidget {
             ),
           );
         } else {
+          final nextFast = ref.watch(nextScheduledFastProvider);
+
           return InkWell(
-            onTap: () => context.push('/fasting'),
+            onTap: () => context.push(AppRoutes.fasting),
             borderRadius: BorderRadius.circular(28),
             child: Container(
               padding: const EdgeInsets.all(28),
@@ -518,9 +610,7 @@ class FastingTimerWidget extends ConsumerWidget {
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(
-                  color: accent.withValues(alpha: 0.3),
-                ),
+                border: Border.all(color: accent.withValues(alpha: 0.3)),
               ),
               child: Column(
                 children: [
@@ -530,7 +620,9 @@ class FastingTimerWidget extends ConsumerWidget {
                       Icon(Icons.timelapse, color: accent, size: 20),
                       const SizedBox(width: 8),
                       Text(
-                        "INTERMITTENT FASTING",
+                        nextFast != null
+                            ? "SCHEDULED FASTING"
+                            : "INTERMITTENT FASTING",
                         style: theme.textTheme.labelLarge?.copyWith(
                           color: accent,
                           letterSpacing: 1.2,
@@ -540,30 +632,112 @@ class FastingTimerWidget extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  Text(
-                    "No Active Fast",
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Track your fasting windows to align nutrition, metabolic health, and muscle recovery.",
-                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
-                    textAlign: TextAlign.center,
-                  ),
+                  const SizedBox(height: 18),
+                  if (nextFast != null) ...[
+                    Builder(
+                      builder: (context) {
+                        final now = DateTime.now();
+                        final isToday =
+                            nextFast.nextOccurrence.year == now.year &&
+                            nextFast.nextOccurrence.month == now.month &&
+                            nextFast.nextOccurrence.day == now.day;
+                        final isTomorrow =
+                            nextFast.nextOccurrence.year == now.year &&
+                            nextFast.nextOccurrence.month == now.month &&
+                            nextFast.nextOccurrence.day == now.day + 1;
+                        final timeStr = DateFormat(
+                          'HH:mm',
+                        ).format(nextFast.nextOccurrence);
+                        final dayLabel = isToday
+                            ? 'Danes ob'
+                            : (isTomorrow
+                                  ? 'Jutri ob'
+                                  : DateFormat(
+                                      'EEEE ob',
+                                    ).format(nextFast.nextOccurrence));
+                        final hrsUntil = nextFast.timeUntil.inHours;
+                        final minsUntil = nextFast.timeUntil.inMinutes % 60;
+                        final untilStr = hrsUntil > 0
+                            ? '${hrsUntil}h ${minsUntil}m'
+                            : '${minsUntil}m';
+
+                        return Column(
+                          children: [
+                            Text(
+                              "Naslednji post: $dayLabel $timeStr",
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 19,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: accent.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                "${nextFast.planLabel} · Začetek čez $untilStr",
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: accent,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              "Urnik je aktiven in vas bo pravočasno opomnil na začetek posta.",
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.secondary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ] else ...[
+                    Text(
+                      "No Active Fast",
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Track your fasting windows to align nutrition, metabolic health, and muscle recovery.",
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   InkWell(
-                    onTap: () => context.push('/fasting'),
+                    onTap: () => context.push(AppRoutes.fasting),
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: accent,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        "START FASTING",
-                        style: theme.textTheme.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                        nextFast != null ? "START FAST NOW" : "START FASTING",
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
                       ),
                     ),
                   ),
@@ -582,14 +756,10 @@ class FastingTimerWidget extends ConsumerWidget {
       ),
       error: (err, stack) => GlassContainer(
         padding: const EdgeInsets.all(32),
-        child: SizedBox(
-          height: 160,
-          child: Center(child: Text("Error: $err")),
-        ),
+        child: SizedBox(height: 160, child: Center(child: Text("Error: $err"))),
       ),
     );
   }
-
 }
 
 /// Circular gradient avatar in the dashboard header. Replaces the Profile nav
@@ -602,7 +772,7 @@ class _ProfileAvatarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final initial = name.trim().isEmpty ? 'A' : name.trim()[0].toUpperCase();
     return GestureDetector(
-      onTap: () => context.push('/profile'),
+      onTap: () => context.push(AppRoutes.profile),
       child: Container(
         width: 40,
         height: 40,
@@ -628,9 +798,10 @@ class _ProfileAvatarButton extends StatelessWidget {
   }
 }
 
-/// Samsung One UI-style swipeable stacked widget with pill pagination dots.
-class _StackedDashboardWidget extends StatefulWidget {
-  const _StackedDashboardWidget({
+/// Samsung One UI-style swipeable stacked widget with layered depth and pagination dots.
+class StackedDashboardWidget extends ConsumerStatefulWidget {
+  const StackedDashboardWidget({
+    super.key,
     required this.types,
     required this.theme,
     required this.renderWidget,
@@ -643,12 +814,20 @@ class _StackedDashboardWidget extends StatefulWidget {
   final VoidCallback onLongPress;
 
   @override
-  State<_StackedDashboardWidget> createState() => _StackedDashboardWidgetState();
+  ConsumerState<StackedDashboardWidget> createState() =>
+      _StackedDashboardWidgetState();
 }
 
-class _StackedDashboardWidgetState extends State<_StackedDashboardWidget> {
-  final _controller = PageController();
+class _StackedDashboardWidgetState
+    extends ConsumerState<StackedDashboardWidget> {
+  late final PageController _controller;
   int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController();
+  }
 
   @override
   void dispose() {
@@ -658,52 +837,117 @@ class _StackedDashboardWidgetState extends State<_StackedDashboardWidget> {
 
   double _heightForKind(DashboardWidgetKind kind) {
     return switch (kind) {
-      DashboardWidgetKind.card => 156.0,
-      DashboardWidgetKind.large => 290.0,
-      DashboardWidgetKind.pill => 110.0,
+      DashboardWidgetKind.card => 184.0,
+      DashboardWidgetKind.large => 330.0,
+      DashboardWidgetKind.pill => 76.0,
     };
   }
 
   @override
   Widget build(BuildContext context) {
     final hx = context.hx;
+    final shape = ref.watch(dashboardCardShapeProvider);
     final primaryKind = widget.types.first.kind;
     final height = _heightForKind(primaryKind);
+    final count = widget.types.length;
+    final layerRadius = primaryKind == DashboardWidgetKind.pill
+        ? shape.pillRadius
+        : shape.cardRadius;
 
     return GestureDetector(
       onLongPress: widget.onLongPress,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            height: height,
-            child: PageView.builder(
-              controller: _controller,
-              itemCount: widget.types.length,
-              onPageChanged: (i) {
-                Haptics.selection();
-                setState(() => _page = i);
-              },
-              itemBuilder: (context, index) {
-                return widget.renderWidget(widget.types[index]);
-              },
-            ),
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              // Bottom-most stack layer background (for 3+ items)
+              if (count > 2)
+                Positioned(
+                  top: -8,
+                  left: 16,
+                  right: 16,
+                  height: height,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: hx.surfaceContainerLowest.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(
+                        layerRadius > 30 ? layerRadius - 4 : layerRadius,
+                      ),
+                      border: Border.all(
+                        color: hx.outlineVariant.withValues(alpha: 0.15),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Middle stack layer background (for 2+ items)
+              if (count > 1)
+                Positioned(
+                  top: -4,
+                  left: 8,
+                  right: 8,
+                  height: height,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: hx.surfaceContainerLowest.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(layerRadius),
+                      border: Border.all(
+                        color: hx.outlineVariant.withValues(alpha: 0.25),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Main swipeable PageView
+              SizedBox(
+                height: height,
+                child: PageView.builder(
+                  controller: _controller,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: count,
+                  onPageChanged: (i) {
+                    Haptics.selection();
+                    setState(() => _page = i);
+                  },
+                  itemBuilder: (context, index) {
+                    return widget.renderWidget(widget.types[index]);
+                  },
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: HxSpace.x2),
+          const SizedBox(height: 10),
+
+          // Pagination indicator dots / pills
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              for (var i = 0; i < widget.types.length; i++)
-                AnimatedContainer(
-                  duration: HxMotion.base,
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: i == _page ? 16 : 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: i == _page
-                        ? hx.primary
-                        : hx.outlineVariant.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(3),
+              for (var i = 0; i < count; i++)
+                GestureDetector(
+                  onTap: () {
+                    Haptics.selection();
+                    _controller.animateToPage(
+                      i,
+                      duration: HxMotion.base,
+                      curve: HxMotion.emphasized,
+                    );
+                  },
+                  child: AnimatedContainer(
+                    duration: HxMotion.base,
+                    curve: HxMotion.emphasized,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: i == _page ? 18 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: i == _page
+                          ? hx.primary
+                          : hx.outlineVariant.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
                 ),
             ],
@@ -741,19 +985,15 @@ class _DoneEditingButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.check_rounded,
-              color: hx.onPrimary,
-              size: 18,
-            ),
+            Icon(Icons.check_rounded, color: hx.onPrimary, size: 18),
             const SizedBox(width: 6),
             Text(
               'Done',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: hx.onPrimary,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
+                color: hx.onPrimary,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
             ),
           ],
         ),
@@ -791,10 +1031,7 @@ class _EditableDashboardTile extends ConsumerWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(shape.cardRadius),
         border: editMode
-            ? Border.all(
-                color: hx.primary.withValues(alpha: 0.6),
-                width: 1.5,
-              )
+            ? Border.all(color: hx.primary.withValues(alpha: 0.6), width: 1.5)
             : null,
       ),
       child: Stack(
@@ -910,7 +1147,9 @@ class _ResizeButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isHalf ? Icons.open_in_full_rounded : Icons.close_fullscreen_rounded,
+              isHalf
+                  ? Icons.open_in_full_rounded
+                  : Icons.close_fullscreen_rounded,
               size: 12,
               color: Colors.white,
             ),

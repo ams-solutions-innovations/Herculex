@@ -2,9 +2,8 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../services/gemini_backend_service.dart';
-import '../../profile/domain/profile.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/services/ai/gemini_backend_service.dart';
 
 final bodyFatAiServiceProvider = Provider<BodyFatAiService>((ref) {
   final backend = ref.watch(geminiBackendProvider);
@@ -44,7 +43,8 @@ class BodyFatAiResult {
     final min = (json['bfRangeMin'] as num?)?.toDouble();
     final max = (json['bfRangeMax'] as num?)?.toDouble();
     final conf = (json['confidence'] as num?)?.toDouble();
-    final expl = json['explanation'] as String? ?? 'Estimate based on analysis.';
+    final expl =
+        json['explanation'] as String? ?? 'Estimate based on analysis.';
     final dist = json['fatDistribution'] as String?;
     final rec = json['recommendations'] as String?;
 
@@ -91,16 +91,20 @@ class BodyFatAiService {
       if (isMale) {
         final diff = waistCm - neckCm;
         if (diff <= 0) return null;
-        final denom = 1.0324 -
+        final denom =
+            1.0324 -
             (0.19077 * (math.log(diff) / math.ln10)) +
             (0.15456 * (math.log(heightCm) / math.ln10));
         final bf = (495.0 / denom) - 450.0;
         return bf.clamp(3.0, 50.0);
       } else {
-        final hip = hipsCm ?? (waistCm * 1.15); // Fallback approximation if hips not logged
+        final hip =
+            hipsCm ??
+            (waistCm * 1.15); // Fallback approximation if hips not logged
         final val = waistCm + hip - neckCm;
         if (val <= 0) return null;
-        final denom = 1.29579 -
+        final denom =
+            1.29579 -
             (0.35004 * (math.log(val) / math.ln10)) +
             (0.22100 * (math.log(heightCm) / math.ln10));
         final bf = (495.0 / denom) - 450.0;
@@ -165,7 +169,9 @@ class BodyFatAiService {
         isMale: isMale,
       );
       if (navyBf != null) {
-        biometrics['navyFormulaReferenceBf'] = double.parse(navyBf.toStringAsFixed(1));
+        biometrics['navyFormulaReferenceBf'] = double.parse(
+          navyBf.toStringAsFixed(1),
+        );
       }
     }
 
@@ -178,14 +184,18 @@ class BodyFatAiService {
         isMale: isMale,
       );
       if (bmiBf != null) {
-        biometrics['bmiFormulaReferenceBf'] = double.parse(bmiBf.toStringAsFixed(1));
+        biometrics['bmiFormulaReferenceBf'] = double.parse(
+          bmiBf.toStringAsFixed(1),
+        );
       }
     }
     // If no images provided, return instant mathematical estimate
     if (imageFiles.isEmpty) {
       final estimated = navyBf ?? bmiBf ?? (isMale ? 15.0 : 22.0);
       final fatMass = weightKg != null ? weightKg * (estimated / 100.0) : null;
-      final leanMass = weightKg != null && fatMass != null ? weightKg - fatMass : null;
+      final leanMass = weightKg != null && fatMass != null
+          ? weightKg - fatMass
+          : null;
 
       return BodyFatAiResult(
         estimatedBfPercent: double.parse(estimated.toStringAsFixed(1)),
@@ -195,10 +205,16 @@ class BodyFatAiService {
         explanation: navyBf != null
             ? 'Calculated using the US Navy anthropometric formula based on waist, neck, and height measurements.'
             : 'Estimate calculated based on BMI (body mass index), age, and sex.',
-        fatDistribution: 'Attach a physique photo for more detailed visual analysis of definition and fat distribution.',
-        leanMassKg: leanMass != null ? double.parse(leanMass.toStringAsFixed(1)) : null,
-        fatMassKg: fatMass != null ? double.parse(fatMass.toStringAsFixed(1)) : null,
-        recommendations: 'Add a photo for more accurate visual analysis with Gemini AI.',
+        fatDistribution:
+            'Attach a physique photo for more detailed visual analysis of definition and fat distribution.',
+        leanMassKg: leanMass != null
+            ? double.parse(leanMass.toStringAsFixed(1))
+            : null,
+        fatMassKg: fatMass != null
+            ? double.parse(fatMass.toStringAsFixed(1))
+            : null,
+        recommendations:
+            'Add a photo for more accurate visual analysis with Gemini AI.',
         isAiGenerated: false,
       );
     }
@@ -228,18 +244,26 @@ class BodyFatAiService {
       // Fallback in case of network or API error
       final fallbackBf = navyBf ?? bmiBf ?? (isMale ? 15.0 : 22.0);
       final fatMass = weightKg != null ? weightKg * (fallbackBf / 100.0) : null;
-      final leanMass = weightKg != null && fatMass != null ? weightKg - fatMass : null;
+      final leanMass = weightKg != null && fatMass != null
+          ? weightKg - fatMass
+          : null;
 
       return BodyFatAiResult(
         estimatedBfPercent: double.parse(fallbackBf.toStringAsFixed(1)),
         bfRangeMin: double.parse((fallbackBf - 2.0).toStringAsFixed(1)),
         bfRangeMax: double.parse((fallbackBf + 2.0).toStringAsFixed(1)),
         confidence: 0.70,
-        explanation: 'Estimate generated using biometric formulas (US Navy / BMI) due to AI server unavailability: $e',
+        explanation:
+            'Estimate generated using biometric formulas (US Navy / BMI) due to AI server unavailability: $e',
         fatDistribution: 'Standard distribution based on your profile.',
-        leanMassKg: leanMass != null ? double.parse(leanMass.toStringAsFixed(1)) : null,
-        fatMassKg: fatMass != null ? double.parse(fatMass.toStringAsFixed(1)) : null,
-        recommendations: 'Check server connection for full multimodal visual analysis.',
+        leanMassKg: leanMass != null
+            ? double.parse(leanMass.toStringAsFixed(1))
+            : null,
+        fatMassKg: fatMass != null
+            ? double.parse(fatMass.toStringAsFixed(1))
+            : null,
+        recommendations:
+            'Check server connection for full multimodal visual analysis.',
         isAiGenerated: false,
       );
     }

@@ -1,8 +1,7 @@
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/data/local/local_data_wipe.dart';
+import 'package:herculex/features/auth/data/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../../data/local/database.dart';
-import '../../../data/local/local_data_wipe.dart';
-import 'auth_repository.dart';
 
 /// "Delete my account", start to finish.
 ///

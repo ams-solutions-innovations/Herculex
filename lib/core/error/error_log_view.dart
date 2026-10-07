@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import '../../theme/tokens/tokens.dart';
-import '../../ui/hx_card.dart';
-import 'error_log.dart';
+import 'package:herculex/core/error/error_log.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 
 /// Read-only view of [ErrorLog].
 ///
@@ -18,37 +17,42 @@ class ErrorLogView extends StatelessWidget {
   Widget build(BuildContext context) {
     final hx = context.hx;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Error log'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            tooltip: 'Clear',
-            onPressed: ErrorLog.instance.clear,
-          ),
-        ],
-      ),
-      body: ValueListenableBuilder<int>(
-        valueListenable: ErrorLog.instance.revision,
-        builder: (context, _, _) {
-          final records = ErrorLog.instance.records;
-          if (records.isEmpty) {
-            return Center(
-              child: Text(
-                'No errors recorded.',
-                style: TextStyle(color: hx.onSurfaceVariant),
-              ),
+    return HxScreenShell(
+      title: 'Error Log',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.delete_outline),
+          tooltip: 'Clear',
+          onPressed: ErrorLog.instance.clear,
+        ),
+      ],
+      children: [
+        ValueListenableBuilder<int>(
+          valueListenable: ErrorLog.instance.revision,
+          builder: (context, _, _) {
+            final records = ErrorLog.instance.records;
+            if (records.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Text(
+                    'No errors recorded.',
+                    style: TextStyle(color: hx.onSurfaceVariant),
+                  ),
+                ),
+              );
+            }
+            return Column(
+              children: [
+                for (var i = 0; i < records.length; i++) ...[
+                  if (i > 0) const SizedBox(height: HxSpace.x3),
+                  _RecordCard(record: records[i]),
+                ],
+              ],
             );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(HxSpace.x4),
-            itemCount: records.length,
-            separatorBuilder: (_, _) => const SizedBox(height: HxSpace.x3),
-            itemBuilder: (context, i) => _RecordCard(record: records[i]),
-          );
-        },
-      ),
+          },
+        ),
+      ],
     );
   }
 }
@@ -95,7 +99,8 @@ class _RecordCard extends StatelessWidget {
                 tooltip: 'Copy',
                 onPressed: () => Clipboard.setData(
                   ClipboardData(
-                    text: '${record.source} $stamp\n${record.summary}\n'
+                    text:
+                        '${record.source} $stamp\n${record.summary}\n'
                         '${record.details ?? ''}\n${record.stack ?? ''}',
                   ),
                 ),

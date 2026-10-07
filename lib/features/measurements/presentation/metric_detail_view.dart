@@ -1,22 +1,21 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/utils/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
+import 'package:herculex/features/nutrition/application/goals_providers.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:intl/intl.dart';
-
-import '../../../app/providers.dart';
-import '../../../core/units.dart';
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../nutrition/presentation/goals_providers.dart';
-import '../../workouts/presentation/workouts_providers.dart';
-
-import 'body_fat_ai_dialog.dart';
 
 final _metricHistoryProvider =
     StreamProvider.family<List<BodyMeasurementData>, String>((ref, metric) {
-  return ref.watch(measurementsRepositoryProvider).watchMetric(metric);
-});
+      return ref.watch(measurementsRepositoryProvider).watchMetric(metric);
+    });
 
 class MetricDetailView extends ConsumerStatefulWidget {
   final String metric;
@@ -56,226 +55,213 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
     final theme = Theme.of(context);
     final historyAsync = ref.watch(_metricHistoryProvider(widget.metric));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_label),
-        centerTitle: true,
-        actions: [
-          if (widget.metric == 'body_fat')
-            IconButton(
-              icon: Icon(Icons.auto_awesome, color: AppColors.primary),
-              tooltip: 'Gemini AI Estimate',
-              onPressed: () {
-                Haptics.selection();
-                BodyFatAiDialog.show(context);
-              },
-            ),
-        ],
-      ),
-      body: historyAsync.when(
-        data: (rows) {
-          if (rows.isEmpty) {
-            return Column(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.show_chart,
-                            size: 64,
-                            color: AppColors.secondary.withValues(alpha: 0.4),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No $_label entries yet',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: AppColors.secondary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Log your first measurement to track trends over time',
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.secondary.withValues(alpha: 0.8),
-                            ),
-                          ),
-                          if (widget.metric == 'bodyweight') ...[
-                            const SizedBox(height: 24),
-                            _TargetWeightSection(
-                              latestKg: null,
-                              unit: _unit,
-                            ),
-                          ],
-                        ],
+    return HxScreenShell(
+      title: _label,
+      actions: [
+        if (widget.metric == 'body_fat')
+          IconButton(
+            icon: Icon(Icons.auto_awesome, color: AppColors.primary),
+            tooltip: 'Gemini AI Estimate',
+            onPressed: () {
+              Haptics.selection();
+              BodyFatAiDialog.show(context);
+            },
+          ),
+      ],
+      pinnedBottom: _bottomLogButton(context),
+      children: [
+        historyAsync.when(
+          data: (rows) {
+            if (rows.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 48,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.show_chart,
+                        size: 64,
+                        color: AppColors.secondary.withValues(alpha: 0.4),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No $_label entries yet',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: AppColors.secondary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Log your first measurement to track trends over time',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.secondary.withValues(alpha: 0.8),
+                        ),
+                      ),
+                      if (widget.metric == 'bodyweight') ...[
+                        const SizedBox(height: 24),
+                        _TargetWeightSection(latestKg: null, unit: _unit),
+                      ],
+                    ],
                   ),
                 ),
-                _bottomLogButton(context),
-              ],
-            );
-          }
+              );
+            }
 
-          final latest = rows.last;
-          final first = rows.first;
-          final diffTotal = rows.length >= 2 ? latest.value - first.value : 0.0;
-          final values = rows.map((r) => r.value).toList();
-          final minVal = values.reduce((a, b) => a < b ? a : b);
-          final maxVal = values.reduce((a, b) => a > b ? a : b);
-          final avgVal = values.reduce((a, b) => a + b) / values.length;
+            final latest = rows.last;
+            final first = rows.first;
+            final diffTotal = rows.length >= 2
+                ? latest.value - first.value
+                : 0.0;
+            final values = rows.map((r) => r.value).toList();
+            final minVal = values.reduce((a, b) => a < b ? a : b);
+            final maxVal = values.reduce((a, b) => a > b ? a : b);
+            final avgVal = values.reduce((a, b) => a + b) / values.length;
 
-          return Column(
-            children: [
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
+            return Column(
+              children: [
+                // ── Summary Cards Grid ──
+                Row(
                   children: [
-                    // ── Summary Cards Grid ──
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _StatCard(
-                            title: 'Latest',
-                            value: '${latest.value.toStringAsFixed(1)} $_unit',
-                            subtitle: _formatShortDate(latest.dateIso),
-                            icon: Icons.speed,
-                            accentColor: AppColors.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _StatCard(
-                            title: 'Net Change',
-                            value: rows.length < 2
-                                ? '—'
-                                : '${diffTotal >= 0 ? "+" : ""}${diffTotal.toStringAsFixed(1)} $_unit',
-                            subtitle: rows.length < 2
-                                ? 'Need 2+ logs'
-                                : 'Since start',
-                            icon: diffTotal >= 0
-                                ? Icons.trending_up
-                                : Icons.trending_down,
-                            accentColor: diffTotal == 0
-                                ? AppColors.secondary
-                                : ((widget.metric == 'bodyweight' ||
-                                        widget.metric == 'body_fat')
-                                    ? (diffTotal < 0
+                    Expanded(
+                      child: _StatCard(
+                        title: 'Latest',
+                        value: '${latest.value.toStringAsFixed(1)} $_unit',
+                        subtitle: _formatShortDate(latest.dateIso),
+                        icon: Icons.speed,
+                        accentColor: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatCard(
+                        title: 'Net Change',
+                        value: rows.length < 2
+                            ? '—'
+                            : '${diffTotal >= 0 ? "+" : ""}${diffTotal.toStringAsFixed(1)} $_unit',
+                        subtitle: rows.length < 2
+                            ? 'Need 2+ logs'
+                            : 'Since start',
+                        icon: diffTotal >= 0
+                            ? Icons.trending_up
+                            : Icons.trending_down,
+                        accentColor: diffTotal == 0
+                            ? AppColors.secondary
+                            : ((widget.metric == 'bodyweight' ||
+                                      widget.metric == 'body_fat')
+                                  ? (diffTotal < 0
                                         ? Colors.green
                                         : Colors.orange)
-                                    : (diffTotal > 0
+                                  : (diffTotal > 0
                                         ? Colors.green
                                         : Colors.blue)),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _MiniStatTile(
-                            label: 'Min',
-                            value: '${minVal.toStringAsFixed(1)} $_unit',
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _MiniStatTile(
-                            label: 'Avg',
-                            value: '${avgVal.toStringAsFixed(1)} $_unit',
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _MiniStatTile(
-                            label: 'Max',
-                            value: '${maxVal.toStringAsFixed(1)} $_unit',
-                          ),
-                        ),
-                      ],
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _MiniStatTile(
+                        label: 'Min',
+                        value: '${minVal.toStringAsFixed(1)} $_unit',
+                      ),
                     ),
-                    if (widget.metric == 'bodyweight') ...[
-                      const SizedBox(height: 14),
-                      _TargetWeightSection(
-                        latestKg: latest.value,
-                        unit: _unit,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _MiniStatTile(
+                        label: 'Avg',
+                        value: '${avgVal.toStringAsFixed(1)} $_unit',
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _MiniStatTile(
+                        label: 'Max',
+                        value: '${maxVal.toStringAsFixed(1)} $_unit',
+                      ),
+                    ),
+                  ],
+                ),
+                if (widget.metric == 'bodyweight') ...[
+                  const SizedBox(height: 14),
+                  _TargetWeightSection(latestKg: latest.value, unit: _unit),
+                ],
+                const SizedBox(height: 20),
+
+                // ── Chart Section ──
+                Text(
+                  'Progress Trend',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 20, 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainer,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildChart(
+                        rows,
+                        widget.metric == 'bodyweight'
+                            ? (ref
+                                      .watch(profileProvider)
+                                      .valueOrNull
+                                      ?.targetWeightKg ??
+                                  ref.watch(goalWeightProvider))
+                            : null,
                       ),
                     ],
-                    const SizedBox(height: 20),
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-                    // ── Chart Section ──
+                // ── History Section ──
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
                     Text(
-                      'Progress Trend',
+                      'History (${rows.length})',
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(16, 20, 20, 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.outlineVariant.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildChart(
-                            rows,
-                            widget.metric == 'bodyweight'
-                                ? (ref.watch(profileProvider).valueOrNull?.targetWeightKg ??
-                                    ref.watch(goalWeightProvider))
-                                : null,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // ── History Section ──
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'History (${rows.length})',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    for (final r in rows.reversed)
-                      _HistoryTile(
-                        row: r,
-                        unit: _unit,
-                        onDelete: () async {
-                          Haptics.medium();
-                          await ref
-                              .read(measurementsRepositoryProvider)
-                              .deleteMeasurement(r.id);
-                        },
-                      ),
                   ],
                 ),
-              ),
-              _bottomLogButton(context),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-      ),
+                const SizedBox(height: 12),
+                for (final r in rows.reversed)
+                  _HistoryTile(
+                    row: r,
+                    unit: _unit,
+                    onDelete: () async {
+                      Haptics.medium();
+                      await ref
+                          .read(measurementsRepositoryProvider)
+                          .deleteMeasurement(r.id);
+                    },
+                  ),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error: $e')),
+        ),
+      ],
     );
   }
 
@@ -290,7 +276,8 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
     var minY = rows.map((e) => e.value).reduce((a, b) => a < b ? a : b);
     var maxY = rows.map((e) => e.value).reduce((a, b) => a > b ? a : b);
 
-    final hasTarget = targetValue != null &&
+    final hasTarget =
+        targetValue != null &&
         targetValue > 0 &&
         !targetValue.isNaN &&
         !targetValue.isInfinite;
@@ -359,10 +346,7 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
                 getTitlesWidget: (val, meta) {
                   return Text(
                     val.toStringAsFixed(0),
-                    style: TextStyle(
-                      color: AppColors.secondary,
-                      fontSize: 10,
-                    ),
+                    style: TextStyle(color: AppColors.secondary, fontSize: 10),
                   );
                 },
               ),
@@ -393,8 +377,12 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
                 },
               ),
             ),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
           ),
           borderData: FlBorderData(show: false),
           lineTouchData: LineTouchData(
@@ -440,11 +428,11 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
                 show: rows.length < 15,
                 getDotPainter: (spot, percent, barData, index) =>
                     FlDotCirclePainter(
-                  radius: 4,
-                  color: AppColors.primary,
-                  strokeWidth: 2,
-                  strokeColor: Theme.of(context).scaffoldBackgroundColor,
-                ),
+                      radius: 4,
+                      color: AppColors.primary,
+                      strokeWidth: 2,
+                      strokeColor: Theme.of(context).scaffoldBackgroundColor,
+                    ),
               ),
               belowBarData: BarAreaData(
                 show: true,
@@ -589,7 +577,9 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
 
     if (value != null) {
       Haptics.medium();
-      await ref.read(measurementsRepositoryProvider).logMeasurement(
+      await ref
+          .read(measurementsRepositoryProvider)
+          .logMeasurement(
             dateIso: DateFormat('yyyy-MM-dd').format(DateTime.now()),
             metric: widget.metric,
             value: value,
@@ -764,10 +754,7 @@ class _TargetWeightSection extends ConsumerWidget {
   final double? latestKg;
   final String unit;
 
-  const _TargetWeightSection({
-    required this.latestKg,
-    required this.unit,
-  });
+  const _TargetWeightSection({required this.latestKg, required this.unit});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -795,9 +782,7 @@ class _TargetWeightSection extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -807,7 +792,11 @@ class _TargetWeightSection extends ConsumerWidget {
               color: AppColors.primary.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.track_changes_rounded, color: AppColors.primary, size: 22),
+            child: Icon(
+              Icons.track_changes_rounded,
+              color: AppColors.primary,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -824,10 +813,14 @@ class _TargetWeightSection extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  hasTarget ? '${targetKg.toStringAsFixed(1)} $unit' : 'Not set',
+                  hasTarget
+                      ? '${targetKg.toStringAsFixed(1)} $unit'
+                      : 'Not set',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: hasTarget ? AppColors.onSurface : AppColors.secondary,
+                    color: hasTarget
+                        ? AppColors.onSurface
+                        : AppColors.secondary,
                   ),
                 ),
                 Text(
@@ -893,15 +886,17 @@ class _TargetWeightSection extends ConsumerWidget {
               ),
               Text(
                 'Set Target Bodyweight',
-                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  ctx,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: ctrl,
                 autofocus: true,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Target Weight ($unit)',
                   hintText: 'e.g. 75.0',

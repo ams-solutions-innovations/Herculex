@@ -52,8 +52,8 @@ class ErrorLog {
   final ValueNotifier<int> revision = ValueNotifier<int>(0);
 
   /// Newest first.
-  List<AppErrorRecord> get records => _records.toList(growable: false).reversed
-      .toList(growable: false);
+  List<AppErrorRecord> get records =>
+      _records.toList(growable: false).reversed.toList(growable: false);
 
   int get length => _records.length;
 

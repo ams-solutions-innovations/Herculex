@@ -14,6 +14,9 @@ void main() {
   });
 
   test('returns null for a malformed id after the prefix', () {
-    expect(fastingScheduleIdFromPayload('fasting_schedule:not_a_number'), isNull);
+    expect(
+      fastingScheduleIdFromPayload('fasting_schedule:not_a_number'),
+      isNull,
+    );
   });
 }

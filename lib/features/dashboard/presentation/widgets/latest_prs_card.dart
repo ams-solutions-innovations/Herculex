@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/utils/units.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/analytics/application/analytics_providers.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
 
-import '../../../../core/units.dart';
-import '../../../../theme/colors.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../analytics/presentation/analytics_providers.dart';
-import 'dashboard_shared.dart';
 /// Latest estimated 1RM PRs (§18).
 class LatestPrsCard extends ConsumerWidget {
   const LatestPrsCard({super.key});
@@ -59,9 +59,12 @@ class LatestPrsCard extends ConsumerWidget {
               SizedBox(height: isCompact ? 8 : 12),
               prs.when(
                 data: (list) => list.isEmpty
-                    ? Text('No PRs yet',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: AppColors.secondary))
+                    ? Text(
+                        'No PRs yet',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.secondary,
+                        ),
+                      )
                     : Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -69,14 +72,16 @@ class LatestPrsCard extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: 3),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Expanded(
                                     child: Text(
                                       p.exerciseName,
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        fontSize: isCompact ? 12 : null,
-                                      ),
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontSize: isCompact ? 12 : null,
+                                          ),
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,
                                     ),
@@ -85,14 +90,18 @@ class LatestPrsCard extends ConsumerWidget {
                                   Text(
                                     ref
                                         .watch(weightFormatProvider)
-                                        .format(p.estimatedOneRmKg, decimals: 0),
-                                    style: (isCompact
-                                            ? theme.textTheme.bodyMedium
-                                            : theme.textTheme.titleSmall)
-                                        ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primary,
-                                    ),
+                                        .format(
+                                          p.estimatedOneRmKg,
+                                          decimals: 0,
+                                        ),
+                                    style:
+                                        (isCompact
+                                                ? theme.textTheme.bodyMedium
+                                                : theme.textTheme.titleSmall)
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primary,
+                                            ),
                                   ),
                                 ],
                               ),
@@ -103,12 +112,14 @@ class LatestPrsCard extends ConsumerWidget {
                   child: Padding(
                     padding: EdgeInsets.all(8.0),
                     child: SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2)),
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
                   ),
                 ),
-                error: (e, _) => Text('Error: $e', style: theme.textTheme.bodySmall),
+                error: (e, _) =>
+                    Text('Error: $e', style: theme.textTheme.bodySmall),
               ),
             ],
           ),

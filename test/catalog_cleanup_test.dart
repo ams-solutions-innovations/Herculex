@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_importer.dart';
 import 'package:herculex/data/local/exercise_merges.dart';
-import 'package:herculex/features/workouts/presentation/equipment_variant_sheet.dart';
+import 'package:herculex/features/workouts/presentation/sheets/equipment_variant_sheet.dart';
 
 import 'support/test_database.dart';
 
@@ -38,8 +38,9 @@ void main() {
   tearDownAll(() async => db.close());
 
   Future<ExerciseCatalogData?> bySlug(String slug) {
-    return (db.select(db.exerciseCatalog)..where((t) => t.slug.equals(slug)))
-        .getSingleOrNull();
+    return (db.select(
+      db.exerciseCatalog,
+    )..where((t) => t.slug.equals(slug))).getSingleOrNull();
   }
 
   group('equipment fixes', () {
@@ -52,8 +53,10 @@ void main() {
       // Hammer Curl was the only member contributing `machine_plate`, so the
       // prompt offered "Machine (Plate-Loaded)" on every curl in the catalog.
       final curl = await bySlug('dumbbell-curl');
-      expect(EquipmentVariantSheet.optionsFor(curl!),
-          isNot(contains('machine_plate')));
+      expect(
+        EquipmentVariantSheet.optionsFor(curl!),
+        isNot(contains('machine_plate')),
+      );
     });
 
     test('a band pushdown is loaded by a band, not a cable stack', () async {
@@ -74,13 +77,13 @@ void main() {
                   as List)
               .cast<Map<String, dynamic>>();
       for (final movement in movements) {
-        final allowed =
-            (movement['allowedEquipment'] as List).cast<String>();
+        final allowed = (movement['allowedEquipment'] as List).cast<String>();
         if (!allowed.contains('other')) continue;
         expect(
           genuinelyOther,
           contains(movement['slug']),
-          reason: '"${movement['label']}" offers Other — fix the member row '
+          reason:
+              '"${movement['label']}" offers Other — fix the member row '
               'or add it to the allowed list here',
         );
       }
@@ -105,10 +108,16 @@ void main() {
       // Keeps kExerciseMerges in step with MERGES in tool/catalog_cleanup.py:
       // a loser still in the JSON means the tool was not re-run.
       for (final merge in kExerciseMerges) {
-        expect(await bySlug(merge.loser), isNull,
-            reason: '${merge.loser} is still in the catalog');
-        expect(await bySlug(merge.winner), isNotNull,
-            reason: '${merge.winner} is missing — the merge would be skipped');
+        expect(
+          await bySlug(merge.loser),
+          isNull,
+          reason: '${merge.loser} is still in the catalog',
+        );
+        expect(
+          await bySlug(merge.winner),
+          isNotNull,
+          reason: '${merge.winner} is missing — the merge would be skipped',
+        );
       }
     });
 
@@ -134,8 +143,11 @@ void main() {
       final dip = await bySlug('chest-dips');
       expect(dip!.name, 'Dip');
       expect(dip.movementSlug, 'dip-vertical-push');
-      expect(dip.supportsWeightedBodyweight, isTrue,
-          reason: 'Weighted Dip folded in here; added load needs a home');
+      expect(
+        dip.supportsWeightedBodyweight,
+        isTrue,
+        reason: 'Weighted Dip folded in here; added load needs a home',
+      );
     });
   });
 
@@ -159,10 +171,16 @@ void main() {
       final slugs = <String>{};
       final names = <String>{};
       for (final row in catalogJson) {
-        expect(slugs.add(row['slug'] as String), isTrue,
-            reason: 'duplicate slug ${row['slug']}');
-        expect(names.add(row['name'] as String), isTrue,
-            reason: 'duplicate name ${row['name']}');
+        expect(
+          slugs.add(row['slug'] as String),
+          isTrue,
+          reason: 'duplicate slug ${row['slug']}',
+        );
+        expect(
+          names.add(row['name'] as String),
+          isTrue,
+          reason: 'duplicate name ${row['name']}',
+        );
       }
     });
 
@@ -173,8 +191,11 @@ void main() {
       for (final row in catalogJson) {
         for (final alias in (row['aka'] as List).cast<String>()) {
           if (alias == row['name']) continue;
-          expect(names, isNot(contains(alias)),
-              reason: '${row['name']} claims "$alias", a real exercise');
+          expect(
+            names,
+            isNot(contains(alias)),
+            reason: '${row['name']} claims "$alias", a real exercise',
+          );
         }
       }
     });

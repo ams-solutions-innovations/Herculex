@@ -89,9 +89,10 @@ void main() {
             1,
             'Cable Fly',
             mechanics: 'isolation',
-            eligibleRoles: SlotRoleEligibility.of(
-              [SlotRole.accessory, SlotRole.isolation],
-            ),
+            eligibleRoles: SlotRoleEligibility.of([
+              SlotRole.accessory,
+              SlotRole.isolation,
+            ]),
           ),
           _candidate(2, 'Close-Grip Bench'),
         ],
@@ -103,10 +104,7 @@ void main() {
 
     test('the minimum re-exposure gap keeps a recent lift out', () {
       final result = ExerciseScorer.rank(
-        pool: [
-          _candidate(1, 'Floor Press'),
-          _candidate(2, 'Board Press'),
-        ],
+        pool: [_candidate(1, 'Floor Press'), _candidate(2, 'Board Press')],
         context: _context(weekIndex: 4, weekLastAssigned: {1: 3}),
       );
       expect(result.top!.candidate.exerciseId, 2);
@@ -205,21 +203,20 @@ void main() {
           _candidate(1, 'Recent', weeksSinceLastPerformed: 1),
           _candidate(2, 'Stale', weeksSinceLastPerformed: 8),
         ],
-        context: _context(policy: const RotationPolicy(
-          everyWeeks: 2,
-          minGapWeeks: 0,
-          minPoolSize: 1,
-        )),
+        context: _context(
+          policy: const RotationPolicy(
+            everyWeeks: 2,
+            minGapWeeks: 0,
+            minPoolSize: 1,
+          ),
+        ),
       );
       expect(result.top!.candidate.exerciseId, 2);
     });
 
     test('a favourite beats a neutral exercise', () {
       final result = ExerciseScorer.rank(
-        pool: [
-          _candidate(1, 'Neutral'),
-          _candidate(2, 'Beloved', affinity: 2),
-        ],
+        pool: [_candidate(1, 'Neutral'), _candidate(2, 'Beloved', affinity: 2)],
         context: _context(),
       );
       expect(result.top!.candidate.exerciseId, 2);
@@ -240,10 +237,18 @@ void main() {
     test('a heavy slot avoids a movement with almost no history', () {
       final result = ExerciseScorer.rank(
         pool: [
-          _candidate(1, 'Barely Done', loggedSessions: 0,
-              weeksSinceLastPerformed: null),
-          _candidate(2, 'Well Known', loggedSessions: 20,
-              weeksSinceLastPerformed: 6),
+          _candidate(
+            1,
+            'Barely Done',
+            loggedSessions: 0,
+            weeksSinceLastPerformed: null,
+          ),
+          _candidate(
+            2,
+            'Well Known',
+            loggedSessions: 20,
+            weeksSinceLastPerformed: 6,
+          ),
         ],
         context: _context(role: SlotRole.main),
       );
@@ -260,12 +265,19 @@ void main() {
       );
       final result = ExerciseScorer.rank(
         pool: [
-          _candidate(1, 'Pec Deck',
-              modality: 'machine_selectorized',
-              slug: 'fly-isolation',
-              mechanics: 'isolation'),
-          _candidate(2, 'Dumbbell Press',
-              modality: 'dumbbell', slug: 'bench-press'),
+          _candidate(
+            1,
+            'Pec Deck',
+            modality: 'machine_selectorized',
+            slug: 'fly-isolation',
+            mechanics: 'isolation',
+          ),
+          _candidate(
+            2,
+            'Dumbbell Press',
+            modality: 'dumbbell',
+            slug: 'bench-press',
+          ),
         ],
         context: _context(
           role: SlotRole.accessory,
@@ -285,11 +297,11 @@ void main() {
         slug: 'bench-press',
       );
       ScorerCandidate sameFamily() => _candidate(
-            1,
-            'Dumbbell Floor Press',
-            modality: 'dumbbell',
-            slug: 'bench-press',
-          );
+        1,
+        'Dumbbell Floor Press',
+        modality: 'dumbbell',
+        slug: 'bench-press',
+      );
 
       final heavy = ExerciseScorer.rank(
         pool: [sameFamily()],
@@ -297,7 +309,10 @@ void main() {
       ).top!;
       final pump = ExerciseScorer.rank(
         pool: [sameFamily()],
-        context: _context(role: SlotRole.accessory, recentPicks: const [recent]),
+        context: _context(
+          role: SlotRole.accessory,
+          recentPicks: const [recent],
+        ),
       ).top!;
 
       // Barbell bench -> dumbbell floor press is real accommodation for a max
@@ -318,8 +333,12 @@ void main() {
       );
       final repeat = ExerciseScorer.rank(
         pool: [
-          _candidate(1, 'Barbell Bench', modality: 'barbell',
-              slug: 'bench-press'),
+          _candidate(
+            1,
+            'Barbell Bench',
+            modality: 'barbell',
+            slug: 'bench-press',
+          ),
         ],
         context: _context(role: SlotRole.main, recentPicks: const [recent]),
       ).top!;
@@ -348,14 +367,15 @@ void main() {
 
   group('determinism', () {
     test('the same seed always produces the same order', () {
-      final pool = [
-        _candidate(1, 'A'),
-        _candidate(2, 'B'),
-        _candidate(3, 'C'),
-      ];
-      final first = ExerciseScorer.rank(pool: pool, context: _context(seed: 42));
-      final second =
-          ExerciseScorer.rank(pool: pool, context: _context(seed: 42));
+      final pool = [_candidate(1, 'A'), _candidate(2, 'B'), _candidate(3, 'C')];
+      final first = ExerciseScorer.rank(
+        pool: pool,
+        context: _context(seed: 42),
+      );
+      final second = ExerciseScorer.rank(
+        pool: pool,
+        context: _context(seed: 42),
+      );
       expect(
         first.ranked.map((e) => e.candidate.exerciseId),
         second.ranked.map((e) => e.candidate.exerciseId),
@@ -367,10 +387,10 @@ void main() {
       final seeds = <int>{};
       for (var s = 0; s < 40; s++) {
         seeds.add(
-          ExerciseScorer.rank(pool: pool, context: _context(seed: s))
-              .top!
-              .candidate
-              .exerciseId,
+          ExerciseScorer.rank(
+            pool: pool,
+            context: _context(seed: s),
+          ).top!.candidate.exerciseId,
         );
       }
       // Re-rolling must actually be able to change the answer.
@@ -408,11 +428,13 @@ void main() {
           _candidate(2, 'B', affinity: 1),
           _candidate(3, 'C'),
         ],
-        context: _context(policy: const RotationPolicy(
-          everyWeeks: 2,
-          minGapWeeks: 0,
-          minPoolSize: 1,
-        )),
+        context: _context(
+          policy: const RotationPolicy(
+            everyWeeks: 2,
+            minGapWeeks: 0,
+            minPoolSize: 1,
+          ),
+        ),
       );
       final alternates = result.alternates();
       expect(alternates, hasLength(2));

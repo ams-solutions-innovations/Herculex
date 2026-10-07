@@ -70,7 +70,6 @@ class MediaControlsController(private val context: Context) {
     private val syncManager = WearDataLayerSyncManager(context)
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private val sessionManager = context.getSystemService(MediaSessionManager::class.java)
-    private val listenerComponent = ComponentName(context, MediaNotificationListenerService::class.java)
 
     private val _stateFlow = MutableStateFlow(snapshot())
     val stateFlow: StateFlow<MediaControlsState> = _stateFlow.asStateFlow()
@@ -103,7 +102,7 @@ class MediaControlsController(private val context: Context) {
 
     fun start() {
         runCatching {
-            sessionManager.addOnActiveSessionsChangedListener(activeSessionsListener, listenerComponent)
+            sessionManager.addOnActiveSessionsChangedListener(activeSessionsListener, null)
         }
         attachToActiveLocalSession()
 
@@ -216,7 +215,7 @@ class MediaControlsController(private val context: Context) {
 
     private fun findActiveLocalController(): MediaController? {
         return try {
-            val sessions = sessionManager.getActiveSessions(listenerComponent)
+            val sessions = sessionManager.getActiveSessions(null)
             sessions.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
                 ?: sessions.firstOrNull()
         } catch (_: Exception) {
@@ -318,9 +317,12 @@ class MediaControlsController(private val context: Context) {
 
         // Default standby state
         val isPlaying = optimisticIsPlaying ?: false
+        val hasPermission = synced?.hasPermission ?: false
+        val titleMsg = if (!hasPermission) "Allow Phone Permission" else if (isPlaying) "Playing on Phone" else "No Active Media"
+        val artistMsg = if (!hasPermission) "Open phone app to allow" else "Start Spotify on phone or watch"
         return MediaControlsState(
-            title = if (isPlaying) "Playing on Phone" else "No Active Media",
-            artist = "Start Spotify on phone or watch",
+            title = titleMsg,
+            artist = artistMsg,
             isPlaying = isPlaying,
             hasSession = false,
             source = "none",

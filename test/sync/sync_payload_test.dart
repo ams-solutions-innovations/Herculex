@@ -99,7 +99,10 @@ void main() {
   }
 
   /// `set_bands` sits four levels down. Returns the new set entry's local id.
-  Future<int> insertSetEntry(AppDatabase into, {required int exerciseId}) async {
+  Future<int> insertSetEntry(
+    AppDatabase into, {
+    required int exerciseId,
+  }) async {
     final sessionId = await into
         .into(into.workoutSessions)
         .insert(WorkoutSessionsCompanion.insert(startedAt: DateTime.now()));
@@ -172,28 +175,33 @@ void main() {
       await sync.pushOnce();
 
       final row = pushed('micro_workouts');
-      expect(row['exercise_catalog_id'], await uuidOf('exercise_catalog', exerciseId));
+      expect(
+        row['exercise_catalog_id'],
+        await uuidOf('exercise_catalog', exerciseId),
+      );
       expect(row['exercise_slug'], isNull);
     });
 
-    test('the custom parent is pushed before the child that references it',
-        () async {
-      await sync.start(userId);
-      final exerciseId = await insertExercise(
-        db,
-        name: 'Zercher Good Morning',
-        isCustom: true,
-      );
-      await insertMicroWorkout(db, exerciseId: exerciseId);
-      await sync.pushOnce();
+    test(
+      'the custom parent is pushed before the child that references it',
+      () async {
+        await sync.start(userId);
+        final exerciseId = await insertExercise(
+          db,
+          name: 'Zercher Good Morning',
+          isCustom: true,
+        );
+        await insertMicroWorkout(db, exerciseId: exerciseId);
+        await sync.pushOnce();
 
-      final order = backend.upsertCalls.map((c) => c.$1).toList();
-      expect(
-        order.indexOf('exercise_catalog'),
-        lessThan(order.indexOf('micro_workouts')),
-        reason: 'Postgres FKs reject the child otherwise',
-      );
-    });
+        final order = backend.upsertCalls.map((c) => c.$1).toList();
+        expect(
+          order.indexOf('exercise_catalog'),
+          lessThan(order.indexOf('micro_workouts')),
+          reason: 'Postgres FKs reject the child otherwise',
+        );
+      },
+    );
 
     test('a null reference sends both catalogue columns as null', () async {
       await sync.start(userId);
@@ -316,8 +324,12 @@ void main() {
   group('BandFk', () {
     test('a seeded band travels as colour + tension, not a uuid', () async {
       await sync.start(userId);
-      final exerciseId =
-          await insertExercise(db, name: 'Squat', slug: 'squat', isCustom: false);
+      final exerciseId = await insertExercise(
+        db,
+        name: 'Squat',
+        slug: 'squat',
+        isCustom: false,
+      );
       final setEntryId = await insertSetEntry(db, exerciseId: exerciseId);
       final bandId = await insertBand(
         db,
@@ -328,7 +340,9 @@ void main() {
       );
       await db
           .into(db.setBands)
-          .insert(SetBandsCompanion.insert(setEntryId: setEntryId, bandId: bandId));
+          .insert(
+            SetBandsCompanion.insert(setEntryId: setEntryId, bandId: bandId),
+          );
       await sync.pushOnce();
 
       final row = pushed('set_bands');
@@ -339,8 +353,12 @@ void main() {
 
     test('a custom band travels as a uuid with no natural key', () async {
       await sync.start(userId);
-      final exerciseId =
-          await insertExercise(db, name: 'Squat', slug: 'squat', isCustom: false);
+      final exerciseId = await insertExercise(
+        db,
+        name: 'Squat',
+        slug: 'squat',
+        isCustom: false,
+      );
       final setEntryId = await insertSetEntry(db, exerciseId: exerciseId);
       final bandId = await insertBand(
         db,
@@ -351,7 +369,9 @@ void main() {
       );
       await db
           .into(db.setBands)
-          .insert(SetBandsCompanion.insert(setEntryId: setEntryId, bandId: bandId));
+          .insert(
+            SetBandsCompanion.insert(setEntryId: setEntryId, bandId: bandId),
+          );
       await sync.pushOnce();
 
       final row = pushed('set_bands');
@@ -361,7 +381,13 @@ void main() {
     });
 
     test('a pulled colour + tension pair resolves to the local band', () async {
-      await insertBand(db, name: 'Filler', color: 'grey', tensionKg: 5, isCustom: false);
+      await insertBand(
+        db,
+        name: 'Filler',
+        color: 'grey',
+        tensionKg: 5,
+        isCustom: false,
+      );
       final localBandId = await insertBand(
         db,
         name: 'Red',
@@ -369,8 +395,12 @@ void main() {
         tensionKg: 12.5,
         isCustom: false,
       );
-      final exerciseId =
-          await insertExercise(db, name: 'Squat', slug: 'squat', isCustom: false);
+      final exerciseId = await insertExercise(
+        db,
+        name: 'Squat',
+        slug: 'squat',
+        isCustom: false,
+      );
       final setEntryId = await insertSetEntry(db, exerciseId: exerciseId);
       final setEntryUuid = await uuidOf('set_entries', setEntryId);
 
@@ -411,12 +441,18 @@ void main() {
 
     test('a custom exercise is still custom on the receiving device', () async {
       await sync.start(userId);
-      final exerciseId =
-          await insertExercise(db, name: 'Zercher Good Morning', isCustom: true);
+      final exerciseId = await insertExercise(
+        db,
+        name: 'Zercher Good Morning',
+        isCustom: true,
+      );
       await sync.pushOnce();
 
-      expect(pushed('exercise_catalog')['is_custom'], isNotNull,
-          reason: 'is_custom must be part of the payload at all');
+      expect(
+        pushed('exercise_catalog')['is_custom'],
+        isNotNull,
+        reason: 'is_custom must be part of the payload at all',
+      );
 
       // Second device, same account, same fake cloud.
       final dbB = await openTestDatabase();
@@ -434,49 +470,55 @@ void main() {
             variables: [Variable(uuid)],
           )
           .getSingle();
-      expect(onB.data['is_custom'], 1,
-          reason: 'a user-created exercise must not arrive as a stock one');
-      expect(onB.data['slug'], isNull,
-          reason: 'slug stays local-only; custom rows have none anyway');
+      expect(
+        onB.data['is_custom'],
+        1,
+        reason: 'a user-created exercise must not arrive as a stock one',
+      );
+      expect(
+        onB.data['slug'],
+        isNull,
+        reason: 'slug stays local-only; custom rows have none anyway',
+      );
     });
 
-    test(
-      'a child created on the receiving device references the custom parent '
-      'by uuid, not by a null natural key',
-      () async {
-        await sync.start(userId);
-        final exerciseId =
-            await insertExercise(db, name: 'Zercher Good Morning', isCustom: true);
-        await sync.pushOnce();
+    test('a child created on the receiving device references the custom parent '
+        'by uuid, not by a null natural key', () async {
+      await sync.start(userId);
+      final exerciseId = await insertExercise(
+        db,
+        name: 'Zercher Good Morning',
+        isCustom: true,
+      );
+      await sync.pushOnce();
 
-        final dbB = await openTestDatabase();
-        final syncB = SyncService(db: dbB, backend: backend);
-        addTearDown(() async {
-          await syncB.dispose();
-          await dbB.close();
-        });
-        await syncB.start(userId);
+      final dbB = await openTestDatabase();
+      final syncB = SyncService(db: dbB, backend: backend);
+      addTearDown(() async {
+        await syncB.dispose();
+        await dbB.close();
+      });
+      await syncB.start(userId);
 
-        final uuid = await uuidOf('exercise_catalog', exerciseId);
-        final localOnB = await dbB
-            .customSelect(
-              'SELECT id FROM exercise_catalog WHERE sync_uuid = ?',
-              variables: [Variable(uuid)],
-            )
-            .getSingle();
-        await insertMicroWorkout(dbB, exerciseId: localOnB.data['id'] as int);
-        await syncB.pushOnce();
+      final uuid = await uuidOf('exercise_catalog', exerciseId);
+      final localOnB = await dbB
+          .customSelect(
+            'SELECT id FROM exercise_catalog WHERE sync_uuid = ?',
+            variables: [Variable(uuid)],
+          )
+          .getSingle();
+      await insertMicroWorkout(dbB, exerciseId: localOnB.data['id'] as int);
+      await syncB.pushOnce();
 
-        final row = backend.upsertCalls
-            .lastWhere((c) => c.$1 == 'micro_workouts')
-            .$2;
-        // Before the fix this was (null, null), which Postgres rejects on
-        // `check ((exercise_catalog_id is not null and exercise_slug is null)
-        // or (exercise_catalog_id is null and exercise_slug is not null))`.
-        expect(row['exercise_catalog_id'], uuid);
-        expect(row['exercise_slug'], isNull);
-      },
-    );
+      final row = backend.upsertCalls
+          .lastWhere((c) => c.$1 == 'micro_workouts')
+          .$2;
+      // Before the fix this was (null, null), which Postgres rejects on
+      // `check ((exercise_catalog_id is not null and exercise_slug is null)
+      // or (exercise_catalog_id is null and exercise_slug is not null))`.
+      expect(row['exercise_catalog_id'], uuid);
+      expect(row['exercise_slug'], isNull);
+    });
   });
 
   group('set entry metrics', () {
@@ -501,7 +543,9 @@ void main() {
       );
       final sessionId = await db
           .into(db.workoutSessions)
-          .insert(WorkoutSessionsCompanion.insert(startedAt: DateTime(2026, 8, 19)));
+          .insert(
+            WorkoutSessionsCompanion.insert(startedAt: DateTime(2026, 8, 19)),
+          );
       final workoutExerciseId = await db
           .into(db.workoutExercises)
           .insert(
@@ -595,9 +639,7 @@ void main() {
           .customSelect(
             'SELECT buddy_session_id FROM workout_sessions WHERE '
             'sync_uuid = ?',
-            variables: [
-              Variable(await uuidOf('workout_sessions', 1)),
-            ],
+            variables: [Variable(await uuidOf('workout_sessions', 1))],
           )
           .getSingle();
       expect(onB.data['buddy_session_id'], buddySessionId);

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../../theme/colors.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 
 /// The widget Flutter renders in place of a subtree whose `build` threw.
 ///
@@ -87,9 +87,7 @@ class AppErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = kReleaseMode
-        ? "That screen couldn't be opened."
-        : message;
+    final text = kReleaseMode ? "That screen couldn't be opened." : message;
 
     return Scaffold(
       backgroundColor: Colors.transparent,

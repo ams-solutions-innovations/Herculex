@@ -1,9 +1,8 @@
 import 'dart:convert';
 
-import 'package:flutter/services.dart';
 import 'package:drift/drift.dart';
-
-import '../../../data/local/database.dart';
+import 'package:flutter/services.dart';
+import 'package:herculex/data/local/database.dart';
 
 /// Imports the bundled v1 catalogue into the existing Foods table.
 ///
@@ -13,16 +12,23 @@ class FoodCatalogueImporter {
   static const schemaVersion = 'herculex-food-catalogue/v1';
   static const assetPath = 'assets/data/food_database_eu.v1.json';
 
-  static Future<void> runIfNeeded(AppDatabase db, {String? catalogueJson}) async {
-    final marker = await (db.select(db.foodCatalogueMeta)..limit(1)).getSingleOrNull();
-    if (marker?.schemaVersion == schemaVersion && marker?.foodCount != null) return;
+  static Future<void> runIfNeeded(
+    AppDatabase db, {
+    String? catalogueJson,
+  }) async {
+    final marker = await (db.select(
+      db.foodCatalogueMeta,
+    )..limit(1)).getSingleOrNull();
+    if (marker?.schemaVersion == schemaVersion && marker?.foodCount != null)
+      return;
 
     final raw = catalogueJson ?? await rootBundle.loadString(assetPath);
     final document = jsonDecode(raw) as Map<String, dynamic>;
     if (document['schemaVersion'] != schemaVersion) {
       throw StateError('Unsupported food catalogue schema');
     }
-    final foods = (document['foods'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+    final foods =
+        (document['foods'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
     final expected = (document['statistics'] as Map?)?['foodCount'];
     if (expected is! int || foods.length != expected) {
       throw StateError('Food catalogue count does not match its metadata');
@@ -85,7 +91,9 @@ class FoodCatalogueImporter {
         });
       }
 
-      await db.into(db.foodCatalogueMeta).insertOnConflictUpdate(
+      await db
+          .into(db.foodCatalogueMeta)
+          .insertOnConflictUpdate(
             FoodCatalogueMetaCompanion.insert(
               id: const Value(1),
               schemaVersion: schemaVersion,

@@ -1,10 +1,9 @@
 import 'dart:async';
 
+import 'package:herculex/features/measurements/data/measurements_repository.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../measurements/data/measurements_repository.dart';
-import '../domain/profile.dart';
 
 class LocalProfileRepository {
   static const _kProfileKey = 'herculex.profile';

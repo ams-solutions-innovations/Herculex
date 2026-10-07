@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/core/utils/units.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:intl/intl.dart';
-
-import '../../../app/providers.dart';
-import '../../../core/notifications/toast/hx_toast_controller.dart';
-import '../../../core/notifications/toast/hx_toast_model.dart';
-import '../../../core/units.dart';
-import '../../../theme/haptics.dart';
-import '../../workouts/presentation/workouts_providers.dart';
 
 /// Shared bodyweight quick-log dialog, used by the dashboard's bodyweight
 /// card and the global quick-add menu so both stay in sync.
@@ -57,7 +56,9 @@ Future<void> quickLogWeight(BuildContext context, WidgetRef ref) async {
   if (value != null && value > 0) {
     Haptics.medium();
     final dateIso = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    await ref.read(measurementsRepositoryProvider).logMeasurement(
+    await ref
+        .read(measurementsRepositoryProvider)
+        .logMeasurement(
           dateIso: dateIso,
           metric: 'bodyweight',
           // Measurements are stored in kilograms regardless of display unit.

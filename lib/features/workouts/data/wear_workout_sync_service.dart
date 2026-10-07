@@ -1,21 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../core/units.dart';
-import '../../../data/local/database.dart';
-import '../../nutrition/data/wear_sync_service.dart';
-import '../../nutrition/data/wear_sync_contract.dart';
-import '../../profile/domain/profile.dart';
-import '../../shell/main_scaffold.dart';
-import '../domain/equipment_variants.dart';
-import '../domain/watch_exercise_resolver.dart';
-import '../../../app/providers.dart';
-import '../domain/progression_engine.dart';
-import 'workouts_repository.dart';
-import 'templates_repository.dart';
-import '../presentation/workouts_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/utils/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
+import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/shell/main_scaffold.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/data/workouts_repository.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
+import 'package:herculex/features/workouts/domain/progression_engine.dart';
+import 'package:herculex/features/workouts/domain/watch_exercise_resolver.dart';
 
 class WearWorkoutSyncService {
   final WorkoutsRepository _workoutsRepository;
@@ -47,7 +46,8 @@ class WearWorkoutSyncService {
     WearSyncService.onWatchWorkoutStarted = _handleWatchWorkoutStarted;
     WearSyncService.onWatchWorkoutUpdated = _handleWatchWorkoutUpdated;
     WearSyncService.onWatchWorkoutEnded = _handleWatchWorkoutEnded;
-    WearSyncService.onWatchWorkoutSavedAsTemplate = _handleWatchWorkoutSavedAsTemplate;
+    WearSyncService.onWatchWorkoutSavedAsTemplate =
+        _handleWatchWorkoutSavedAsTemplate;
   }
 
   bool get shouldSkipOutboundSync {
@@ -119,9 +119,9 @@ class WearWorkoutSyncService {
   Future<({ProgressionGoal goal, double? weeklyPctOverride})>
   _resolveProgressionGoal(int exerciseId) async {
     try {
-      final override = await (_db.select(_db.exerciseProgressions)
-            ..where((t) => t.exerciseId.equals(exerciseId)))
-          .getSingleOrNull();
+      final override = await (_db.select(
+        _db.exerciseProgressions,
+      )..where((t) => t.exerciseId.equals(exerciseId))).getSingleOrNull();
       if (override != null && override.enabled) {
         final goal = ProgressionGoal.values.firstWhere(
           (g) => g.name == override.goal,
@@ -232,10 +232,10 @@ class WearWorkoutSyncService {
           final finalReps = (ts.targetReps != null && ts.targetReps! > 0)
               ? ts.targetReps!
               : (hReps > 0
-                  ? hReps
-                  : (defaultHintReps > 0
-                      ? defaultHintReps
-                      : (ex.targetRepsMin ?? 10)));
+                    ? hReps
+                    : (defaultHintReps > 0
+                          ? defaultHintReps
+                          : (ex.targetRepsMin ?? 10)));
 
           return {
             'wireId': 'template_set_${ts.id}',
@@ -426,8 +426,11 @@ class WearWorkoutSyncService {
 
   Future<void> _handleWatchWorkoutSavedAsTemplate(String? entityId) async {
     try {
-      final activeSession = await _workoutsRepository.watchActiveSession().first;
-      if (activeSession != null && (entityId == null || activeSession.sessionUuid == entityId)) {
+      final activeSession = await _workoutsRepository
+          .watchActiveSession()
+          .first;
+      if (activeSession != null &&
+          (entityId == null || activeSession.sessionUuid == entityId)) {
         // Find existing templates with the same name to append a number if needed
         final templates = await _db.select(_db.workoutTemplates).get();
         final baseName = "Watch Template";
@@ -439,7 +442,10 @@ class WearWorkoutSyncService {
         }
 
         final templatesRepo = _ref.read(templatesRepositoryProvider);
-        await templatesRepo.saveSessionAsTemplate(activeSession.id, templateName);
+        await templatesRepo.saveSessionAsTemplate(
+          activeSession.id,
+          templateName,
+        );
       }
     } catch (e, st) {
       debugPrint('Failed to handle watch workout saved as template: $e\n$st');
@@ -582,9 +588,7 @@ class WearWorkoutSyncService {
       final existingExercises = await _workoutsRepository
           .watchSessionExercises(sessionId)
           .first;
-      final existingExerciseById = {
-        for (final e in existingExercises) e.id: e,
-      };
+      final existingExerciseById = {for (final e in existingExercises) e.id: e};
       final matchedExerciseIds = <int>{};
 
       for (int i = 0; i < exercises.length; i++) {
@@ -891,7 +895,9 @@ class WearWorkoutSyncService {
             .firstOrNull;
 
         final lastSnapshot = catalogItem != null
-            ? await _workoutsRepository.lastPerformanceSnapshotFor(catalogItem.id)
+            ? await _workoutsRepository.lastPerformanceSnapshotFor(
+                catalogItem.id,
+              )
             : null;
         final lastSets = lastSnapshot?.sets ?? const <SetEntryData>[];
         final progression = await _resolveProgressionGoal(ex.exerciseId);
@@ -915,7 +921,8 @@ class WearWorkoutSyncService {
             lastWeightKg: defaultPriorWeight,
             lastReps: defaultPriorReps > 0 ? defaultPriorReps : 1,
             goal: progression.goal,
-            equipmentVariant: ex.equipmentVariant ?? catalogItem?.modality ?? 'barbell',
+            equipmentVariant:
+                ex.equipmentVariant ?? catalogItem?.modality ?? 'barbell',
             weeklyIncreasePctOverride: progression.weeklyPctOverride,
           );
           if (target.weightKg > 0) defaultHintWeight = target.weightKg;
@@ -951,7 +958,8 @@ class WearWorkoutSyncService {
               lastWeightKg: setPriorWeight,
               lastReps: setPriorReps > 0 ? setPriorReps : 1,
               goal: progression.goal,
-              equipmentVariant: ex.equipmentVariant ?? catalogItem?.modality ?? 'barbell',
+              equipmentVariant:
+                  ex.equipmentVariant ?? catalogItem?.modality ?? 'barbell',
               weeklyIncreasePctOverride: progression.weeklyPctOverride,
             );
             if (target.weightKg > 0) setHintWeight = target.weightKg;
@@ -964,10 +972,12 @@ class WearWorkoutSyncService {
           final targetReps = setEntry.reps > 0
               ? setEntry.reps
               : (setHintReps > 0
-                  ? setHintReps
-                  : (defaultHintReps > 0 ? defaultHintReps : 10));
+                    ? setHintReps
+                    : (defaultHintReps > 0 ? defaultHintReps : 10));
 
-          final weight = setEntry.isCompleted ? setEntry.weightKg : targetWeight;
+          final weight = setEntry.isCompleted
+              ? setEntry.weightKg
+              : targetWeight;
           final reps = setEntry.isCompleted ? setEntry.reps : targetReps;
 
           final setJson = <String, dynamic>{
@@ -1013,7 +1023,8 @@ class WearWorkoutSyncService {
               lastWeightKg: setPriorWeight,
               lastReps: setPriorReps > 0 ? setPriorReps : 1,
               goal: progression.goal,
-              equipmentVariant: ex.equipmentVariant ?? catalogItem?.modality ?? 'barbell',
+              equipmentVariant:
+                  ex.equipmentVariant ?? catalogItem?.modality ?? 'barbell',
               weeklyIncreasePctOverride: progression.weeklyPctOverride,
             );
             if (target.weightKg > 0) setHintWeight = target.weightKg;
@@ -1025,8 +1036,8 @@ class WearWorkoutSyncService {
           final tReps = setEntry.reps > 0
               ? setEntry.reps
               : (setHintReps > 0
-                  ? setHintReps
-                  : (defaultHintReps > 0 ? defaultHintReps : 10));
+                    ? setHintReps
+                    : (defaultHintReps > 0 ? defaultHintReps : 10));
           return {
             'wireId': 'set_${setEntry.id}',
             'setIndex': setEntry.setIndex,
@@ -1052,8 +1063,12 @@ class WearWorkoutSyncService {
             ),
             'supersetGroup': ex.supersetGroup,
             'targetSets': sets.length,
-            'prevWeight': defaultHintWeight > 0 ? defaultHintWeight : defaultPriorWeight,
-            'prevReps': defaultHintReps > 0 ? defaultHintReps : defaultPriorReps,
+            'prevWeight': defaultHintWeight > 0
+                ? defaultHintWeight
+                : defaultPriorWeight,
+            'prevReps': defaultHintReps > 0
+                ? defaultHintReps
+                : defaultPriorReps,
             if (performanceHint != null) 'performanceHint': performanceHint,
             'plannedSets': plannedSetsJson,
           },
@@ -1079,8 +1094,15 @@ class WearWorkoutSyncService {
       };
 
       if (foundCurrent) {
+        _lastCurrentExerciseIndex = currentExerciseIndex;
+        _lastCurrentSetIndex = currentSetIndex;
         sessionPayload['currentExerciseIndex'] = currentExerciseIndex;
         sessionPayload['currentSetIndex'] = currentSetIndex;
+      } else if (exercises.isNotEmpty) {
+        final lastIdx = exercises.length - 1;
+        _lastCurrentExerciseIndex = lastIdx;
+        sessionPayload['currentExerciseIndex'] = lastIdx;
+        sessionPayload['currentSetIndex'] = 0;
       }
 
       // Fallback only guards a theoretical pre-migration NULL race; every

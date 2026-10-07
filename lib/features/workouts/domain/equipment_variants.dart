@@ -9,8 +9,8 @@ library;
 
 import 'dart:convert';
 
-import '../../../data/local/database.dart';
-import 'logging_metric.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/domain/logging_metric.dart';
 
 const _labels = <String, String>{
   'barbell': 'Barbell',

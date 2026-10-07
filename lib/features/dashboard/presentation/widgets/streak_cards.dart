@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
+import 'package:herculex/features/dashboard/domain/streaks.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/features/shell/main_scaffold.dart';
 
-import '../../../../theme/colors.dart';
-import '../../../shell/main_scaffold.dart';
-import '../../domain/streaks.dart';
-import '../dashboard_providers.dart';
-import 'dashboard_shared.dart';
 /// Consecutive days of food logging (§18).
 class NutritionStreakCard extends ConsumerWidget {
   const NutritionStreakCard({super.key});
@@ -88,15 +88,21 @@ class _StreakPill extends StatelessWidget {
                         color: color.withValues(alpha: dim ? 0.08 : 0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(icon,
-                          size: 16, color: dim ? AppColors.secondary : color),
+                      child: Icon(
+                        icon,
+                        size: 16,
+                        color: dim ? AppColors.secondary : color,
+                      ),
                     ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (streak.activeToday && streak.current > 0)
-                          Icon(Icons.local_fire_department,
-                              size: 16, color: color),
+                          Icon(
+                            Icons.local_fire_department,
+                            size: 16,
+                            color: color,
+                          ),
                         Text(
                           '${streak.current}',
                           style: theme.textTheme.titleMedium?.copyWith(
@@ -156,8 +162,11 @@ class _StreakPill extends StatelessWidget {
                   color: color.withValues(alpha: dim ? 0.08 : 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon,
-                    size: 18, color: dim ? AppColors.secondary : color),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: dim ? AppColors.secondary : color,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -167,16 +176,19 @@ class _StreakPill extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (streak.best > 0)
                       Text(
                         'Best ${streak.best} $unit',
-                        style: theme.textTheme.labelSmall
-                            ?.copyWith(color: AppColors.secondary, fontSize: 10),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: AppColors.secondary,
+                          fontSize: 10,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -187,16 +199,22 @@ class _StreakPill extends StatelessWidget {
                 Icon(Icons.local_fire_department, size: 18, color: color),
                 const SizedBox(width: 4),
               ],
-              Text('${streak.current}',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: dim ? AppColors.secondary : color)),
+              Text(
+                '${streak.current}',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: dim ? AppColors.secondary : color,
+                ),
+              ),
               const SizedBox(width: 4),
               Padding(
                 padding: const EdgeInsets.only(top: 3),
-                child: Text(unit,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: AppColors.secondary)),
+                child: Text(
+                  unit,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.secondary,
+                  ),
+                ),
               ),
             ],
           ),

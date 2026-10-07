@@ -2,11 +2,11 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/colors.dart';
-import '../../../widgets/glass_container.dart';
-import '../domain/health_read_state.dart';
-import 'health_providers.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/components/glass_container.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/features/health/application/health_providers.dart';
+import 'package:herculex/features/health/domain/health_read_state.dart';
 
 enum HealthPlatform { samsung, apple, google }
 
@@ -26,7 +26,9 @@ class _HealthPlatformDetailViewState
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _hydratePermissionStatus());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _hydratePermissionStatus(),
+    );
   }
 
   /// Reconciles this platform's "connected" toggle with the real OS grant,
@@ -319,153 +321,137 @@ class _HealthPlatformDetailViewState
     final bidirectional = ref.watch(_bidirectionalProvider);
     final lastSync = ref.watch(lastHealthSyncTimestampProvider);
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          _title.toUpperCase(),
-          style: theme.textTheme.titleMedium?.copyWith(
-            letterSpacing: 2.0,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 120),
-        children: [
-          // ── Header card ───────────────────────────────────────────────────
-          _buildHeaderCard(theme, isConnected, lastSync, platformKey),
+    return HxScreenShell(
+      title: _title,
+      children: [
+        // ── Header card ───────────────────────────────────────────────────
+        _buildHeaderCard(theme, isConnected, lastSync, platformKey),
+        const SizedBox(height: 24),
+
+        if (isConnected) ...[
+          // ── Categories ────────────────────────────────────────────────
+          _buildSectionLabel('SYNC CATEGORIES', theme),
+          const SizedBox(height: 12),
+          _buildCategoriesCard(theme),
           const SizedBox(height: 24),
 
-          if (isConnected) ...[
-            // ── Categories ────────────────────────────────────────────────
-            _buildSectionLabel('SYNC CATEGORIES', theme),
-            const SizedBox(height: 12),
-            _buildCategoriesCard(theme),
-            const SizedBox(height: 24),
+          // ── Sync settings ─────────────────────────────────────────────
+          _buildSectionLabel('SYNC SETTINGS', theme),
+          const SizedBox(height: 12),
+          GlassContainer(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _buildSettingRow(
+                  theme,
+                  _autoSyncLabel,
+                  'Automatically import and export data',
+                  Icons.sync_rounded,
+                  autoSync,
+                  (v) => ref.read(_autoSyncProvider.notifier).state = v,
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(height: 1, color: Colors.white10),
+                ),
+                _buildSettingRow(
+                  theme,
+                  'Two-way sync',
+                  'Export data from Herculex to $_title',
+                  Icons.swap_horiz_rounded,
+                  bidirectional,
+                  (v) => ref.read(_bidirectionalProvider.notifier).state = v,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
 
-            // ── Sync settings ─────────────────────────────────────────────
-            _buildSectionLabel('SYNC SETTINGS', theme),
-            const SizedBox(height: 12),
-            GlassContainer(
-              padding: const EdgeInsets.all(20),
+          // ── Watch Sync Guidance Card (for Samsung / Android) ───────────
+          if (widget.platform == HealthPlatform.samsung ||
+              widget.platform == HealthPlatform.google) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.25),
+                ),
+              ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSettingRow(
-                    theme,
-                    _autoSyncLabel,
-                    'Automatically import and export data',
-                    Icons.sync_rounded,
-                    autoSync,
-                    (v) => ref.read(_autoSyncProvider.notifier).state = v,
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.watch_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'WATCH SYNC (GALAXY WATCH)',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(height: 1, color: Colors.white10),
-                  ),
-                  _buildSettingRow(
-                    theme,
-                    'Two-way sync',
-                    'Export data from Herculex to $_title',
-                    Icons.swap_horiz_rounded,
-                    bidirectional,
-                    (v) => ref.read(_bidirectionalProvider.notifier).state = v,
+                  const SizedBox(height: 10),
+                  Text(
+                    'The watch saves steps to Samsung Health, which forwards them to Health Connect.\n'
+                    '• If the watch shows more steps than the app, open Samsung Health on your phone briefly to refresh data.\n'
+                    '• In Health Connect > Data sources, set Samsung Health to the top priority.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                      height: 1.4,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+          ],
 
-            // ── Watch Sync Guidance Card (for Samsung / Android) ───────────
-            if (widget.platform == HealthPlatform.samsung ||
-                widget.platform == HealthPlatform.google) ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLowest,
+          // ── Sync now button ────────────────────────────────────────────
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isSyncing ? null : _syncNow,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accentColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.25),
-                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.watch_rounded,
-                            size: 18, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'WATCH SYNC (GALAXY WATCH)',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'The watch saves steps to Samsung Health, which forwards them to Health Connect.\n'
-                      '• If the watch shows more steps than the app, open Samsung Health on your phone briefly to refresh data.\n'
-                      '• In Health Connect > Data sources, set Samsung Health to the top priority.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.secondary,
-                        height: 1.4,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
+                elevation: 0,
               ),
-              const SizedBox(height: 20),
-            ],
-
-            // ── Sync now button ────────────────────────────────────────────
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isSyncing ? null : _syncNow,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _accentColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                icon: _isSyncing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.sync_rounded, size: 20),
-                label: Text(
-                  _isSyncing ? 'Syncing...' : 'Sync now',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+              icon: _isSyncing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.sync_rounded, size: 20),
+              label: Text(
+                _isSyncing ? 'Syncing...' : 'Sync now',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
                 ),
               ),
             ),
-          ],
+          ),
         ],
-      ),
+      ],
     );
   }
 

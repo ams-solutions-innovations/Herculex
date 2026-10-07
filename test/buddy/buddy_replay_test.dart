@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/sync/sync_id_resolver.dart';
 import 'package:herculex/features/buddy/data/buddy_choreography_applier.dart';
@@ -30,7 +30,9 @@ void main() {
 
     sessionId = await db
         .into(db.workoutSessions)
-        .insert(WorkoutSessionsCompanion.insert(startedAt: DateTime(2026, 8, 1)));
+        .insert(
+          WorkoutSessionsCompanion.insert(startedAt: DateTime(2026, 8, 1)),
+        );
 
     // Seed test catalogue exercises
     for (final slug in ['bench-press', 'squat', 'deadlift', 'overhead-press']) {
@@ -54,79 +56,82 @@ void main() {
     await db.close();
   });
 
-  test('cold start replay from log reconstructs correct exercise list', () async {
-    gateway.events.addAll([
-      BuddyEvent(
+  test(
+    'cold start replay from log reconstructs correct exercise list',
+    () async {
+      gateway.events.addAll([
+        BuddyEvent(
+          buddySessionId: buddySessionId,
+          seq: 1,
+          actorUserId: 'u1',
+          kind: BuddyEventKind.add,
+          payload: {
+            'slotId': 'slot-1',
+            'ref': {'slug': 'bench-press', 'uuid': null},
+          },
+        ),
+        BuddyEvent(
+          buddySessionId: buddySessionId,
+          seq: 2,
+          actorUserId: 'u1',
+          kind: BuddyEventKind.add,
+          payload: {
+            'slotId': 'slot-2',
+            'ref': {'slug': 'squat', 'uuid': null},
+          },
+        ),
+        BuddyEvent(
+          buddySessionId: buddySessionId,
+          seq: 3,
+          actorUserId: 'u1',
+          kind: BuddyEventKind.reorder,
+          payload: {
+            'order': ['slot-2', 'slot-1'],
+          },
+        ),
+      ]);
+
+      final applier = BuddyChoreographyApplier(
+        db: db,
+        workouts: workouts,
+        resolver: resolver,
+        slots: slotStore,
+        localWorkoutSessionId: sessionId,
+      );
+
+      int savedLastSeenSeq = 0;
+      final stream = BuddyEventStream(
+        gateway: gateway,
         buddySessionId: buddySessionId,
-        seq: 1,
-        actorUserId: 'u1',
-        kind: BuddyEventKind.add,
-        payload: {
-          'slotId': 'slot-1',
-          'ref': {'slug': 'bench-press', 'uuid': null},
+        lastSeenSeq: savedLastSeenSeq,
+        apply: (e) => applier.apply(e),
+        commitSeq: (s) async {
+          savedLastSeenSeq = s;
         },
-      ),
-      BuddyEvent(
+      );
+
+      await stream.start();
+
+      expect(savedLastSeenSeq, 3);
+      final slots = await slotStore.all();
+      expect(slots, hasLength(2));
+      expect(slots[0].slotId, 'slot-2');
+      expect(slots[1].slotId, 'slot-1');
+
+      // Second pass changes nothing
+      final stream2 = BuddyEventStream(
+        gateway: gateway,
         buddySessionId: buddySessionId,
-        seq: 2,
-        actorUserId: 'u1',
-        kind: BuddyEventKind.add,
-        payload: {
-          'slotId': 'slot-2',
-          'ref': {'slug': 'squat', 'uuid': null},
+        lastSeenSeq: savedLastSeenSeq,
+        apply: (e) => applier.apply(e),
+        commitSeq: (s) async {
+          savedLastSeenSeq = s;
         },
-      ),
-      BuddyEvent(
-        buddySessionId: buddySessionId,
-        seq: 3,
-        actorUserId: 'u1',
-        kind: BuddyEventKind.reorder,
-        payload: {
-          'order': ['slot-2', 'slot-1'],
-        },
-      ),
-    ]);
-
-    final applier = BuddyChoreographyApplier(
-      db: db,
-      workouts: workouts,
-      resolver: resolver,
-      slots: slotStore,
-      localWorkoutSessionId: sessionId,
-    );
-
-    int savedLastSeenSeq = 0;
-    final stream = BuddyEventStream(
-      gateway: gateway,
-      buddySessionId: buddySessionId,
-      lastSeenSeq: savedLastSeenSeq,
-      apply: (e) => applier.apply(e),
-      commitSeq: (s) async {
-        savedLastSeenSeq = s;
-      },
-    );
-
-    await stream.start();
-
-    expect(savedLastSeenSeq, 3);
-    final slots = await slotStore.all();
-    expect(slots, hasLength(2));
-    expect(slots[0].slotId, 'slot-2');
-    expect(slots[1].slotId, 'slot-1');
-
-    // Second pass changes nothing
-    final stream2 = BuddyEventStream(
-      gateway: gateway,
-      buddySessionId: buddySessionId,
-      lastSeenSeq: savedLastSeenSeq,
-      apply: (e) => applier.apply(e),
-      commitSeq: (s) async {
-        savedLastSeenSeq = s;
-      },
-    );
-    await stream2.start();
-    expect(await slotStore.all(), hasLength(2));
-  });
+      );
+      await stream2.start();
+      expect(await slotStore.all(), hasLength(2));
+    },
+  );
 
   test('interrupted replay resumes from last committed seq', () async {
     gateway.events.addAll([
@@ -206,55 +211,58 @@ void main() {
     expect(await slotStore.all(), hasLength(3));
   });
 
-  test('replay with unresolvable reference converges with placeholder in correct slot', () async {
-    gateway.events.addAll([
-      BuddyEvent(
+  test(
+    'replay with unresolvable reference converges with placeholder in correct slot',
+    () async {
+      gateway.events.addAll([
+        BuddyEvent(
+          buddySessionId: buddySessionId,
+          seq: 1,
+          actorUserId: 'u1',
+          kind: BuddyEventKind.add,
+          payload: {
+            'slotId': 'slot-1',
+            'ref': {'slug': 'bench-press', 'uuid': null},
+          },
+        ),
+        BuddyEvent(
+          buddySessionId: buddySessionId,
+          seq: 2,
+          actorUserId: 'u1',
+          kind: BuddyEventKind.add,
+          payload: {
+            'slotId': 'slot-custom',
+            'ref': {'slug': null, 'uuid': 'missing-custom-uuid'},
+          },
+        ),
+      ]);
+
+      final applier = BuddyChoreographyApplier(
+        db: db,
+        workouts: workouts,
+        resolver: resolver,
+        slots: slotStore,
+        localWorkoutSessionId: sessionId,
+      );
+
+      int savedLastSeenSeq = 0;
+      final stream = BuddyEventStream(
+        gateway: gateway,
         buddySessionId: buddySessionId,
-        seq: 1,
-        actorUserId: 'u1',
-        kind: BuddyEventKind.add,
-        payload: {
-          'slotId': 'slot-1',
-          'ref': {'slug': 'bench-press', 'uuid': null},
-        },
-      ),
-      BuddyEvent(
-        buddySessionId: buddySessionId,
-        seq: 2,
-        actorUserId: 'u1',
-        kind: BuddyEventKind.add,
-        payload: {
-          'slotId': 'slot-custom',
-          'ref': {'slug': null, 'uuid': 'missing-custom-uuid'},
-        },
-      ),
-    ]);
+        lastSeenSeq: 0,
+        apply: (e) => applier.apply(e),
+        commitSeq: (s) async => savedLastSeenSeq = s,
+      );
 
-    final applier = BuddyChoreographyApplier(
-      db: db,
-      workouts: workouts,
-      resolver: resolver,
-      slots: slotStore,
-      localWorkoutSessionId: sessionId,
-    );
+      await stream.start();
 
-    int savedLastSeenSeq = 0;
-    final stream = BuddyEventStream(
-      gateway: gateway,
-      buddySessionId: buddySessionId,
-      lastSeenSeq: 0,
-      apply: (e) => applier.apply(e),
-      commitSeq: (s) async => savedLastSeenSeq = s,
-    );
-
-    await stream.start();
-
-    expect(savedLastSeenSeq, 2);
-    final slots = await slotStore.all();
-    expect(slots, hasLength(2));
-    expect(slots[0].slotId, 'slot-1');
-    expect(slots[0].isPlaceholder, isFalse);
-    expect(slots[1].slotId, 'slot-custom');
-    expect(slots[1].isPlaceholder, isTrue);
-  });
+      expect(savedLastSeenSeq, 2);
+      final slots = await slotStore.all();
+      expect(slots, hasLength(2));
+      expect(slots[0].slotId, 'slot-1');
+      expect(slots[0].isPlaceholder, isFalse);
+      expect(slots[1].slotId, 'slot-custom');
+      expect(slots[1].isPlaceholder, isTrue);
+    },
+  );
 }

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
+import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../theme/colors.dart';
-import '../../../../theme/haptics.dart';
-import '../../domain/scheduled_workout_row.dart';
-import '../programs_providers.dart';
-import 'session_tile.dart';
 
 /// Hand-rolled month grid. Each cell shows status dots for the day's sessions
 /// and accepts a session dragged from the day sheet, so a move is: open a day,
@@ -307,10 +306,7 @@ class _SelectedDayList extends StatelessWidget {
                   opacity: 0.3,
                   child: SessionTile(row: row, compact: true),
                 ),
-                child: SessionTile(
-                  row: row,
-                  onTap: () => onOpenSession(date),
-                ),
+                child: SessionTile(row: row, onTap: () => onOpenSession(date)),
               ),
             ),
         if (rows.isNotEmpty)

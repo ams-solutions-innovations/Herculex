@@ -1,7 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:timezone/timezone.dart' as tz;
-
-import '../domain/supplement.dart';
 
 /// Schedules and cancels daily timed notifications for supplements that have
 /// [SupplementSchedule.time] set. Post-workout supplements are triggered
@@ -39,7 +38,13 @@ class SupplementNotificationScheduler {
 
       final now = tz.TZDateTime.now(tz.local);
       var scheduled = tz.TZDateTime(
-          tz.local, now.year, now.month, now.day, hour, minute);
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        hour,
+        minute,
+      );
       // If the time has already passed today, schedule for tomorrow.
       if (scheduled.isBefore(now)) {
         scheduled = scheduled.add(const Duration(days: 1));
@@ -64,17 +69,28 @@ class SupplementNotificationScheduler {
           '💊 Supplement reminder',
           'Time to take ${supplement.name}',
           scheduled,
-          const NotificationDetails(
-            android: androidDetails,
-            iOS: iOSDetails,
-          ),
+          const NotificationDetails(android: androidDetails, iOS: iOSDetails),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.time, // repeat daily
         );
       } catch (_) {
-        // Silently skip if scheduling fails (e.g. missing exact alarm permission).
+        try {
+          await _plugin.zonedSchedule(
+            _baseNotifId + idOffset,
+            '💊 Supplement reminder',
+            'Time to take ${supplement.name}',
+            scheduled,
+            const NotificationDetails(android: androidDetails, iOS: iOSDetails),
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            uiLocalNotificationDateInterpretation:
+                UILocalNotificationDateInterpretation.absoluteTime,
+            matchDateTimeComponents: DateTimeComponents.time,
+          );
+        } catch (e) {
+          // Silently skip if scheduling completely fails
+        }
       }
       idOffset++;
     }

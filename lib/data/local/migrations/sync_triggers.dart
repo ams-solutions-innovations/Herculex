@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
-import 'sync_backfill.dart' show syncedTableNames, isCustomFilteredTableNames;
+import 'package:herculex/data/local/migrations/sync_backfill.dart'
+    show syncedTableNames, isCustomFilteredTableNames;
 
 /// v25 migration step: installs the SQLite triggers that populate
 /// `pending_sync_ops` — the outbox `SyncService` drains — on every write to a

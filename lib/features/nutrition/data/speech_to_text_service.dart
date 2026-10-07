@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-
-import '../../../app/providers.dart';
 
 class SttLanguageOption {
   final String localeId;
@@ -29,11 +28,12 @@ const kSupportedSttLanguages = [
   SttLanguageOption(localeId: 'fr_FR', name: 'Français', flag: '🇫🇷'),
 ];
 
-final speechToTextServiceProvider =
-    ChangeNotifierProvider<SpeechToTextService>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return SpeechToTextService(prefs);
-});
+final speechToTextServiceProvider = ChangeNotifierProvider<SpeechToTextService>(
+  (ref) {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return SpeechToTextService(prefs);
+  },
+);
 
 class SpeechToTextService extends ChangeNotifier {
   final SharedPreferences? _prefs;

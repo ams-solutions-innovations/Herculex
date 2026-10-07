@@ -25,14 +25,22 @@ enum ScheduleMode {
 
 /// The training splits the builder can generate.
 enum SplitType {
-  fullBody('full_body', 'Full Body', ['Full Body A', 'Full Body B',
-      'Full Body C'], 3),
+  fullBody('full_body', 'Full Body', [
+    'Full Body A',
+    'Full Body B',
+    'Full Body C',
+  ], 3),
   upperLower('upper_lower', 'Upper / Lower', ['Upper', 'Lower'], 4),
   ppl('ppl', 'Push / Pull / Legs', ['Push', 'Pull', 'Legs'], 6),
   ab('ab', 'A / B', ['A', 'B'], 4),
   abc('abc', 'A / B / C', ['A', 'B', 'C'], 3),
-  broSplit('bro', 'Bro Split',
-      ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms'], 5),
+  broSplit('bro', 'Bro Split', [
+    'Chest',
+    'Back',
+    'Legs',
+    'Shoulders',
+    'Arms',
+  ], 5),
 
   /// Slots come from the caller; with none supplied they are numbered.
   custom('custom', 'Custom', [], 3);
@@ -194,12 +202,7 @@ abstract final class SplitTemplates {
               label: slots[i % slots.length],
             )
           else
-            SplitDaySpec(
-              index: i,
-              slotIndex: -1,
-              label: 'Rest',
-              isRest: true,
-            ),
+            SplitDaySpec(index: i, slotIndex: -1, label: 'Rest', isRest: true),
       ],
     );
   }

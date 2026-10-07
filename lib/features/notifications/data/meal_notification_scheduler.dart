@@ -1,9 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:herculex/features/notifications/domain/notification_settings.dart';
+import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:timezone/timezone.dart' as tz;
-
-import '../../nutrition/domain/meal_slots.dart';
-import '../domain/notification_settings.dart';
 
 /// Schedules and cancels daily repeating notifications for meal reminders.
 /// Each meal slot (Breakfast, Lunch, Dinner, Snacks, custom) can have its own
@@ -81,18 +80,29 @@ class MealNotificationScheduler {
           '🍽️ ${slot.label} reminder',
           'Time for ${slot.label.toLowerCase()}! Tap to log your food in Herculex.',
           scheduled,
-          const NotificationDetails(
-            android: androidDetails,
-            iOS: iOSDetails,
-          ),
+          const NotificationDetails(android: androidDetails, iOS: iOSDetails),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.time,
         );
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('MealNotificationScheduler: schedule failed ($e)');
+      } catch (_) {
+        try {
+          await _plugin.zonedSchedule(
+            _baseNotifId + slotIndex,
+            '🍽️ ${slot.label} reminder',
+            'Time for ${slot.label.toLowerCase()}! Tap to log your food in Herculex.',
+            scheduled,
+            const NotificationDetails(android: androidDetails, iOS: iOSDetails),
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            uiLocalNotificationDateInterpretation:
+                UILocalNotificationDateInterpretation.absoluteTime,
+            matchDateTimeComponents: DateTimeComponents.time,
+          );
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('MealNotificationScheduler: schedule failed ($e)');
+          }
         }
       }
 

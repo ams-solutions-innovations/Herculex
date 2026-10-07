@@ -1,12 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../../health/data/health_service.dart';
-import '../../health/presentation/health_providers.dart';
-import '../data/wear_workout_sync_service.dart';
-import '../data/workouts_repository.dart';
-import '../presentation/workouts_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/health/application/health_providers.dart';
+import 'package:herculex/features/health/data/health_service.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/data/wear_workout_sync_service.dart';
+import 'package:herculex/features/workouts/data/workouts_repository.dart';
 
 /// Ends a workout session: names it, stamps `ended_at` and calories, mirrors it
 /// to Health, and tells the watch.
@@ -35,12 +34,12 @@ class FinishWorkoutAction {
     required DateTime now,
     required double bodyweightKg,
     required void Function(int sessionId) clearEditedEndedAt,
-  })  : _repository = repository,
-        _healthService = healthService,
-        _wearSync = wearSync,
-        _now = now,
-        _bodyweightKg = bodyweightKg,
-        _clearEditedEndedAt = clearEditedEndedAt;
+  }) : _repository = repository,
+       _healthService = healthService,
+       _wearSync = wearSync,
+       _now = now,
+       _bodyweightKg = bodyweightKg,
+       _clearEditedEndedAt = clearEditedEndedAt;
 
   /// Resolves every dependency eagerly. **Call this before the first `await`**
   /// in the handler that finishes a workout.
@@ -57,7 +56,9 @@ class FinishWorkoutAction {
       wearSync: ref.read(wearWorkoutSyncServiceProvider),
       now: ref.read(clockProvider).now(),
       // The 20 kg floor rejects placeholder/imported junk, not real users.
-      bodyweightKg: (weightKg != null && weightKg > 20) ? weightKg : _fallbackKg,
+      bodyweightKg: (weightKg != null && weightKg > 20)
+          ? weightKg
+          : _fallbackKg,
       clearEditedEndedAt: (sessionId) => editedEndedAt.update((state) {
         final copy = Map<int, DateTime>.from(state);
         copy.remove(sessionId);

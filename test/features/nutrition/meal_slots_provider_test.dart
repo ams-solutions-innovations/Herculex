@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/features/nutrition/application/meal_slots_provider.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
-import 'package:herculex/features/nutrition/presentation/meal_slots_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -18,7 +18,10 @@ void main() {
 
     test('initial state loads default meal slots', () {
       expect(notifier.state.length, equals(4));
-      expect(notifier.state.map((s) => s.key), containsAll(['breakfast', 'lunch', 'dinner', 'snack']));
+      expect(
+        notifier.state.map((s) => s.key),
+        containsAll(['breakfast', 'lunch', 'dinner', 'snack']),
+      );
     });
 
     test('allows removing built-in meal slots down to 1 slot', () async {
@@ -41,7 +44,9 @@ void main() {
       await notifier.remove('breakfast');
       expect(notifier.state.any((s) => s.key == 'breakfast'), isFalse);
 
-      final breakfastSlot = MealSlot.defaults.firstWhere((s) => s.key == 'breakfast');
+      final breakfastSlot = MealSlot.defaults.firstWhere(
+        (s) => s.key == 'breakfast',
+      );
       await notifier.addBuiltIn(breakfastSlot);
 
       expect(notifier.state.any((s) => s.key == 'breakfast'), isTrue);

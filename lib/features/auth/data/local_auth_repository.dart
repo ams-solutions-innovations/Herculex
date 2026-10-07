@@ -1,9 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:herculex/features/auth/domain/auth_session.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../domain/auth_session.dart';
 
 /// Offline cache of the signed-in user's profile.
 ///

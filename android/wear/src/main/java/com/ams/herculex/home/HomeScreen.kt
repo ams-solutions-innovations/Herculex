@@ -172,10 +172,29 @@ fun HomeScreen(
 
         // Fasting Pill
         item {
+            val fastingSnap = data.fastingSnapshot
+            val nowMs = System.currentTimeMillis()
+            val (statVal, statLab, subtitleText) = when {
+                fastingSnap.hasActiveFast -> {
+                    val stage = fastingSnap.currentStageMessage
+                    Triple(fastingSnap.elapsedText(nowMs), "Elapsed", stage)
+                }
+                fastingSnap.nextFastEpochMs != null -> {
+                    val nextFmt = fastingSnap.nextFastFormatted(nowMs) ?: "Scheduled"
+                    val until = fastingSnap.timeUntilNextFast(nowMs) ?: "soon"
+                    val plan = fastingSnap.nextFastPlanName ?: "16:8"
+                    Triple(until, "Starts in", "$nextFmt ($plan)")
+                }
+                else -> {
+                    Triple(data.fasting, "Duration", null)
+                }
+            }
+
             OneUiPill(
-                title = "Fasting",
-                statValue = data.fasting,
-                statLabel = "Duration",
+                title = if (fastingSnap.hasActiveFast) "Fasting" else if (fastingSnap.nextFastEpochMs != null) "Next Fast" else "Fasting",
+                subtitle = subtitleText,
+                statValue = statVal,
+                statLabel = statLab,
                 iconVector = HxIcons.Fasting,
                 style = OneUiPillStyle.VioletIndigo,
                 onClick = { navController.navigate("fasting") },

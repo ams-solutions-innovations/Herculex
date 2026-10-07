@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import 'database.dart';
+import 'package:herculex/data/local/database.dart';
 
 /// Seeds the default accessory + band catalogs (v10). Idempotent — skips when
 /// non-custom rows already exist, so re-runs (fresh installs after upgrades,
@@ -26,10 +26,11 @@ class AccessorySeed {
   ];
 
   static Future<void> run(AppDatabase db) async {
-    final hasAccessories = await (db.select(db.accessories)
-          ..where((t) => t.isCustom.equals(false))
-          ..limit(1))
-        .get();
+    final hasAccessories =
+        await (db.select(db.accessories)
+              ..where((t) => t.isCustom.equals(false))
+              ..limit(1))
+            .get();
     if (hasAccessories.isEmpty) {
       await db.batch((b) {
         b.insertAll(db.accessories, [
@@ -43,19 +44,16 @@ class AccessorySeed {
       });
     }
 
-    final hasBands = await (db.select(db.bands)
-          ..where((t) => t.isCustom.equals(false))
-          ..limit(1))
-        .get();
+    final hasBands =
+        await (db.select(db.bands)
+              ..where((t) => t.isCustom.equals(false))
+              ..limit(1))
+            .get();
     if (hasBands.isEmpty) {
       await db.batch((b) {
         b.insertAll(db.bands, [
           for (final (name, color, tension) in defaultBands)
-            BandsCompanion.insert(
-              name: name,
-              color: color,
-              tensionKg: tension,
-            ),
+            BandsCompanion.insert(name: name, color: color, tensionKg: tension),
         ]);
       });
     }

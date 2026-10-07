@@ -1,5 +1,5 @@
-import '../../../data/local/database.dart';
-import '../domain/buddy_scope.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/buddy/domain/buddy_scope.dart';
 
 /// The resolved scope and UI metadata for a workout action.
 class ShareDecision {
@@ -37,9 +37,9 @@ class BuddySharePolicy {
     }
 
     if (exerciseId != null) {
-      final exercise = await (_db.select(_db.exerciseCatalog)
-            ..where((t) => t.id.equals(exerciseId)))
-          .getSingleOrNull();
+      final exercise = await (_db.select(
+        _db.exerciseCatalog,
+      )..where((t) => t.id.equals(exerciseId))).getSingleOrNull();
 
       if (exercise != null && exercise.isCustom) {
         return const ShareDecision(

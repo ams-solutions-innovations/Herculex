@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/tokens/tokens.dart';
-import '../../../ui/ui.dart';
-import '../../analytics/domain/muscle_recovery_v3.dart';
-import '../../analytics/presentation/analytics_providers.dart';
-import '../../analytics/presentation/widgets/muscle_recovery_row.dart';
-import '../domain/deload_urgency.dart';
-import '../domain/muscle_deload_advisor.dart';
-import 'recovery_providers.dart';
-import 'widgets/joint_pain_selector.dart';
-import 'widgets/recovery_header_card.dart';
-import 'widgets/next_workout_suggestion_card.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/analytics/application/analytics_providers.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/presentation/widgets/muscle_recovery_row.dart';
+import 'package:herculex/features/recovery/application/recovery_providers.dart';
+import 'package:herculex/features/recovery/domain/deload_urgency.dart';
+import 'package:herculex/features/recovery/domain/muscle_deload_advisor.dart';
+import 'package:herculex/features/recovery/presentation/widgets/joint_pain_selector.dart';
+import 'package:herculex/features/recovery/presentation/widgets/next_workout_suggestion_card.dart';
+import 'package:herculex/features/recovery/presentation/widgets/recovery_header_card.dart';
 
 /// The dedicated Recovery page: overall readiness, a joint-pain selector,
 /// next workout's training suggestion, and the full 19-muscle-group breakdown with
@@ -51,7 +50,8 @@ class _MuscleListCard extends ConsumerWidget {
     final etaMap = ref.watch(recoveryEtaProvider).valueOrNull;
     final deloadSignals = ref.watch(muscleDeloadSignalsProvider).valueOrNull;
     final deloadByMuscle = {
-      for (final s in deloadSignals ?? const <MuscleDeloadSignal>[]) s.muscle: s.urgency,
+      for (final s in deloadSignals ?? const <MuscleDeloadSignal>[])
+        s.muscle: s.urgency,
     };
 
     return HxCard(
@@ -74,7 +74,9 @@ class _MuscleListCard extends ConsumerWidget {
                   MuscleRecoveryRow(
                     muscle: g.muscle,
                     recoveryScore: g.recoveryScore,
-                    etaLabel: etaMap == null ? null : _formatEta(etaMap[g.muscle]),
+                    etaLabel: etaMap == null
+                        ? null
+                        : _formatEta(etaMap[g.muscle]),
                     statusDotColor: _dotColor(hx, deloadByMuscle[g.muscle]),
                   ),
               ],
@@ -83,7 +85,8 @@ class _MuscleListCard extends ConsumerWidget {
               padding: EdgeInsets.symmetric(vertical: HxSpace.x8),
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (e, _) => Text('Error: $e', style: theme.textTheme.bodySmall),
+            error: (e, _) =>
+                Text('Error: $e', style: theme.textTheme.bodySmall),
           ),
         ],
       ),

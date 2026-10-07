@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/sync/sync_id_resolver.dart';
 import 'package:herculex/features/buddy/application/buddy_choreography_sender.dart';
@@ -37,7 +37,9 @@ void main() {
 
     sessionId = await db
         .into(db.workoutSessions)
-        .insert(WorkoutSessionsCompanion.insert(startedAt: DateTime(2026, 8, 1)));
+        .insert(
+          WorkoutSessionsCompanion.insert(startedAt: DateTime(2026, 8, 1)),
+        );
 
     benchPressId = await db
         .into(db.exerciseCatalog)
@@ -106,11 +108,15 @@ void main() {
       expect(removeDecision.scope, BuddyScope.mine);
       expect(removeDecision.userOverridable, isTrue);
 
-      final reorderDecision = await policy.decide(kind: BuddyActionKind.reorder);
+      final reorderDecision = await policy.decide(
+        kind: BuddyActionKind.reorder,
+      );
       expect(reorderDecision.scope, BuddyScope.both);
       expect(reorderDecision.userOverridable, isTrue);
 
-      final replaceDecision = await policy.decide(kind: BuddyActionKind.replace);
+      final replaceDecision = await policy.decide(
+        kind: BuddyActionKind.replace,
+      );
       expect(replaceDecision.scope, BuddyScope.both);
       expect(replaceDecision.userOverridable, isTrue);
     });
@@ -136,16 +142,19 @@ void main() {
       expect(decision.reason, contains('Custom exercises stay on your device'));
     });
 
-    test('no active buddy session forces scope mine with null reason', () async {
-      final decision = await policy.decide(
-        kind: BuddyActionKind.add,
-        hasActiveBuddySession: false,
-        userChoice: BuddyScope.both,
-      );
-      expect(decision.scope, BuddyScope.mine);
-      expect(decision.userOverridable, isFalse);
-      expect(decision.reason, isNull);
-    });
+    test(
+      'no active buddy session forces scope mine with null reason',
+      () async {
+        final decision = await policy.decide(
+          kind: BuddyActionKind.add,
+          hasActiveBuddySession: false,
+          userChoice: BuddyScope.both,
+        );
+        expect(decision.scope, BuddyScope.mine);
+        expect(decision.userOverridable, isFalse);
+        expect(decision.reason, isNull);
+      },
+    );
 
     test('decide treats unknown exerciseId as non-custom', () async {
       final decision = await policy.decide(
@@ -166,9 +175,9 @@ void main() {
       );
       expect(fakePublisher.appendCount, 0);
 
-      final we = await (db.select(db.workoutExercises)
-            ..where((t) => t.sessionId.equals(sessionId)))
-          .getSingle();
+      final we = await (db.select(
+        db.workoutExercises,
+      )..where((t) => t.sessionId.equals(sessionId))).getSingle();
 
       // 2. replace
       await sender.replaceExercise(
@@ -193,131 +202,161 @@ void main() {
       expect(fakePublisher.appendCount, 0);
     });
 
-    test('addExercise with scope both mints slot, applies locally, and publishes', () async {
-      await sender.addExercise(
-        exerciseId: benchPressId,
-        scope: BuddyScope.both,
-      );
+    test(
+      'addExercise with scope both mints slot, applies locally, and publishes',
+      () async {
+        await sender.addExercise(
+          exerciseId: benchPressId,
+          scope: BuddyScope.both,
+        );
 
-      expect(fakePublisher.appendCount, 1);
-      final append = fakePublisher.appends.single;
-      expect(append.kind, BuddyEventKind.add);
-      expect(append.payload['slotId'], 'minted-slot-1');
-      expect(append.payload['ref']['slug'], 'bench-press');
+        expect(fakePublisher.appendCount, 1);
+        final append = fakePublisher.appends.single;
+        expect(append.kind, BuddyEventKind.add);
+        expect(append.payload['slotId'], 'minted-slot-1');
+        expect(append.payload['ref']['slug'], 'bench-press');
 
-      final slots = await slotStore.all();
-      expect(slots, hasLength(1));
-      expect(slots.single.slotId, 'minted-slot-1');
-    });
+        final slots = await slotStore.all();
+        expect(slots, hasLength(1));
+        expect(slots.single.slotId, 'minted-slot-1');
+      },
+    );
 
-    test('rollback on append failure reverts local database modifications', () async {
-      fakePublisher.failWith = Exception('Simulated Realtime error');
+    test(
+      'rollback on append failure reverts local database modifications',
+      () async {
+        fakePublisher.failWith = Exception('Simulated Realtime error');
 
-      final weBefore = await (db.select(db.workoutExercises)
-            ..where((t) => t.sessionId.equals(sessionId)))
-          .get();
-      expect(weBefore, isEmpty);
+        final weBefore = await (db.select(
+          db.workoutExercises,
+        )..where((t) => t.sessionId.equals(sessionId))).get();
+        expect(weBefore, isEmpty);
 
-      await expectLater(
-        sender.addExercise(exerciseId: benchPressId, scope: BuddyScope.both),
-        throwsA(isA<Exception>()),
-      );
+        await expectLater(
+          sender.addExercise(exerciseId: benchPressId, scope: BuddyScope.both),
+          throwsA(isA<Exception>()),
+        );
 
-      final weAfter = await (db.select(db.workoutExercises)
-            ..where((t) => t.sessionId.equals(sessionId)))
-        .get();
-      expect(weAfter, isEmpty);
-      expect(await slotStore.all(), isEmpty);
-    });
+        final weAfter = await (db.select(
+          db.workoutExercises,
+        )..where((t) => t.sessionId.equals(sessionId))).get();
+        expect(weAfter, isEmpty);
+        expect(await slotStore.all(), isEmpty);
+      },
+    );
 
-    test('removeExercise with scope both publishes remove payload with slotId', () async {
-      await sender.addExercise(
-        exerciseId: benchPressId,
-        scope: BuddyScope.both,
-      );
-      final slot = (await slotStore.all()).single;
+    test(
+      'removeExercise with scope both publishes remove payload with slotId',
+      () async {
+        await sender.addExercise(
+          exerciseId: benchPressId,
+          scope: BuddyScope.both,
+        );
+        final slot = (await slotStore.all()).single;
 
-      await sender.removeExercise(
-        workoutExerciseId: slot.workoutExerciseId!,
-        scope: BuddyScope.both,
-      );
+        await sender.removeExercise(
+          workoutExerciseId: slot.workoutExerciseId!,
+          scope: BuddyScope.both,
+        );
 
-      expect(fakePublisher.appendCount, 2);
-      final removeAppend = fakePublisher.appends[1];
-      expect(removeAppend.kind, BuddyEventKind.remove);
-      expect(removeAppend.payload['slotId'], 'minted-slot-1');
-      expect(await slotStore.all(), isEmpty);
-    });
+        expect(fakePublisher.appendCount, 2);
+        final removeAppend = fakePublisher.appends[1];
+        expect(removeAppend.kind, BuddyEventKind.remove);
+        expect(removeAppend.payload['slotId'], 'minted-slot-1');
+        expect(await slotStore.all(), isEmpty);
+      },
+    );
 
-    test('removeExercise on local-only exercise publishes nothing even with scope both', () async {
-      await sender.addExercise(
-        exerciseId: benchPressId,
-        scope: BuddyScope.mine, // local only
-      );
-      final we = (await (db.select(db.workoutExercises)
-                ..where((t) => t.sessionId.equals(sessionId)))
-              .get())
-          .single;
+    test(
+      'removeExercise on local-only exercise publishes nothing even with scope both',
+      () async {
+        await sender.addExercise(
+          exerciseId: benchPressId,
+          scope: BuddyScope.mine, // local only
+        );
+        final we = (await (db.select(
+          db.workoutExercises,
+        )..where((t) => t.sessionId.equals(sessionId))).get()).single;
 
-      await sender.removeExercise(
-        workoutExerciseId: we.id,
-        scope: BuddyScope.both,
-      );
+        await sender.removeExercise(
+          workoutExerciseId: we.id,
+          scope: BuddyScope.both,
+        );
 
-      expect(fakePublisher.appendCount, 0);
-    });
+        expect(fakePublisher.appendCount, 0);
+      },
+    );
 
-    test('reorder with scope both publishes absolute slotId order excluding local-only exercises', () async {
-      var slotCounter = 1;
-      final multiSender = BuddyChoreographySender(
-        publisher: fakePublisher,
-        slots: slotStore,
-        workouts: workouts,
-        resolver: resolver,
-        buddySessionId: buddySessionId,
-        localWorkoutSessionId: sessionId,
-        newSlotId: () => 'slot-${slotCounter++}',
-      );
+    test(
+      'reorder with scope both publishes absolute slotId order excluding local-only exercises',
+      () async {
+        var slotCounter = 1;
+        final multiSender = BuddyChoreographySender(
+          publisher: fakePublisher,
+          slots: slotStore,
+          workouts: workouts,
+          resolver: resolver,
+          buddySessionId: buddySessionId,
+          localWorkoutSessionId: sessionId,
+          newSlotId: () => 'slot-${slotCounter++}',
+        );
 
-      await multiSender.addExercise(exerciseId: benchPressId, scope: BuddyScope.both); // slot-1
-      await multiSender.addExercise(exerciseId: squatId, scope: BuddyScope.both); // slot-2
-      await multiSender.addExercise(exerciseId: benchPressId, scope: BuddyScope.mine); // local only
+        await multiSender.addExercise(
+          exerciseId: benchPressId,
+          scope: BuddyScope.both,
+        ); // slot-1
+        await multiSender.addExercise(
+          exerciseId: squatId,
+          scope: BuddyScope.both,
+        ); // slot-2
+        await multiSender.addExercise(
+          exerciseId: benchPressId,
+          scope: BuddyScope.mine,
+        ); // local only
 
-      final allExercises = await (db.select(db.workoutExercises)
-            ..where((t) => t.sessionId.equals(sessionId)))
-          .get();
+        final allExercises = await (db.select(
+          db.workoutExercises,
+        )..where((t) => t.sessionId.equals(sessionId))).get();
 
-      // Reverse order of exercises
-      final reversedIds = allExercises.map((e) => e.id).toList().reversed.toList();
+        // Reverse order of exercises
+        final reversedIds = allExercises
+            .map((e) => e.id)
+            .toList()
+            .reversed
+            .toList();
 
-      await multiSender.reorder(
-        workoutExerciseIdsInOrder: reversedIds,
-        scope: BuddyScope.both,
-      );
+        await multiSender.reorder(
+          workoutExerciseIdsInOrder: reversedIds,
+          scope: BuddyScope.both,
+        );
 
-      final reorderAppend = fakePublisher.appends.last;
-      expect(reorderAppend.kind, BuddyEventKind.reorder);
-      expect(reorderAppend.payload['order'], ['slot-2', 'slot-1']);
-    });
+        final reorderAppend = fakePublisher.appends.last;
+        expect(reorderAppend.kind, BuddyEventKind.reorder);
+        expect(reorderAppend.payload['order'], ['slot-2', 'slot-1']);
+      },
+    );
 
-    test('replaceExercise with scope both publishes replace payload with slotId', () async {
-      await sender.addExercise(
-        exerciseId: benchPressId,
-        scope: BuddyScope.both,
-      );
-      final slot = (await slotStore.all()).single;
+    test(
+      'replaceExercise with scope both publishes replace payload with slotId',
+      () async {
+        await sender.addExercise(
+          exerciseId: benchPressId,
+          scope: BuddyScope.both,
+        );
+        final slot = (await slotStore.all()).single;
 
-      await sender.replaceExercise(
-        workoutExerciseId: slot.workoutExerciseId!,
-        newExerciseId: squatId,
-        scope: BuddyScope.both,
-      );
+        await sender.replaceExercise(
+          workoutExerciseId: slot.workoutExerciseId!,
+          newExerciseId: squatId,
+          scope: BuddyScope.both,
+        );
 
-      expect(fakePublisher.appendCount, 2);
-      final replaceAppend = fakePublisher.appends[1];
-      expect(replaceAppend.kind, BuddyEventKind.replace);
-      expect(replaceAppend.payload['slotId'], 'minted-slot-1');
-      expect(replaceAppend.payload['ref']['slug'], 'squat');
-    });
+        expect(fakePublisher.appendCount, 2);
+        final replaceAppend = fakePublisher.appends[1];
+        expect(replaceAppend.kind, BuddyEventKind.replace);
+        expect(replaceAppend.payload['slotId'], 'minted-slot-1');
+        expect(replaceAppend.payload['ref']['slug'], 'squat');
+      },
+    );
   });
 }

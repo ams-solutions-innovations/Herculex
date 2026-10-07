@@ -37,49 +37,205 @@ class _FkEdge {
 /// adds, removes, or changes the `onDelete` action of an edge must update
 /// this list deliberately — that is the point of the test.
 const _expectedEdges = <_FkEdge>[
-  _FkEdge('buddy_sessions_local', 'workout_session_id', 'workout_sessions', 'id', 'CASCADE'),
-  _FkEdge('buddy_choreography_slots', 'workout_exercise_id', 'workout_exercises', 'id', 'CASCADE'),
+  _FkEdge(
+    'buddy_sessions_local',
+    'workout_session_id',
+    'workout_sessions',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'buddy_choreography_slots',
+    'workout_exercise_id',
+    'workout_exercises',
+    'id',
+    'CASCADE',
+  ),
   // Schema v34 (circuits). Mirrors workout_exercises: cascade from the
   // owning circuit, restrict from the catalogue so a referenced exercise
   // cannot be deleted out from under a circuit.
-  _FkEdge('circuit_exercises', 'circuit_id', 'workout_circuits', 'id', 'CASCADE'),
-  _FkEdge('circuit_exercises', 'exercise_id', 'exercise_catalog', 'id', 'RESTRICT'),
-  _FkEdge('exercise_aliases', 'exercise_id', 'exercise_catalog', 'id', 'CASCADE'),
-  _FkEdge('exercise_muscles', 'exercise_id', 'exercise_catalog', 'id', 'CASCADE'),
-  _FkEdge('exercise_progressions', 'exercise_id', 'exercise_catalog', 'id', 'CASCADE'),
+  _FkEdge(
+    'circuit_exercises',
+    'circuit_id',
+    'workout_circuits',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'circuit_exercises',
+    'exercise_id',
+    'exercise_catalog',
+    'id',
+    'RESTRICT',
+  ),
+  _FkEdge(
+    'exercise_aliases',
+    'exercise_id',
+    'exercise_catalog',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'exercise_muscles',
+    'exercise_id',
+    'exercise_catalog',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'exercise_progressions',
+    'exercise_id',
+    'exercise_catalog',
+    'id',
+    'CASCADE',
+  ),
   _FkEdge('food_entries', 'recipe_id', 'recipes', 'id', 'RESTRICT'),
   _FkEdge('food_entries', 'food_id', 'foods', 'id', 'RESTRICT'),
   _FkEdge('food_micros', 'food_id', 'foods', 'id', 'CASCADE'),
+  // NOTE: the only edge in the schema without an explicit onDelete —
+  // HerculMessageLog.ruleId uses a bare .references(HerculRules, #id), so
+  // drift emits NO ACTION. Recorded here as-is rather than silently
+  // "corrected", because changing it means a schemaVersion bump + migration.
+  // Deleting a rule with a log row will fail instead of cascading.
+  _FkEdge('hercul_message_log', 'rule_id', 'hercul_rules', 'id', 'NO ACTION'),
   _FkEdge('machine_settings', 'gym_id', 'gyms', 'id', 'SET NULL'),
-  _FkEdge('machine_settings', 'exercise_id', 'exercise_catalog', 'id', 'CASCADE'),
-  _FkEdge('micro_workouts', 'exercise_id', 'exercise_catalog', 'id', 'RESTRICT'),
-  _FkEdge('program_day_exercises', 'rotation_id', 'exercise_rotations', 'id', 'SET NULL'),
-  _FkEdge('program_day_exercises', 'exercise_id', 'exercise_catalog', 'id', 'RESTRICT'),
-  _FkEdge('program_day_exercises', 'program_day_id', 'program_days', 'id', 'CASCADE'),
+  _FkEdge(
+    'machine_settings',
+    'exercise_id',
+    'exercise_catalog',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'micro_workouts',
+    'exercise_id',
+    'exercise_catalog',
+    'id',
+    'RESTRICT',
+  ),
+  _FkEdge(
+    'program_day_exercises',
+    'rotation_id',
+    'exercise_rotations',
+    'id',
+    'SET NULL',
+  ),
+  _FkEdge(
+    'program_day_exercises',
+    'exercise_id',
+    'exercise_catalog',
+    'id',
+    'RESTRICT',
+  ),
+  _FkEdge(
+    'program_day_exercises',
+    'program_day_id',
+    'program_days',
+    'id',
+    'CASCADE',
+  ),
   _FkEdge('program_days', 'template_id', 'workout_templates', 'id', 'SET NULL'),
   _FkEdge('program_days', 'program_week_id', 'program_weeks', 'id', 'CASCADE'),
   _FkEdge('program_weeks', 'program_id', 'programs', 'id', 'CASCADE'),
   _FkEdge('recipe_ingredients', 'food_id', 'foods', 'id', 'RESTRICT'),
   _FkEdge('recipe_ingredients', 'recipe_id', 'recipes', 'id', 'CASCADE'),
-  _FkEdge('rotation_members', 'exercise_id', 'exercise_catalog', 'id', 'RESTRICT'),
-  _FkEdge('rotation_members', 'rotation_id', 'exercise_rotations', 'id', 'CASCADE'),
-  _FkEdge('scheduled_workouts', 'template_id_override', 'workout_templates', 'id', 'SET NULL'),
+  _FkEdge(
+    'rotation_members',
+    'exercise_id',
+    'exercise_catalog',
+    'id',
+    'RESTRICT',
+  ),
+  _FkEdge(
+    'rotation_members',
+    'rotation_id',
+    'exercise_rotations',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'scheduled_workouts',
+    'template_id_override',
+    'workout_templates',
+    'id',
+    'SET NULL',
+  ),
   _FkEdge('scheduled_workouts', 'program_id', 'programs', 'id', 'CASCADE'),
-  _FkEdge('scheduled_workouts', 'completed_session_id', 'workout_sessions', 'id', 'SET NULL'),
-  _FkEdge('scheduled_workouts', 'program_day_id', 'program_days', 'id', 'CASCADE'),
+  _FkEdge(
+    'scheduled_workouts',
+    'completed_session_id',
+    'workout_sessions',
+    'id',
+    'SET NULL',
+  ),
+  _FkEdge(
+    'scheduled_workouts',
+    'program_day_id',
+    'program_days',
+    'id',
+    'CASCADE',
+  ),
   _FkEdge('set_accessories', 'accessory_id', 'accessories', 'id', 'RESTRICT'),
   _FkEdge('set_accessories', 'set_entry_id', 'set_entries', 'id', 'CASCADE'),
   _FkEdge('set_bands', 'band_id', 'bands', 'id', 'RESTRICT'),
   _FkEdge('set_bands', 'set_entry_id', 'set_entries', 'id', 'CASCADE'),
-  _FkEdge('set_entries', 'workout_exercise_id', 'workout_exercises', 'id', 'CASCADE'),
-  _FkEdge('template_exercises', 'exercise_id', 'exercise_catalog', 'id', 'RESTRICT'),
-  _FkEdge('template_exercises', 'template_id', 'workout_templates', 'id', 'CASCADE'),
-  _FkEdge('template_sets', 'template_exercise_id', 'template_exercises', 'id', 'CASCADE'),
-  _FkEdge('workout_exercises', 'exercise_id', 'exercise_catalog', 'id', 'RESTRICT'),
-  _FkEdge('workout_exercises', 'session_id', 'workout_sessions', 'id', 'CASCADE'),
-  _FkEdge('workout_sessions', 'micro_workout_id', 'micro_workouts', 'id', 'SET NULL'),
+  _FkEdge(
+    'set_entries',
+    'workout_exercise_id',
+    'workout_exercises',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'template_exercises',
+    'exercise_id',
+    'exercise_catalog',
+    'id',
+    'RESTRICT',
+  ),
+  _FkEdge(
+    'template_exercises',
+    'template_id',
+    'workout_templates',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'template_sets',
+    'template_exercise_id',
+    'template_exercises',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'workout_exercises',
+    'exercise_id',
+    'exercise_catalog',
+    'id',
+    'RESTRICT',
+  ),
+  _FkEdge(
+    'workout_exercises',
+    'session_id',
+    'workout_sessions',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'workout_sessions',
+    'micro_workout_id',
+    'micro_workouts',
+    'id',
+    'SET NULL',
+  ),
   _FkEdge('workout_sessions', 'gym_id', 'gyms', 'id', 'SET NULL'),
-  _FkEdge('workout_templates', 'folder_id', 'workout_folders', 'id', 'SET NULL'),
+  _FkEdge(
+    'workout_templates',
+    'folder_id',
+    'workout_folders',
+    'id',
+    'SET NULL',
+  ),
 ];
 
 void main() {
@@ -107,9 +263,9 @@ void main() {
     final tableNames = db.allTables.map((t) => t.actualTableName).toList();
     final actualEdges = <_FkEdge>[];
     for (final table in tableNames) {
-      final rows = await db.customSelect(
-        "PRAGMA foreign_key_list('$table')",
-      ).get();
+      final rows = await db
+          .customSelect("PRAGMA foreign_key_list('$table')")
+          .get();
       for (final row in rows) {
         actualEdges.add(
           _FkEdge(
@@ -147,14 +303,13 @@ void main() {
   test('every SET NULL edge targets a nullable column', () async {
     final setNullEdges = _expectedEdges.where((e) => e.onDelete == 'SET NULL');
     for (final edge in setNullEdges) {
-      final columns = await db.customSelect(
-        "PRAGMA table_info('${edge.table}')",
-      ).get();
+      final columns = await db
+          .customSelect("PRAGMA table_info('${edge.table}')")
+          .get();
       final column = columns.singleWhere(
         (c) => c.read<String>('name') == edge.from,
-        orElse: () => throw StateError(
-          'Column ${edge.from} not found on ${edge.table}',
-        ),
+        orElse: () =>
+            throw StateError('Column ${edge.from} not found on ${edge.table}'),
       );
       // table_info's "notnull" is 1 for NOT NULL columns, 0 for nullable.
       expect(

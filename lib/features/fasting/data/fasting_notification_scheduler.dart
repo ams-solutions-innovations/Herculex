@@ -56,8 +56,24 @@ class FastingNotificationScheduler {
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );
-    } catch (e) {
-      debugPrint('FastingNotificationScheduler: schedule failed ($e)');
+    } catch (_) {
+      try {
+        final scheduledTz = tz.TZDateTime.from(targetTime, tz.local);
+        await _plugin.zonedSchedule(
+          notifId,
+          '🎉 Fasting Goal Reached!',
+          'You completed your $planName fast. You can break your fast whenever you are ready.',
+          scheduledTz,
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('FastingNotificationScheduler: schedule failed ($e)');
+        }
+      }
     }
   }
 

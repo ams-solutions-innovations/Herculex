@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/nutrition/data/nutrition_repository.dart';
 import 'package:herculex/features/nutrition/data/openfoodfacts_client.dart';
@@ -41,7 +41,11 @@ void main() {
   }
 
   NutritionRepository repo(AppDatabase db, {Clock? clock}) =>
-      NutritionRepository(db, OpenFoodFactsClient(), clock ?? const SystemClock());
+      NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        clock ?? const SystemClock(),
+      );
 
   group('catalogue-facing reads exclude soft-deleted rows', () {
     test('watchFoods', () async {
@@ -118,17 +122,20 @@ void main() {
   });
 
   group('history-resolution lookups stay unfiltered', () {
-    test('foodById/foodsByIds/watchFoodById still resolve a soft-deleted food', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final r = repo(db);
-      final id = await insertFood(db, name: 'Old Food');
-      await r.deleteFood(id);
+    test(
+      'foodById/foodsByIds/watchFoodById still resolve a soft-deleted food',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final r = repo(db);
+        final id = await insertFood(db, name: 'Old Food');
+        await r.deleteFood(id);
 
-      expect((await r.foodById(id))?.name, 'Old Food');
-      expect((await r.foodsByIds([id]))[id]?.name, 'Old Food');
-      expect((await r.watchFoodById(id).first)?.name, 'Old Food');
-    });
+        expect((await r.foodById(id))?.name, 'Old Food');
+        expect((await r.foodsByIds([id]))[id]?.name, 'Old Food');
+        expect((await r.watchFoodById(id).first)?.name, 'Old Food');
+      },
+    );
 
     test('recipeById still resolves a soft-deleted recipe', () async {
       final db = await openTestDatabase();
@@ -140,67 +147,76 @@ void main() {
       expect((await r.recipeById(id))?.name, 'Old Recipe');
     });
 
-    test('macrosForEntry resolves an unsnapshotted entry against a soft-deleted food', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final r = repo(db);
-      final foodId = await insertFood(db, name: 'Old Food', kcal: 200);
-      // Simulate a pre-v24 row: insert directly with no snapshot columns,
-      // rather than going through logFood (which always snapshots now).
-      final entryId = await db
-          .into(db.foodEntries)
-          .insert(
-            FoodEntriesCompanion.insert(
-              dateIso: '2026-01-01',
-              meal: 'lunch',
-              foodId: Value(foodId),
-              portionAmount: const Value(100),
-              portionUnit: const Value('g'),
-            ),
-          );
-      await r.deleteFood(foodId);
+    test(
+      'macrosForEntry resolves an unsnapshotted entry against a soft-deleted food',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final r = repo(db);
+        final foodId = await insertFood(db, name: 'Old Food', kcal: 200);
+        // Simulate a pre-v24 row: insert directly with no snapshot columns,
+        // rather than going through logFood (which always snapshots now).
+        final entryId = await db
+            .into(db.foodEntries)
+            .insert(
+              FoodEntriesCompanion.insert(
+                dateIso: '2026-01-01',
+                meal: 'lunch',
+                foodId: Value(foodId),
+                portionAmount: const Value(100),
+                portionUnit: const Value('g'),
+              ),
+            );
+        await r.deleteFood(foodId);
 
-      final entry = await (db.select(
-        db.foodEntries,
-      )..where((t) => t.id.equals(entryId))).getSingle();
-      final totals = await r.macrosForEntry(entry);
-      expect(totals.kcal, 200);
-    });
+        final entry = await (db.select(
+          db.foodEntries,
+        )..where((t) => t.id.equals(entryId))).getSingle();
+        final totals = await r.macrosForEntry(entry);
+        expect(totals.kcal, 200);
+      },
+    );
 
-    test('a logged entry keeps resolving via its snapshot after the food is deleted', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final r = repo(db);
-      final foodId = await insertFood(db, name: 'Snapshot Food', kcal: 300);
-      await r.logFood(date: DateTime(2026, 1, 1), foodId: foodId, grams: 100);
-      await r.deleteFood(foodId);
+    test(
+      'a logged entry keeps resolving via its snapshot after the food is deleted',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final r = repo(db);
+        final foodId = await insertFood(db, name: 'Snapshot Food', kcal: 300);
+        await r.logFood(date: DateTime(2026, 1, 1), foodId: foodId, grams: 100);
+        await r.deleteFood(foodId);
 
-      final entries = await r.watchEntriesForDate(DateTime(2026, 1, 1)).first;
-      expect(entries, hasLength(1));
-      final totals = await r.macrosForEntry(entries.single);
-      expect(totals.kcal, 300);
-    });
+        final entries = await r.watchEntriesForDate(DateTime(2026, 1, 1)).first;
+        expect(entries, hasLength(1));
+        final totals = await r.macrosForEntry(entries.single);
+        expect(totals.kcal, 300);
+      },
+    );
   });
 
   group('updateCustomFood (4d decision: writes through unconditionally)', () {
-    test('editing a soft-deleted food still succeeds and the edit persists', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final r = repo(db);
-      final id = await insertFood(db, name: 'Old Name', kcal: 100);
-      await r.deleteFood(id);
+    test(
+      'editing a soft-deleted food still succeeds and the edit persists',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final r = repo(db);
+        final id = await insertFood(db, name: 'Old Name', kcal: 100);
+        await r.deleteFood(id);
 
-      final updated = await r.updateCustomFood(
-        id: id,
-        name: 'New Name',
-        kcalPer100g: 150,
-      );
+        final updated = await r.updateCustomFood(
+          id: id,
+          name: 'New Name',
+          kcalPer100g: 150,
+        );
 
-      expect(updated.name, 'New Name');
-      expect(updated.kcalPer100g, 150);
-      // The edit doesn't undo the soft delete — it's still hidden from
-      // catalogue search either way.
-      expect(updated.deletedAt, isNotNull);
-    });
+        expect(updated.name, 'New Name');
+        expect(updated.kcalPer100g, 150);
+        // The edit doesn't undo the soft delete — it's still hidden from
+        // catalogue search either way.
+        expect(updated.deletedAt, isNotNull);
+      },
+    );
   });
 }

@@ -24,7 +24,8 @@ void main() {
         .toList();
 
     final exercisesRaw = File('assets/data/exercises.json').readAsStringSync();
-    final exercises = (jsonDecode(exercisesRaw) as List).cast<Map<String, dynamic>>();
+    final exercises = (jsonDecode(exercisesRaw) as List)
+        .cast<Map<String, dynamic>>();
     knownExerciseNames = {
       for (final e in exercises) (e['name'] as String).toLowerCase(),
       for (final e in exercises)
@@ -41,7 +42,11 @@ void main() {
     for (final meta in catalog) {
       final csv = File(meta.file).readAsStringSync();
       final doc = ProgramCsv.decode(csv);
-      expect(doc.weeks, meta.weeks, reason: '${meta.id}: weeks mismatch between catalog.json and CSV');
+      expect(
+        doc.weeks,
+        meta.weeks,
+        reason: '${meta.id}: weeks mismatch between catalog.json and CSV',
+      );
     }
   });
 
@@ -56,15 +61,27 @@ void main() {
         }
       }
     }
-    expect(failures, isEmpty, reason: 'Unknown exercises: ${failures.join(', ')}');
+    expect(
+      failures,
+      isEmpty,
+      reason: 'Unknown exercises: ${failures.join(', ')}',
+    );
   });
 
   test('every preset level and goal use documented values', () {
     const levels = {'beginner', 'intermediate', 'advanced'};
     const goals = {'strength', 'hypertrophy', 'general'};
     for (final meta in catalog) {
-      expect(levels.contains(meta.level), isTrue, reason: '${meta.id}: unexpected level "${meta.level}"');
-      expect(goals.contains(meta.goal), isTrue, reason: '${meta.id}: unexpected goal "${meta.goal}"');
+      expect(
+        levels.contains(meta.level),
+        isTrue,
+        reason: '${meta.id}: unexpected level "${meta.level}"',
+      );
+      expect(
+        goals.contains(meta.goal),
+        isTrue,
+        reason: '${meta.id}: unexpected goal "${meta.goal}"',
+      );
     }
   });
 }

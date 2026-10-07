@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import '../../../data/local/database.dart';
-import 'training_snapshot.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 
 class CorrelationPoint {
   final double x;
@@ -23,7 +23,8 @@ class BiometricCorrelationResult {
 
   String get interpretation {
     if (sampleSize < 3) return "Insufficient sessions recorded yet.";
-    if (r2 > 0.6) return "Strong correlation detected. Priority recovery shifts targets positively.";
+    if (r2 > 0.6)
+      return "Strong correlation detected. Priority recovery shifts targets positively.";
     if (r2 > 0.3) return "Moderate correlation detected.";
     return "Weak or neutral correlation.";
   }
@@ -54,8 +55,9 @@ class BiometricCorrelations {
       if (sleepHrs == null) continue;
 
       // Find average RPE for this session
-      final sessionSets =
-          resolvedSets.where((r) => r.session.id == session.id).toList();
+      final sessionSets = resolvedSets
+          .where((r) => r.session.id == session.id)
+          .toList();
       if (sessionSets.isEmpty) continue;
 
       double sumRpe = 0;
@@ -104,8 +106,9 @@ class BiometricCorrelations {
       final rHr = hrByDate[sessionDateStr];
       if (rHr == null) continue;
 
-      final sessionSets =
-          resolvedSets.where((r) => r.session.id == session.id).toList();
+      final sessionSets = resolvedSets
+          .where((r) => r.session.id == session.id)
+          .toList();
       if (sessionSets.isEmpty) continue;
 
       double sessionTonnage = 0.0;

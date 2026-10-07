@@ -22,14 +22,6 @@ object WearSyncPaths {
     const val MESSAGE_MEDIA_COMMAND = "/herculex/media_command"
     const val MESSAGE_MEDIA_STATE = "/herculex/media_state"
 
-    // Assisted rep tracking (watch -> phone). Raw accelerometer samples are
-    // batched roughly 1 s per MESSAGE_REP_SAMPLES and never leave the paired
-    // device pair. The provisionalCount carried on MESSAGE_REP_CAPTURE_END is
-    // NON-AUTHORITATIVE — the phone's Dart detector owns the proposed count.
-    const val MESSAGE_REP_CAPTURE_START = "/herculex/reps/capture_start"
-    const val MESSAGE_REP_SAMPLES = "/herculex/reps/samples"
-    const val MESSAGE_REP_CAPTURE_END = "/herculex/reps/capture_end"
-
     // Fast-path (MessageClient) active-session sync — near-instant, requires a
     // connected node. DataClient STATE_ACTIVE_WORKOUT above remains the
     // durable fallback used to catch a peer up on reconnect.

@@ -2,14 +2,13 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:herculex/core/utils/env.dart';
+import 'package:herculex/features/auth/domain/auth_provider_service.dart';
+import 'package:herculex/features/auth/domain/auth_session.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 // `AuthProvider` below always means the app's own domain enum; Supabase names
 // its equivalent `OAuthProvider`, so there is no collision.
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../../../core/env.dart';
-import '../domain/auth_provider_service.dart';
-import '../domain/auth_session.dart';
 
 /// Supabase-backed credential provider. Replaces the native Kotlin
 /// `FirebaseAuthRepository` reached over the `com.ams.herculex/auth`
@@ -149,8 +148,8 @@ class SupabaseAuthService implements AuthProviderService {
   }
 
   @override
-  Future<void> sendPasswordReset(String email) =>
-      _client.auth.resetPasswordForEmail(email, redirectTo: Env.authCallbackUrl);
+  Future<void> sendPasswordReset(String email) => _client.auth
+      .resetPasswordForEmail(email, redirectTo: Env.authCallbackUrl);
 
   @override
   Future<void> signOut() async {

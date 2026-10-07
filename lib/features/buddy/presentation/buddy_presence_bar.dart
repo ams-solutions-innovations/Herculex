@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/colors.dart';
-import '../application/buddy_providers.dart';
-import 'buddy_share_sheet.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/features/buddy/application/buddy_providers.dart';
+import 'package:herculex/features/buddy/presentation/buddy_share_sheet.dart';
 
 /// Top bar shown in active workout when a Gym Buddy session is active.
 /// Displays partner presence and notices.
@@ -59,8 +58,8 @@ class BuddyPresenceBar extends ConsumerWidget {
                         partner != null
                             ? 'Training with ${partner.displayName}'
                             : (state.isHost
-                                ? 'Gym Buddy: Waiting for partner...'
-                                : 'Gym Buddy Live Workout'),
+                                  ? 'Gym Buddy: Waiting for partner...'
+                                  : 'Gym Buddy Live Workout'),
                         style: theme.textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -80,10 +79,7 @@ class BuddyPresenceBar extends ConsumerWidget {
           if (notice != null && notice.isNotEmpty) ...[
             const SizedBox(height: 6),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: AppColors.primaryContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),

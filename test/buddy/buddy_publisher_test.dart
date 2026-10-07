@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/sync/sync_id_resolver.dart';
 import 'package:herculex/features/buddy/application/buddy_choreography_sender.dart';
@@ -33,7 +33,9 @@ void main() {
 
     sessionId = await db
         .into(db.workoutSessions)
-        .insert(WorkoutSessionsCompanion.insert(startedAt: DateTime(2026, 8, 1)));
+        .insert(
+          WorkoutSessionsCompanion.insert(startedAt: DateTime(2026, 8, 1)),
+        );
 
     benchPressId = await db
         .into(db.exerciseCatalog)
@@ -78,40 +80,46 @@ void main() {
     await db.close();
   });
 
-  test('no published payload map contains a "scope" key across all kinds', () async {
-    // 1. Add
-    await sender.addExercise(exerciseId: benchPressId, scope: BuddyScope.both);
-
-    // 2. Replace
-    final slot = (await slotStore.all()).single;
-    await sender.replaceExercise(
-      workoutExerciseId: slot.workoutExerciseId!,
-      newExerciseId: squatId,
-      scope: BuddyScope.both,
-    );
-
-    // 3. Reorder
-    await sender.reorder(
-      workoutExerciseIdsInOrder: [slot.workoutExerciseId!],
-      scope: BuddyScope.both,
-    );
-
-    // 4. Remove
-    await sender.removeExercise(
-      workoutExerciseId: slot.workoutExerciseId!,
-      scope: BuddyScope.both,
-    );
-
-    expect(fakePublisher.appendCount, 4);
-
-    for (final append in fakePublisher.appends) {
-      expect(
-        append.payload.containsKey('scope'),
-        isFalse,
-        reason: 'Payload for ${append.kind} must never contain a "scope" key',
+  test(
+    'no published payload map contains a "scope" key across all kinds',
+    () async {
+      // 1. Add
+      await sender.addExercise(
+        exerciseId: benchPressId,
+        scope: BuddyScope.both,
       );
-    }
-  });
+
+      // 2. Replace
+      final slot = (await slotStore.all()).single;
+      await sender.replaceExercise(
+        workoutExerciseId: slot.workoutExerciseId!,
+        newExerciseId: squatId,
+        scope: BuddyScope.both,
+      );
+
+      // 3. Reorder
+      await sender.reorder(
+        workoutExerciseIdsInOrder: [slot.workoutExerciseId!],
+        scope: BuddyScope.both,
+      );
+
+      // 4. Remove
+      await sender.removeExercise(
+        workoutExerciseId: slot.workoutExerciseId!,
+        scope: BuddyScope.both,
+      );
+
+      expect(fakePublisher.appendCount, 4);
+
+      for (final append in fakePublisher.appends) {
+        expect(
+          append.payload.containsKey('scope'),
+          isFalse,
+          reason: 'Payload for ${append.kind} must never contain a "scope" key',
+        );
+      }
+    },
+  );
 
   test('wire contract matches JSON schema per event kind', () async {
     await sender.addExercise(

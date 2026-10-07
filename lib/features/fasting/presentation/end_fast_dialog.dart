@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../core/notifications/in_app_notification_controller.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/tokens/tokens.dart';
-import '../../gamification/presentation/gamification_providers.dart';
-import 'fasting_providers.dart';
+import 'package:herculex/core/notifications/in_app_notification_controller.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
+import 'package:herculex/features/gamification/application/gamification_providers.dart';
 
 /// Confirm-and-end flow for the active fasting session, shared by the fasting
 /// sheet and the dashboard card so "End Fast" is reachable from the home
@@ -35,7 +34,10 @@ void confirmEndFast(BuildContext context, WidgetRef ref) {
                 borderRadius: BorderRadius.circular(16),
               ),
               tileColor: AppColors.primary.withValues(alpha: 0.12),
-              leading: Icon(Icons.check_circle_outline, color: AppColors.primary),
+              leading: Icon(
+                Icons.check_circle_outline,
+                color: AppColors.primary,
+              ),
               title: Text(
                 "Save",
                 style: TextStyle(
@@ -63,8 +65,7 @@ void confirmEndFast(BuildContext context, WidgetRef ref) {
                 final pastSessions = await repo.history();
                 await repo.endSession(completed: true);
                 if (active != null) {
-                  final duration =
-                      DateTime.now().difference(active.startedAt);
+                  final duration = DateTime.now().difference(active.startedAt);
                   final evaluator = ref.read(achievementEvaluatorProvider);
                   final items = evaluator.evaluateFinishedFast(
                     fastDuration: duration,
@@ -72,8 +73,9 @@ void confirmEndFast(BuildContext context, WidgetRef ref) {
                     planName: 'Fasting Protocol',
                     targetSeconds: active.targetSeconds,
                   );
-                  final notifier =
-                      ref.read(inAppNotificationControllerProvider.notifier);
+                  final notifier = ref.read(
+                    inAppNotificationControllerProvider.notifier,
+                  );
                   for (final item in items) {
                     notifier.show(item);
                   }
@@ -103,7 +105,10 @@ void confirmEndFast(BuildContext context, WidgetRef ref) {
                 borderRadius: BorderRadius.circular(16),
               ),
               tileColor: Colors.red.withValues(alpha: 0.1),
-              leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              leading: const Icon(
+                Icons.delete_outline,
+                color: Colors.redAccent,
+              ),
               title: const Text(
                 "Discard",
                 style: TextStyle(
@@ -135,4 +140,3 @@ void confirmEndFast(BuildContext context, WidgetRef ref) {
     },
   );
 }
-

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../data/local/database.dart';
-import '../../../../theme/colors.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../../ui/ui.dart';
-import '../fasting_providers.dart';
 
 /// Recent sessions, deletable three ways: swipe, the detail sheet's delete
 /// button, and — new in the UI rework — long-press any row to arm it (its
@@ -36,8 +35,10 @@ class _FastingHistoryState extends ConsumerState<FastingHistory> {
           child: Text(
             "RECENT SESSIONS",
             textAlign: TextAlign.center,
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: hx.secondary, letterSpacing: 1.0),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: hx.secondary,
+              letterSpacing: 1.0,
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -48,14 +49,24 @@ class _FastingHistoryState extends ConsumerState<FastingHistory> {
                 padding: const EdgeInsets.all(32),
                 child: Column(
                   children: [
-                    Icon(Icons.history_toggle_off_rounded, size: 36, color: hx.outline),
+                    Icon(
+                      Icons.history_toggle_off_rounded,
+                      size: 36,
+                      color: hx.outline,
+                    ),
                     const SizedBox(height: 12),
-                    Text("No Fasting History",
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      "No Fasting History",
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     Text(
                       "Your completed fasting sessions will appear here.",
-                      style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: hx.secondary,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -63,13 +74,16 @@ class _FastingHistoryState extends ConsumerState<FastingHistory> {
               );
             }
 
-            final visibleCount =
-                _showAllHistory || history.length <= 10 ? history.length : 10;
+            final visibleCount = _showAllHistory || history.length <= 10
+                ? history.length
+                : 10;
             final hasMore = history.length > visibleCount;
 
             return GestureDetector(
               behavior: HitTestBehavior.translucent,
-              onTap: _deleteMode ? () => setState(() => _deleteMode = false) : null,
+              onTap: _deleteMode
+                  ? () => setState(() => _deleteMode = false)
+                  : null,
               child: ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -91,8 +105,9 @@ class _FastingHistoryState extends ConsumerState<FastingHistory> {
                     onLongPress: () => setState(() => _deleteMode = true),
                     onArmedDelete: () => _confirmAndDelete(session),
                     onSwipeConfirm: () => _confirmDeleteDialog(context),
-                    onSwipeDismissed: () =>
-                        ref.read(fastingRepositoryProvider).deleteSession(session.id),
+                    onSwipeDismissed: () => ref
+                        .read(fastingRepositoryProvider)
+                        .deleteSession(session.id),
                     onTap: () => _showHistoryDetails(context, session),
                   );
                 },
@@ -114,13 +129,23 @@ class _FastingHistoryState extends ConsumerState<FastingHistory> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceContainerLowest,
         title: const Text("Delete Session"),
-        content: const Text("Are you sure you want to delete this fasting session?"),
+        content: const Text(
+          "Are you sure you want to delete this fasting session?",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("CANCEL"),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("DELETE",
-                style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "DELETE",
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -137,10 +162,14 @@ class _FastingHistoryState extends ConsumerState<FastingHistory> {
   }
 
   Future<void> _showHistoryDetails(
-      BuildContext context, FastingSessionData session) async {
+    BuildContext context,
+    FastingSessionData session,
+  ) async {
     final format = DateFormat('yyyy-MM-dd HH:mm');
     final startedStr = format.format(session.startedAt);
-    final endedStr = session.endedAt != null ? format.format(session.endedAt!) : 'Ongoing';
+    final endedStr = session.endedAt != null
+        ? format.format(session.endedAt!)
+        : 'Ongoing';
     final duration = session.endedAt != null
         ? session.endedAt!.difference(session.startedAt)
         : Duration.zero;
@@ -169,8 +198,12 @@ class _FastingHistoryState extends ConsumerState<FastingHistory> {
               ),
             ),
             const SizedBox(height: 20),
-            Text('Fasting Session Details',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'Fasting Session Details',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -188,7 +221,9 @@ class _FastingHistoryState extends ConsumerState<FastingHistory> {
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.timer_outlined),
               title: const Text('Total Duration'),
-              subtitle: Text('${duration.inHours}h ${duration.inMinutes % 60}m'),
+              subtitle: Text(
+                '${duration.inHours}h ${duration.inMinutes % 60}m',
+              ),
             ),
             const SizedBox(height: 16),
             Row(
@@ -199,10 +234,15 @@ class _FastingHistoryState extends ConsumerState<FastingHistory> {
                       Navigator.pop(ctx);
                       await ref
                           .read(fastingRepositoryProvider)
-                          .updateSessionCompletion(session.id, !session.completed);
+                          .updateSessionCompletion(
+                            session.id,
+                            !session.completed,
+                          );
                     },
                     icon: Icon(session.completed ? Icons.close : Icons.check),
-                    label: Text(session.completed ? 'Mark Incomplete' : 'Mark Completed'),
+                    label: Text(
+                      session.completed ? 'Mark Incomplete' : 'Mark Completed',
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -211,7 +251,10 @@ class _FastingHistoryState extends ConsumerState<FastingHistory> {
                     Navigator.pop(ctx);
                     _confirmAndDelete(session);
                   },
-                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.redAccent,
+                  ),
                 ),
               ],
             ),
@@ -281,21 +324,21 @@ class _HistoryTile extends StatelessWidget {
                   color: deleteMode
                       ? Colors.redAccent.withValues(alpha: 0.15)
                       : session.completed
-                          ? hx.domainFasting.withValues(alpha: 0.1)
-                          : hx.surfaceVariant,
+                      ? hx.domainFasting.withValues(alpha: 0.1)
+                      : hx.surfaceVariant,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   deleteMode
                       ? Icons.close
                       : session.completed
-                          ? Icons.check_circle_outline
-                          : Icons.close,
+                      ? Icons.check_circle_outline
+                      : Icons.close,
                   color: deleteMode
                       ? Colors.redAccent
                       : session.completed
-                          ? hx.domainFasting
-                          : hx.secondary,
+                      ? hx.domainFasting
+                      : hx.secondary,
                   size: 20,
                 ),
               ),
@@ -304,10 +347,18 @@ class _HistoryTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("$hours hrs $minutes min fast",
-                        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
-                    Text("Target: ${targetHours}h • $dateStr",
-                        style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary)),
+                    Text(
+                      "$hours hrs $minutes min fast",
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "Target: ${targetHours}h • $dateStr",
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: hx.secondary,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -316,7 +367,9 @@ class _HistoryTile extends StatelessWidget {
                   session.completed ? "SUCCESS" : "INCOMPLETE",
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: session.completed ? hx.domainFasting : hx.secondary,
-                    fontWeight: session.completed ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: session.completed
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                   ),
                 ),
             ],

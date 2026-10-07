@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/fasting/domain/fasting_plan.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../theme/colors.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../domain/fasting_plan.dart';
 
 /// Plan picker for starting a fast. Purely presentational — the parent
 /// [FastingView] owns the selection state so the pinned "Start Fast" button
@@ -31,8 +30,9 @@ class StartFastPanel extends StatelessWidget {
     final theme = Theme.of(context);
     final hx = context.hx;
     final format = DateFormat('HH:mm (MMM d)');
-    final startTimeDisplay =
-        customStartTime != null ? format.format(customStartTime!) : "Now";
+    final startTimeDisplay = customStartTime != null
+        ? format.format(customStartTime!)
+        : "Now";
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,7 +51,9 @@ class StartFastPanel extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 "Select a plan aligned with your daily flow.",
-                style: theme.textTheme.bodyMedium?.copyWith(color: hx.secondary),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: hx.secondary,
+                ),
               ),
             ],
           ),
@@ -65,19 +67,27 @@ class StartFastPanel extends StatelessWidget {
             decoration: BoxDecoration(
               color: hx.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: hx.outlineVariant.withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               children: [
                 Icon(Icons.schedule_rounded, size: 18, color: hx.domainFasting),
                 const SizedBox(width: 12),
-                Text("Start time:",
-                    style: theme.textTheme.bodyMedium?.copyWith(color: hx.secondary)),
+                Text(
+                  "Start time:",
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: hx.secondary,
+                  ),
+                ),
                 const Spacer(),
                 Text(
                   startTimeDisplay,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.bold, color: hx.domainFasting),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: hx.domainFasting,
+                  ),
                 ),
                 const SizedBox(width: 4),
                 Icon(Icons.edit, size: 14, color: hx.domainFasting),
@@ -96,13 +106,18 @@ class StartFastPanel extends StatelessWidget {
           child: Text(
             "INTERMITTENT",
             textAlign: TextAlign.center,
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: hx.secondary, letterSpacing: 1.0),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: hx.secondary,
+              letterSpacing: 1.0,
+            ),
           ),
         ),
         const SizedBox(height: 12),
         for (final plan in FastingPlan.values.where(
-          (p) => p != FastingPlan.quickFast && !p.isProlonged && p != FastingPlan.custom,
+          (p) =>
+              p != FastingPlan.quickFast &&
+              !p.isProlonged &&
+              p != FastingPlan.custom,
         ))
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -114,8 +129,10 @@ class StartFastPanel extends StatelessWidget {
           children: [
             Text(
               "PROLONGED",
-              style: theme.textTheme.labelSmall
-                  ?.copyWith(color: hx.secondary, letterSpacing: 1.0),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: hx.secondary,
+                letterSpacing: 1.0,
+              ),
             ),
             const SizedBox(width: 8),
             Container(
@@ -126,8 +143,11 @@ class StartFastPanel extends StatelessWidget {
               ),
               child: Text(
                 "1–3 DAYS",
-                style: theme.textTheme.labelSmall
-                    ?.copyWith(color: hx.domainFasting, fontSize: 9, letterSpacing: 0.5),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: hx.domainFasting,
+                  fontSize: 9,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ],
@@ -188,8 +208,8 @@ class StartFastPanel extends StatelessWidget {
                 plan == FastingPlan.quickFast
                     ? Icons.bolt_rounded
                     : plan.isProlonged
-                        ? Icons.bedtime_outlined
-                        : Icons.hourglass_empty,
+                    ? Icons.bedtime_outlined
+                    : Icons.hourglass_empty,
                 color: isSelected ? hx.domainFasting : hx.onSurfaceVariant,
                 size: 20,
               ),
@@ -208,7 +228,9 @@ class StartFastPanel extends StatelessWidget {
                   ),
                   Text(
                     plan.description,
-                    style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: hx.secondary,
+                    ),
                   ),
                 ],
               ),
@@ -288,9 +310,11 @@ class StartFastPanel extends StatelessWidget {
                     : hx.surfaceVariant,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.tune_rounded,
-                  color: isSelected ? hx.domainFasting : hx.onSurfaceVariant,
-                  size: 20),
+              child: Icon(
+                Icons.tune_rounded,
+                color: isSelected ? hx.domainFasting : hx.onSurfaceVariant,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -306,7 +330,9 @@ class StartFastPanel extends StatelessWidget {
                   ),
                   Text(
                     'Set your own target hours (tap to change)',
-                    style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: hx.secondary,
+                    ),
                   ),
                 ],
               ),
@@ -350,13 +376,20 @@ class StartFastPanel extends StatelessWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => AlertDialog(
           backgroundColor: AppColors.surfaceContainerLowest,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           title: const Text('Custom Fast Duration'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('$tempHours hours',
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+              Text(
+                '$tempHours hours',
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 16),
               Slider(
                 value: tempHours.toDouble(),
@@ -369,7 +402,10 @@ class StartFastPanel extends StatelessWidget {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('CANCEL'),
+            ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, tempHours),
               style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
@@ -386,10 +422,19 @@ class StartFastPanel extends StatelessWidget {
   Future<void> _pickCustomStartTime(BuildContext context) async {
     final now = DateTime.now();
     final initialTime = TimeOfDay.fromDateTime(customStartTime ?? now);
-    final pickedTime = await showTimePicker(context: context, initialTime: initialTime);
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+    );
     if (pickedTime == null) return;
 
-    var dt = DateTime(now.year, now.month, now.day, pickedTime.hour, pickedTime.minute);
+    var dt = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
     if (dt.isAfter(now)) {
       // A time later today can only mean the fast began yesterday at that time.
       dt = dt.subtract(const Duration(days: 1));

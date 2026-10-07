@@ -6,8 +6,8 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_importer.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
-import 'package:herculex/features/workouts/presentation/equipment_variant_sheet.dart';
-import 'package:herculex/features/workouts/presentation/exercise_picker_sheet.dart';
+import 'package:herculex/features/workouts/presentation/sheets/equipment_variant_sheet.dart';
+import 'package:herculex/features/workouts/presentation/sheets/exercise_picker_sheet.dart';
 
 import 'support/test_database.dart';
 
@@ -30,8 +30,9 @@ void main() {
   tearDownAll(() async => db.close());
 
   Future<ExerciseCatalogData> bySlug(String slug) {
-    return (db.select(db.exerciseCatalog)..where((t) => t.slug.equals(slug)))
-        .getSingle();
+    return (db.select(
+      db.exerciseCatalog,
+    )..where((t) => t.slug.equals(slug))).getSingle();
   }
 
   group('equipment options', () {
@@ -52,84 +53,87 @@ void main() {
       );
     });
 
-    test('a genuinely multi-equipment movement still offers its swaps',
-        () async {
-      final bench = await bySlug('barbell-bench-press');
-      final options = EquipmentVariantSheet.optionsFor(bench);
+    test(
+      'a genuinely multi-equipment movement still offers its swaps',
+      () async {
+        final bench = await bySlug('barbell-bench-press');
+        final options = EquipmentVariantSheet.optionsFor(bench);
 
-      expect(options.first, 'barbell', reason: 'catalog modality leads');
-      expect(options, containsAll(['dumbbell', 'smith']));
-    });
+        expect(options.first, 'barbell', reason: 'catalog modality leads');
+        expect(options, containsAll(['dumbbell', 'smith']));
+      },
+    );
 
-    test('every offered option is one an exercise in the movement uses',
-        () async {
-      final catalog = await db.select(db.exerciseCatalog).get();
-      final byMovement = <String, Set<String>>{};
-      for (final e in catalog) {
-        final slug = e.movementSlug;
-        if (slug != null) {
-          byMovement.putIfAbsent(slug, () => <String>{}).add(e.modality);
+    test(
+      'every offered option is one an exercise in the movement uses',
+      () async {
+        final catalog = await db.select(db.exerciseCatalog).get();
+        final byMovement = <String, Set<String>>{};
+        for (final e in catalog) {
+          final slug = e.movementSlug;
+          if (slug != null) {
+            byMovement.putIfAbsent(slug, () => <String>{}).add(e.modality);
+          }
         }
-      }
 
-      for (final e in catalog) {
-        final raw = e.allowedEquipment;
-        if (raw == null) continue;
-        final allowed = (jsonDecode(raw) as List).cast<String>().toSet();
+        for (final e in catalog) {
+          final raw = e.allowedEquipment;
+          if (raw == null) continue;
+          final allowed = (jsonDecode(raw) as List).cast<String>().toSet();
+          expect(
+            allowed.difference(byMovement[e.movementSlug]!),
+            isEmpty,
+            reason:
+                '${e.name} offers equipment no member of its movement performs',
+          );
+        }
+      },
+    );
+
+    test(
+      'calisthenics exercises that support weighted load offer bodyweight, weighted, and band',
+      () async {
+        final pullUp = await bySlug('pull-up');
+        final options = EquipmentVariantSheet.optionsFor(pullUp);
+        expect(options, containsAll(['bodyweight', 'weighted', 'band']));
+
+        final dip = await bySlug('chest-dips');
+        final dipOptions = EquipmentVariantSheet.optionsFor(dip);
+        expect(dipOptions, containsAll(['bodyweight', 'weighted', 'band']));
+      },
+    );
+
+    test(
+      'effectiveLoggingMetric returns weightReps for weighted variant and reps for bodyweight',
+      () async {
+        final pullUp = await bySlug('pull-up');
         expect(
-          allowed.difference(byMovement[e.movementSlug]!),
-          isEmpty,
-          reason:
-              '${e.name} offers equipment no member of its movement performs',
+          effectiveLoggingMetric(
+            exercise: pullUp,
+            equipmentVariant: 'bodyweight',
+          ),
+          LoggingMetric.reps,
         );
-      }
-    });
-
-    test(
-        'calisthenics exercises that support weighted load offer bodyweight, weighted, and band',
-        () async {
-      final pullUp = await bySlug('pull-up');
-      final options = EquipmentVariantSheet.optionsFor(pullUp);
-      expect(options, containsAll(['bodyweight', 'weighted', 'band']));
-
-      final dip = await bySlug('chest-dips');
-      final dipOptions = EquipmentVariantSheet.optionsFor(dip);
-      expect(dipOptions, containsAll(['bodyweight', 'weighted', 'band']));
-    });
-
-    test(
-        'effectiveLoggingMetric returns weightReps for weighted variant and reps for bodyweight',
-        () async {
-      final pullUp = await bySlug('pull-up');
-      expect(
-        effectiveLoggingMetric(
-          exercise: pullUp,
-          equipmentVariant: 'bodyweight',
-        ),
-        LoggingMetric.reps,
-      );
-      expect(
-        effectiveLoggingMetric(
-          exercise: pullUp,
-          equipmentVariant: 'weighted',
-        ),
-        LoggingMetric.weightReps,
-      );
-      expect(
-        effectiveLoggingMetric(
-          exercise: pullUp,
-          equipmentVariant: 'band',
-        ),
-        LoggingMetric.reps,
-      );
-    });
+        expect(
+          effectiveLoggingMetric(
+            exercise: pullUp,
+            equipmentVariant: 'weighted',
+          ),
+          LoggingMetric.weightReps,
+        );
+        expect(
+          effectiveLoggingMetric(exercise: pullUp, equipmentVariant: 'band'),
+          LoggingMetric.reps,
+        );
+      },
+    );
   });
 
   group('picker grouping', () {
     Future<List<ExerciseCatalogData>> movementMembers(String slug) {
-      return (db.select(db.exerciseCatalog)
-            ..where((t) => t.movementSlug.equals(slug)))
-          .get();
+      return (db.select(
+        db.exerciseCatalog,
+      )..where((t) => t.movementSlug.equals(slug))).get();
     }
 
     test('curl variants collapse into one movement', () async {
@@ -169,9 +173,7 @@ void main() {
       expect(variants.length, greaterThan(1));
 
       final forward = exerciseFamilyLabel(variants);
-      final reversed = exerciseFamilyLabel(
-        variants.reversed.toList(),
-      );
+      final reversed = exerciseFamilyLabel(variants.reversed.toList());
       expect(forward, reversed);
       expect(forward, 'Hip Thrust');
     });
@@ -210,13 +212,15 @@ void main() {
     final nameBySlug = {for (final e in catalog) e.slug: e.name};
 
     for (final movement in movements) {
-      final canonical =
-          nameBySlug[movement['canonicalExerciseSlug'] as String]!.toLowerCase();
+      final canonical = nameBySlug[movement['canonicalExerciseSlug'] as String]!
+          .toLowerCase();
       final members = catalog
           .where((e) => e.movementSlug == movement['slug'])
           .map((e) => e.name.toLowerCase());
       bool qualifies(String n) =>
-          n.contains('assisted') || n.contains('weighted') || n.contains('band');
+          n.contains('assisted') ||
+          n.contains('weighted') ||
+          n.contains('band');
       // Only enforced where the movement has an unqualified member to pick.
       if (members.any((n) => !qualifies(n))) {
         expect(

@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../theme/colors.dart';
-import '../../../../theme/haptics.dart';
-import '../../../../ui/ui.dart';
-import '../../../nutrition/domain/daily_totals.dart';
-import '../../../nutrition/domain/macro_targets.dart';
-import '../../domain/macro_card_config.dart';
-import '../macro_card_prefs_provider.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/dashboard/application/macro_card_prefs_provider.dart';
+import 'package:herculex/features/dashboard/domain/macro_card_config.dart';
+import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 
 /// Live calorie/macro grid: a config-driven grid of macro tiles.
 /// Full weekly stats & average daily intake live in the Calorie Trends view.
 class LiveMacrosGrid extends ConsumerWidget {
   final DailyTotals totals;
   final MacroTargets? targets;
-  const LiveMacrosGrid({super.key, required this.totals, required this.targets});
+  const LiveMacrosGrid({
+    super.key,
+    required this.totals,
+    required this.targets,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -46,54 +50,54 @@ class LiveMacrosGrid extends ConsumerWidget {
   ) {
     return switch (macro) {
       DashboardMacro.kcal => HxStatTile(
-          label: 'CALORIES',
-          icon: Icons.local_fire_department,
-          accent: AppColors.macroKcal,
-          value: totals.kcal.round().toString(),
-          secondaryValue: t == null ? null : '/ ${t.kcal} kcal',
-          progress: t == null ? null : totals.kcal / t.kcal,
-          onTap: () {
-            Haptics.selection();
-            context.push('/nutrition/weekly-stats');
-          },
-        ),
+        label: 'CALORIES',
+        icon: Icons.local_fire_department,
+        accent: AppColors.macroKcal,
+        value: totals.kcal.round().toString(),
+        secondaryValue: t == null ? null : '/ ${t.kcal} kcal',
+        progress: t == null ? null : totals.kcal / t.kcal,
+        onTap: () {
+          Haptics.selection();
+          context.push(AppRoutes.nutritionWeeklyStats);
+        },
+      ),
       DashboardMacro.protein => HxStatTile(
-          label: 'PROTEIN',
-          icon: Icons.egg_alt,
-          accent: AppColors.macroProtein,
-          value: '${totals.proteinG.round()}g',
-          secondaryValue: t == null ? null : '/ ${t.proteinG}g',
-          progress: t == null ? null : totals.proteinG / t.proteinG,
-          onTap: () {
-            Haptics.selection();
-            context.push('/macro-trends/protein');
-          },
-        ),
+        label: 'PROTEIN',
+        icon: Icons.egg_alt,
+        accent: AppColors.macroProtein,
+        value: '${totals.proteinG.round()}g',
+        secondaryValue: t == null ? null : '/ ${t.proteinG}g',
+        progress: t == null ? null : totals.proteinG / t.proteinG,
+        onTap: () {
+          Haptics.selection();
+          context.push(AppPaths.macroTrends('protein'));
+        },
+      ),
       DashboardMacro.carbs => HxStatTile(
-          label: 'CARBS',
-          icon: Icons.bakery_dining,
-          accent: AppColors.macroCarbs,
-          value: '${totals.carbsG.round()}g',
-          secondaryValue: t == null ? null : '/ ${t.carbsG}g',
-          progress: t == null ? null : totals.carbsG / t.carbsG,
-          onTap: () {
-            Haptics.selection();
-            context.push('/macro-trends/carbs');
-          },
-        ),
+        label: 'CARBS',
+        icon: Icons.bakery_dining,
+        accent: AppColors.macroCarbs,
+        value: '${totals.carbsG.round()}g',
+        secondaryValue: t == null ? null : '/ ${t.carbsG}g',
+        progress: t == null ? null : totals.carbsG / t.carbsG,
+        onTap: () {
+          Haptics.selection();
+          context.push(AppPaths.macroTrends('carbs'));
+        },
+      ),
       DashboardMacro.fat => HxStatTile(
-          label: 'FATS',
-          icon: Icons.water_drop,
-          accent: AppColors.macroFat,
-          iconColor: AppColors.macroFatText,
-          value: '${totals.fatG.round()}g',
-          secondaryValue: t == null ? null : '/ ${t.fatG}g',
-          progress: t == null ? null : totals.fatG / t.fatG,
-          onTap: () {
-            Haptics.selection();
-            context.push('/macro-trends/fat');
-          },
-        ),
+        label: 'FATS',
+        icon: Icons.water_drop,
+        accent: AppColors.macroFat,
+        iconColor: AppColors.macroFatText,
+        value: '${totals.fatG.round()}g',
+        secondaryValue: t == null ? null : '/ ${t.fatG}g',
+        progress: t == null ? null : totals.fatG / t.fatG,
+        onTap: () {
+          Haptics.selection();
+          context.push(AppPaths.macroTrends('fat'));
+        },
+      ),
     };
   }
 }

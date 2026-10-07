@@ -1,6 +1,6 @@
-import '../../../core/units.dart';
-import '../../../data/local/database.dart';
-import 'logging_metric.dart';
+import 'package:herculex/core/utils/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/domain/logging_metric.dart';
 
 /// Parsing and rendering for the units a set can be measured in (EXR-05).
 ///
@@ -63,14 +63,13 @@ class SetMetricFormat {
     SetField field, {
     required WeightFormat weight,
     required DistanceFormat distance,
-  }) =>
-      switch (field) {
-        SetField.weight => weight.suffix.toUpperCase(),
-        SetField.reps => 'REPS',
-        SetField.duration => 'TIME',
-        SetField.distance => distance.suffix.toUpperCase(),
-        SetField.calories => 'KCAL',
-      };
+  }) => switch (field) {
+    SetField.weight => weight.suffix.toUpperCase(),
+    SetField.reps => 'REPS',
+    SetField.duration => 'TIME',
+    SetField.distance => distance.suffix.toUpperCase(),
+    SetField.calories => 'KCAL',
+  };
 
   /// One-line rendering of a logged set, in its own units.
   ///

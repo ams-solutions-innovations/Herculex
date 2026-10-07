@@ -78,9 +78,9 @@ void main() {
   }
 
   Future<WorkoutExerciseData> readWorkoutExercise(int id) {
-    return (db.select(db.workoutExercises)
-          ..where((t) => t.id.equals(id)))
-        .getSingle();
+    return (db.select(
+      db.workoutExercises,
+    )..where((t) => t.id.equals(id))).getSingle();
   }
 
   /// The in-memory DB runs the real onCreate path, so the 398-row catalog is
@@ -94,7 +94,10 @@ void main() {
   }
 
   test('history survives the merge and keeps its equipment', () async {
-    final winner = await insertExercise(slug: 'fx-row-bb', name: 'Fixture Row BB');
+    final winner = await insertExercise(
+      slug: 'fx-row-bb',
+      name: 'Fixture Row BB',
+    );
     final loser = await insertExercise(
       slug: 'fx-row-db',
       name: 'Fixture Row DB',
@@ -148,10 +151,7 @@ void main() {
     );
 
     await engine.apply([
-      const ExerciseMerge(
-        loser: 'fx-row-two-arm',
-        winner: 'fx-row-bb',
-      ),
+      const ExerciseMerge(loser: 'fx-row-two-arm', winner: 'fx-row-bb'),
     ]);
 
     final aliases = await db.select(db.exerciseAliases).get();
@@ -164,8 +164,14 @@ void main() {
   });
 
   test('a unique-per-exercise override does not collide', () async {
-    final winner = await insertExercise(slug: 'fx-row-bb', name: 'Fixture Row BB');
-    final loser = await insertExercise(slug: 'fx-row-db', name: 'Fixture Row DB');
+    final winner = await insertExercise(
+      slug: 'fx-row-bb',
+      name: 'Fixture Row BB',
+    );
+    final loser = await insertExercise(
+      slug: 'fx-row-db',
+      name: 'Fixture Row DB',
+    );
 
     for (final id in [winner, loser]) {
       await db
@@ -183,8 +189,14 @@ void main() {
   });
 
   test('per-gym machine settings are carried over, not dropped', () async {
-    final winner = await insertExercise(slug: 'fx-row-bb', name: 'Fixture Row BB');
-    final loser = await insertExercise(slug: 'fx-row-db', name: 'Fixture Row DB');
+    final winner = await insertExercise(
+      slug: 'fx-row-bb',
+      name: 'Fixture Row BB',
+    );
+    final loser = await insertExercise(
+      slug: 'fx-row-db',
+      name: 'Fixture Row DB',
+    );
 
     for (final id in [winner, loser]) {
       await db
@@ -255,7 +267,10 @@ void main() {
         );
 
     final outcomes = await engine.apply([
-      const ExerciseMerge(loser: 'Fixture Row (Watch Created)', winner: 'fx-row-bb'),
+      const ExerciseMerge(
+        loser: 'Fixture Row (Watch Created)',
+        winner: 'fx-row-bb',
+      ),
     ]);
 
     expect(outcomes.single.applied, isTrue);

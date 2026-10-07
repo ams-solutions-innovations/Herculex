@@ -7,10 +7,10 @@ void main() {
   final image = img.decodePng(file.readAsBytesSync());
   if (image == null) return;
   print('Channels: ${image.numChannels}');
-  
+
   int transparentCount = 0;
   int opaqueCount = 0;
-  
+
   for (final p in image) {
     if (p.a == 0) {
       transparentCount++;

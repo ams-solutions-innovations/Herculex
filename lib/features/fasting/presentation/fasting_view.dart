@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../theme/tokens/tokens.dart';
-import '../../../ui/ui.dart';
-import '../../../widgets/premium_button.dart';
-import '../domain/fasting_plan.dart';
-import '../../notifications/presentation/notification_settings_provider.dart';
-import 'fasting_providers.dart';
-import 'widgets/active_fast_panel.dart';
-import 'widgets/clock_dial_background.dart';
-import 'widgets/fasting_history.dart';
-import 'widgets/fasting_insights.dart';
-import 'widgets/fasting_streak_card.dart';
-import 'widgets/start_fast_panel.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
+import 'package:herculex/features/fasting/domain/fasting_plan.dart';
+import 'package:herculex/features/fasting/presentation/widgets/active_fast_panel.dart';
+import 'package:herculex/features/fasting/presentation/widgets/clock_dial_background.dart';
+import 'package:herculex/features/fasting/presentation/widgets/fasting_history.dart';
+import 'package:herculex/features/fasting/presentation/widgets/fasting_insights.dart';
+import 'package:herculex/features/fasting/presentation/widgets/start_fast_panel.dart';
+import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
 
 /// Fasting's first-class page (`/fasting`), replacing the 1,100-line bottom
 /// sheet it used to be. A minimalist clock dial motif sits behind the
@@ -37,6 +36,7 @@ class _FastingViewState extends ConsumerState<FastingView> {
     final activeAsync = ref.watch(activeFastingSessionProvider);
     final active = activeAsync.asData?.value;
     final isLoaded = activeAsync.hasValue;
+    final hasSchedule = ref.watch(hasActiveFastingScheduleProvider);
 
     return Stack(
       children: [
@@ -52,7 +52,14 @@ class _FastingViewState extends ConsumerState<FastingView> {
             HxCircleButton(
               icon: Icons.alarm_rounded,
               tooltip: 'Fasting schedule',
-              onTap: () => context.push('/fasting/schedule'),
+              iconColor: hasSchedule ? context.hx.domainFasting : null,
+              tintColor: hasSchedule
+                  ? context.hx.domainFasting.withValues(alpha: 0.18)
+                  : null,
+              borderColor: hasSchedule
+                  ? context.hx.domainFasting.withValues(alpha: 0.45)
+                  : null,
+              onTap: () => context.push(AppRoutes.fastingSchedule),
             ),
           ],
           pinnedBottom: isLoaded && active == null
@@ -67,7 +74,7 @@ class _FastingViewState extends ConsumerState<FastingView> {
                 )
               : null,
           children: [
-            const FastingStreakCard(),
+            const FastingInsights(),
             const SizedBox(height: HxSpace.x6),
             activeAsync.when(
               data: (active) => active != null
@@ -88,10 +95,6 @@ class _FastingViewState extends ConsumerState<FastingView> {
               ),
               error: (err, _) => Center(child: Text('Error: $err')),
             ),
-            const SizedBox(height: HxSpace.x8),
-            const Divider(),
-            const SizedBox(height: HxSpace.x6),
-            const FastingInsights(),
             const SizedBox(height: HxSpace.x8),
             const Divider(),
             const SizedBox(height: HxSpace.x6),
@@ -120,8 +123,9 @@ class _FastingViewState extends ConsumerState<FastingView> {
         ? '$_customTargetHours-Hour'
         : _selectedPlan.nameString;
 
-    final notifEnabled =
-        ref.read(notificationSettingsProvider).fastingGoalReachedEnabled;
+    final notifEnabled = ref
+        .read(notificationSettingsProvider)
+        .fastingGoalReachedEnabled;
     await ref
         .read(fastingNotificationSchedulerProvider)
         .scheduleFastingGoal(

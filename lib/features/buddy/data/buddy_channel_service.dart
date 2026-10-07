@@ -1,10 +1,9 @@
 import 'dart:async';
 
+import 'package:herculex/features/buddy/data/buddy_event_stream.dart';
+import 'package:herculex/features/buddy/data/buddy_remote_gateway.dart';
+import 'package:herculex/features/buddy/domain/buddy_event.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../domain/buddy_event.dart';
-import 'buddy_event_stream.dart';
-import 'buddy_remote_gateway.dart';
 
 enum BuddyConnectionState { connecting, live, degraded, ended }
 
@@ -14,8 +13,8 @@ class BuddyChannelService {
   BuddyChannelService({
     required SupabaseClient? client,
     required BuddyGateway gateway,
-  })  : _client = client,
-        _gateway = gateway;
+  }) : _client = client,
+       _gateway = gateway;
 
   /// Null in builds without Supabase credentials. [connect] refuses in that
   /// case; everything else — the streams, [disconnect], [dispose] — stays

@@ -1,5 +1,5 @@
-import '../../workouts/domain/one_rep_max.dart';
-import 'training_snapshot.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/workouts/domain/one_rep_max.dart';
 
 /// Best performance for one (equipment variant | accessory combo | gym) slice
 /// of an exercise's history (V2 §1, §5, §10).
@@ -26,34 +26,28 @@ class PerformanceRecord {
 class VariantPerformance {
   /// PRs grouped by equipment variant ("Barbell: 120kg", "Smith: 100kg", …).
   static List<PerformanceRecord> byEquipment(
-      TrainingSnapshot snapshot, int exerciseId) {
-    return _group(
-      snapshot,
-      exerciseId,
-      (rs) => rs.equipmentVariant,
-    );
+    TrainingSnapshot snapshot,
+    int exerciseId,
+  ) {
+    return _group(snapshot, exerciseId, (rs) => rs.equipmentVariant);
   }
 
   /// PRs grouped by accessory combination ("Raw", "Belt", "Belt + Knee
   /// Sleeves", …) — §5's headline analytics requirement.
   static List<PerformanceRecord> byAccessoryCombo(
-      TrainingSnapshot snapshot, int exerciseId) {
-    return _group(
-      snapshot,
-      exerciseId,
-      (rs) => rs.accessoryCombo,
-    );
+    TrainingSnapshot snapshot,
+    int exerciseId,
+  ) {
+    return _group(snapshot, exerciseId, (rs) => rs.accessoryCombo);
   }
 
   /// PRs grouped by gym, for machine-comparison across locations (§10).
   static List<PerformanceRecord> byGym(
-      TrainingSnapshot snapshot, int exerciseId,
-      {required String Function(int? gymId) gymName}) {
-    return _group(
-      snapshot,
-      exerciseId,
-      (rs) => gymName(rs.session.gymId),
-    );
+    TrainingSnapshot snapshot,
+    int exerciseId, {
+    required String Function(int? gymId) gymName,
+  }) {
+    return _group(snapshot, exerciseId, (rs) => gymName(rs.session.gymId));
   }
 
   static List<PerformanceRecord> _group(
@@ -76,24 +70,31 @@ class VariantPerformance {
         if (bestWeight == null || rs.effectiveKg > bestWeight.effectiveKg) {
           bestWeight = rs;
         }
-        final est =
-            OneRepMax.estimate(weightKg: rs.effectiveKg, reps: rs.set.reps);
+        final est = OneRepMax.estimate(
+          weightKg: rs.effectiveKg,
+          reps: rs.set.reps,
+        );
         if (est != null && (bestE1Rm == null || est > bestE1Rm)) {
           bestE1Rm = est;
         }
       }
-      records.add(PerformanceRecord(
-        label: e.key,
-        bestWeightKg: bestWeight!.effectiveKg,
-        bestWeightReps: bestWeight.set.reps,
-        bestE1RmKg: bestE1Rm,
-        setCount: e.value.length,
-        rawWeightKg: bestWeight.set.weightKg,
-      ));
+      records.add(
+        PerformanceRecord(
+          label: e.key,
+          bestWeightKg: bestWeight!.effectiveKg,
+          bestWeightReps: bestWeight.set.reps,
+          bestE1RmKg: bestE1Rm,
+          setCount: e.value.length,
+          rawWeightKg: bestWeight.set.weightKg,
+        ),
+      );
     }
 
-    records.sort((a, b) =>
-        (b.bestE1RmKg ?? b.bestWeightKg).compareTo(a.bestE1RmKg ?? a.bestWeightKg));
+    records.sort(
+      (a, b) => (b.bestE1RmKg ?? b.bestWeightKg).compareTo(
+        a.bestE1RmKg ?? a.bestWeightKg,
+      ),
+    );
     return records;
   }
 }

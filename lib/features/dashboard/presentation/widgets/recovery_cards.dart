@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/analytics/application/analytics_providers.dart';
+import 'package:herculex/features/analytics/presentation/widgets/muscle_recovery_row.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
 
-import '../../../../theme/colors.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../analytics/presentation/analytics_providers.dart';
-import '../../../analytics/presentation/widgets/muscle_recovery_row.dart';
-import 'dashboard_shared.dart';
 /// Compact recovery overview (§18) reusing the Phase-3 19-group engine: shows
 /// the most-fatigued groups with responsive layouts for full-width and half-width tiles.
 class RecoverySummaryCard extends ConsumerWidget {
@@ -27,7 +28,7 @@ class RecoverySummaryCard extends ConsumerWidget {
             horizontal: isCompact ? 14 : 20,
             vertical: isCompact ? 12 : 16,
           ),
-          onTap: () => context.push('/recovery'),
+          onTap: () => context.push(AppRoutes.recovery),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -62,16 +63,18 @@ class RecoverySummaryCard extends ConsumerWidget {
               SizedBox(height: isCompact ? 8 : 12),
               recovery.when(
                 data: (groups) {
-                  final sorted = [...groups]
-                    ..sort((a, b) => a.recoveryScore.compareTo(b.recoveryScore));
+                  final sorted = [
+                    ...groups,
+                  ]..sort((a, b) => a.recoveryScore.compareTo(b.recoveryScore));
                   final count = isCompact ? 3 : 4;
                   final worst = sorted.take(count).toList();
 
                   if (worst.isEmpty) {
                     return Text(
                       'All muscles recovered',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: AppColors.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
                     );
                   }
 
@@ -102,7 +105,10 @@ class RecoverySummaryCard extends ConsumerWidget {
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(3),
                                     child: LinearProgressIndicator(
-                                      value: (g.recoveryScore / 100).clamp(0.0, 1.0),
+                                      value: (g.recoveryScore / 100).clamp(
+                                        0.0,
+                                        1.0,
+                                      ),
                                       minHeight: 5,
                                       backgroundColor: AppColors.outlineVariant
                                           .withValues(alpha: 0.2),
@@ -110,8 +116,8 @@ class RecoverySummaryCard extends ConsumerWidget {
                                         g.recoveryScore >= 70
                                             ? Colors.green
                                             : g.recoveryScore >= 30
-                                                ? Colors.amber
-                                                : Colors.red,
+                                            ? Colors.amber
+                                            : Colors.red,
                                       ),
                                     ),
                                   ),
@@ -146,12 +152,18 @@ class RecoverySummaryCard extends ConsumerWidget {
                     ],
                   );
                 },
-                loading: () =>
-                    const Center(child: Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                    )),
-                error: (e, _) => Text('Error: $e', style: theme.textTheme.bodySmall),
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+                error: (e, _) =>
+                    Text('Error: $e', style: theme.textTheme.bodySmall),
               ),
             ],
           ),
@@ -181,7 +193,7 @@ class CnsLoadMiniCard extends ConsumerWidget {
             horizontal: isCompact ? 14 : 20,
             vertical: isCompact ? 12 : 16,
           ),
-          onTap: () => context.push('/cns'),
+          onTap: () => context.push(AppRoutes.cns),
           child: cns.when(
             data: (t) {
               final color = switch (t.status) {
@@ -238,10 +250,13 @@ class CnsLoadMiniCard extends ConsumerWidget {
                         Flexible(
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: color.withValues(
-                                  alpha: context.hx.isDark ? 0.20 : 0.12),
+                                alpha: context.hx.isDark ? 0.20 : 0.12,
+                              ),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
@@ -268,22 +283,33 @@ class CnsLoadMiniCard extends ConsumerWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('${(t.readiness * 100).round()}%',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold, color: color)),
+                      Text(
+                        '${(t.readiness * 100).round()}%',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
-                            color: color.withValues(
-                                alpha: context.hx.isDark ? 0.20 : 0.12),
-                            borderRadius: BorderRadius.circular(999)),
-                        child: Text(t.status,
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: color)),
+                          color: color.withValues(
+                            alpha: context.hx.isDark ? 0.20 : 0.12,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          t.status,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
+                        ),
                       ),
                     ],
                   ),

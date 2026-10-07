@@ -74,8 +74,7 @@ class NotificationSettings {
     String? dailyLogTimeHHMM,
   }) {
     return NotificationSettings(
-      mealRemindersEnabled:
-          mealRemindersEnabled ?? this.mealRemindersEnabled,
+      mealRemindersEnabled: mealRemindersEnabled ?? this.mealRemindersEnabled,
       mealTimes: mealTimes ?? this.mealTimes,
       mealEnabled: mealEnabled ?? this.mealEnabled,
       fastingGoalReachedEnabled:
@@ -136,12 +135,10 @@ class NotificationSettings {
           json['postWorkoutSupplementEnabled'] as bool? ?? true,
       activeWorkoutBannerEnabled:
           json['activeWorkoutBannerEnabled'] as bool? ?? true,
-      restTimerAlertsEnabled:
-          json['restTimerAlertsEnabled'] as bool? ?? true,
+      restTimerAlertsEnabled: json['restTimerAlertsEnabled'] as bool? ?? true,
       dailyLogReminderEnabled:
           json['dailyLogReminderEnabled'] as bool? ?? false,
-      dailyLogTimeHHMM:
-          json['dailyLogTimeHHMM'] as String? ?? '21:00',
+      dailyLogTimeHHMM: json['dailyLogTimeHHMM'] as String? ?? '21:00',
     );
   }
 

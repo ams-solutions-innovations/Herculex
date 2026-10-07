@@ -1,6 +1,6 @@
-import '../../../data/local/database.dart';
-import 'muscle_recovery_v3.dart';
-import 'training_snapshot.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 
 /// Tonnage and hard-set count credited to a single muscle group over the
 /// current training week.
@@ -43,11 +43,11 @@ class WeeklyMuscleVolume {
   });
 
   static WeeklyMuscleVolume empty(DateTime weekStart) => WeeklyMuscleVolume(
-        weekStart: weekStart,
-        totalTonnageKg: 0,
-        totalSets: 0,
-        byMuscle: const [],
-      );
+    weekStart: weekStart,
+    totalTonnageKg: 0,
+    totalSets: 0,
+    byMuscle: const [],
+  );
 
   /// Monday 00:00 of the week containing [d].
   static DateTime weekStartOf(DateTime d) {
@@ -81,7 +81,10 @@ class WeeklyMuscleVolume {
       totalTonnage += rs.tonnageKg;
       totalSets++;
 
-      final involvement = MuscleRecoveryV3.involvementFor(rs, musclesByExercise);
+      final involvement = MuscleRecoveryV3.involvementFor(
+        rs,
+        musclesByExercise,
+      );
       for (final (muscle, w) in involvement) {
         if (!tonnage.containsKey(muscle)) continue;
         tonnage[muscle] = tonnage[muscle]! + rs.tonnageKg * w;

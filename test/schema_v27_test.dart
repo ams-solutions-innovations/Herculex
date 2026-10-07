@@ -8,84 +8,79 @@ import 'package:herculex/data/local/database.dart';
 
 import 'generated_migrations/schema.dart';
 import 'generated_migrations/schema_v26.dart' as v26;
-import 'generated_migrations/schema_v34.dart' as v34;
+import 'generated_migrations/schema_v38.dart' as v38;
 
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
 
-  test(
-    'v26 -> v27 creates fasting_schedules and preserves pre-existing rows '
-    'in untouched tables',
-    () async {
-      await verifier.testWithDataIntegrity(
-        oldVersion: 26,
-        // Validated against the *current* schema rather than against v27,
-        // even though the v27 step is what this test is about. This pair of
-        // lines moves with every `schemaVersion` bump — see the long note in
-        // `schema_v26_test.dart` for why `Migrator.createTable` makes any
-        // other target wrong. Every assertion below is about the v27 step
-        // and survives the retarget.
-        newVersion: 34,
-        createOld: v26.DatabaseAtV26.new,
-        createNew: v34.DatabaseAtV34.new,
-        openTestedDatabase: AppDatabase.forTesting,
-        createItems: (batch, oldDb) {
-          // `gyms` is untouched by v27; the canary proving the migration is
-          // purely additive.
-          batch.insertAll(oldDb.gyms, [
-            RawValuesInsertable({
-              'id': const Variable<int>(1),
-              'name': const Variable<String>('Herculex Test Gym'),
-            }),
-          ]);
-        },
-        validateItems: (newDb) async {
-          final gym = await newDb
-              .customSelect('SELECT name FROM gyms WHERE id = 1')
-              .getSingle();
-          expect(gym.read<String>('name'), 'Herculex Test Gym');
+  test('v26 -> v27 creates fasting_schedules and preserves pre-existing rows '
+      'in untouched tables', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 26,
+      // Validated against the *current* schema rather than against v27,
+      // even though the v27 step is what this test is about. This pair of
+      // lines moves with every `schemaVersion` bump — see the long note in
+      // `schema_v26_test.dart` for why `Migrator.createTable` makes any
+      // other target wrong. Every assertion below is about the v27 step
+      // and survives the retarget.
+      newVersion: 38,
+      createOld: v26.DatabaseAtV26.new,
+      createNew: v38.DatabaseAtV38.new,
+      openTestedDatabase: AppDatabase.forTesting,
+      createItems: (batch, oldDb) {
+        // `gyms` is untouched by v27; the canary proving the migration is
+        // purely additive.
+        batch.insertAll(oldDb.gyms, [
+          RawValuesInsertable({
+            'id': const Variable<int>(1),
+            'name': const Variable<String>('Herculex Test Gym'),
+          }),
+        ]);
+      },
+      validateItems: (newDb) async {
+        final gym = await newDb
+            .customSelect('SELECT name FROM gyms WHERE id = 1')
+            .getSingle();
+        expect(gym.read<String>('name'), 'Herculex Test Gym');
 
-          final tableRows = await newDb
-              .customSelect(
-                "SELECT name FROM sqlite_master WHERE type = 'table'",
-              )
-              .get();
-          final tableNames = tableRows.map((r) => r.read<String>('name')).toSet();
-          expect(tableNames, contains('fasting_schedules'));
+        final tableRows = await newDb
+            .customSelect("SELECT name FROM sqlite_master WHERE type = 'table'")
+            .get();
+        final tableNames = tableRows.map((r) => r.read<String>('name')).toSet();
+        expect(tableNames, contains('fasting_schedules'));
 
-          // New table starts empty.
-          final count = await newDb
-              .customSelect('SELECT COUNT(*) AS c FROM fasting_schedules')
-              .getSingle();
-          expect(count.read<int>('c'), 0);
+        // New table starts empty.
+        final count = await newDb
+            .customSelect('SELECT COUNT(*) AS c FROM fasting_schedules')
+            .getSingle();
+        expect(count.read<int>('c'), 0);
 
-          // Synced table: sync_uuid unique index + outbox triggers must
-          // exist, same as every other v25+ synced table.
-          final indexRows = await newDb
-              .customSelect(
-                "SELECT name FROM sqlite_master WHERE type = 'index' "
-                "AND tbl_name = 'fasting_schedules'",
-              )
-              .get();
-          expect(
-            indexRows.map((r) => r.read<String>('name')),
-            contains('idx_sync_uuid_fasting_schedules'),
-          );
+        // Synced table: sync_uuid unique index + outbox triggers must
+        // exist, same as every other v25+ synced table.
+        final indexRows = await newDb
+            .customSelect(
+              "SELECT name FROM sqlite_master WHERE type = 'index' "
+              "AND tbl_name = 'fasting_schedules'",
+            )
+            .get();
+        expect(
+          indexRows.map((r) => r.read<String>('name')),
+          contains('idx_sync_uuid_fasting_schedules'),
+        );
 
-          final triggerRows = await newDb
-              .customSelect(
-                "SELECT name FROM sqlite_master WHERE type = 'trigger' "
-                "AND tbl_name = 'fasting_schedules'",
-              )
-              .get();
-          final triggerNames = triggerRows
-              .map((r) => r.read<String>('name'))
-              .toSet();
-          expect(triggerNames, contains('trg_outbox_ins_fasting_schedules'));
-          expect(triggerNames, contains('trg_outbox_upd_fasting_schedules'));
-          expect(triggerNames, contains('trg_outbox_del_fasting_schedules'));
-        },
-      );
-    },
-  );
+        final triggerRows = await newDb
+            .customSelect(
+              "SELECT name FROM sqlite_master WHERE type = 'trigger' "
+              "AND tbl_name = 'fasting_schedules'",
+            )
+            .get();
+        final triggerNames = triggerRows
+            .map((r) => r.read<String>('name'))
+            .toSet();
+        expect(triggerNames, contains('trg_outbox_ins_fasting_schedules'));
+        expect(triggerNames, contains('trg_outbox_upd_fasting_schedules'));
+        expect(triggerNames, contains('trg_outbox_del_fasting_schedules'));
+      },
+    );
+  });
 }

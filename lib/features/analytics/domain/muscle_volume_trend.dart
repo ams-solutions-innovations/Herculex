@@ -1,7 +1,8 @@
-import '../../../data/local/database.dart';
-import 'muscle_recovery_v3.dart';
-import 'training_snapshot.dart';
-import 'weekly_muscle_volume.dart' show WeeklyMuscleVolume;
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/analytics/domain/weekly_muscle_volume.dart'
+    show WeeklyMuscleVolume;
 
 /// One week's role-weighted working-set count for a muscle. Same fractional
 /// credit convention as [WeeklyMuscleVolume] — a secondary-role set counts
@@ -72,7 +73,10 @@ abstract final class MuscleVolumeTrends {
       final weekIndex = completedAt.difference(firstWeekStart).inDays ~/ 7;
       if (weekIndex < 0 || weekIndex >= weekCount) continue;
 
-      final involvement = MuscleRecoveryV3.involvementFor(rs, musclesByExercise);
+      final involvement = MuscleRecoveryV3.involvementFor(
+        rs,
+        musclesByExercise,
+      );
       for (final (muscle, w) in involvement) {
         final bucket = setsByMuscle[muscle];
         if (bucket == null) continue;
@@ -95,8 +99,9 @@ abstract final class MuscleVolumeTrends {
       for (var i = 0; i < weekStarts.length; i++)
         WeeklyMuscleSets(weekStart: weekStarts[i], sets: setCounts[i]),
     ];
-    final average =
-        setCounts.isEmpty ? 0.0 : setCounts.reduce((a, b) => a + b) / setCounts.length;
+    final average = setCounts.isEmpty
+        ? 0.0
+        : setCounts.reduce((a, b) => a + b) / setCounts.length;
 
     return MuscleVolumeTrend(
       muscle: muscle,

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/utils/units.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/features/measurements/presentation/quick_log_weight.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../core/units.dart';
-import '../../../../theme/colors.dart';
-import '../../../../theme/haptics.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../workouts/presentation/workouts_providers.dart';
-import '../../../measurements/presentation/quick_log_weight.dart';
-import '../dashboard_providers.dart';
-import 'dashboard_shared.dart';
 
 /// Latest bodyweight reading (§18) with quick add. The trend chart that used
 /// to live inline moved to the swipeable [TrendCardsRow] and the full
@@ -36,7 +36,7 @@ class BodyweightMiniCard extends ConsumerWidget {
           accent: context.hx.domainRecovery,
           onTap: () {
             Haptics.selection();
-            context.push('/measurements/bodyweight');
+            context.push(AppPaths.measurementDetail('bodyweight'));
           },
           padding: EdgeInsets.symmetric(
             horizontal: isCompact ? 14 : 20,
@@ -70,8 +70,7 @@ class BodyweightMiniCard extends ConsumerWidget {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color:
-                                  AppColors.primary.withValues(alpha: 0.12),
+                              color: AppColors.primary.withValues(alpha: 0.12),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -120,52 +119,56 @@ class BodyweightMiniCard extends ConsumerWidget {
                     ],
                   ],
                 )
-                : Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            dashboardTitle(context, 'Bodyweight'),
-                            if (lastLogged != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                'Last logged ${DateFormat('MMM d').format(lastLogged)}',
-                                style: theme.textTheme.bodySmall
-                                    ?.copyWith(color: AppColors.secondary),
+              : Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          dashboardTitle(context, 'Bodyweight'),
+                          if (lastLogged != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              'Last logged ${DateFormat('MMM d').format(lastLogged)}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.secondary,
                               ),
-                            ],
+                            ),
                           ],
+                        ],
+                      ),
+                    ),
+                    bw.when(
+                      data: (kg) => Text(
+                        kg == null
+                            ? '—'
+                            : ref.watch(weightFormatProvider).format(kg),
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
                         ),
                       ),
-                      bw.when(
-                        data: (kg) => Text(
-                          kg == null
-                              ? '—'
-                              : ref.watch(weightFormatProvider).format(kg),
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        loading: () => const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        error: (e, _) =>
-                            const Icon(Icons.error_outline, size: 18),
+                      loading: () => const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
-                      const SizedBox(width: 4),
-                      IconButton(
-                        icon: Icon(Icons.add_circle_outline,
-                            color: AppColors.primary, size: 22),
-                        tooltip: 'Quick add bodyweight',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () => quickLogWeight(context, ref),
+                      error: (e, _) =>
+                          const Icon(Icons.error_outline, size: 18),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: Icon(
+                        Icons.add_circle_outline,
+                        color: AppColors.primary,
+                        size: 22,
                       ),
-                    ],
-                  ),
+                      tooltip: 'Quick add bodyweight',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => quickLogWeight(context, ref),
+                    ),
+                  ],
+                ),
         );
       },
     );

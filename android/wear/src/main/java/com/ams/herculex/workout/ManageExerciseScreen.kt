@@ -70,7 +70,21 @@ fun ManageExerciseScreen(
         itemsIndexed(s.exercises) { index, exercise ->
             OneUiPill(
                 title = exercise.template.name,
-                icon = if (action == "remove") "✕" else "⇄",
+                iconComposable = {
+                    ExerciseArtwork(
+                        name = exercise.template.name,
+                        slug = exercise.template.slug,
+                        size = 38.dp,
+                    )
+                },
+                rightContent = {
+                    Text(
+                        text = if (action == "remove") "✕" else "⇄",
+                        color = if (action == "remove") Color(0xFFEF5350) else Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                    )
+                },
                 style = if (action == "remove") OneUiPillStyle.DangerTransparent else OneUiPillStyle.RoyalBlue,
                 onClick = {
                     if (action == "remove") {

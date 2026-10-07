@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/features/measurements/data/body_fat_ai_service.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
-import 'package:herculex/services/gemini_backend_service.dart';
+import 'package:herculex/services/ai/gemini_backend_service.dart';
 
 void main() {
   group('BodyFatAiService', () {
@@ -81,29 +81,32 @@ void main() {
       expect(fakeBackend.calledEstimate, isTrue);
     });
 
-    test('Falls back gracefully to anthropometric formula without images', () async {
-      final fakeBackend = _MockGeminiBackend();
-      final service = BodyFatAiService(fakeBackend);
+    test(
+      'Falls back gracefully to anthropometric formula without images',
+      () async {
+        final fakeBackend = _MockGeminiBackend();
+        final service = BodyFatAiService(fakeBackend);
 
-      const profile = Profile(
-        goal: FitnessGoal.maintenance,
-        activityLevel: ActivityLevel.active,
-        weightKg: 80.0,
-        heightCm: 180.0,
-        ageYears: 28,
-        sex: BiologicalSex.male,
-      );
+        const profile = Profile(
+          goal: FitnessGoal.maintenance,
+          activityLevel: ActivityLevel.active,
+          weightKg: 80.0,
+          heightCm: 180.0,
+          ageYears: 28,
+          sex: BiologicalSex.male,
+        );
 
-      final result = await service.estimateBodyFat(
-        imageFiles: [],
-        profile: profile,
-        measurements: {'waist': 82.0, 'neck': 38.0},
-      );
+        final result = await service.estimateBodyFat(
+          imageFiles: [],
+          profile: profile,
+          measurements: {'waist': 82.0, 'neck': 38.0},
+        );
 
-      expect(result.estimatedBfPercent, greaterThan(10.0));
-      expect(result.isAiGenerated, isFalse);
-      expect(fakeBackend.calledEstimate, isFalse);
-    });
+        expect(result.estimatedBfPercent, greaterThan(10.0));
+        expect(result.isAiGenerated, isFalse);
+        expect(fakeBackend.calledEstimate, isFalse);
+      },
+    );
   });
 }
 
@@ -122,7 +125,8 @@ class _MockGeminiBackend implements GeminiBackend {
       'bfRangeMin': 12.5,
       'bfRangeMax': 15.0,
       'confidence': 0.92,
-      'explanation': 'Good abdominal definition and low levels of subcutaneous fat.',
+      'explanation':
+          'Good abdominal definition and low levels of subcutaneous fat.',
       'fatDistribution': 'Moderate on lower abdomen.',
       'recommendations': 'Maintain current calorie intake.',
     };
@@ -145,51 +149,44 @@ class _MockGeminiBackend implements GeminiBackend {
     required String mimeType,
     required String barcode,
     String? userNote,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeFoodPhoto({
     required List<int> imageBytes,
     required String mimeType,
     String? userNote,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeNutritionLabel({
     required List<int> imageBytes,
     required String mimeType,
     required String ocrText,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<String> identifyExercise({
     required List<int> imageBytes,
     required String mimeType,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> identifyExerciseDetailed({
     required List<int> imageBytes,
     required String mimeType,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeSupplementPhoto({
     required List<int> imageBytes,
     required String mimeType,
     String? userNote,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeRamblerText({
     required String text,
     String? preferredMealKey,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 }

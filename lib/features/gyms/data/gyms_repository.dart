@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import '../../../data/local/database.dart';
+import 'package:herculex/data/local/database.dart';
 
 /// Gym profiles (V2 §10). Single facade over the [Gyms] table.
 class GymsRepository {
@@ -9,11 +9,10 @@ class GymsRepository {
   GymsRepository(this._db);
 
   Stream<List<GymData>> watchGyms() {
-    return (_db.select(_db.gyms)
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.isDefault, mode: OrderingMode.desc),
-            (t) => OrderingTerm(expression: t.name),
-          ]))
+    return (_db.select(_db.gyms)..orderBy([
+          (t) => OrderingTerm(expression: t.isDefault, mode: OrderingMode.desc),
+          (t) => OrderingTerm(expression: t.name),
+        ]))
         .watch();
   }
 
@@ -27,22 +26,26 @@ class GymsRepository {
   Future<int> createGym(String name, {bool isDefault = false}) async {
     return _db.transaction(() async {
       if (isDefault) await _clearDefault();
-      return _db.into(_db.gyms).insert(
+      return _db
+          .into(_db.gyms)
+          .insert(
             GymsCompanion.insert(name: name, isDefault: Value(isDefault)),
           );
     });
   }
 
   Future<void> renameGym(int id, String name) async {
-    await (_db.update(_db.gyms)..where((t) => t.id.equals(id)))
-        .write(GymsCompanion(name: Value(name)));
+    await (_db.update(
+      _db.gyms,
+    )..where((t) => t.id.equals(id))).write(GymsCompanion(name: Value(name)));
   }
 
   Future<void> setDefaultGym(int id) async {
     await _db.transaction(() async {
       await _clearDefault();
-      await (_db.update(_db.gyms)..where((t) => t.id.equals(id)))
-          .write(const GymsCompanion(isDefault: Value(true)));
+      await (_db.update(_db.gyms)..where((t) => t.id.equals(id))).write(
+        const GymsCompanion(isDefault: Value(true)),
+      );
     });
   }
 
@@ -52,15 +55,15 @@ class GymsRepository {
     await _db.transaction(() async {
       await (_db.update(_db.workoutSessions)..where((t) => t.gymId.equals(id)))
           .write(const WorkoutSessionsCompanion(gymId: Value(null)));
-      await (_db.update(_db.machineSettings)
-            ..where((t) => t.gymId.equals(id)))
+      await (_db.update(_db.machineSettings)..where((t) => t.gymId.equals(id)))
           .write(const MachineSettingsCompanion(gymId: Value(null)));
       await (_db.delete(_db.gyms)..where((t) => t.id.equals(id))).go();
     });
   }
 
   Future<void> _clearDefault() async {
-    await (_db.update(_db.gyms)..where((t) => t.isDefault.equals(true)))
-        .write(const GymsCompanion(isDefault: Value(false)));
+    await (_db.update(_db.gyms)..where((t) => t.isDefault.equals(true))).write(
+      const GymsCompanion(isDefault: Value(false)),
+    );
   }
 }

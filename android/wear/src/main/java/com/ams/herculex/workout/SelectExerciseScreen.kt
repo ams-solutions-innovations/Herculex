@@ -206,7 +206,13 @@ fun SelectExerciseScreen(
                     OneUiPill(
                         title = exTemplate.name,
                         subtitle = "Frequent / Routine",
-                        icon = "⭐",
+                        iconComposable = {
+                            ExerciseArtwork(
+                                name = exTemplate.name,
+                                slug = exTemplate.slug,
+                                size = 38.dp,
+                            )
+                        },
                         style = OneUiPillStyle.RoyalBlue,
                         onClick = {
                             if (equipmentPromptOptions(exTemplate).isNotEmpty()) {
@@ -228,7 +234,13 @@ fun SelectExerciseScreen(
                     OneUiPill(
                         title = exTemplate.name,
                         subtitle = "Recent",
-                        icon = "🕒",
+                        iconComposable = {
+                            ExerciseArtwork(
+                                name = exTemplate.name,
+                                slug = exTemplate.slug,
+                                size = 38.dp,
+                            )
+                        },
                         style = OneUiPillStyle.SlateNavy,
                         onClick = {
                             if (equipmentPromptOptions(exTemplate).isNotEmpty()) {
@@ -249,7 +261,13 @@ fun SelectExerciseScreen(
                 items(filteredRemaining) { exTemplate ->
                     OneUiPill(
                         title = exTemplate.name,
-                        icon = "🏋️",
+                        iconComposable = {
+                            ExerciseArtwork(
+                                name = exTemplate.name,
+                                slug = exTemplate.slug,
+                                size = 38.dp,
+                            )
+                        },
                         style = OneUiPillStyle.SlateNavy,
                         onClick = {
                             if (equipmentPromptOptions(exTemplate).isNotEmpty()) {

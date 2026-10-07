@@ -214,7 +214,20 @@
       "Bash(python tool/import_exercise_artwork.py)",
       "Bash(adb -s adb-RFAWB1C5DZM-aVTHGC._adb-tls-connect._tcp shell dumpsys package com.ams.herculex)",
       "Bash(adb -s R5CY12RLCWE shell dumpsys package com.ams.herculex)",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "Bash(awk '{print $NF}')",
+      "Bash(awk '$1+$2>0')",
+      "Bash(awk '$1+$2>0 {print $1+$2, $3}')",
+      "Bash([ -s \"$out\" ])",
+      "Bash(dart --version)",
+      "Bash(dart fix *)",
+      "Bash(echo \"FLUTTER TEST EXIT CODE: $?\")",
+      "Bash(echo \"FULL SUITE EXIT: $?\")",
+      "Bash(echo \"ANALYZE EXIT: $?\")",
+      "Bash(git diff *)",
+      "Bash(grep -vE \"^[+-]import |^[+-]export |^[+-]\\\\s*$\")",
+      "Bash(echo \"HEAD format-clean? exit=$? \\(0=clean, 1=needs formatting\\)\")",
+      "Bash(grep -v \"^$\")"
     ],
     "additionalDirectories": [
       "c:\\c\\Users\\marti\\AMS d.o.o\\Herculex\\lib\\features\\dashboard\\presentation",

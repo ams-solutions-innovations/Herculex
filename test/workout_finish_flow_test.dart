@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
-import 'package:herculex/features/workouts/presentation/workouts_view.dart';
+import 'package:herculex/features/workouts/presentation/views/workouts_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/test_database.dart';
@@ -143,7 +143,11 @@ void main() {
     // advisory (a DecoratedBox between the tile and its Material), which is a
     // real but cosmetic pre-existing issue and not what this test guards.
     final raised = <Object>[];
-    for (var e = tester.takeException(); e != null; e = tester.takeException()) {
+    for (
+      var e = tester.takeException();
+      e != null;
+      e = tester.takeException()
+    ) {
       raised.add(e);
     }
     expect(

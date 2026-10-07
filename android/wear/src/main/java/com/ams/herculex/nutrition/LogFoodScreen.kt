@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -46,7 +47,9 @@ import androidx.wear.compose.material.Picker
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.rememberPickerState
 import com.ams.herculex.sync.QuickAddFoodItem
+import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
+import com.ams.herculex.workout.attachPickerRotary
 import com.ams.herculex.workout.attachRotaryScroll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -293,12 +296,19 @@ fun LogFoodAmountScreen(navController: NavController, viewModel: NutritionViewMo
     val selectedMultiplier = amountMultiplierOptions[pickerState.selectedOption]
     val scaledKcal = (item.kcal * selectedMultiplier).roundToInt()
     val scaledAmount = item.portionAmount * selectedMultiplier
+    val focusRequester = remember { FocusRequester() }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .padding(top = 32.dp, bottom = 12.dp, start = 14.dp, end = 14.dp),
+            .padding(top = 28.dp, bottom = 12.dp, start = 14.dp, end = 14.dp)
+            .attachPickerRotary(
+                pickerState = pickerState,
+                maxOptions = amountMultiplierOptions.size,
+                focusRequester = focusRequester,
+                isFocused = true,
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
@@ -329,9 +339,12 @@ fun LogFoodAmountScreen(navController: NavController, viewModel: NutritionViewMo
                 fontSize = if (isSelected) 19.sp else 13.sp,
             )
         }
-        com.ams.herculex.ui.OneUiPill(
+        OneUiPill(
             title = "Next",
             style = OneUiPillStyle.EmeraldGreen,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp),
             onClick = {
                 viewModel.setPendingQuickAddMultiplier(selectedMultiplier)
                 navController.navigate("log_food_meal")

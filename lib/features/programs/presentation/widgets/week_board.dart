@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../data/local/database.dart';
-import '../../../../theme/colors.dart';
-import '../../domain/scheduled_workout_row.dart';
-import '../programs_providers.dart';
-import 'day_column_card.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
+import 'package:herculex/features/programs/presentation/widgets/day_column_card.dart';
 
 /// Monday–Sunday board for one week, with drag-to-reorder inside a day and
 /// drag-between-days across the board.
@@ -77,7 +76,8 @@ class WeekBoard extends ConsumerWidget {
     String iso,
   ) {
     for (final e in events) {
-      if (iso.compareTo(e.dateFromIso) >= 0 && iso.compareTo(e.dateToIso) <= 0) {
+      if (iso.compareTo(e.dateFromIso) >= 0 &&
+          iso.compareTo(e.dateToIso) <= 0) {
         return e;
       }
     }

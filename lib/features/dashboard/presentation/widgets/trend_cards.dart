@@ -2,18 +2,18 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/utils/units.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/features/nutrition/application/goals_providers.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/macro_chart.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../app/providers.dart';
-import '../../../../core/units.dart';
-import '../../../../theme/haptics.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../nutrition/domain/daily_totals.dart';
-import '../../../nutrition/presentation/goals_providers.dart';
-import '../../../nutrition/presentation/nutrition_providers.dart';
-import '../../../nutrition/presentation/widgets/macro_chart.dart';
-import '../dashboard_providers.dart';
-import 'dashboard_shared.dart';
 
 /// Standalone preview card for 7-day calorie trends.
 class CalorieTrendPreviewCard extends ConsumerWidget {
@@ -38,7 +38,7 @@ class CalorieTrendPreviewCard extends ConsumerWidget {
       accent: hx.domainNutrition,
       spots: spots,
       targetValue: targets?.kcal.toDouble(),
-      onTap: () => context.push('/nutrition/weekly-stats'),
+      onTap: () => context.push(AppRoutes.nutritionWeeklyStats),
     );
   }
 }
@@ -58,10 +58,10 @@ class BodyweightTrendPreviewCard extends ConsumerWidget {
 
     final spots = history == null
         ? null
-        : [
-            for (final (i, r) in history.indexed) FlSpot(i.toDouble(), r.value),
-          ];
-    final latest = history == null || history.isEmpty ? null : history.last.value;
+        : [for (final (i, r) in history.indexed) FlSpot(i.toDouble(), r.value)];
+    final latest = history == null || history.isEmpty
+        ? null
+        : history.last.value;
 
     return _TrendPreviewCard(
       label: 'BODYWEIGHT',
@@ -69,7 +69,7 @@ class BodyweightTrendPreviewCard extends ConsumerWidget {
       accent: hx.domainRecovery,
       spots: spots,
       targetValue: targetKg,
-      onTap: () => context.push('/measurements/bodyweight'),
+      onTap: () => context.push(AppPaths.measurementDetail('bodyweight')),
     );
   }
 }
@@ -148,7 +148,9 @@ List<FlSpot> _lastKcalDays(Map<String, DailyTotals> historyMap, int days) {
     final date = today.subtract(Duration(days: i));
     final iso = DateFormat('yyyy-MM-dd').format(date);
     final totals = historyMap[iso] ?? DailyTotals.empty;
-    spots.add(FlSpot((days - 1 - i).toDouble(), macroValueForTotals(totals, 'kcal')));
+    spots.add(
+      FlSpot((days - 1 - i).toDouble(), macroValueForTotals(totals, 'kcal')),
+    );
   }
   return spots;
 }
@@ -178,7 +180,8 @@ class _TrendPreviewCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final hx = context.hx;
     final hasData = spots != null && spots!.any((s) => s.y > 0);
-    final hasTarget = targetValue != null &&
+    final hasTarget =
+        targetValue != null &&
         targetValue! > 0 &&
         !targetValue!.isNaN &&
         !targetValue!.isInfinite;
@@ -252,8 +255,9 @@ class _TrendPreviewCard extends ConsumerWidget {
                 ? Center(
                     child: Text(
                       'Not enough data yet',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: hx.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: hx.secondary,
+                      ),
                     ),
                   )
                 : LineChart(

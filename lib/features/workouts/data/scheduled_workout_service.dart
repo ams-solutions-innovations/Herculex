@@ -1,10 +1,10 @@
 import 'package:drift/drift.dart';
 
-import '../../../core/clock.dart';
-import '../../../data/local/database.dart';
-import '../../programs/data/programs_repository.dart';
-import '../../programs/domain/schedule_status.dart';
-import 'templates_repository.dart';
+import 'package:herculex/core/utils/clock.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/data/programs_repository.dart';
+import 'package:herculex/features/programs/domain/schedule_status.dart';
+import 'package:herculex/features/workouts/data/templates_repository.dart';
 
 /// Today's scheduled workout resolved with its program-day name and exercise
 /// count, for the dashboard smart launcher (§18).
@@ -48,7 +48,12 @@ class ScheduledWorkoutService {
   final ProgramsRepository _programs;
   final TemplatesRepository _templates;
 
-  ScheduledWorkoutService(this._db, this._clock, this._programs, this._templates);
+  ScheduledWorkoutService(
+    this._db,
+    this._clock,
+    this._programs,
+    this._templates,
+  );
 
   static String _dateIso(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-'
@@ -114,16 +119,16 @@ class ScheduledWorkoutService {
           )
         : await _startFromInlineExercises(today, gymId: gymId);
 
-    await (_db.update(_db.scheduledWorkouts)
-          ..where((t) => t.id.equals(today.schedule.id)))
-        .write(
-          ScheduledWorkoutsCompanion(
-            completedSessionId: Value(sessionId),
-            // Starting is not finishing — `markScheduleCompleted` flips this to
-            // done when the session actually ends.
-            status: const Value(ScheduleStatus.inProgress),
-          ),
-        );
+    await (_db.update(
+      _db.scheduledWorkouts,
+    )..where((t) => t.id.equals(today.schedule.id))).write(
+      ScheduledWorkoutsCompanion(
+        completedSessionId: Value(sessionId),
+        // Starting is not finishing — `markScheduleCompleted` flips this to
+        // done when the session actually ends.
+        status: const Value(ScheduleStatus.inProgress),
+      ),
+    );
 
     return sessionId;
   }

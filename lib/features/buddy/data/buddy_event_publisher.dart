@@ -1,4 +1,4 @@
-import '../domain/buddy_event.dart';
+import 'package:herculex/features/buddy/domain/buddy_event.dart';
 
 /// The network-facing seam between buddy live-workout logic and whatever
 /// actually appends an event to a session's shared log (Supabase broadcast

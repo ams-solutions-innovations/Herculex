@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/app_theme.dart';
+import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/remaining_calories_card.dart';
-import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
-import 'package:herculex/features/nutrition/presentation/nutrition_targets_view.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/presentation/views/nutrition_targets_view.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
-import 'package:herculex/theme/app_theme.dart';
-import 'package:herculex/ui/ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -44,94 +44,103 @@ void main() {
     );
   }
 
-  testWidgets('NutritionTargetsView renders Fasting-style header, quick planner and hub tiles',
-      (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
+  testWidgets(
+    'NutritionTargetsView renders Fasting-style header, quick planner and hub tiles',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
 
-    await tester.pumpWidget(testApp(const NutritionTargetsView()));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(testApp(const NutritionTargetsView()));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Targets & Dieting'), findsOneWidget);
-    expect(find.byType(HxBackButton), findsOneWidget);
-    expect(find.text('Quick Calories & Phase Planner'), findsOneWidget);
-    expect(find.text('Cut'), findsAtLeastNWidgets(1));
-    expect(find.text('Bulk'), findsAtLeastNWidgets(1));
-    expect(find.text('Maingain'), findsAtLeastNWidgets(1));
-    expect(find.text('Maintain'), findsAtLeastNWidgets(1));
-    expect(find.text('Daily Targets'), findsOneWidget);
-    expect(find.text('Active Schedule'), findsOneWidget);
-    expect(find.text('Carb Cycle'), findsOneWidget);
-  });
+      expect(find.text('Targets & Dieting'), findsOneWidget);
+      expect(find.byType(HxBackButton), findsOneWidget);
+      expect(find.text('Quick Calories & Phase Planner'), findsOneWidget);
+      expect(find.text('Cut'), findsAtLeastNWidgets(1));
+      expect(find.text('Bulk'), findsAtLeastNWidgets(1));
+      expect(find.text('Maingain'), findsAtLeastNWidgets(1));
+      expect(find.text('Maintain'), findsAtLeastNWidgets(1));
+      expect(find.text('Daily Targets'), findsOneWidget);
+      expect(find.text('Active Schedule'), findsOneWidget);
+      expect(find.text('Carb Cycle'), findsOneWidget);
+    },
+  );
 
-  testWidgets('NutritionTargetsView switches between Cut, Bulk, Maingain and updates dynamic target',
-      (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
+  testWidgets(
+    'NutritionTargetsView switches between Cut, Bulk, Maingain and updates dynamic target',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
 
-    await tester.pumpWidget(testApp(const NutritionTargetsView()));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(testApp(const NutritionTargetsView()));
+      await tester.pumpAndSettle();
 
-    // Tap Maingain
-    await tester.tap(find.text('Maingain').first);
-    await tester.pumpAndSettle();
+      // Tap Maingain
+      await tester.tap(find.text('Maingain').first);
+      await tester.pumpAndSettle();
 
-    expect(find.text('Lean (+150 kcal)'), findsOneWidget);
-    expect(find.textContaining('Apply Maingain'), findsOneWidget);
+      expect(find.text('Lean (+150 kcal)'), findsOneWidget);
+      expect(find.textContaining('Apply Maingain'), findsOneWidget);
 
-    // Tap Bulk
-    await tester.tap(find.text('Bulk').first);
-    await tester.pumpAndSettle();
+      // Tap Bulk
+      await tester.tap(find.text('Bulk').first);
+      await tester.pumpAndSettle();
 
-    expect(find.text('0.50 kg/w (Standard)'), findsOneWidget);
-    expect(find.textContaining('Apply Bulk'), findsOneWidget);
-  });
+      expect(find.text('0.50 kg/w (Standard)'), findsOneWidget);
+      expect(find.textContaining('Apply Bulk'), findsOneWidget);
+    },
+  );
 
-  testWidgets('DailyTargetsView renders Fasting-style header and add target button',
-      (tester) async {
-    await tester.pumpWidget(testApp(const DailyTargetsView()));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'DailyTargetsView renders Fasting-style header and add target button',
+    (tester) async {
+      await tester.pumpWidget(testApp(const DailyTargetsView()));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Daily Targets'), findsOneWidget);
-    expect(find.byType(HxBackButton), findsOneWidget);
-    expect(find.text('ADD / EDIT TARGET'), findsOneWidget);
-  });
+      expect(find.text('Daily Targets'), findsOneWidget);
+      expect(find.byType(HxBackButton), findsOneWidget);
+      expect(find.text('ADD / EDIT TARGET'), findsOneWidget);
+    },
+  );
 
-  testWidgets('TargetEditorView pre-fills baseline values and handles phase changes',
-      (tester) async {
-    await tester.pumpWidget(testApp(const TargetEditorView()));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'TargetEditorView pre-fills baseline values and handles phase changes',
+    (tester) async {
+      await tester.pumpWidget(testApp(const TargetEditorView()));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Add Target'), findsOneWidget);
-    expect(find.byType(HxBackButton), findsOneWidget);
-    expect(find.text('DIETING PHASE'), findsOneWidget);
-    expect(find.text('APPLIES TO'), findsOneWidget);
-    expect(find.text('CALORIES'), findsOneWidget);
-    expect(find.text('MACRO INPUT METHOD'), findsOneWidget);
+      expect(find.text('Add Target'), findsOneWidget);
+      expect(find.byType(HxBackButton), findsOneWidget);
+      expect(find.text('DIETING PHASE'), findsOneWidget);
+      expect(find.text('APPLIES TO'), findsOneWidget);
+      expect(find.text('CALORIES'), findsOneWidget);
+      expect(find.text('MACRO INPUT METHOD'), findsOneWidget);
 
-    // Tapping 'Cut' chip changes phase and updates save label
-    await tester.tap(find.text('Cut'));
-    await tester.pumpAndSettle();
+      // Tapping 'Cut' chip changes phase and updates save label
+      await tester.tap(find.text('Cut'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('SAVE CUT'), findsOneWidget);
+      expect(find.text('SAVE CUT'), findsOneWidget);
 
-    // Tapping 'Maingain' chip changes phase and updates save label
-    await tester.tap(find.text('Maingain'));
-    await tester.pumpAndSettle();
+      // Tapping 'Maingain' chip changes phase and updates save label
+      await tester.tap(find.text('Maingain'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('SAVE MAINGAIN'), findsOneWidget);
+      expect(find.text('SAVE MAINGAIN'), findsOneWidget);
 
-    // Tapping 'Bulk' chip changes phase and updates save label
-    await tester.tap(find.text('Bulk'));
-    await tester.pumpAndSettle();
+      // Tapping 'Bulk' chip changes phase and updates save label
+      await tester.tap(find.text('Bulk'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('SAVE BULK'), findsOneWidget);
-  });
+      expect(find.text('SAVE BULK'), findsOneWidget);
+    },
+  );
 
-  testWidgets('RemainingCaloriesCard renders Set a goal when null',
-      (tester) async {
+  testWidgets('RemainingCaloriesCard renders Set a goal when null', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -139,9 +148,7 @@ void main() {
     await tester.pumpWidget(
       testApp(
         const RemainingCaloriesCard(),
-        overrides: [
-          remainingCaloriesProvider.overrideWithValue(null),
-        ],
+        overrides: [remainingCaloriesProvider.overrideWithValue(null)],
       ),
     );
     await tester.pumpAndSettle();

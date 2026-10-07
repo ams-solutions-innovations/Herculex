@@ -9,15 +9,14 @@ Supplement _s(
   double? dose,
   String? unit,
   String? brand,
-}) =>
-    Supplement(
-      id: id,
-      name: name,
-      brand: brand,
-      doseAmount: dose,
-      doseUnit: unit,
-      nutrients: nutrients,
-    );
+}) => Supplement(
+  id: id,
+  name: name,
+  brand: brand,
+  doseAmount: dose,
+  doseUnit: unit,
+  nutrients: nutrients,
+);
 
 void main() {
   group('SupplementIntake.forDay', () {
@@ -34,8 +33,11 @@ void main() {
     test('sums nutrients across ticked supplements', () {
       final intake = SupplementIntake.forDay(
         supplements: [
-          _s('a', 'Multivitamin',
-              nutrients: {'vitamin_d': 10, 'magnesium': 100}),
+          _s(
+            'a',
+            'Multivitamin',
+            nutrients: {'vitamin_d': 10, 'magnesium': 100},
+          ),
           _s('b', 'Magnesium', nutrients: {'magnesium': 300}),
           _s('c', 'Zinc', nutrients: {'zinc': 15}),
         ],
@@ -80,7 +82,9 @@ void main() {
 
     test('the returned map is unmodifiable', () {
       final intake = SupplementIntake.forDay(
-        supplements: [_s('a', 'Iron', nutrients: {'iron': 18})],
+        supplements: [
+          _s('a', 'Iron', nutrients: {'iron': 18}),
+        ],
         takenIds: const {'a'},
       );
       expect(() => intake.nutrients['iron'] = 99, throwsUnsupportedError);
@@ -99,8 +103,9 @@ void main() {
         nutrients: const {'magnesium': 50},
         schedule: SupplementSchedule.postWorkout,
       );
-      final decoded =
-          Supplement.listFromJson(Supplement.listToJson([original])).single;
+      final decoded = Supplement.listFromJson(
+        Supplement.listToJson([original]),
+      ).single;
 
       expect(decoded.brand, 'Bulk');
       expect(decoded.barcode, '5060105890123');

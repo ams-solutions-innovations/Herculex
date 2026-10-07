@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/services/workout_notification_service.dart';
+import 'package:herculex/services/platform/workout_notification_service.dart';
 
 void main() {
   group('workout notification action payload', () {

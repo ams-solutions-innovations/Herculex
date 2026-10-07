@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/features/buddy/application/buddy_providers.dart';
+import 'package:herculex/features/buddy/domain/buddy_join_payload.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-import '../../../theme/colors.dart';
-import '../application/buddy_providers.dart';
-import '../domain/buddy_join_payload.dart';
 
 /// Camera scanner screen for joining a Gym Buddy workout via QR code.
 class BuddyJoinScannerView extends ConsumerStatefulWidget {
@@ -190,10 +189,7 @@ class _BuddyJoinScannerViewState extends ConsumerState<BuddyJoinScannerView>
       body: Stack(
         children: [
           if (_controller != null)
-            MobileScanner(
-              controller: _controller!,
-              onDetect: _onDetect,
-            ),
+            MobileScanner(controller: _controller!, onDetect: _onDetect),
           Center(
             child: Container(
               width: 240,

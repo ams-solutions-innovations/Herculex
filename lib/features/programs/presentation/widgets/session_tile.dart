@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-
-import '../../../../theme/colors.dart';
-import '../../../../theme/haptics.dart';
-import '../../domain/schedule_status.dart';
-import '../../domain/scheduled_workout_row.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/programs/domain/schedule_status.dart';
+import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
 
 /// Colour for a scheduled session's status chip and calendar dot.
 Color scheduleStatusColor(String status) => switch (status) {
@@ -151,7 +150,9 @@ class _Subtitle extends StatelessWidget {
     }
     if (!row.isEmpty) {
       parts.add(
-        row.exerciseCount == 1 ? '1 exercise' : '${row.exerciseCount} exercises',
+        row.exerciseCount == 1
+            ? '1 exercise'
+            : '${row.exerciseCount} exercises',
       );
     }
     if (row.status != ScheduleStatus.planned) parts.add(row.statusLabel);

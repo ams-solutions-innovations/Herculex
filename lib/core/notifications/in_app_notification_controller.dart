@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../theme/haptics.dart';
-import 'in_app_notification_model.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 
 class InAppNotificationState {
   final InAppNotificationItem? current;
@@ -40,7 +40,8 @@ class InAppNotificationNotifier extends StateNotifier<InAppNotificationState> {
       _display(item);
     } else {
       // Add to queue (avoid duplicates of exact same id)
-      if (!state.queue.any((q) => q.id == item.id) && state.current?.id != item.id) {
+      if (!state.queue.any((q) => q.id == item.id) &&
+          state.current?.id != item.id) {
         state = state.copyWith(queue: [...state.queue, item]);
       }
     }
@@ -92,6 +93,8 @@ class InAppNotificationNotifier extends StateNotifier<InAppNotificationState> {
 }
 
 final inAppNotificationControllerProvider =
-    StateNotifierProvider<InAppNotificationNotifier, InAppNotificationState>((ref) {
-  return InAppNotificationNotifier();
-});
+    StateNotifierProvider<InAppNotificationNotifier, InAppNotificationState>((
+      ref,
+    ) {
+      return InAppNotificationNotifier();
+    });
