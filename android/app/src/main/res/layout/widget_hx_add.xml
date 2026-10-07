@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 2×2 card with a + chip top-right (bodyweight()). The 40 dp target is
+     centred on the 26 dp chip, which sits 16 dp in from the corner. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/widget_canvas"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_hx_placeholder"
+        android:scaleType="fitXY" />
+
+    <FrameLayout
+        android:id="@+id/btn_add"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="9dp"
+        android:background="@drawable/widget_hx_pill_ripple"
+        android:contentDescription="@string/widget_log_weight" />
+
+</FrameLayout>

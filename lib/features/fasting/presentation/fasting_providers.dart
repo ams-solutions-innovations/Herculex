@@ -2,9 +2,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../../services/widget_sync_service.dart';
 import '../data/fasting_notification_scheduler.dart';
 import '../data/fasting_repository.dart';
 import '../data/fasting_schedule_service.dart';
+import '../domain/fasting_plan.dart';
 import '../../../data/local/database.dart';
 
 final fastingNotificationSchedulerProvider =
@@ -73,3 +75,62 @@ final fastingTimerTickerProvider = StreamProvider<Duration?>((ref) {
 
   return ticker();
 });
+
+/// Pushes the running fast to the Fasting home-screen widget. Only the start
+/// and target are sent — the widget keeps its own clock — so this fires on
+/// session or schedule changes, not every tick.
+final widgetFastingSyncControllerProvider = Provider<void>((ref) {
+  final widgetSync = WidgetSyncService();
+
+  Future<void> sync() async {
+    final active = ref.read(activeFastingSessionProvider).valueOrNull;
+    final schedules = ref.read(fastingSchedulesProvider).valueOrNull ?? const [];
+
+    if (active != null) {
+      final quick = isQuickFastTarget(active.targetSeconds);
+      await widgetSync.syncFasting(
+        startedAt: active.startedAt,
+        targetSeconds: quick ? null : active.targetSeconds,
+        planLabel: _planLabel(active.targetSeconds),
+      );
+      return;
+    }
+
+    // Idle: badge the plan the user has scheduled next, if any.
+    final scheduled = schedules
+        .where((s) => s.enabled && s.deletedAt == null)
+        .map((s) {
+          final plan = FastingPlan.values.asNameMap()[s.planName];
+          if (plan == null) return null;
+          return plan == FastingPlan.custom
+              ? _planLabel(s.customTargetSeconds ?? 0)
+              : plan.nameString;
+        })
+        .nonNulls
+        .firstOrNull;
+    await widgetSync.syncFasting(
+      startedAt: null,
+      targetSeconds: null,
+      planLabel: scheduled,
+    );
+  }
+
+  ref.listen(activeFastingSessionProvider, (_, next) {
+    if (next.hasValue) sync();
+  }, fireImmediately: true);
+  ref.listen(fastingSchedulesProvider, (_, next) {
+    if (next.hasValue) sync();
+  });
+});
+
+/// The widget badge for a fast of [targetSeconds]: the preset's own name
+/// ("16:8", "24h") or whole hours for anything else.
+String? _planLabel(int targetSeconds) {
+  if (isQuickFastTarget(targetSeconds)) return 'Quick';
+  if (targetSeconds <= 0) return null;
+  for (final plan in FastingPlan.values) {
+    if (plan == FastingPlan.custom || plan == FastingPlan.quickFast) continue;
+    if (plan.targetSeconds == targetSeconds) return plan.nameString;
+  }
+  return '${(targetSeconds / 3600).round()}h';
+}

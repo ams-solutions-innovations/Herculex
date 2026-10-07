@@ -142,18 +142,27 @@ final widgetCnsSyncControllerProvider = Provider<void>((ref) {
   );
 });
 
-/// Pushes average recovery score to the Recovery Score home-screen widget
-/// whenever [recoveryV3Provider] emits new data.
+/// Pushes the average recovery score and the two most fatigued muscle groups
+/// to the Recovery home-screen widget whenever [recoveryV3Provider] emits.
 final widgetRecoverySyncControllerProvider = Provider<void>((ref) {
   final widgetSync = ref.watch(_analyticsWidgetSyncProvider);
   ref.listen<AsyncValue<List<MuscleGroupRecovery>>>(
     recoveryV3Provider,
     (_, next) async {
-      if (!next.hasValue || next.value!.isEmpty) return;
+      if (!next.hasValue) return;
       final groups = next.value!;
+      if (groups.isEmpty) {
+        await widgetSync.syncRecovery(scorePct: -1);
+        return;
+      }
       final avg = groups.fold(0.0, (sum, g) => sum + g.recoveryScore) /
           groups.length;
-      await widgetSync.syncRecovery(scorePct: avg.round());
+      final worst = [...groups]
+        ..sort((a, b) => a.recoveryScore.compareTo(b.recoveryScore));
+      await widgetSync.syncRecovery(
+        scorePct: avg.round(),
+        muscles: [for (final g in worst.take(2)) (g.muscle, g.recoveryScore)],
+      );
     },
     fireImmediately: true,
   );

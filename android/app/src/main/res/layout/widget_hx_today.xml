@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 4×2 Today. The button targets mirror HxWidgetRenderer.today(): a 144 dp
+     column centred vertically, 156 dp from the start (16 + 124 ring + 16),
+     with the 36 dp button row 108 dp below its top. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/widget_canvas"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_hx_placeholder"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="144dp"
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="156dp"
+        android:layout_marginEnd="16dp"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="108dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:id="@+id/btn_search_food"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/widget_hx_pill_ripple"
+                android:contentDescription="@string/widget_search_food" />
+
+            <FrameLayout
+                android:id="@+id/btn_scan_food"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:background="@drawable/widget_hx_pill_ripple"
+                android:contentDescription="@string/widget_scan_food" />
+
+        </LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>

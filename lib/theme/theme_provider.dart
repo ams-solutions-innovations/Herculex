@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../app/providers.dart';
+import '../services/widget_sync_service.dart';
 import 'colors.dart';
 import 'tokens/tokens.dart';
 
@@ -72,3 +73,14 @@ class AppColorThemeNotifier extends StateNotifier<AppColorTheme> {
   }
 }
 
+/// Keeps the Android home-screen widgets on the app's colour theme and
+/// light/dark setting.
+final widgetThemeSyncControllerProvider = Provider<void>((ref) {
+  final mode = ref.watch(themeModeProvider);
+  final theme = ref.watch(appColorThemeProvider);
+  WidgetSyncService().syncTheme(
+    mode: mode,
+    dark: HxColors.of(Brightness.dark, theme),
+    light: HxColors.of(Brightness.light, theme),
+  );
+});

@@ -1,50 +1,27 @@
 package com.ams.herculex
 
-import android.app.PendingIntent
-import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
 import android.content.Context
-import android.content.Intent
 import android.widget.RemoteViews
 
 /**
- * Scanner shortcut pill widget.
+ * 2×1 Quick log widget: a Scan button that opens the barcode scanner and a
+ * search button that opens food search.
  *
- * Tapping opens [MainActivity] with action [ACTION_SCAN] so Flutter can
- * navigate directly to the barcode scanner screen via a route handler in main.dart.
+ * Both open [MainActivity] with an action that Flutter turns into navigation
+ * via the widget MethodChannel (see `app.dart`).
  */
-class ScannerWidgetProvider : AppWidgetProvider() {
+class ScannerWidgetProvider : HxWidgetProvider() {
 
-    override fun onUpdate(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray
-    ) {
-        for (id in appWidgetIds) {
-            val views = buildViews(context)
-            appWidgetManager.updateAppWidget(id, views)
-        }
-    }
+    override val defaultSize = 182f to 80f
 
-    private fun buildViews(context: Context): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.widget_pill_scanner)
+    override val layoutId: Int get() = R.layout.widget_hx_quick_log
 
-        // Deep-link intent: opens MainActivity with the SCAN action.
-        // Flutter's GoRouter checks getIntent().action on startup and pushes /nutrition/scan.
-        val intent = Intent(context, MainActivity::class.java).apply {
-            action = ACTION_SCAN
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            1,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+    override fun render(context: Context, renderer: HxWidgetRenderer, w: Float, h: Float): HxRendered =
+        renderer.quickLog(w, h)
 
-        views.setOnClickPendingIntent(R.id.scanner_label, pendingIntent)
-        views.setOnClickPendingIntent(R.id.scanner_icon, pendingIntent)
-        return views
+    override fun bindClicks(context: Context, views: RemoteViews) {
+        views.setOnClickPendingIntent(R.id.btn_scan_food, scanFood(context))
+        views.setOnClickPendingIntent(R.id.btn_search_food, searchFood(context))
     }
 
     companion object {

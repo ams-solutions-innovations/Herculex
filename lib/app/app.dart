@@ -10,9 +10,12 @@ import '../core/notifications/toast/hx_toast_overlay.dart';
 import '../core/units.dart';
 import '../data/local/database.dart';
 import '../features/analytics/presentation/analytics_providers.dart';
+import '../features/dashboard/presentation/dashboard_providers.dart';
 import '../features/fasting/data/fasting_schedule_action_queue.dart';
 import '../features/fasting/domain/fasting_schedule_occurrence.dart';
 import '../features/fasting/presentation/fasting_providers.dart';
+import '../features/gyms/presentation/gym_picker_sheet.dart';
+import '../features/measurements/presentation/quick_log_weight.dart';
 import '../features/notifications/data/notification_sync_service.dart';
 import '../features/notifications/presentation/notification_settings_provider.dart';
 import '../features/nutrition/presentation/barcode_scanner_view.dart';
@@ -30,6 +33,7 @@ import '../features/workouts/presentation/circuits_providers.dart';
 import '../features/workouts/presentation/exercise_picker_sheet.dart';
 import '../features/workouts/presentation/workout_bubble_controller.dart';
 import '../features/workouts/presentation/workouts_providers.dart';
+import '../services/widget_dashboard_sync.dart';
 import '../services/workout_bubble_service.dart';
 import '../services/workout_notification_service.dart';
 import '../theme/app_theme.dart';
@@ -137,6 +141,23 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
             }
           });
         }
+        return;
+      }
+      if (call.method == 'widgetCommand' && mounted) {
+        final args = (call.arguments as Map?)?.cast<String, dynamic>();
+        await _handleWidgetCommand(
+          args?['command'] as String?,
+          args?['arg'] as String?,
+        );
+        return;
+      }
+      if (call.method == 'openRoute' && mounted) {
+        // Home-screen widgets that open a screen (CNS, Recovery, Fasting).
+        final route = call.arguments as String?;
+        if (route == null) return;
+        final router = ref.read(routerProvider);
+        router.go('/app');
+        router.push(route);
         return;
       }
       if (call.method == 'openNutrition' && mounted) {
@@ -529,6 +550,44 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     await repo.startSession(targetSeconds);
   }
 
+  /// Taps on home-screen widget buttons that act rather than just navigate
+  /// (see `HxWidgetProvider.command` on the Android side).
+  Future<void> _handleWidgetCommand(String? command, String? arg) async {
+    final router = ref.read(routerProvider);
+    void showTab(int tab) {
+      ref.read(mainTabIndexProvider.notifier).state = tab;
+      router.go('/app');
+    }
+
+    switch (command) {
+      case 'openTab':
+        showTab(int.tryParse(arg ?? '') ?? 0);
+      case 'resumeWorkout':
+        showTab(2);
+      case 'startPlan':
+        // Same flow as the dashboard's Today's Plan card.
+        showTab(2);
+        final workout = await ref.read(todaysScheduledWorkoutProvider.future);
+        if (workout == null || workout.isStarted || !mounted) return;
+        final gym = await GymPickerSheet.resolve(context, ref);
+        if (gym.cancelled) return;
+        await ref
+            .read(scheduledWorkoutServiceProvider)
+            .startScheduledWorkout(workout, gymId: gym.gymId);
+        ref.invalidate(todaysScheduledWorkoutProvider);
+      case 'logWeight':
+        showTab(0);
+        if (mounted) await quickLogWeight(context, ref);
+      case 'logMiniWorkout':
+        showTab(0);
+        final id = int.tryParse(arg ?? '');
+        final today = await ref.read(microWorkoutsTodayProvider.future);
+        final item = today.where((m) => m.microWorkout.id == id).firstOrNull;
+        if (item == null || item.doneForToday) return;
+        await ref.read(microWorkoutsRepositoryProvider).logCompletion(item.microWorkout);
+    }
+  }
+
   Future<void> _handleFastingScheduleTap(int scheduleId) async {
     await _startFastFromScheduleIfNeeded(scheduleId);
     if (!mounted) return;
@@ -577,6 +636,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     ref.watch(widgetMacroSyncControllerProvider);
     ref.watch(widgetCnsSyncControllerProvider);
     ref.watch(widgetRecoverySyncControllerProvider);
+    ref.watch(widgetFastingSyncControllerProvider);
+    ref.watch(widgetThemeSyncControllerProvider);
+    ref.watch(widgetDashboardSyncControllerProvider);
 
     // Starts/stops Phase 10 cloud sync off the auth session — see
     // syncServiceProvider in app/providers.dart.

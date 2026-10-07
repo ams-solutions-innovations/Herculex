@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 2×1 Quick log. Targets mirror HxWidgetRenderer.quickLog(): 16 dp padding,
+     Scan fills the row, search is a 48 dp slot after an 8 dp gap. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/widget_canvas"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_hx_placeholder"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <FrameLayout
+            android:id="@+id/btn_scan_food"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/widget_hx_pill_ripple"
+            android:contentDescription="@string/widget_scan_food" />
+
+        <FrameLayout
+            android:id="@+id/btn_search_food"
+            android:layout_width="48dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/widget_hx_pill_ripple"
+            android:contentDescription="@string/widget_search_food" />
+
+    </LinearLayout>
+
+</FrameLayout>
