@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="ic_launcher_background">#091322</color>
+    <color name="bubble_popup_surface">#F21C1C1E</color>
+    <color name="bubble_accent">#0A84FF</color>
+    <color name="bubble_on_surface">#FFFFFFFF</color>
+    <color name="bubble_on_surface_variant">#B3FFFFFF</color>
+    <color name="bubble_scrim">#59000000</color>
+    <!-- Home-screen widget placeholder, before the first draw. -->
     <color name="widget_hx_surface">#111824</color>
     <color name="widget_hx_outline">#4D2B374E</color>
 </resources>
