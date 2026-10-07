@@ -1,18 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Herculex</string>
-    <string name="widget_cns_description">CNS Load — shows your nervous system readiness score</string>
-    <string name="widget_recovery_description">Recovery Score — shows your overall muscle recovery</string>
-    <string name="widget_carbs_description">Net Carbs — shows your daily carb progress</string>
-    <string name="widget_fat_description">Fat — shows your daily fat progress</string>
-    <string name="widget_protein_description">Protein — shows your daily protein progress</string>
-    <string name="widget_scanner_description">Scan Food — opens the barcode scanner to log food</string>
+    <string name="widget_cns_description">CNS Load — nervous system readiness and status</string>
+    <string name="widget_recovery_description">Recovery — overall score and your most fatigued muscles</string>
+    <string name="widget_carbs_description">Carbs — today\'s carbs against your target</string>
+    <string name="widget_fat_description">Fat — today\'s fat against your target</string>
+    <string name="widget_protein_description">Protein — today\'s protein against your target</string>
+    <string name="widget_scanner_description">Quick log — scan a barcode or search food in one tap</string>
     <string name="widget_today_calories_small_label">Today\'s Calories</string>
-    <string name="widget_today_calories_small_description">Today\'s Calories — track calorie goal and remaining energy</string>
+    <string name="widget_today_calories_small_description">Calories — what\'s left of today\'s budget, food and exercise</string>
     <string name="widget_today_calories_medium_label">Today\'s Calories</string>
-    <string name="widget_today_calories_medium_description">Today\'s Calories — track calorie goal, exercise, and log food fast</string>
+    <string name="widget_today_calories_medium_description">Today — calorie gauge, macros, and Log food / Scan shortcuts</string>
     <string name="widget_today_macros_medium_label">Today\'s Macros</string>
-    <string name="widget_today_macros_medium_description">Today\'s Macros — keep your daily carb, fat, and protein goals on track</string>
+    <string name="widget_today_macros_medium_description">Macros — protein, carbs and fat against today\'s targets</string>
+    <string name="widget_fasting_description">Fasting — your running fast on a progress ring</string>
+    <string name="widget_search_food">Log food</string>
+    <string name="widget_scan_food">Scan barcode</string>
     <string name="workout_bubble_content_description">Herculex workout in progress — tap to open</string>
     <string name="workout_bubble_dismiss_content_description">Dismiss the workout bubble</string>
     <string name="workout_bubble_open_app">Open in Herculex</string>

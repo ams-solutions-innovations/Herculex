@@ -13,4 +13,8 @@
          Alpha is baked into the color, but the view's own alpha is what's
          actually animated for the fade in/out (see WorkoutBubbleController). -->
     <color name="bubble_scrim">#59000000</color>
+    <!-- Home-screen widget placeholder, before the first draw: Classic Blue
+         surfaceContainerLowest / outlineVariant at 30 %. -->
+    <color name="widget_hx_surface">#F5F9FF</color>
+    <color name="widget_hx_outline">#4DCFE0F3</color>
 </resources>

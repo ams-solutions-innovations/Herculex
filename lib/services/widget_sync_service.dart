@@ -1,4 +1,7 @@
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter/services.dart';
+
+import '../theme/tokens/hx_colors.dart';
 
 /// Pushes nutrition and fitness data to the Android home-screen widgets.
 ///
@@ -80,16 +83,87 @@ class WidgetSyncService {
     }
   }
 
-  /// Sync overall recovery score to the recovery pill widget.
+  /// Sync recovery to the Recovery widget.
   ///
-  /// [scorePct] is the average recovery across all muscle groups (0–100).
-  Future<void> syncRecovery({required int scorePct}) async {
+  /// [scorePct] is the average recovery across all muscle groups (0–100), or
+  /// -1 when there's nothing to score yet. [muscles] are the most fatigued
+  /// groups, worst first, as (name, recovery score 0–100).
+  Future<void> syncRecovery({
+    required int scorePct,
+    List<(String, int)> muscles = const [],
+  }) async {
     try {
       await _channel.invokeMethod('syncRecovery', {
         'scorePct': scorePct,
+        'muscles': [
+          for (final (name, score) in muscles) {'name': name, 'score': score},
+        ],
       });
     } on PlatformException catch (e) {
       debugPrint('[WidgetSync] syncRecovery failed: ${e.message}');
+    }
+  }
+
+  /// Sync the running fast to the Fasting widget. The widget computes the
+  /// clock itself, so this only needs to run when the session changes.
+  ///
+  /// Pass a null [startedAt] when no fast is running, and a null
+  /// [targetSeconds] for a Quick Fast. [planLabel] is the badge, e.g. "16:8".
+  Future<void> syncFasting({
+    required DateTime? startedAt,
+    required int? targetSeconds,
+    required String? planLabel,
+  }) async {
+    try {
+      await _channel.invokeMethod('syncFasting', {
+        'startedAtMs': startedAt?.millisecondsSinceEpoch,
+        'targetSeconds': targetSeconds,
+        'planLabel': planLabel,
+      });
+    } on PlatformException catch (e) {
+      debugPrint('[WidgetSync] syncFasting failed: ${e.message}');
+    }
+  }
+
+  /// Sync the selected app theme so the widgets draw with the same
+  /// [HxColors]. Both palettes are sent so a `system` [mode] can follow the
+  /// device's dark setting without the app running.
+  Future<void> syncTheme({
+    required ThemeMode mode,
+    required HxColors dark,
+    required HxColors light,
+  }) async {
+    Map<String, int> palette(HxColors c) => {
+      'surface': c.surfaceContainerLowest.toARGB32(),
+      'surfaceVariant': c.surfaceVariant.toARGB32(),
+      'outlineVariant': c.outlineVariant.toARGB32(),
+      'onSurface': c.onSurface.toARGB32(),
+      'secondary': c.secondary.toARGB32(),
+      'primary': c.primary.toARGB32(),
+      'onPrimary': c.onPrimary.toARGB32(),
+      'kcal': c.macroKcal.toARGB32(),
+      'protein': c.macroProtein.toARGB32(),
+      'carbs': c.macroCarbs.toARGB32(),
+      'fat': c.macroFat.toARGB32(),
+      'success': c.success.toARGB32(),
+      'warning': c.warning.toARGB32(),
+      'danger': c.danger.toARGB32(),
+      'recovery': c.domainRecovery.toARGB32(),
+      'fasting': c.domainFasting.toARGB32(),
+    };
+
+    try {
+      await _channel.invokeMethod('syncTheme', {
+        'mode': switch (mode) {
+          ThemeMode.dark => 'dark',
+          ThemeMode.light => 'light',
+          ThemeMode.system => 'system',
+        },
+        'dark': palette(dark),
+        'light': palette(light),
+      });
+    } on PlatformException catch (e) {
+      debugPrint('[WidgetSync] syncTheme failed: ${e.message}');
     }
   }
 }

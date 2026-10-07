@@ -1,56 +1,27 @@
 package com.ams.herculex
 
-import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
 import android.content.Context
-import android.graphics.Color
 import android.widget.RemoteViews
 
 /**
- * Recovery Score pill widget.
- *
- * Shows the average muscle recovery score (0–100) with a color-coded
- * horizontal progress bar: green ≥ 70, amber ≥ 30, red < 30.
+ * 2×2 Recovery widget: average recovery score plus the two most fatigued
+ * muscle groups. Data arrives through `syncRecovery`; tapping opens Recovery.
  */
-class RecoveryWidgetProvider : AppWidgetProvider() {
+class RecoveryWidgetProvider : HxWidgetProvider() {
 
-    override fun onUpdate(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray
-    ) {
-        val prefs = CnsWidgetProvider.getPrefs(context)
-        val score = prefs.getInt(KEY_RECOVERY_SCORE, -1)
+    override val defaultSize = 182f to 176f
 
-        for (id in appWidgetIds) {
-            val views = buildViews(context, score)
-            appWidgetManager.updateAppWidget(id, views)
-        }
-    }
+    override fun render(context: Context, renderer: HxWidgetRenderer, w: Float, h: Float): HxRendered =
+        renderer.recovery(w, h, recovery(CnsWidgetProvider.getPrefs(context)))
 
-    private fun buildViews(context: Context, score: Int): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.widget_pill_recovery)
-
-        if (score < 0) {
-            views.setTextViewText(R.id.recovery_score, "—")
-            views.setProgressBar(R.id.recovery_progress, 100, 0, false)
-        } else {
-            views.setTextViewText(R.id.recovery_score, "$score%")
-            views.setProgressBar(R.id.recovery_progress, 100, score, false)
-
-            val color = when {
-                score >= 70 -> Color.parseColor("#30D158")
-                score >= 30 -> Color.parseColor("#FFD60A")
-                else -> Color.parseColor("#FF453A")
-            }
-            views.setInt(R.id.recovery_progress, "setProgressTintList", color)
-        }
-
-        views.setOnClickPendingIntent(R.id.recovery_score, launchAppIntent(context))
-        return views
+    override fun bindClicks(context: Context, views: RemoteViews) {
+        views.setOnClickPendingIntent(R.id.widget_root, openRoute(context, 211, "/recovery"))
     }
 
     companion object {
         const val KEY_RECOVERY_SCORE = "widget_recovery_score"
+
+        /** JSON array of `{name, score}`, most fatigued first. */
+        const val KEY_RECOVERY_MUSCLES = "widget_recovery_muscles"
     }
 }

@@ -139,6 +139,15 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         }
         return;
       }
+      if (call.method == 'openRoute' && mounted) {
+        // Home-screen widgets that open a screen (CNS, Recovery, Fasting).
+        final route = call.arguments as String?;
+        if (route == null) return;
+        final router = ref.read(routerProvider);
+        router.go('/app');
+        router.push(route);
+        return;
+      }
       if (call.method == 'openNutrition' && mounted) {
         ref.read(mainTabIndexProvider.notifier).state = 1;
         ref.read(routerProvider).go('/app');
@@ -577,6 +586,8 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     ref.watch(widgetMacroSyncControllerProvider);
     ref.watch(widgetCnsSyncControllerProvider);
     ref.watch(widgetRecoverySyncControllerProvider);
+    ref.watch(widgetFastingSyncControllerProvider);
+    ref.watch(widgetThemeSyncControllerProvider);
 
     // Starts/stops Phase 10 cloud sync off the auth session — see
     // syncServiceProvider in app/providers.dart.

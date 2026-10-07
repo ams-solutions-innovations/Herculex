@@ -152,7 +152,7 @@
 
         <!-- ══ Home-screen widgets ════════════════════════════════════════════ -->
 
-        <!-- CNS Load pill widget -->
+        <!-- CNS Load (2x1) -->
         <receiver
             android:name=".CnsWidgetProvider"
             android:exported="true"
@@ -165,11 +165,11 @@
                 android:resource="@xml/widget_info_cns" />
         </receiver>
 
-        <!-- Recovery Score pill widget -->
+        <!-- Recovery (2x2) -->
         <receiver
             android:name=".RecoveryWidgetProvider"
             android:exported="true"
-            android:label="Recovery Score">
+            android:label="Recovery">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -178,11 +178,11 @@
                 android:resource="@xml/widget_info_recovery" />
         </receiver>
 
-        <!-- Net Carbs pill widget -->
+        <!-- Carbs (2x1) -->
         <receiver
             android:name=".CarbsWidgetProvider"
             android:exported="true"
-            android:label="Net Carbs">
+            android:label="Carbs">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -191,7 +191,7 @@
                 android:resource="@xml/widget_info_carbs" />
         </receiver>
 
-        <!-- Fat pill widget -->
+        <!-- Fat (2x1) -->
         <receiver
             android:name=".FatWidgetProvider"
             android:exported="true"
@@ -204,7 +204,7 @@
                 android:resource="@xml/widget_info_fat" />
         </receiver>
 
-        <!-- Protein pill widget -->
+        <!-- Protein (2x1) -->
         <receiver
             android:name=".ProteinWidgetProvider"
             android:exported="true"
@@ -217,11 +217,11 @@
                 android:resource="@xml/widget_info_protein" />
         </receiver>
 
-        <!-- Scan Food shortcut pill widget -->
+        <!-- Quick log: Scan + Search (2x1) -->
         <receiver
             android:name=".ScannerWidgetProvider"
             android:exported="true"
-            android:label="Scan Food">
+            android:label="Quick Log">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -230,11 +230,11 @@
                 android:resource="@xml/widget_info_scanner" />
         </receiver>
 
-        <!-- Today's Calories (Small 2x2) -->
+        <!-- Calories (2x2) -->
         <receiver
             android:name=".TodayCaloriesSmallWidgetProvider"
             android:exported="true"
-            android:label="Today\'s Calories (Small)">
+            android:label="Calories">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -243,11 +243,11 @@
                 android:resource="@xml/widget_info_today_calories_small" />
         </receiver>
 
-        <!-- Today's Calories (Medium 4x2) -->
+        <!-- Today: calories, macros, actions (4x2) -->
         <receiver
             android:name=".TodayCaloriesMediumWidgetProvider"
             android:exported="true"
-            android:label="Today\'s Calories">
+            android:label="Today">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -256,11 +256,24 @@
                 android:resource="@xml/widget_info_today_calories_medium" />
         </receiver>
 
-        <!-- Today's Macros (Medium 4x2) -->
+        <!-- Fasting (2x2) -->
+        <receiver
+            android:name=".FastingWidgetProvider"
+            android:exported="true"
+            android:label="Fasting">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_fasting" />
+        </receiver>
+
+        <!-- Macros (4x1) -->
         <receiver
             android:name=".TodayMacrosMediumWidgetProvider"
             android:exported="true"
-            android:label="Today\'s Macros">
+            android:label="Macros">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

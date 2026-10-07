@@ -13,6 +13,8 @@ import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 
 // The `health` plugin registers its Health Connect permission launcher via
 // registerForActivityResult, which requires a FragmentActivity host to work
@@ -290,10 +292,55 @@ class MainActivity : FlutterFragmentActivity() {
                     "syncRecovery" -> {
                         editor.putInt(
                             RecoveryWidgetProvider.KEY_RECOVERY_SCORE,
-                            call.argument<Int>("scorePct") ?: 0
+                            call.argument<Int>("scorePct") ?: -1
                         )
+                        val muscles = JSONArray()
+                        call.argument<List<Map<String, Any>>>("muscles")?.forEach {
+                            muscles.put(JSONObject().put("name", it["name"]).put("score", it["score"]))
+                        }
+                        editor.putString(RecoveryWidgetProvider.KEY_RECOVERY_MUSCLES, muscles.toString())
                         editor.apply()
                         refreshWidgets(RecoveryWidgetProvider::class.java)
+                        result.success(null)
+                    }
+
+                    "syncFasting" -> {
+                        val startedAt = call.argument<Number>("startedAtMs")?.toLong()
+                        val target = call.argument<Number>("targetSeconds")?.toLong()
+                        val plan = call.argument<String>("planLabel")
+                        if (startedAt != null) {
+                            editor.putLong(FastingWidgetProvider.KEY_FASTING_STARTED_AT, startedAt)
+                        } else {
+                            editor.remove(FastingWidgetProvider.KEY_FASTING_STARTED_AT)
+                        }
+                        if (target != null) {
+                            editor.putLong(FastingWidgetProvider.KEY_FASTING_TARGET_SECONDS, target)
+                        } else {
+                            editor.remove(FastingWidgetProvider.KEY_FASTING_TARGET_SECONDS)
+                        }
+                        if (plan != null) {
+                            editor.putString(FastingWidgetProvider.KEY_FASTING_PLAN, plan)
+                        } else {
+                            editor.remove(FastingWidgetProvider.KEY_FASTING_PLAN)
+                        }
+                        editor.apply()
+                        refreshWidgets(FastingWidgetProvider::class.java)
+                        result.success(null)
+                    }
+
+                    "syncTheme" -> {
+                        editor.putString(
+                            HxWidgetPalette.KEY_THEME_MODE,
+                            call.argument<String>("mode") ?: "system"
+                        )
+                        call.argument<Map<String, Number>>("dark")?.let {
+                            editor.putString(HxWidgetPalette.KEY_THEME_DARK, JSONObject(it).toString())
+                        }
+                        call.argument<Map<String, Number>>("light")?.let {
+                            editor.putString(HxWidgetPalette.KEY_THEME_LIGHT, JSONObject(it).toString())
+                        }
+                        editor.apply()
+                        refreshWidgets(*HxWidgetProvider.ALL_PROVIDERS)
                         result.success(null)
                     }
 
@@ -443,6 +490,14 @@ class MainActivity : FlutterFragmentActivity() {
                 MethodChannel(messenger, widgetChannel).invokeMethod("openFoodSearch", null)
             }
             intent?.action = null
+        }
+
+        if (intent?.action == HxWidgetProvider.ACTION_OPEN_ROUTE) {
+            val route = intent.getStringExtra(HxWidgetProvider.EXTRA_ROUTE)
+            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                MethodChannel(messenger, widgetChannel).invokeMethod("openRoute", route)
+            }
+            intent.action = null
         }
 
         if (intent?.action == TodayCaloriesSmallWidgetProvider.ACTION_OPEN_NUTRITION) {
