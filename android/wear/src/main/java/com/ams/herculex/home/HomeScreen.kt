@@ -1,11 +1,5 @@
 package com.ams.herculex.home
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,13 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -39,9 +29,14 @@ import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Text
 import com.ams.herculex.nutrition.NutritionViewModel
 import com.ams.herculex.sync.SyncService
+import com.ams.herculex.ui.HxIcons
 import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
-import kotlinx.coroutines.delay
+import com.ams.herculex.ui.OneUiPillTrailingIcon
+import com.ams.herculex.ui.SyncBadge
+import com.ams.herculex.ui.SyncDoneColor
+import com.ams.herculex.ui.SyncPhase
+import com.ams.herculex.ui.rememberSyncAnimationState
 import kotlinx.coroutines.launch
 import com.ams.herculex.workout.WorkoutViewModel
 import com.ams.herculex.workout.attachRotaryScroll
@@ -90,41 +85,25 @@ fun HomeScreen(
 
         // Sync with Phone Pill
         item {
-            var isSyncing by remember { mutableStateOf(false) }
+            val sync = rememberSyncAnimationState(durationMs = 2000)
             val scope = rememberCoroutineScope()
-            val rotation = if (isSyncing) {
-                val infiniteTransition = rememberInfiniteTransition(label = "SyncRotation")
-                infiniteTransition.animateFloat(
-                    initialValue = 0f,
-                    targetValue = 360f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1200, easing = LinearEasing),
-                        repeatMode = RepeatMode.Restart
-                    ),
-                    label = "Rotation"
-                ).value
-            } else {
-                0f
-            }
+            val style = OneUiPillStyle.SlateNavy
+            val phase = sync.frame.phase
 
             OneUiPill(
                 title = "Sync with Phone",
-                iconComposable = {
-                    Text(
-                        text = "🔄",
-                        fontSize = 16.sp,
-                        modifier = Modifier.rotate(rotation)
-                    )
+                subtitle = when (phase) {
+                    SyncPhase.Idle -> null
+                    SyncPhase.Syncing -> "Syncing…"
+                    SyncPhase.Done -> "Synced · just now"
                 },
-                style = OneUiPillStyle.SlateNavy,
+                subtitleColor = if (phase == SyncPhase.Done) SyncDoneColor else null,
+                iconComposable = { SyncBadge(sync, badgeColor = style.badgeColor) },
+                style = style,
                 onClick = {
-                    if (!isSyncing) {
-                        scope.launch {
-                            isSyncing = true
-                            SyncService.requestSyncFromPhone(context)
-                            delay(2000)
-                            isSyncing = false
-                        }
+                    if (sync.isIdle) {
+                        SyncService.requestSyncFromPhone(context)
+                        scope.launch { sync.play() }
                     }
                 },
             )
@@ -139,7 +118,7 @@ fun HomeScreen(
                     title = "Active Workout",
                     statValue = "%d:%02d".format(minutes, seconds),
                     statLabel = session?.template?.name ?: "Workout",
-                    icon = "⏱️",
+                    iconVector = HxIcons.Timer,
                     style = OneUiPillStyle.EmeraldGreen,
                     onClick = { navController.navigate("active_workout") },
                 )
@@ -151,7 +130,7 @@ fun HomeScreen(
             OneUiPill(
                 title = "Workouts",
                 subtitle = "Start or manage routines",
-                icon = "💪",
+                iconVector = HxIcons.Dumbbell,
                 style = OneUiPillStyle.RoyalBlue,
                 onClick = { navController.navigate("workout_list") },
             )
@@ -197,7 +176,7 @@ fun HomeScreen(
                 title = "Fasting",
                 statValue = data.fasting,
                 statLabel = "Duration",
-                icon = "⏳",
+                iconVector = HxIcons.Fasting,
                 style = OneUiPillStyle.VioletIndigo,
                 onClick = { navController.navigate("fasting") },
             )
@@ -214,7 +193,7 @@ fun HomeScreen(
                 title = "Weekly Volume",
                 statValue = "$tonnageText | ${data.weeklySets}",
                 statLabel = "Sets",
-                icon = "🏋️",
+                iconVector = HxIcons.Barbell,
                 style = OneUiPillStyle.SlateNavy,
                 onClick = { navController.navigate("weekly_volume") },
             )
@@ -226,12 +205,10 @@ fun HomeScreen(
 private fun OneUiPillCard(onClick: () -> Unit, content: @Composable () -> Unit) {
     OneUiPill(
         title = "Nutrition Overview",
-        icon = "🥗",
+        iconVector = HxIcons.Apple,
         style = OneUiPillStyle.Terracotta,
         onClick = onClick,
-        rightContent = {
-            Text("›", color = Color(0xFFFFCCBC), fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        }
+        rightContent = { OneUiPillTrailingIcon(HxIcons.Chevron, OneUiPillStyle.Terracotta) }
     )
 }
 
