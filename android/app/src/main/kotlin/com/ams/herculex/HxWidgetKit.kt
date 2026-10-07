@@ -3,6 +3,7 @@ package com.ams.herculex
 import android.content.res.AssetManager
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.DashPathEffect
 import android.graphics.LinearGradient
 import android.graphics.Matrix
 import android.graphics.Paint
@@ -10,6 +11,8 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
+import android.text.Layout
+import android.text.StaticLayout
 import android.text.TextPaint
 import android.text.TextUtils
 import java.io.File
@@ -70,6 +73,7 @@ data class HxTextStyle(
     /** CSS letter-spacing, in dp. */
     val tracking: Float = 0f,
     val tabular: Boolean = false,
+    val strike: Boolean = false,
 ) {
     fun withColor(c: Int) = copy(color = c)
 }
@@ -83,6 +87,19 @@ enum class HxIcon(val pathData: String) {
     RESTAURANT("M285-600v-250q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v250h65v-250q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v249.73q0 58.27-36.5 99.77Q397-459 345-448v338q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63Q285-97.25 285-110v-338q-52-11-88.5-52.5T160-600.27V-850q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v250h65Zm415 200h-85q-12.75 0-21.37-8.63Q585-417.25 585-430v-275q0-69 42.5-122t98.5-53q14 0 24 10.13T760-846v736q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63Q700-97.25 700-110v-290Z"),
     DIRECTIONS_RUN("M535-70v-209l-108-99-36 159q-3 12-13 18.5t-22 4.5l-208-43q-11-2-18-12t-5-22q2-12 12.5-18t21.5-4l171 34 73-369-100 47v104q0 13-8.5 21.5T273-449q-13 0-21.5-8.5T243-479v-125q0-9 5-16.5t13-11.5l146-61q32-14 45.5-17.5T480-714q20 0 35.5 8.5T542-680l42 67q23 37 60 65.5t86 36.5q13 2 21.5 10.5T760-479q0 12-8.5 21t-20.5 7q-57-6-102.5-36.5T543-573l-39 158 81 75q5 5 7.5 10.5T595-318v248q0 13-8.5 21.5T565-40q-13 0-21.5-8.5T535-70Zm-46.5-705.5Q467-797 467-827t21.5-51.5Q510-900 540-900t51.5 21.5Q613-857 613-827t-21.5 51.5Q570-754 540-754t-51.5-21.5Z"),
     BATTERY_CHARGING_FILLED("M660-200h-53q-9.39 0-13.7-7.5-4.3-7.5.7-15.5l92-147q3-5 8.5-3.5t5.5 7.5v86h53q9.39 0 13.7 7.5 4.3 7.5-.7 15.5l-92 148q-3 5-8.5 3.5T660-113v-87ZM310-80q-12.75 0-21.37-8.63Q280-97.25 280-110v-676q0-12.75 8.63-21.38Q297.25-816 310-816h90v-34q0-12.75 8.63-21.38Q417.25-880 430-880h100q12.75 0 21.38 8.62Q560-862.75 560-850v34h90q12.75 0 21.38 8.62Q680-798.75 680-786v313q0 7.97-5.93 13.76-5.92 5.79-14.07 7.24-38 4-71 20.03-33 16.02-58.67 41.66Q501-361 484-322.54q-17 38.45-17 83.54 0 35 11 66.5t30 57.5q8 11 2.5 23T492-80H310Z"),
+    FITNESS_CENTER("M268-650 147-529q-9 9-21 9t-21-9q-8-8-8.5-20.5T104-571l36-37-35-35q-9-9-9-21t9-21l64-64-21-21q-9-9-9-21t9-21q8-8 20.5-8.5T190-813l22 21 63-63q9-9 21-9t21 9l35 35 37-36q9-8 21-8t21 9q9 9 9 21t-9 21L310-692l382 382 121-121q9-9 21-9t21 9q8 8 8.5 20.5T856-389l-36 37 35 35q9 9 9 21t-9 21l-65 65 21 21q9 9 9 21t-9 21q-9 9-21 9t-21-9l-21-21-63 63q-9 9-21 9t-21-9l-35-35-37 36q-9 8-21 8t-21-9q-9-9-9-21t9-21l121-121-382-382Z"),
+    PLAY_FILLED("M320-258v-450q0-14 9-22t21-8q4 0 8 1t8 3l354 226q7 5 10.5 11t3.5 14q0 8-3.5 14T720-458L366-232q-4 2-8 3t-8 1q-12 0-21-8t-9-22Z"),
+    ADD("M450-450H230q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h220v-220q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v220h220q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H510v220q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63-8.5-8.62-8.5-21.37v-220Z"),
+    TROPHY("M450-180v-148q-54-11-96-46.5T296-463q-74-8-125-60t-51-125v-44q0-24.75 17.63-42.38Q155.25-752 180-752h104v-28q0-24.75 17.63-42.38Q319.25-840 344-840h272q24.75 0 42.38 17.62Q676-804.75 676-780v28h104q24.75 0 42.38 17.62Q840-716.75 840-692v44q0 73-51 125t-125 60q-16 53-58 88.5T510-328v148h122q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H328q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h122ZM284-526v-166H180v44q0 45 29.5 78.5T284-526Zm292.5 101.04Q616-464.92 616-522v-258H344v258q0 57.08 39.74 97.04Q423.47-385 480.24-385q56.76 0 96.26-39.96ZM676-526q45-10 74.5-43.5T780-648v-44H676v166Zm-196-57Z"),
+    BAR_CHART("M690-160q-12.75 0-21.37-8.63Q660-177.25 660-190v-220q0-12.75 8.63-21.38Q677.25-440 690-440h80q12.75 0 21.38 8.62Q800-422.75 800-410v220q0 12.75-8.62 21.37Q782.75-160 770-160h-80Zm-250 0q-12.75 0-21.37-8.63Q410-177.25 410-190v-580q0-12.75 8.63-21.38Q427.25-800 440-800h80q12.75 0 21.38 8.62Q550-782.75 550-770v580q0 12.75-8.62 21.37Q532.75-160 520-160h-80Zm-250 0q-12.75 0-21.37-8.63Q160-177.25 160-190v-380q0-12.75 8.63-21.38Q177.25-600 190-600h80q12.75 0 21.38 8.62Q300-582.75 300-570v380q0 12.75-8.62 21.37Q282.75-160 270-160h-80Z"),
+    MEDICATION("M440-380v72q0 17 11.74 28 11.73 11 28.5 11Q497-269 508-280.67q11-11.66 11-28.33v-71h74q16.67 0 28.33-11.74Q633-403.47 633-420.24q0-16.76-11.67-28.26Q609.67-460 593-460h-74v-72q0-17-11-28t-27.76-11q-16.77 0-28.5 11Q440-549 440-532v72h-73q-16.67 0-28.33 11.74Q327-436.53 327-419.76q0 16.76 11.67 28.26Q350.33-380 367-380h73ZM260-120q-24.75 0-42.37-17.63Q200-155.25 200-180v-479q0-24.75 17.63-42.38Q235.25-719 260-719h440q24.75 0 42.38 17.62Q760-683.75 760-659v479q0 24.75-17.62 42.37Q724.75-120 700-120H260Zm0-60h440v-479H260v479Zm10-600q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h421q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H270Zm-10 121v479-479Z"),
+    CHECK("m378-332 363-363q9-9 21.5-9t21.5 9q9 9 9 21.5t-9 21.5L399-267q-9 9-21 9t-21-9L175-449q-9-9-8.5-21.5T176-492q9-9 21.5-9t21.5 9l159 160Z"),
+    CHECK_BOX("m419-407-98-98q-9-9-21.5-8.5T278-504q-9 9-9 21.5t9 21.5l120 119q9 9 21 9t21-9l247-247q9-9 9-21.5t-9-21.5q-9-9-21.5-9t-21.5 9L419-407ZM180-120q-24 0-42-18t-18-42v-600q0-24 18-42t42-18h600q24 0 42 18t18 42v600q0 24-18 42t-42 18H180Zm0-60h600v-600H180v600Zm0-600v600-600Z"),
+    CHEVRON_RIGHT("M530-481 353-658q-9-9-8.5-21t9.5-21q9-9 21.5-9t21.5 9l198 198q5 5 7 10t2 11q0 6-2 11t-7 10L396-261q-9 9-21 8.5t-21-9.5q-9-9-9-21.5t9-21.5l176-176Z"),
+    WATER_DROP("M251.5-174Q160-268 160-408q0-64 29-127t72.5-121q43.5-58 94-108.5T450-854q7-6 14.5-8.5T480-865q8 0 15.5 2.5T510-854q44 39 94.5 89.5t94 108.5Q742-598 771-535t29 127q0 140-91.5 234T480-80q-137 0-228.5-94ZM666-216.5Q740-293 740-408q0-79-66.5-179.5T480-800Q353-688 286.5-587.5T220-408q0 115 74 191.5T480-140q112 0 186-76.5ZM480-480Zm-1 272q16 0 24.5-5.5T512-230q0-11-8.5-17t-25.5-6q-42 0-85.5-26.5T337-373q-2-9-9-14.5t-15-5.5q-11 0-17 8.5t-4 17.5q15 84 71 121.5T479-208Z"),
+    BOLT("m393-165 279-335H492l36-286-253 366h154l-36 255Zm-33-195H217q-18 0-26.5-16t2.5-31l338-488q8-11 20-15t24 1q12 5 19 16t5 24l-39 309h176q19 0 27 17t-4 32L388-66q-8 10-20.5 13T344-55q-11-5-17.5-16T322-95l38-265Zm113-115Z"),
+    FIRE("M253-173q-93-93-93-227 0-116 71.5-225T428-811q17-11 34.5-.5T480-780v72q0 34 23.5 57t57.5 23q18 0 33.5-7.5T622-658q8-9 18-12.5t19 2.5q66 45 103.5 116T800-400q0 134-93 227T480-80q-134 0-227-93Zm-33-227q0 63 28.5 118.5T328-189q-4-12-6-24.5t-2-24.5q0-32 12-60t35-51l113-111 113 111q23 23 35 51t12 60q0 12-2 24.5t-6 24.5q51-37 79.5-92.5T740-400q0-54-23-105.5T651-600q-21 15-44 23.5t-46 8.5q-61 0-101-41.5T420-714v-20q-92 66-146 156.5T220-400Zm260 24-71 70q-14 14-21.5 31t-7.5 37q0 41 29 69.5t71 28.5q42 0 71-28.5t29-69.5q0-20-7.5-37T551-306l-71-70Z"),
+    SPA("M452-84q-69-12-136-47.5t-119.5-95Q144-286 112-370T80-565v-10q0-11 8.5-19.5T108-603h10q53 0 113 20.5T337-530q8-79 40-163.5T455-845q10-14 25-14t25 14q46 67 78 151.5T623-530q46-30 106-51.5T842-603h10q11 0 19.5 8.5T880-575v10q0 111-32 195t-84.5 143.5Q711-167 644-131.5T508-84q-11 2-28 2t-28-2Zm36-57q-11-185-108.5-281T141-542q-2 0 0 0 13 191 113 286.5T488-141q1 1-.5.5t.5-.5Zm-93-351q23 20 46.5 50t37.5 56q14-26 38.5-56t47.5-50q5-67-20.5-138T480-775q-1-1 0 0-40 75-65 145t-20 138Zm118 170q12 38 21 76.5t14 87.5q47-17 93-45.5t83.5-74.5q37.5-46 63-111T819-542q0-2 0 0-106 17-187 75.5T513-322Z"),
     BOLT_FILLED("M360-360H217q-18 0-26.5-16t2.5-31l338-488q8-11 20-15t24 1q12 5 19 16t5 24l-39 309h176q19 0 27 17t-4 32L388-66q-8 10-20.5 13T344-55q-11-5-17.5-16T322-95l38-265Z");
 
     internal val path: Path by lazy { SvgPath.parse(pathData) }
@@ -194,6 +211,7 @@ class HxCanvas(val canvas: Canvas, val fonts: HxFonts) {
         color = style.color
         letterSpacing = if (style.size > 0) style.tracking / style.size else 0f
         fontFeatureSettings = if (style.tabular) "'tnum'" else null
+        isStrikeThruText = style.strike
     }
 
     fun width(s: String, style: HxTextStyle): Float = apply(style).measureText(s)
@@ -233,6 +251,85 @@ class HxCanvas(val canvas: Canvas, val fonts: HxFonts) {
         return p.measureText(shown)
     }
 
+    /**
+     * Wrapped text, at most [maxLines] lines with an ellipsis, starting at
+     * [top]. [lineHeight] is the CSS line-height in dp. Returns its height.
+     */
+    fun paragraph(
+        s: String, x: Float, top: Float, width: Float, style: HxTextStyle,
+        maxLines: Int, lineHeight: Float = lineHeight(style),
+    ): Float {
+        val p = TextPaint(apply(style))
+        val layout = StaticLayout.Builder.obtain(s, 0, s.length, p, width.toInt().coerceAtLeast(1))
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setMaxLines(maxLines)
+            .setEllipsize(TextUtils.TruncateAt.END)
+            .setIncludePad(false)
+            .setLineSpacing(lineHeight - (ascent(style) + descent(style)), 1f)
+            .build()
+        canvas.save()
+        // StaticLayout puts the extra spacing below each line; CSS splits it.
+        canvas.translate(x, top + (lineHeight - (ascent(style) + descent(style))) / 2)
+        layout.draw(canvas)
+        canvas.restore()
+        return layout.lineCount * lineHeight
+    }
+
+    /**
+     * The dashboard's trend sparkline: area, dashed [target] line and a 2.5 dp
+     * line, scaled to include the target with 15 % headroom.
+     */
+    fun sparkline(values: List<Float>, target: Float?, x: Float, y: Float, w: Float, h: Float, color: Int) {
+        if (values.size < 2) return
+        var lo = minOf(values.min(), target ?: values.min())
+        var hi = maxOf(values.max(), target ?: values.max())
+        val pad = ((hi - lo) * 0.15f).takeIf { it > 0f } ?: 1f
+        lo -= pad
+        hi += pad
+        fun py(v: Float) = y + h - (v - lo) / (hi - lo) * h
+        val line = Path()
+        values.forEachIndexed { i, v ->
+            val px = x + i * w / (values.size - 1)
+            if (i == 0) line.moveTo(px, py(v)) else line.lineTo(px, py(v))
+        }
+        val area = Path(line).apply {
+            lineTo(x + w, y + h)
+            lineTo(x, y + h)
+            close()
+        }
+        fill.shader = null
+        fill.style = Paint.Style.FILL
+        fill.color = alpha(color, 0.15f)
+        canvas.drawPath(area, fill)
+
+        fill.style = Paint.Style.STROKE
+        if (target != null) {
+            fill.strokeWidth = 1.5f
+            fill.color = alpha(color, 0.5f)
+            fill.pathEffect = DashPathEffect(floatArrayOf(4f, 4f), 0f)
+            canvas.drawLine(x, py(target), x + w, py(target), fill)
+            fill.pathEffect = null
+        }
+        fill.strokeWidth = 2.5f
+        fill.strokeCap = Paint.Cap.ROUND
+        fill.strokeJoin = Paint.Join.ROUND
+        fill.color = color
+        canvas.drawPath(line, fill)
+        fill.strokeCap = Paint.Cap.BUTT
+        fill.strokeJoin = Paint.Join.MITER
+        fill.style = Paint.Style.FILL
+    }
+
+    /** A ring outline, e.g. an unticked checkbox. */
+    fun ringOutline(cx: Float, cy: Float, radius: Float, stroke: Float, color: Int) {
+        fill.shader = null
+        fill.style = Paint.Style.STROKE
+        fill.strokeWidth = stroke
+        fill.color = color
+        canvas.drawCircle(cx, cy, radius - stroke / 2, fill)
+        fill.style = Paint.Style.FILL
+    }
+
     fun roundRect(l: Float, t: Float, r: Float, b: Float, radius: Float, color: Int) {
         if (Color.alpha(color) == 0) return
         fill.shader = null
@@ -240,6 +337,17 @@ class HxCanvas(val canvas: Canvas, val fonts: HxFonts) {
         fill.color = color
         rect.set(l, t, r, b)
         canvas.drawRoundRect(rect, radius, radius, fill)
+    }
+
+    /** A 1 dp hairline round rect, inside the given bounds. */
+    fun strokeRoundRect(l: Float, t: Float, r: Float, b: Float, radius: Float, color: Int) {
+        fill.shader = null
+        fill.style = Paint.Style.STROKE
+        fill.strokeWidth = 1f
+        fill.color = color
+        rect.set(l + 0.5f, t + 0.5f, r - 0.5f, b - 0.5f)
+        canvas.drawRoundRect(rect, radius - 0.5f, radius - 0.5f, fill)
+        fill.style = Paint.Style.FILL
     }
 
     fun circle(cx: Float, cy: Float, radius: Float, color: Int) {

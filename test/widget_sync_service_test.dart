@@ -86,7 +86,21 @@ void main() {
     expect(dark.keys, containsAll(<String>[
       'surface', 'surfaceVariant', 'outlineVariant', 'onSurface', 'secondary',
       'primary', 'onPrimary', 'kcal', 'protein', 'carbs', 'fat', 'success',
-      'warning', 'danger', 'recovery', 'fasting',
+      'warning', 'danger', 'recovery', 'fasting', 'nutrition',
     ]));
+  });
+
+  test('syncWidgetData sends key + payload and skips unchanged payloads', () async {
+    final sync = WidgetSyncService();
+    await sync.syncWidgetData('volume', {'sets': 64});
+    await sync.syncWidgetData('volume', {'sets': 64});
+    await sync.syncWidgetData('volume', {'sets': 65});
+    await sync.syncWidgetData('volume', null);
+
+    expect(calls.map((c) => c.arguments), [
+      {'key': 'volume', 'data': {'sets': 64}},
+      {'key': 'volume', 'data': {'sets': 65}},
+      {'key': 'volume', 'data': null},
+    ]);
   });
 }

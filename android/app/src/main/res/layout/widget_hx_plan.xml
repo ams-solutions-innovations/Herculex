@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 4×2 Today's Plan. The button target mirrors todaysPlan(): full width
+     inside 16 dp padding, PLAN_BUTTON (42 dp) tall, on the bottom edge. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/widget_canvas"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_hx_placeholder"
+        android:scaleType="fitXY" />
+
+    <FrameLayout
+        android:id="@+id/btn_primary"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:layout_gravity="bottom"
+        android:layout_margin="16dp"
+        android:background="@drawable/widget_hx_pill_ripple"
+        android:contentDescription="@string/widget_start_workout" />
+
+</FrameLayout>

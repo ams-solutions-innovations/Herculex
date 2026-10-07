@@ -56,24 +56,24 @@ enum class HxMacroKind(val caption: String, val title: String) {
 class HxRendered(val bitmap: Bitmap, val description: String)
 
 class HxWidgetRenderer(
-    private val fonts: HxFonts,
-    private val palette: HxWidgetPalette,
-    private val density: Float,
+    internal val fonts: HxFonts,
+    internal val palette: HxWidgetPalette,
+    internal val density: Float,
 ) {
-    private val p = palette
+    internal val p = palette
 
     // ── Type scale, as in the design ──────────────────────────────────────
-    private val label = HxTextStyle(MANROPE, 10f, 700, p.secondary, tracking = 0.8f)
+    internal val label = HxTextStyle(MANROPE, 10f, 700, p.secondary, tracking = 0.8f)
 
-    private fun grotesk(size: Float, color: Int, tracking: Float = 0f, weight: Int = 700) =
+    internal fun grotesk(size: Float, color: Int, tracking: Float = 0f, weight: Int = 700) =
         HxTextStyle(SPACE_GROTESK, size, weight, color, tracking, tabular = true)
 
-    private fun manrope(size: Float, weight: Int, color: Int, tracking: Float = 0f) =
+    internal fun manrope(size: Float, weight: Int, color: Int, tracking: Float = 0f) =
         HxTextStyle(MANROPE, size, weight, color, tracking)
 
-    private fun fmt(n: Int): String = String.format("%,d", n)
+    internal fun fmt(n: Int): String = String.format("%,d", n)
 
-    private inline fun draw(w: Float, h: Float, block: HxCanvas.() -> Unit): Bitmap {
+    internal inline fun draw(w: Float, h: Float, block: HxCanvas.() -> Unit): Bitmap {
         // RemoteViews bitmaps count against a per-widget memory budget; cap the
         // pixel count so a stretched 4×4 placement can't blow through it.
         val maxPixels = 1_600_000f
@@ -91,7 +91,7 @@ class HxWidgetRenderer(
     }
 
     /** Card header: caps label left, tinted icon chip right, centred on [cy]. */
-    private fun HxCanvas.header(w: Float, cy: Float, text: String, icon: HxIcon, accent: Int, iconSize: Float = 16f) {
+    internal fun HxCanvas.header(w: Float, cy: Float, text: String, icon: HxIcon, accent: Int, iconSize: Float = 16f) {
         this.text(text, 16f, baseline(cy - lineHeight(label) / 2, label), label, maxWidth = w - 32 - 26 - 8)
         iconChip(icon, w - 16 - 13, cy, 26f, iconSize, alpha(accent, 0.15f), accent)
     }
@@ -157,7 +157,7 @@ class HxWidgetRenderer(
         return HxRendered(bitmap, "Today. $desc. ${macroSummary(n)}")
     }
 
-    private fun HxCanvas.button(
+    internal fun HxCanvas.button(
         x: Float, y: Float, w: Float, h: Float,
         icon: HxIcon, iconSize: Float, text: String, style: HxTextStyle, bg: Int,
     ) {

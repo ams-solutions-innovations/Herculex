@@ -35,6 +35,8 @@ data class HxWidgetPalette(
     val danger: Int,
     val recovery: Int,
     val fasting: Int,
+    /** domainNutrition. */
+    val nutrition: Int,
 ) {
     /** Strength of the domain tint at the gradient's start, as in `HxCard`. */
     val gradientAmount: Float get() = if (isDark) 0.16f else 0.12f
@@ -69,6 +71,7 @@ data class HxWidgetPalette(
             danger = 0xFFFF453A.toInt(),
             recovery = 0xFFBF5AF2.toInt(),
             fasting = 0xFF64D2FF.toInt(),
+            nutrition = 0xFF30D158.toInt(),
         )
 
         val CLASSIC_BLUE_LIGHT = HxWidgetPalette(
@@ -89,6 +92,7 @@ data class HxWidgetPalette(
             danger = 0xFFC7261C.toInt(),
             recovery = 0xFF8036B8.toInt(),
             fasting = 0xFF0083A8.toInt(),
+            nutrition = 0xFF1E7A34.toInt(),
         )
 
         /** Resolves the palette for the app's theme mode and the system night mode. */
@@ -128,6 +132,7 @@ data class HxWidgetPalette(
                     danger = c("danger", fallback.danger),
                     recovery = c("recovery", fallback.recovery),
                     fasting = c("fasting", fallback.fasting),
+                    nutrition = c("nutrition", fallback.nutrition),
                 )
             } catch (_: Exception) {
                 null

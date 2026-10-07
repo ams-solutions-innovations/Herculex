@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter/services.dart';
 
@@ -125,6 +127,25 @@ class WidgetSyncService {
     }
   }
 
+  /// Last payload sent per [syncWidgetData] key, so unchanged rebuilds
+  /// don't redraw every widget.
+  static final _lastData = <String, String>{};
+
+  /// Push the payload for one of the training/body/habit widgets. [key]
+  /// names the widget (see `HxWidgetProvider.DATA_PROVIDERS`); values are
+  /// display-ready strings, so units and locale formatting stay in Dart.
+  /// A null [data] clears it back to the widget's empty state.
+  Future<void> syncWidgetData(String key, Map<String, Object?>? data) async {
+    final encoded = jsonEncode(data);
+    if (_lastData[key] == encoded) return;
+    try {
+      await _channel.invokeMethod('syncWidgetData', {'key': key, 'data': data});
+      _lastData[key] = encoded;
+    } on PlatformException catch (e) {
+      debugPrint('[WidgetSync] syncWidgetData($key) failed: ${e.message}');
+    }
+  }
+
   /// Sync the selected app theme so the widgets draw with the same
   /// [HxColors]. Both palettes are sent so a `system` [mode] can follow the
   /// device's dark setting without the app running.
@@ -150,6 +171,7 @@ class WidgetSyncService {
       'danger': c.danger.toARGB32(),
       'recovery': c.domainRecovery.toARGB32(),
       'fasting': c.domainFasting.toARGB32(),
+      'nutrition': c.domainNutrition.toARGB32(),
     };
 
     try {

@@ -10,6 +10,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.widget.RemoteViews
 import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * Base for the redesigned home-screen widgets.
@@ -74,9 +75,31 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
     companion object {
         const val ACTION_OPEN_ROUTE = "com.ams.herculex.ACTION_OPEN_ROUTE"
         const val EXTRA_ROUTE = "route"
+        const val ACTION_WIDGET_COMMAND = "com.ams.herculex.ACTION_WIDGET_COMMAND"
+        const val EXTRA_COMMAND = "command"
+        const val EXTRA_ARG = "arg"
+
+        /** Prefix of the JSON payloads pushed by Flutter's `syncWidgetData`. */
+        const val KEY_DATA_PREFIX = "widget_data_"
+
+        /** Which widgets redraw when `syncWidgetData` updates a key. */
+        val DATA_PROVIDERS: Map<String, Array<Class<*>>> = mapOf(
+            "plan" to arrayOf(TodaysPlanWidgetProvider::class.java),
+            "week" to arrayOf(WeekWidgetProvider::class.java),
+            "bodyweight" to arrayOf(BodyweightWidgetProvider::class.java),
+            "streak_workouts" to arrayOf(WorkoutStreakWidgetProvider::class.java),
+            "streak_logging" to arrayOf(LoggingStreakWidgetProvider::class.java),
+            "prs" to arrayOf(LatestPrsWidgetProvider::class.java),
+            "volume" to arrayOf(VolumeWidgetProvider::class.java),
+            "next_focus" to arrayOf(NextFocusWidgetProvider::class.java),
+            "supplements" to arrayOf(SupplementsWidgetProvider::class.java),
+            "mini" to arrayOf(MiniWorkoutWidgetProvider::class.java),
+            "intake" to arrayOf(IntakeTrendWidgetProvider::class.java),
+            "cycle" to arrayOf(CycleWidgetProvider::class.java),
+        )
 
         /** Every widget, for redraws that affect all of them (theme changes). */
-        val ALL_PROVIDERS: Array<Class<*>> = arrayOf(
+        val ALL_PROVIDERS: Array<Class<*>> = arrayOf<Class<*>>(
             TodayCaloriesMediumWidgetProvider::class.java,
             TodayCaloriesSmallWidgetProvider::class.java,
             TodayMacrosMediumWidgetProvider::class.java,
@@ -87,7 +110,7 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
             ProteinWidgetProvider::class.java,
             CarbsWidgetProvider::class.java,
             FatWidgetProvider::class.java,
-        )
+        ) + DATA_PROVIDERS.values.flatMap { it.asList() }
 
         /** A tap that opens [MainActivity] with [action], which Flutter routes on. */
         fun appAction(context: Context, requestCode: Int, action: String, route: String? = null): PendingIntent {
@@ -103,6 +126,60 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
         }
+
+        /** A tap Flutter handles as an in-app action, e.g. starting today's plan. */
+        fun command(context: Context, requestCode: Int, command: String, arg: String? = null): PendingIntent {
+            val intent = Intent(context, MainActivity::class.java).apply {
+                action = ACTION_WIDGET_COMMAND
+                putExtra(EXTRA_COMMAND, command)
+                arg?.let { putExtra(EXTRA_ARG, it) }
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            return PendingIntent.getActivity(
+                context,
+                requestCode,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+        }
+
+        /** Opens a main tab: 0 dashboard, 1 nutrition, 2 workouts. */
+        fun openTab(context: Context, requestCode: Int, tab: Int) = command(context, requestCode, "openTab", "$tab")
+
+        /** The payload Flutter last pushed for [key], or null before the first sync. */
+        fun data(context: Context, key: String): JSONObject? =
+            CnsWidgetProvider.getPrefs(context).getString(KEY_DATA_PREFIX + key, null)?.let {
+                try {
+                    JSONObject(it)
+                } catch (_: Exception) {
+                    null
+                }
+            }
+
+        fun JSONObject.optStringOrNull(name: String): String? =
+            if (isNull(name)) null else optString(name)
+
+        fun JSONObject.floats(name: String): List<Float> {
+            val arr = optJSONArray(name) ?: return emptyList()
+            return (0 until arr.length()).map { arr.getDouble(it).toFloat() }
+        }
+
+        /** Value, unit and sparkline series; [emptyUnit] shows when nothing is logged. */
+        fun trend(d: JSONObject?, emptyUnit: String): HxTrend {
+            val value = d?.optStringOrNull("value")
+            return HxTrend(
+                value = value,
+                unit = if (value == null) emptyUnit else d.optString("unit"),
+                series = d?.floats("series") ?: emptyList(),
+                target = if (d == null || d.isNull("target")) null else d.getDouble("target").toFloat(),
+            )
+        }
+
+        fun streak(d: JSONObject?, defaultUnit: String) = HxStreak(
+            current = d?.optInt("current") ?: 0,
+            unit = d?.optString("unit")?.takeIf { it.isNotEmpty() } ?: defaultUnit,
+            activeToday = d?.optBoolean("activeToday") ?: false,
+        )
 
         fun openNutrition(context: Context) =
             appAction(context, 201, TodayCaloriesSmallWidgetProvider.ACTION_OPEN_NUTRITION)

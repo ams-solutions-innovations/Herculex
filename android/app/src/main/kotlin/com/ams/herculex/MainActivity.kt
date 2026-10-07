@@ -328,6 +328,24 @@ class MainActivity : FlutterFragmentActivity() {
                         result.success(null)
                     }
 
+                    "syncWidgetData" -> {
+                        val key = call.argument<String>("key")
+                        val providers = key?.let { HxWidgetProvider.DATA_PROVIDERS[it] }
+                        if (providers == null) {
+                            result.error("UNKNOWN_KEY", "No widget for key $key", null)
+                            return@setMethodCallHandler
+                        }
+                        val data = call.argument<Map<String, Any?>>("data")
+                        if (data == null) {
+                            editor.remove(HxWidgetProvider.KEY_DATA_PREFIX + key)
+                        } else {
+                            editor.putString(HxWidgetProvider.KEY_DATA_PREFIX + key, JSONObject(data).toString())
+                        }
+                        editor.apply()
+                        refreshWidgets(*providers)
+                        result.success(null)
+                    }
+
                     "syncTheme" -> {
                         editor.putString(
                             HxWidgetPalette.KEY_THEME_MODE,
@@ -490,6 +508,17 @@ class MainActivity : FlutterFragmentActivity() {
                 MethodChannel(messenger, widgetChannel).invokeMethod("openFoodSearch", null)
             }
             intent?.action = null
+        }
+
+        if (intent?.action == HxWidgetProvider.ACTION_WIDGET_COMMAND) {
+            val args = mapOf(
+                "command" to intent.getStringExtra(HxWidgetProvider.EXTRA_COMMAND),
+                "arg" to intent.getStringExtra(HxWidgetProvider.EXTRA_ARG),
+            )
+            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                MethodChannel(messenger, widgetChannel).invokeMethod("widgetCommand", args)
+            }
+            intent.action = null
         }
 
         if (intent?.action == HxWidgetProvider.ACTION_OPEN_ROUTE) {

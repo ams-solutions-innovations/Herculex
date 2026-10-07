@@ -282,6 +282,162 @@
                 android:resource="@xml/widget_info_today_macros_medium" />
         </receiver>
 
+        <!-- Today's Plan (4x2) -->
+        <receiver
+            android:name=".TodaysPlanWidgetProvider"
+            android:exported="true"
+            android:label="Today\'s Plan">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_todays_plan" />
+        </receiver>
+
+        <!-- This Week (4x1) -->
+        <receiver
+            android:name=".WeekWidgetProvider"
+            android:exported="true"
+            android:label="This Week">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_week" />
+        </receiver>
+
+        <!-- Bodyweight (2x2) -->
+        <receiver
+            android:name=".BodyweightWidgetProvider"
+            android:exported="true"
+            android:label="Bodyweight">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_bodyweight" />
+        </receiver>
+
+        <!-- Workout Streak (2x1) -->
+        <receiver
+            android:name=".WorkoutStreakWidgetProvider"
+            android:exported="true"
+            android:label="Workout Streak">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_workout_streak" />
+        </receiver>
+
+        <!-- Logging Streak (2x1) -->
+        <receiver
+            android:name=".LoggingStreakWidgetProvider"
+            android:exported="true"
+            android:label="Logging Streak">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_logging_streak" />
+        </receiver>
+
+        <!-- Latest PRs (2x2) -->
+        <receiver
+            android:name=".LatestPrsWidgetProvider"
+            android:exported="true"
+            android:label="Latest PRs">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_latest_prs" />
+        </receiver>
+
+        <!-- Weekly Volume (2x1) -->
+        <receiver
+            android:name=".VolumeWidgetProvider"
+            android:exported="true"
+            android:label="Weekly Volume">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_volume" />
+        </receiver>
+
+        <!-- Next Focus (2x1) -->
+        <receiver
+            android:name=".NextFocusWidgetProvider"
+            android:exported="true"
+            android:label="Next Focus">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_next_focus" />
+        </receiver>
+
+        <!-- Supplements (4x2) -->
+        <receiver
+            android:name=".SupplementsWidgetProvider"
+            android:exported="true"
+            android:label="Supplements">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_supplements" />
+        </receiver>
+
+        <!-- Mini Workout (4x1) -->
+        <receiver
+            android:name=".MiniWorkoutWidgetProvider"
+            android:exported="true"
+            android:label="Mini Workout">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_mini_workout" />
+        </receiver>
+
+        <!-- Intake Trend (2x2) -->
+        <receiver
+            android:name=".IntakeTrendWidgetProvider"
+            android:exported="true"
+            android:label="Intake Trend">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_intake_trend" />
+        </receiver>
+
+        <!-- Cycle (2x2) -->
+        <receiver
+            android:name=".CycleWidgetProvider"
+            android:exported="true"
+            android:label="Cycle">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_cycle" />
+        </receiver>
+
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
