@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
@@ -206,6 +207,11 @@ class _HealthIntegrationsViewState
               alignment: Alignment.centerRight,
               child: Switch(
                 value: autoAdjust,
+                activeTrackColor: AppColors.primary,
+                activeThumbColor: Colors.white,
+                trackOutlineColor: const WidgetStatePropertyAll(
+                  Colors.transparent,
+                ),
                 onChanged: (val) {
                   ref.read(autoAdjustGymVolumeProvider.notifier).state = val;
                 },
@@ -340,7 +346,11 @@ class _HealthIntegrationsViewState
             // Toggle
             Switch(
               value: isConnected,
-              activeThumbColor: accentColor,
+              activeTrackColor: accentColor,
+              activeThumbColor: Colors.white,
+              trackOutlineColor: const WidgetStatePropertyAll(
+                Colors.transparent,
+              ),
               onChanged: (val) => _togglePermission(permKey, val),
             ),
             // Chevron
@@ -365,10 +375,24 @@ class _HealthIntegrationsViewState
     final availableCals =
         ref.watch(availableCalendarsProvider).valueOrNull ?? [];
 
-    final selectedCalName = selectedCalId == null
-        ? 'Herculex Training'
-        : (availableCals.firstWhereOrNull((c) => c.id == selectedCalId)?.name ??
-              'Selected Calendar');
+    final selectedCal = selectedCalId == null
+        ? null
+        : availableCals.firstWhereOrNull((c) => c.id == selectedCalId);
+
+    final selectedCalName = selectedCal != null
+        ? (selectedCal.name ?? 'Selected Calendar')
+        : (availableCals
+                  .firstWhereOrNull((c) => c.name == 'Herculex Training')
+                  ?.name ??
+              availableCals
+                  .firstWhereOrNull(
+                    (c) =>
+                        c.accountType?.toLowerCase().contains('google') ==
+                            true ||
+                        c.accountName?.contains('@') == true,
+                  )
+                  ?.name ??
+              'Auto (Google / Dedicated)');
 
     const accentColor = Color(0xFF6750A4);
 
@@ -454,7 +478,11 @@ class _HealthIntegrationsViewState
               // Toggle
               Switch(
                 value: isSyncEnabled,
-                activeThumbColor: accentColor,
+                activeTrackColor: accentColor,
+                activeThumbColor: Colors.white,
+                trackOutlineColor: const WidgetStatePropertyAll(
+                  Colors.transparent,
+                ),
                 onChanged: (val) async {
                   if (val) {
                     final granted = await ref
@@ -464,9 +492,29 @@ class _HealthIntegrationsViewState
                       await ref
                           .read(calendarSyncEnabledProvider.notifier)
                           .toggle(true);
-                      await ref
+                      ref.invalidate(availableCalendarsProvider);
+                      final res = await ref
                           .read(calendarSyncControllerProvider.notifier)
                           .syncNow();
+                      if (mounted) {
+                        AppNotice.show(
+                          context,
+                          res.success
+                              ? 'Calendar connected! Synced ${res.pushedCount} workout(s).'
+                              : 'Connected, but sync issue: ${res.error}',
+                          kind: res.success
+                              ? AppNoticeKind.success
+                              : AppNoticeKind.error,
+                        );
+                      }
+                    } else {
+                      if (mounted) {
+                        AppNotice.show(
+                          context,
+                          'Calendar permission denied. Please allow calendar access in device Settings.',
+                          kind: AppNoticeKind.error,
+                        );
+                      }
                     }
                   } else {
                     await ref
@@ -538,15 +586,14 @@ class _HealthIntegrationsViewState
                               .read(calendarSyncControllerProvider.notifier)
                               .syncNow();
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  res.success
-                                      ? 'Calendar synced (${res.pushedCount} pushed, ${res.pulledCount} pulled)'
-                                      : 'Sync error: ${res.error}',
-                                ),
-                                duration: const Duration(seconds: 2),
-                              ),
+                            AppNotice.show(
+                              context,
+                              res.success
+                                  ? 'Calendar synced (${res.pushedCount} pushed, ${res.pulledCount} pulled)'
+                                  : 'Sync error: ${res.error}',
+                              kind: res.success
+                                  ? AppNoticeKind.success
+                                  : AppNoticeKind.error,
                             );
                           }
                         },
@@ -575,6 +622,7 @@ class _HealthIntegrationsViewState
   }
 
   void _showCalendarPickerSheet(BuildContext context) {
+    ref.invalidate(availableCalendarsProvider);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -608,11 +656,22 @@ class _HealthIntegrationsViewState
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Select Calendar for Workouts',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Select Calendar for Workouts',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.refresh_rounded, size: 20),
+                        tooltip: 'Refresh calendars',
+                        onPressed: () =>
+                            ref.invalidate(availableCalendarsProvider),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -633,8 +692,10 @@ class _HealthIntegrationsViewState
                       Icons.auto_awesome,
                       color: Color(0xFF6750A4),
                     ),
-                    title: const Text('Herculex Training (Dedicated)'),
-                    subtitle: const Text('Creates a separate clean calendar'),
+                    title: const Text('Auto / Dedicated Calendar'),
+                    subtitle: const Text(
+                      'Uses Herculex Training or default Google Calendar',
+                    ),
                     trailing: currentSelected == null
                         ? const Icon(
                             Icons.check_circle,
@@ -645,16 +706,38 @@ class _HealthIntegrationsViewState
                       ref
                           .read(selectedCalendarIdProvider.notifier)
                           .setCalendarId(null);
+                      ref
+                          .read(calendarSyncControllerProvider.notifier)
+                          .syncNow();
                       Navigator.pop(ctx);
                     },
                   ),
                   const Divider(height: 16),
                   calsAsync.when(
                     data: (cals) {
+                      if (cals.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Center(
+                            child: Text(
+                              'No other writable calendars found',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
                       return Column(
                         mainAxisSize: MainAxisSize.min,
                         children: cals.map((cal) {
                           final isSelected = currentSelected == cal.id;
+                          final isGoogle =
+                              (cal.accountType?.toLowerCase().contains(
+                                    'google',
+                                  ) ==
+                                  true) ||
+                              (cal.accountName?.contains('@') == true);
                           return ListTile(
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -665,13 +748,22 @@ class _HealthIntegrationsViewState
                                   )
                                 : null,
                             leading: Icon(
-                              Icons.calendar_today_rounded,
-                              color: cal.color != null
-                                  ? Color(cal.color!)
-                                  : AppColors.secondary,
+                              isGoogle
+                                  ? Icons.g_mobiledata_rounded
+                                  : Icons.calendar_today_rounded,
+                              color: isSelected
+                                  ? const Color(0xFF6750A4)
+                                  : (cal.color != null
+                                        ? Color(cal.color!)
+                                        : AppColors.secondary),
+                              size: isGoogle ? 28 : 22,
                             ),
                             title: Text(cal.name ?? 'Unnamed Calendar'),
-                            subtitle: Text(cal.accountName ?? 'Local Account'),
+                            subtitle: Text(
+                              isGoogle
+                                  ? 'Google Calendar · ${cal.accountName}'
+                                  : (cal.accountName ?? 'Local Account'),
+                            ),
                             trailing: isSelected
                                 ? const Icon(
                                     Icons.check_circle,
@@ -682,6 +774,9 @@ class _HealthIntegrationsViewState
                               ref
                                   .read(selectedCalendarIdProvider.notifier)
                                   .setCalendarId(cal.id);
+                              ref
+                                  .read(calendarSyncControllerProvider.notifier)
+                                  .syncNow();
                               Navigator.pop(ctx);
                             },
                           );
@@ -1165,13 +1260,12 @@ class _HealthIntegrationsViewState
     ref.read(lastHealthSyncTimestampProvider.notifier).state = DateTime.now();
     if (!mounted) return;
     setState(() => _isSyncing = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_syncMessage(result)),
-        backgroundColor: result.hasAnyAvailableMetric
-            ? AppColors.primary
-            : Theme.of(context).colorScheme.error,
-      ),
+    AppNotice.show(
+      context,
+      _syncMessage(result),
+      kind: result.hasAnyAvailableMetric
+          ? AppNoticeKind.success
+          : AppNoticeKind.error,
     );
   }
 

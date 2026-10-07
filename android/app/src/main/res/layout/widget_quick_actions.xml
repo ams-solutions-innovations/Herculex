@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Quick Actions row (4x1): water, scan, log food, start workout.
-     Purely static tap targets — no dynamic data, never synced. -->
+<!-- Quick Actions row (4x1): water, barcode scan, AI camera, and workout.
+     Modern glassmorphic shelf with tactile interactive capsules. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
@@ -9,138 +9,142 @@
     android:gravity="center_vertical"
     android:paddingStart="10dp"
     android:paddingEnd="10dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
     android:background="@drawable/widget_card_bg">
 
     <!-- Water -->
     <LinearLayout
         android:id="@+id/col_quick_water"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:gravity="center">
+        android:gravity="center"
+        android:background="@drawable/widget_action_btn_bg"
+        android:clickable="true">
 
         <ImageView
             android:id="@+id/btn_quick_water"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:padding="8dp"
-            android:background="@drawable/widget_action_btn_bg"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:src="@drawable/ic_widget_water_drop"
             android:contentDescription="Add 250 ml water" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="3dp"
             android:text="+250 ml"
-            android:textSize="9sp"
-            android:textColor="#94A3B8" />
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@color/widget_text_primary"
+            android:includeFontPadding="false" />
 
     </LinearLayout>
 
-    <!-- Divider. FrameLayout, not View: RemoteViews only inflates @RemoteView
-         classes and plain android.view.View is not one of them. -->
+    <!-- Spacer -->
     <FrameLayout
-        android:layout_width="1dp"
-        android:layout_height="34dp"
-        android:background="#2B374E" />
+        android:layout_width="6dp"
+        android:layout_height="1dp" />
 
-    <!-- Scan -->
+    <!-- Scan Barcode -->
     <LinearLayout
         android:id="@+id/col_quick_scan"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:gravity="center">
+        android:gravity="center"
+        android:background="@drawable/widget_action_btn_bg"
+        android:clickable="true">
 
         <ImageView
             android:id="@+id/btn_quick_scan"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:padding="8dp"
-            android:background="@drawable/widget_action_btn_bg"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:src="@drawable/ic_widget_barcode"
-            android:contentDescription="Scan a barcode" />
+            android:contentDescription="Scan food barcode" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="3dp"
             android:text="Scan"
-            android:textSize="9sp"
-            android:textColor="#94A3B8" />
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@color/widget_text_primary"
+            android:includeFontPadding="false" />
 
     </LinearLayout>
 
-    <!-- Divider. FrameLayout, not View: RemoteViews only inflates @RemoteView
-         classes and plain android.view.View is not one of them. -->
+    <!-- Spacer -->
     <FrameLayout
-        android:layout_width="1dp"
-        android:layout_height="34dp"
-        android:background="#2B374E" />
+        android:layout_width="6dp"
+        android:layout_height="1dp" />
 
-    <!-- Log food -->
+    <!-- AI Camera Food Log -->
     <LinearLayout
-        android:id="@+id/col_quick_log_food"
+        android:id="@+id/col_quick_camera"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:gravity="center">
+        android:gravity="center"
+        android:background="@drawable/widget_action_btn_bg"
+        android:clickable="true">
 
         <ImageView
-            android:id="@+id/btn_quick_log_food"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:padding="8dp"
-            android:background="@drawable/widget_action_btn_bg"
-            android:src="@drawable/ic_widget_cutlery"
-            android:contentDescription="Log food" />
+            android:id="@+id/btn_quick_camera"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_widget_camera"
+            android:contentDescription="Log food with AI photo" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Log food"
-            android:textSize="9sp"
-            android:textColor="#94A3B8" />
+            android:layout_marginTop="3dp"
+            android:text="AI Food"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@color/widget_text_primary"
+            android:includeFontPadding="false" />
 
     </LinearLayout>
 
-    <!-- Divider. FrameLayout, not View: RemoteViews only inflates @RemoteView
-         classes and plain android.view.View is not one of them. -->
+    <!-- Spacer -->
     <FrameLayout
-        android:layout_width="1dp"
-        android:layout_height="34dp"
-        android:background="#2B374E" />
+        android:layout_width="6dp"
+        android:layout_height="1dp" />
 
-    <!-- Start workout -->
+    <!-- Start Workout (Highlighted) -->
     <LinearLayout
         android:id="@+id/col_quick_workout"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:gravity="center">
+        android:gravity="center"
+        android:background="@drawable/widget_action_btn_bg_highlight"
+        android:clickable="true">
 
         <ImageView
             android:id="@+id/btn_quick_workout"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:padding="8dp"
-            android:background="@drawable/widget_action_btn_bg_highlight"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:src="@drawable/ic_widget_play"
             android:contentDescription="Start workout" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="3dp"
             android:text="Workout"
-            android:textSize="9sp"
-            android:textColor="#94A3B8" />
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:includeFontPadding="false" />
 
     </LinearLayout>
 

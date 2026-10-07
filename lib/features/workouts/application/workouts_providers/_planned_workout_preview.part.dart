@@ -8,10 +8,15 @@ class PlannedWorkoutPreviewData {
   final Map<int, ExerciseCatalogData> exercises;
   final String status;
 
+  /// The schedule row, program day and (if any) template behind the plan —
+  /// what the preview's Edit action needs to open or create a template.
+  final TodaysScheduledWorkout scheduled;
+
   const PlannedWorkoutPreviewData({
     required this.plan,
     required this.exercises,
     required this.status,
+    required this.scheduled,
   });
 }
 
@@ -33,5 +38,6 @@ final plannedWorkoutPreviewProvider = FutureProvider.autoDispose
         plan: plan,
         exercises: exercises,
         status: today.schedule.status,
+        scheduled: today,
       );
     });

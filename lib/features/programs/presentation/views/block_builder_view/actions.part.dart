@@ -96,7 +96,7 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
     setState(() => _saving = true);
     final repo = ref.read(programsRepositoryProvider);
     final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final notices = AppNotice.of(context);
 
     int? createdProgramId;
     try {
@@ -255,9 +255,7 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
         await repo.deleteProgram(createdProgramId);
       }
       if (mounted) setState(() => _saving = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text('Could not create the block: $e')),
-      );
+      notices.show('Could not create the block: $e', kind: AppNoticeKind.error);
     }
   }
 

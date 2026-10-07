@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Solid blue pill background for the "Start workout" button -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <corners android:radius="999dp" />
-    <solid android:color="#0A84FF" />
+    <solid android:color="@color/widget_start_workout_bg" />
 </shape>

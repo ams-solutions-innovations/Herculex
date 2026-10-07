@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
@@ -66,20 +68,41 @@ class SmartWorkoutLauncherCard extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      icon: const Icon(Icons.play_arrow),
-                      label: Text('Start ${workout.programDay.name}?'),
-                      onPressed: () async {
-                        final gym = await GymPickerSheet.resolve(context, ref);
-                        if (gym.cancelled) return;
-                        await ref
-                            .read(scheduledWorkoutServiceProvider)
-                            .startScheduledWorkout(workout, gymId: gym.gymId);
-                        ref.invalidate(todaysScheduledWorkoutProvider);
-                      },
-                    ),
+                  Row(
+                    children: [
+                      // See what today holds before committing to it.
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.visibility_outlined, size: 18),
+                        label: const Text('View'),
+                        onPressed: () => context.push(
+                          AppPaths.plannedWorkoutPreview(workout.schedule.id),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.play_arrow),
+                          label: Text(
+                            'Start ${workout.programDay.name}?',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onPressed: () async {
+                            final gym = await GymPickerSheet.resolve(
+                              context,
+                              ref,
+                            );
+                            if (gym.cancelled) return;
+                            await ref
+                                .read(scheduledWorkoutServiceProvider)
+                                .startScheduledWorkout(
+                                  workout,
+                                  gymId: gym.gymId,
+                                );
+                            ref.invalidate(todaysScheduledWorkoutProvider);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               );

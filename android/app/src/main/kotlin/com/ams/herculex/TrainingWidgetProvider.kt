@@ -3,23 +3,34 @@ package com.ams.herculex
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.view.View
 import android.widget.RemoteViews
 
 /**
- * "Training" widget (4x4).
+ * "Training" widget (4x3).
  *
  * Shows today's planned workout (title, exercise count, program week) and up
  * to 4 of today's supplements with a static taken/not-taken indicator.
  * Populated via [MainActivity]'s MethodChannel handler (`syncTraining`)
  * whenever the dashboard's today's-session provider or the supplement
- * tracker changes — see `widgetTrainingSyncControllerProvider` in
- * `dashboard_providers.dart`.
+ * tracker changes.
  */
 class TrainingWidgetProvider : AppWidgetProvider() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == Intent.ACTION_CONFIGURATION_CHANGED) {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val componentName = ComponentName(context, javaClass)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            if (appWidgetIds.isNotEmpty()) {
+                onUpdate(context, appWidgetManager, appWidgetIds)
+            }
+        }
+    }
 
     override fun onUpdate(
         context: Context,
@@ -118,6 +129,9 @@ class TrainingWidgetProvider : AppWidgetProvider() {
             R.id.training_supp_time_3, R.id.training_supp_time_4,
         )
 
+        val textTertiary = context.getColor(R.color.widget_text_tertiary)
+        val textPrimary = context.getColor(R.color.widget_text_primary)
+
         for (i in 0 until MAX_SUPPLEMENT_ROWS) {
             if (i >= names.size || names[i].isEmpty()) {
                 views.setViewVisibility(rowIds[i], View.GONE)
@@ -135,8 +149,6 @@ class TrainingWidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(timeIds[i], time)
             }
 
-            // Filled purple circle + visible checkmark when taken; plain
-            // outline circle with the checkmark hidden otherwise.
             val isTaken = taken.getOrElse(i) { "0" } == "1"
             views.setInt(
                 dotIds[i],
@@ -147,19 +159,14 @@ class TrainingWidgetProvider : AppWidgetProvider() {
             views.setInt(dotIds[i], "setImageAlpha", if (isTaken) 255 else 0)
             views.setTextColor(
                 nameIds[i],
-                if (isTaken) Color.parseColor("#64748B") else Color.parseColor("#F5F5F7")
+                if (isTaken) textTertiary else textPrimary
             )
         }
 
         // Tap anywhere on the card opens the app
         views.setOnClickPendingIntent(R.id.widget_root, launchAppIntent(context))
 
-        // "Start workout" jumps straight to the workout tab/active-session
-        // screen — the same `open_active_workout` extra the Workout Bubble
-        // and watch notifications already use (see WorkoutBubbleController.kt
-        // and MainActivity.handleWorkoutsIntent). No dedicated AppRoutes
-        // constant exists for "today's workout", so this is the closest
-        // existing deep link rather than a raw string route.
+        // "Start workout" jumps straight to the workout tab/active-session screen
         val startWorkoutIntent = Intent(context, MainActivity::class.java).apply {
             putExtra("open_active_workout", true)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -186,13 +193,7 @@ class TrainingWidgetProvider : AppWidgetProvider() {
         const val KEY_SUPP_TAKEN_COUNT = "widget_training_supp_taken_count"
         const val KEY_SUPP_TOTAL_COUNT = "widget_training_supp_total_count"
 
-        /**
-         * SharedPreferences only stores primitives, so per-supplement fields
-         * are packed into a single delimited string, one field per pref key.
-         * The ASCII Unit Separator control character cannot appear in a
-         * supplement name/dose/time typed through the app's UI.
-         */
-        const val FIELD_DELIMITER = ""
+        const val FIELD_DELIMITER = "\u001F"
         const val MAX_SUPPLEMENT_ROWS = 4
     }
 }

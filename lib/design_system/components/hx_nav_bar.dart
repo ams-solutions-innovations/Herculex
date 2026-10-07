@@ -35,6 +35,12 @@ class HxNavBar extends StatelessWidget {
 
   static const _barHeight = 60.0;
 
+  /// Bottom space, above the system safe area, that content sitting under
+  /// the floating bar must leave free: the bar, its margins and a small gap.
+  /// Use it for bottom-anchored controls (the workout action bar, the
+  /// full-screen workout's Complete Set button) so they never crowd it.
+  static const double clearance = _barHeight + HxSpace.x4 * 2 + 12;
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;

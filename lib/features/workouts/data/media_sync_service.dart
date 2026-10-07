@@ -51,6 +51,9 @@ class MediaSyncService {
       final artworkBase64 = (info['thumbnailUrl'] as String?) ?? '';
       final positionMs = (info['positionMs'] as num?)?.toInt() ?? 0;
       final durationMs = (info['durationMs'] as num?)?.toInt() ?? 0;
+      final volume = (info['volume'] as num?)?.toInt() ?? 8;
+      final maxVolume = (info['maxVolume'] as num?)?.toInt() ?? 15;
+      final volumePercent = (info['volumePercent'] as num?)?.toInt() ?? 50;
       final isSpotify = packageName.contains('spotify');
       final hasTrack = track.isNotEmpty;
 
@@ -60,8 +63,12 @@ class MediaSyncService {
         'album': '',
         'isPlaying': isPlaying,
         'appName': isSpotify ? 'Spotify' : (hasTrack ? 'Music' : ''),
+        'packageName': packageName,
         'isSpotify': isSpotify,
         'hasPermission': hasPermission,
+        'volume': volume,
+        'maxVolume': maxVolume,
+        'volumePercent': volumePercent,
         // Artwork is deliberately included only in the delivered payload,
         // not in the comparison key below, so we do not resend it each poll.
         'artworkBase64': artworkBase64,

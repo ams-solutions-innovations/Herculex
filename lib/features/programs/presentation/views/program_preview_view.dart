@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -261,17 +262,13 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
 
       if (!context.mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${widget.meta.name} added to your training blocks'),
-          backgroundColor: AppColors.primary,
-        ),
+      AppNotice.show(
+        context,
+        '${widget.meta.name} added to your training blocks',
       );
     } on ProgramCsvFormatException catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: Colors.redAccent),
-      );
+      AppNotice.show(context, e.message, kind: AppNoticeKind.error);
     } finally {
       if (mounted) setState(() => _importing = false);
     }

@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget-picker preview for the Training card (4x4). Mirrors widget_training
-     with sample values baked in. The runtime layout carries four supplement
-     rows and hides the unused ones; the preview shows three filled rows.
+<!-- Widget-picker preview for the Training card (4x3).
      Keep in sync with widget_training.xml. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -23,7 +21,7 @@
             android:layout_weight="1"
             android:text="TODAY"
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:letterSpacing="0.08"
             android:textAllCaps="true"
             android:singleLine="true"
@@ -35,7 +33,7 @@
             android:text="WEEK 3"
             android:textSize="9sp"
             android:textStyle="bold"
-            android:textColor="#0A84FF"
+            android:textColor="@color/widget_badge_blue_text"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
             android:paddingTop="3dp"
@@ -52,7 +50,7 @@
         android:text="Push — Chest &amp; Triceps"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/widget_text_primary"
         android:maxLines="2"
         android:ellipsize="end" />
 
@@ -63,7 +61,7 @@
         android:layout_marginTop="4dp"
         android:text="6 exercises"
         android:textSize="11sp"
-        android:textColor="#94A3B8"
+        android:textColor="@color/widget_text_secondary"
         android:singleLine="true"
         android:ellipsize="end" />
 
@@ -81,14 +79,13 @@
         android:textColor="#FFFFFF"
         android:background="@drawable/widget_start_workout_btn_bg" />
 
-    <!-- Divider. FrameLayout, not View: RemoteViews only inflates @RemoteView
-         classes and plain android.view.View is not one of them. -->
+    <!-- Divider -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="14dp"
         android:layout_marginBottom="8dp"
-        android:background="#2B374E" />
+        android:background="@color/widget_divider" />
 
     <!-- Supplements header -->
     <LinearLayout
@@ -104,20 +101,20 @@
             android:text="SUPPLEMENTS"
             android:textSize="9sp"
             android:textStyle="bold"
-            android:textColor="#4DA3FF"
+            android:textColor="@color/widget_macro_protein"
             android:letterSpacing="0.08"
             android:textAllCaps="true" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="1/3"
+            android:text="2/3"
             android:textSize="10sp"
-            android:textColor="#94A3B8" />
+            android:textColor="@color/widget_text_secondary" />
 
     </LinearLayout>
 
-    <!-- Supplement row 1 (taken) -->
+    <!-- Supplement row 1 (Taken) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -138,9 +135,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:text="Creatine"
+            android:text="Creatine Monohydrate"
             android:textSize="12sp"
-            android:textColor="#F5F5F7"
+            android:textColor="@color/widget_text_tertiary"
             android:singleLine="true"
             android:ellipsize="end" />
 
@@ -150,14 +147,14 @@
             android:layout_marginEnd="8dp"
             android:text="5 g"
             android:textSize="10sp"
-            android:textColor="#94A3B8" />
+            android:textColor="@color/widget_text_secondary" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="08:00"
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
             android:paddingTop="2dp"
@@ -166,7 +163,7 @@
 
     </LinearLayout>
 
-    <!-- Supplement row 2 -->
+    <!-- Supplement row 2 (Taken) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -177,7 +174,7 @@
         <ImageView
             android:layout_width="18dp"
             android:layout_height="18dp"
-            android:background="@drawable/widget_supplement_dot_outline"
+            android:background="@drawable/widget_supplement_dot_filled"
             android:padding="3dp"
             android:src="@drawable/ic_widget_check"
             android:contentDescription="@null" />
@@ -187,9 +184,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:text="Omega-3"
+            android:text="Whey Protein"
             android:textSize="12sp"
-            android:textColor="#F5F5F7"
+            android:textColor="@color/widget_text_tertiary"
             android:singleLine="true"
             android:ellipsize="end" />
 
@@ -197,16 +194,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:text="2 caps"
+            android:text="30 g"
             android:textSize="10sp"
-            android:textColor="#94A3B8" />
+            android:textColor="@color/widget_text_secondary" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="13:00"
+            android:text="10:30"
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
             android:paddingTop="2dp"
@@ -215,7 +212,7 @@
 
     </LinearLayout>
 
-    <!-- Supplement row 3 -->
+    <!-- Supplement row 3 (Not taken) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -236,9 +233,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:text="Magnesium"
+            android:text="Magnesium Bisglycinate"
             android:textSize="12sp"
-            android:textColor="#F5F5F7"
+            android:textColor="@color/widget_text_primary"
             android:singleLine="true"
             android:ellipsize="end" />
 
@@ -248,14 +245,14 @@
             android:layout_marginEnd="8dp"
             android:text="400 mg"
             android:textSize="10sp"
-            android:textColor="#94A3B8" />
+            android:textColor="@color/widget_text_secondary" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="22:00"
+            android:text="21:00"
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
             android:paddingTop="2dp"

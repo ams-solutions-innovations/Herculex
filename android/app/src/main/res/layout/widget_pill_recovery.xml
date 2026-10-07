@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Recovery Score pill widget layout. -->
+<!-- Recovery Score pill widget layout (2x1) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:gravity="center"
-    android:padding="10dp"
+    android:gravity="center_vertical"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
     android:background="@drawable/widget_pill_bg_dark">
 
     <ImageView
@@ -30,7 +31,7 @@
             android:layout_height="wrap_content"
             android:text="RECOVERY"
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:letterSpacing="0.08"
             android:textAllCaps="true" />
 
@@ -40,15 +41,15 @@
             android:layout_height="wrap_content"
             android:text="—"
             android:textSize="16sp"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/widget_text_primary"
             android:textStyle="bold" />
 
     </LinearLayout>
 
     <!-- Progress bars (only one visible at a time) -->
     <FrameLayout
-        android:layout_width="48dp"
-        android:layout_height="6dp">
+        android:layout_width="44dp"
+        android:layout_height="5dp">
         <ProgressBar
             android:id="@+id/recovery_progress_green"
             style="?android:attr/progressBarStyleHorizontal"
@@ -56,8 +57,8 @@
             android:layout_height="match_parent"
             android:max="100"
             android:progress="0"
-            android:progressTint="#30D158"
-            android:progressBackgroundTint="#2B374E"
+            android:progressTint="@color/widget_badge_green_text"
+            android:progressBackgroundTint="@color/widget_divider"
             android:visibility="gone" />
         <ProgressBar
             android:id="@+id/recovery_progress_amber"
@@ -66,8 +67,8 @@
             android:layout_height="match_parent"
             android:max="100"
             android:progress="0"
-            android:progressTint="#FFD60A"
-            android:progressBackgroundTint="#2B374E"
+            android:progressTint="@color/widget_badge_amber_text"
+            android:progressBackgroundTint="@color/widget_divider"
             android:visibility="gone" />
         <ProgressBar
             android:id="@+id/recovery_progress_red"
@@ -76,8 +77,8 @@
             android:layout_height="match_parent"
             android:max="100"
             android:progress="0"
-            android:progressTint="#FF453A"
-            android:progressBackgroundTint="#2B374E"
+            android:progressTint="@color/widget_badge_red_text"
+            android:progressBackgroundTint="@color/widget_divider"
             android:visibility="gone" />
     </FrameLayout>
 

@@ -421,14 +421,14 @@ class SetTypeMenu extends StatelessWidget {
     super.key,
     required this.current,
     this.isWarmup = false,
-    required this.allowAdvancedTechniques,
+    this.allowAdvancedTechniques = true,
   });
 
   static Future<SetTypeSelection?> show(
     BuildContext context, {
     required SetType current,
     bool isWarmup = false,
-    required bool allowAdvancedTechniques,
+    bool allowAdvancedTechniques = true,
   }) {
     return showModalBottomSheet<SetTypeSelection>(
       context: context,
@@ -637,34 +637,38 @@ class SetTypeMenu extends StatelessWidget {
                   const SizedBox(height: 14),
 
                   // Category 2: Hypertrophy & Intensity
-                  _CategoryHeader(category: SetTypeCategory.hypertrophy),
-                  const SizedBox(height: 6),
-                  for (final item in _hypertrophyItems)
-                    _SquircleSetTypeTile(
-                      info: item,
-                      isSelected: !isWarmup && item.type == current,
-                      onTap: () => Navigator.of(
-                        context,
-                      ).pop(SetTypeSelection(item.type!)),
-                      onHelpTap: () => SetTypeDetailDialog.show(context, item),
-                    ),
-
-                  const SizedBox(height: 14),
+                  if (_hypertrophyItems.isNotEmpty) ...[
+                    _CategoryHeader(category: SetTypeCategory.hypertrophy),
+                    const SizedBox(height: 6),
+                    for (final item in _hypertrophyItems)
+                      _SquircleSetTypeTile(
+                        info: item,
+                        isSelected: !isWarmup && item.type == current,
+                        onTap: () => Navigator.of(
+                          context,
+                        ).pop(SetTypeSelection(item.type!)),
+                        onHelpTap: () =>
+                            SetTypeDetailDialog.show(context, item),
+                      ),
+                    const SizedBox(height: 14),
+                  ],
 
                   // Category 3: Timed & Functional
-                  _CategoryHeader(category: SetTypeCategory.timed),
-                  const SizedBox(height: 6),
-                  for (final item in _timedItems)
-                    _SquircleSetTypeTile(
-                      info: item,
-                      isSelected: !isWarmup && item.type == current,
-                      onTap: () => Navigator.of(
-                        context,
-                      ).pop(SetTypeSelection(item.type!)),
-                      onHelpTap: () => SetTypeDetailDialog.show(context, item),
-                    ),
-
-                  const SizedBox(height: 14),
+                  if (_timedItems.isNotEmpty) ...[
+                    _CategoryHeader(category: SetTypeCategory.timed),
+                    const SizedBox(height: 6),
+                    for (final item in _timedItems)
+                      _SquircleSetTypeTile(
+                        info: item,
+                        isSelected: !isWarmup && item.type == current,
+                        onTap: () => Navigator.of(
+                          context,
+                        ).pop(SetTypeSelection(item.type!)),
+                        onHelpTap: () =>
+                            SetTypeDetailDialog.show(context, item),
+                      ),
+                    const SizedBox(height: 14),
+                  ],
 
                   // Delete Set Action Squircle
                   Container(

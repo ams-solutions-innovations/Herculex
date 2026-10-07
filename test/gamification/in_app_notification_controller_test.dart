@@ -139,4 +139,59 @@ void main() {
       }
     },
   );
+
+  test('InAppNotificationItem.exerciseReplaced builds correct payload', () {
+    final item = InAppNotificationItem.exerciseReplaced(
+      exerciseName: 'Tricep Pushdown (V-Bar)',
+      permanently: true,
+    );
+
+    expect(item.type, AchievementType.exerciseSubstitution);
+    expect(item.label, 'Permanent replacement');
+    expect(item.value, 'Tricep Pushdown (V-Bar)');
+    expect(item.icon, Icons.swap_horiz_rounded);
+  });
+
+  testWidgets(
+    'InAppNotificationHost renders action button and fires onAction callback',
+    (tester) async {
+      final notifier = InAppNotificationNotifier();
+      var actionCalled = false;
+
+      final item = InAppNotificationItem.workoutAction(
+        label: 'Incline Bench Press · Set deleted',
+        value: 'Set 2 deleted',
+        actionLabel: 'Undo',
+        onAction: () {
+          actionCalled = true;
+        },
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            inAppNotificationControllerProvider.overrideWith((ref) => notifier),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: InAppNotificationHost(child: SizedBox.expand()),
+            ),
+          ),
+        ),
+      );
+
+      notifier.show(item);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 1200));
+
+      expect(find.text('Set 2 deleted'), findsOneWidget);
+      expect(find.text('Undo'), findsOneWidget);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(actionCalled, isTrue);
+    },
+  );
 }

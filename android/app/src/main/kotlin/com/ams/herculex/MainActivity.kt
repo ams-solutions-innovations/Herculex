@@ -137,6 +137,15 @@ class MainActivity : FlutterFragmentActivity() {
                     startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
                     result.success(null)
                 }
+                "syncRestTimer" -> {
+                    val restJson = call.argument<String>("rest_json") ?: ""
+                    lifecycleScope.launch {
+                        val delivered = runCatching {
+                            wearSyncManager.sendRestTimer(restJson)
+                        }.getOrDefault(false)
+                        result.success(delivered)
+                    }
+                }
                 "sendAchievement" -> {
                     val achievementJson = call.argument<String>("achievement_json") ?: ""
                     sendAchievementToWear(achievementJson)
@@ -384,6 +393,7 @@ class MainActivity : FlutterFragmentActivity() {
                                 tonnageText = call.argument<String>("tonnageText") ?: "0 kg",
                                 lastSetText = call.argument<String>("lastSetText"),
                                 targetSetId = call.argument<Number>("targetSetId")?.toLong(),
+                                isWarmup = call.argument<Boolean>("isWarmup") ?: false,
                                 actions = parseBubbleActions(call.argument("actions")),
                             ),
                         )
@@ -709,6 +719,12 @@ class MainActivity : FlutterFragmentActivity() {
     /// entry, which has no ordering guarantee and can be some other app's
     /// paused/idle session ahead of Spotify's.
     private fun getCurrentMediaInfoNative(): Map<String, Any> {
+        val audioManager = getSystemService(android.content.Context.AUDIO_SERVICE) as? android.media.AudioManager
+        val stream = android.media.AudioManager.STREAM_MUSIC
+        val curVol = audioManager?.getStreamVolume(stream) ?: 8
+        val maxVol = audioManager?.getStreamMaxVolume(stream) ?: 15
+        val volPercent = if (maxVol > 0) curVol * 100 / maxVol else 50
+
         val mediaSessionManager = getSystemService(android.content.Context.MEDIA_SESSION_SERVICE)
             as android.media.session.MediaSessionManager
         val componentName = ComponentName(
@@ -717,9 +733,13 @@ class MainActivity : FlutterFragmentActivity() {
         )
         try {
             val controllers = mediaSessionManager.getActiveSessions(componentName)
-            val controller = controllers.firstOrNull {
-                it.playbackState.isAudiblyPlaying()
-            } ?: controllers.firstOrNull()
+            val spotifyPlaying = controllers.firstOrNull {
+                it.packageName.contains("spotify", ignoreCase = true) && it.playbackState.isAudiblyPlaying()
+            }
+            val anyPlaying = controllers.firstOrNull { it.playbackState.isAudiblyPlaying() }
+            val spotifyAny = controllers.firstOrNull { it.packageName.contains("spotify", ignoreCase = true) }
+            val controller = spotifyPlaying ?: anyPlaying ?: spotifyAny ?: controllers.firstOrNull()
+
             if (controller != null) {
                 val metadata = controller.metadata
                 val isPlaying = controller.playbackState.isAudiblyPlaying()
@@ -744,14 +764,25 @@ class MainActivity : FlutterFragmentActivity() {
                     "thumbnailUrl" to thumbnailBase64,
                     "positionMs" to (controller.playbackState?.position ?: 0L),
                     "durationMs" to (metadata?.getLong(android.media.MediaMetadata.METADATA_KEY_DURATION) ?: 0L),
+                    "volume" to curVol,
+                    "maxVolume" to maxVol,
+                    "volumePercent" to volPercent,
                     "hasPermission" to true,
                 )
             }
         } catch (e: SecurityException) {
             Log.w("MediaInfo", "Notification listener access not granted for MediaNotificationListener", e)
-            return mapOf("track" to "", "artist" to "", "isPlaying" to false, "packageName" to "", "thumbnailUrl" to "", "hasPermission" to false)
+            return mapOf(
+                "track" to "", "artist" to "", "isPlaying" to false, "packageName" to "",
+                "thumbnailUrl" to "", "volume" to curVol, "maxVolume" to maxVol,
+                "volumePercent" to volPercent, "hasPermission" to false
+            )
         }
-        return mapOf("track" to "", "artist" to "", "isPlaying" to false, "packageName" to "", "thumbnailUrl" to "", "hasPermission" to true)
+        return mapOf(
+            "track" to "", "artist" to "", "isPlaying" to false, "packageName" to "",
+            "thumbnailUrl" to "", "volume" to curVol, "maxVolume" to maxVol,
+            "volumePercent" to volPercent, "hasPermission" to true
+        )
     }
 
     /// Replaces the `flutter_media_controller` plugin's own `mediaAction` —
@@ -767,12 +798,17 @@ class MainActivity : FlutterFragmentActivity() {
         )
         try {
             val controllers = mediaSessionManager.getActiveSessions(componentName)
-            val controller = controllers.firstOrNull {
-                it.playbackState.isAudiblyPlaying()
-            } ?: controllers.firstOrNull() ?: return
+            val spotifyPlaying = controllers.firstOrNull {
+                it.packageName.contains("spotify", ignoreCase = true) && it.playbackState.isAudiblyPlaying()
+            }
+            val anyPlaying = controllers.firstOrNull { it.playbackState.isAudiblyPlaying() }
+            val spotifyAny = controllers.firstOrNull { it.packageName.contains("spotify", ignoreCase = true) }
+            val controller = spotifyPlaying ?: anyPlaying ?: spotifyAny ?: controllers.firstOrNull() ?: return
             when (action) {
                 "previous" -> controller.transportControls.skipToPrevious()
                 "next" -> controller.transportControls.skipToNext()
+                "play" -> controller.transportControls.play()
+                "pause" -> controller.transportControls.pause()
                 "playPause", "play_pause" -> {
                     if (controller.playbackState.isAudiblyPlaying()) {
                         controller.transportControls.pause()

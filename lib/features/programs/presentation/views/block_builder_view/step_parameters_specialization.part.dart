@@ -200,12 +200,10 @@ mixin _StepParametersSpecializationMixin on _BuilderStateBase {
                                   currentCtrl.text.trim().replaceAll(',', '.'),
                                 );
                                 if (current == null || current < 0) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Please enter your current load (kg).',
-                                      ),
-                                    ),
+                                  AppNotice.show(
+                                    context,
+                                    'Please enter your current load (kg).',
+                                    kind: AppNoticeKind.info,
                                   );
                                   return;
                                 }

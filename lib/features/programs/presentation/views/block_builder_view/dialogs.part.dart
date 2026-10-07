@@ -262,23 +262,16 @@ mixin _DialogsMixin on _BuilderStateBase {
                       selected < _liftRecommendedWeeks) {
                     final recommended = _liftRecommendedWeeks;
                     setState(() => _weeks = recommended);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        behavior: SnackBarBehavior.floating,
-                        duration: const Duration(seconds: 6),
-                        content: AiBriefRejectionBanner(
-                          heading: 'Not enough time to progress safely',
-                          body:
-                              '$recommended weeks is a more realistic target '
-                              'for a ${_primaryLiftSpecialization?.currentKg.toStringAsFixed(0) ?? '0'}'
-                              '→${_targetSquatKg.toStringAsFixed(0)} kg '
-                              '${_specializationLift.label}. '
-                              "We've adjusted your block to $recommended weeks.",
-                          footer:
-                              'Block length adjusted to $recommended weeks '
-                              'to match your specialization target.',
-                        ),
-                      ),
+                    // The pill holds one line: the adjustment is the
+                    // headline, the reason sits above it.
+                    AppNotice.show(
+                      context,
+                      'Block set to $recommended weeks for '
+                      '${_targetSquatKg.toStringAsFixed(0)} kg '
+                      '${_specializationLift.label}',
+                      title: 'Not enough time to progress safely',
+                      kind: AppNoticeKind.info,
+                      duration: const Duration(seconds: 6),
                     );
                   } else {
                     setState(() => _weeks = selected);

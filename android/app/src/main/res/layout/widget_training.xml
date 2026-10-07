@@ -21,7 +21,7 @@
             android:layout_weight="1"
             android:text="TODAY"
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:letterSpacing="0.08"
             android:textAllCaps="true"
             android:singleLine="true"
@@ -34,7 +34,7 @@
             android:text="WEEK 1"
             android:textSize="9sp"
             android:textStyle="bold"
-            android:textColor="#0A84FF"
+            android:textColor="@color/widget_badge_blue_text"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
             android:paddingTop="3dp"
@@ -53,7 +53,7 @@
         android:text="No workout scheduled"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/widget_text_primary"
         android:maxLines="2"
         android:ellipsize="end" />
 
@@ -65,7 +65,7 @@
         android:layout_marginTop="4dp"
         android:text=""
         android:textSize="11sp"
-        android:textColor="#94A3B8"
+        android:textColor="@color/widget_text_secondary"
         android:singleLine="true"
         android:ellipsize="end" />
 
@@ -84,14 +84,13 @@
         android:textColor="#FFFFFF"
         android:background="@drawable/widget_start_workout_btn_bg" />
 
-    <!-- Divider. FrameLayout, not View: RemoteViews only inflates @RemoteView
-         classes and plain android.view.View is not one of them. -->
+    <!-- Divider -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="14dp"
         android:layout_marginBottom="8dp"
-        android:background="#2B374E" />
+        android:background="@color/widget_divider" />
 
     <!-- Supplements header -->
     <LinearLayout
@@ -107,7 +106,7 @@
             android:text="SUPPLEMENTS"
             android:textSize="9sp"
             android:textStyle="bold"
-            android:textColor="#4DA3FF"
+            android:textColor="@color/widget_macro_protein"
             android:letterSpacing="0.08"
             android:textAllCaps="true" />
 
@@ -117,7 +116,7 @@
             android:layout_height="wrap_content"
             android:text="0/0"
             android:textSize="10sp"
-            android:textColor="#94A3B8" />
+            android:textColor="@color/widget_text_secondary" />
 
     </LinearLayout>
 
@@ -146,7 +145,7 @@
             android:layout_marginStart="8dp"
             android:text=""
             android:textSize="12sp"
-            android:textColor="#F5F5F7"
+            android:textColor="@color/widget_text_primary"
             android:singleLine="true"
             android:ellipsize="end" />
 
@@ -157,7 +156,7 @@
             android:layout_marginEnd="8dp"
             android:text=""
             android:textSize="10sp"
-            android:textColor="#94A3B8" />
+            android:textColor="@color/widget_text_secondary" />
 
         <TextView
             android:id="@+id/training_supp_time_1"
@@ -165,7 +164,7 @@
             android:layout_height="wrap_content"
             android:text=""
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
             android:paddingTop="2dp"
@@ -199,7 +198,7 @@
             android:layout_marginStart="8dp"
             android:text=""
             android:textSize="12sp"
-            android:textColor="#F5F5F7"
+            android:textColor="@color/widget_text_primary"
             android:singleLine="true"
             android:ellipsize="end" />
 
@@ -210,7 +209,7 @@
             android:layout_marginEnd="8dp"
             android:text=""
             android:textSize="10sp"
-            android:textColor="#94A3B8" />
+            android:textColor="@color/widget_text_secondary" />
 
         <TextView
             android:id="@+id/training_supp_time_2"
@@ -218,7 +217,7 @@
             android:layout_height="wrap_content"
             android:text=""
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
             android:paddingTop="2dp"
@@ -252,7 +251,7 @@
             android:layout_marginStart="8dp"
             android:text=""
             android:textSize="12sp"
-            android:textColor="#F5F5F7"
+            android:textColor="@color/widget_text_primary"
             android:singleLine="true"
             android:ellipsize="end" />
 
@@ -263,7 +262,7 @@
             android:layout_marginEnd="8dp"
             android:text=""
             android:textSize="10sp"
-            android:textColor="#94A3B8" />
+            android:textColor="@color/widget_text_secondary" />
 
         <TextView
             android:id="@+id/training_supp_time_3"
@@ -271,7 +270,7 @@
             android:layout_height="wrap_content"
             android:text=""
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
             android:paddingTop="2dp"
@@ -305,7 +304,7 @@
             android:layout_marginStart="8dp"
             android:text=""
             android:textSize="12sp"
-            android:textColor="#F5F5F7"
+            android:textColor="@color/widget_text_primary"
             android:singleLine="true"
             android:ellipsize="end" />
 
@@ -316,7 +315,7 @@
             android:layout_marginEnd="8dp"
             android:text=""
             android:textSize="10sp"
-            android:textColor="#94A3B8" />
+            android:textColor="@color/widget_text_secondary" />
 
         <TextView
             android:id="@+id/training_supp_time_4"
@@ -324,7 +323,7 @@
             android:layout_height="wrap_content"
             android:text=""
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
             android:paddingTop="2dp"

@@ -2,17 +2,30 @@ package com.ams.herculex
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
-import android.graphics.Color
+import android.content.Intent
 import android.widget.RemoteViews
 
 /**
  * Net Carbs pill widget.
  *
- * Green (#34C759) accent color matching the app's carb color in the
- * Macros Consumed card (teal / cyan seen in the screenshot).
+ * Green accent color matching the app's carb color.
+ * Adapts dynamically to light and dark theme changes.
  */
 class CarbsWidgetProvider : AppWidgetProvider() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == Intent.ACTION_CONFIGURATION_CHANGED) {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val componentName = ComponentName(context, javaClass)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            if (appWidgetIds.isNotEmpty()) {
+                onUpdate(context, appWidgetManager, appWidgetIds)
+            }
+        }
+    }
 
     override fun onUpdate(
         context: Context,

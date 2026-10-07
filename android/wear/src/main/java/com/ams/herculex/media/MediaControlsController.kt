@@ -19,7 +19,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
 
 data class MediaControlsState(
     val title: String = "No active media",
@@ -29,11 +31,13 @@ data class MediaControlsState(
     val source: String = "none",
     val volume: Int = 0,
     val maxVolume: Int = 15,
+    val volumePercent: Int = 50,
     val artwork: Bitmap? = null,
     val positionMs: Long = 0L,
     val durationMs: Long = 0L,
     val isSpotify: Boolean = false,
     val appName: String = "Spotify",
+    val packageName: String = "",
     val updatedAtEpochMs: Long = 0L,
 ) {
     /**
@@ -66,6 +70,12 @@ data class MediaControlsState(
  */
 class MediaControlsController(private val context: Context) {
 
+    private companion object {
+        const val OPTIMISTIC_PLAY_GRACE_MS = 2500L
+        const val VOLUME_ECHO_GRACE_MS = 1500L
+        const val VOLUME_SEND_INTERVAL_MS = 120L
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val syncManager = WearDataLayerSyncManager(context)
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -75,16 +85,31 @@ class MediaControlsController(private val context: Context) {
     val stateFlow: StateFlow<MediaControlsState> = _stateFlow.asStateFlow()
 
     private var activeLocalController: MediaController? = null
-    private var optimisticIsPlaying: Boolean? = null
     private var syncedMediaJob: Job? = null
+
+    // ── Optimistic UI ────────────────────────────────────────────────────
+    // A tap or a bezel detent updates the screen at once; the phone's
+    // confirmation arrives 0.3–1.5 s later. State that lands in between is
+    // usually *older* than the tap (a periodic poll, or the phone echoing a
+    // volume change with a stale play state), and applying it made the play
+    // button and the volume jump back and forth. Hold the optimistic value
+    // until the phone agrees or the grace period runs out.
+    @Volatile private var optimisticIsPlaying: Boolean? = null
+    @Volatile private var optimisticPlayingAtMs = 0L
+    @Volatile private var lastVolumeInputAtMs = 0L
+
+    // Bezel detents arrive far faster than Bluetooth round-trips. Only the
+    // latest target is sent, at most every [VOLUME_SEND_INTERVAL_MS].
+    private val pendingVolumePercent = AtomicInteger(-1)
+    private var volumeSendJob: Job? = null
 
     private val controllerCallback = object : MediaController.Callback() {
         override fun onPlaybackStateChanged(state: PlaybackState?) {
-            _stateFlow.value = snapshot()
+            publish()
         }
 
         override fun onMetadataChanged(metadata: MediaMetadata?) {
-            _stateFlow.value = snapshot()
+            publish()
         }
 
         override fun onSessionDestroyed() {
@@ -109,9 +134,7 @@ class MediaControlsController(private val context: Context) {
         // Listen for phone-synced media state updates
         syncedMediaJob?.cancel()
         syncedMediaJob = scope.launch {
-            WearMediaStore.mediaFlow.collect {
-                _stateFlow.value = snapshot()
-            }
+            WearMediaStore.mediaFlow.collect { publish() }
         }
     }
 
@@ -131,16 +154,17 @@ class MediaControlsController(private val context: Context) {
         val currentPlaying = _stateFlow.value.isPlaying
         val targetPlaying = !currentPlaying
         optimisticIsPlaying = targetPlaying
-        WearMediaStore.updateOptimisticPlaying(targetPlaying)
-        _stateFlow.value = snapshot()
+        optimisticPlayingAtMs = System.currentTimeMillis()
+        _stateFlow.value = _stateFlow.value.copy(isPlaying = targetPlaying)
 
-        // A phone session is mirrored over the data layer.  Do not also emit a
-        // watch media key: that used to toggle the same remote session twice.
-        if (WearMediaStore.current()?.hasContent == true) {
-            scope.launch { syncManager.sendMediaCommand("play_pause") }
+        val local = activeLocalController
+        val pkg = _stateFlow.value.packageName.ifBlank { WearMediaStore.current()?.packageName.orEmpty() }
+
+        // A phone session is mirrored over the data layer OR no active local player on watch:
+        if (WearMediaStore.current()?.hasContent == true || (local == null && _stateFlow.value.source != "watch")) {
+            scope.launch { syncManager.sendMediaCommand("play_pause", packageName = pkg) }
             return
         }
-        val local = activeLocalController
         if (local != null) {
             if (local.playbackState?.state == PlaybackState.STATE_PLAYING) {
                 local.transportControls.pause()
@@ -154,8 +178,9 @@ class MediaControlsController(private val context: Context) {
 
     fun next() {
         val local = activeLocalController
-        if (WearMediaStore.current()?.hasContent == true) {
-            scope.launch { syncManager.sendMediaCommand("next") }
+        val pkg = _stateFlow.value.packageName.ifBlank { WearMediaStore.current()?.packageName.orEmpty() }
+        if (WearMediaStore.current()?.hasContent == true || (local == null && _stateFlow.value.source != "watch")) {
+            scope.launch { syncManager.sendMediaCommand("next", packageName = pkg) }
         } else if (local != null) {
             local.transportControls.skipToNext()
         } else {
@@ -165,8 +190,9 @@ class MediaControlsController(private val context: Context) {
 
     fun previous() {
         val local = activeLocalController
-        if (WearMediaStore.current()?.hasContent == true) {
-            scope.launch { syncManager.sendMediaCommand("previous") }
+        val pkg = _stateFlow.value.packageName.ifBlank { WearMediaStore.current()?.packageName.orEmpty() }
+        if (WearMediaStore.current()?.hasContent == true || (local == null && _stateFlow.value.source != "watch")) {
+            scope.launch { syncManager.sendMediaCommand("previous", packageName = pkg) }
         } else if (local != null) {
             local.transportControls.skipToPrevious()
         } else {
@@ -178,13 +204,23 @@ class MediaControlsController(private val context: Context) {
      * One volume step up (+1) or down (-1), driven by the rotating bezel.
      * Follows the transport rule: when a phone session is mirrored the phone's
      * music volume changes, otherwise the watch's own stream does.
+     *
+     * For the phone, one detent is exactly one of the phone's own volume
+     * steps, so what the ring shows is what the phone lands on — the old
+     * fixed 100/15 % step drifted from it and then snapped back.
      */
     fun adjustVolume(direction: Int) {
         if (direction == 0) return
-        if (WearMediaStore.current()?.hasContent == true) {
-            scope.launch {
-                syncManager.sendMediaCommand(if (direction > 0) "volume_up" else "volume_down")
-            }
+        val current = _stateFlow.value
+        lastVolumeInputAtMs = System.currentTimeMillis()
+
+        val synced = WearMediaStore.current()
+        if (synced?.hasContent == true || current.source == "phone") {
+            val phoneMax = synced?.maxVolume?.takeIf { it > 0 } ?: 15
+            val step = 100f / phoneMax
+            val newPercent = Math.round(current.volumePercent + direction * step).coerceIn(0, 100)
+            _stateFlow.value = current.copy(volumePercent = newPercent)
+            sendVolumePercent(newPercent, current.packageName.ifBlank { synced?.packageName.orEmpty() })
             return
         }
         try {
@@ -193,19 +229,47 @@ class MediaControlsController(private val context: Context) {
                 if (direction > 0) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER,
                 0,
             )
+            val vol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+            _stateFlow.value = current.copy(volume = vol, maxVolume = max, volumePercent = vol * 100 / max)
         } catch (_: Exception) {}
-        _stateFlow.value = snapshot()
+    }
+
+    private fun sendVolumePercent(percent: Int, packageName: String) {
+        pendingVolumePercent.set(percent)
+        if (volumeSendJob?.isActive == true) return
+        volumeSendJob = scope.launch {
+            while (true) {
+                val next = pendingVolumePercent.getAndSet(-1)
+                if (next < 0) break
+                syncManager.sendMediaCommand(
+                    action = "set_volume_percent",
+                    value = next,
+                    packageName = packageName,
+                )
+                delay(VOLUME_SEND_INTERVAL_MS)
+            }
+        }
     }
 
     fun setVolume(volume: Int) {
-        val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        lastVolumeInputAtMs = System.currentTimeMillis()
+        val current = _stateFlow.value
+        val maxVol = if (current.maxVolume > 0) current.maxVolume else audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
         val clamped = volume.coerceIn(0, maxVol)
-        _stateFlow.value = _stateFlow.value.copy(volume = clamped)
+        val percent = if (maxVol > 0) clamped * 100 / maxVol else 0
+        _stateFlow.value = current.copy(volume = clamped, volumePercent = percent)
 
-        if (WearMediaStore.current()?.hasContent == true) {
-            // Phone and watch have different volume ranges: send a percentage.
-            val percent = if (maxVol > 0) clamped * 100 / maxVol else 0
-            scope.launch { syncManager.sendMediaCommand("set_volume_percent", percent) }
+        val pkg = current.packageName.ifBlank { WearMediaStore.current()?.packageName.orEmpty() }
+
+        if (WearMediaStore.current()?.hasContent == true || current.source == "phone") {
+            scope.launch {
+                syncManager.sendMediaCommand(
+                    action = "set_volume_percent",
+                    value = percent,
+                    packageName = pkg,
+                )
+            }
             return
         }
         try {
@@ -250,7 +314,27 @@ class MediaControlsController(private val context: Context) {
         val next = findActiveLocalController()
         activeLocalController = next
         next?.registerCallback(controllerCallback)
-        _stateFlow.value = snapshot()
+        publish()
+    }
+
+    /** Recomputes the state, keeping optimistic values the phone has not confirmed yet. */
+    private fun publish() {
+        val base = snapshot()
+        val now = System.currentTimeMillis()
+        var result = base
+        val optimistic = optimisticIsPlaying
+        if (optimistic != null) {
+            if (base.isPlaying == optimistic || now - optimisticPlayingAtMs > OPTIMISTIC_PLAY_GRACE_MS) {
+                optimisticIsPlaying = null
+            } else {
+                result = result.copy(isPlaying = optimistic)
+            }
+        }
+        if (now - lastVolumeInputAtMs < VOLUME_ECHO_GRACE_MS) {
+            val shown = _stateFlow.value
+            result = result.copy(volumePercent = shown.volumePercent, volume = shown.volume)
+        }
+        _stateFlow.value = result
     }
 
     private fun findActiveLocalController(): MediaController? {
@@ -297,6 +381,7 @@ class MediaControlsController(private val context: Context) {
                 source = "watch",
                 volume = vol,
                 maxVolume = maxVol,
+                volumePercent = if (maxVol > 0) vol * 100 / maxVol else 0,
                 artwork = localArtwork,
                 positionMs = position,
                 durationMs = duration,
@@ -308,7 +393,7 @@ class MediaControlsController(private val context: Context) {
 
         // Check synced phone media state
         if (synced != null && synced.hasContent) {
-            val isPlaying = optimisticIsPlaying ?: synced.isPlaying
+            val isPlaying = synced.isPlaying
             return MediaControlsState(
                 title = synced.title,
                 artist = if (synced.artist.isNotBlank()) synced.artist else "Spotify",
@@ -317,6 +402,8 @@ class MediaControlsController(private val context: Context) {
                 source = "phone",
                 volume = vol,
                 maxVolume = maxVol,
+                volumePercent = synced.volumePercent,
+                packageName = synced.packageName,
                 artwork = synced.artwork ?: localArtwork,
                 positionMs = synced.positionMs,
                 durationMs = synced.durationMs,
@@ -335,7 +422,7 @@ class MediaControlsController(private val context: Context) {
             val artist = metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST)
                 ?: metadata?.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
                 ?: "Ready to play"
-            val isPlaying = optimisticIsPlaying ?: (local.playbackState?.state == PlaybackState.STATE_PLAYING)
+            val isPlaying = local.playbackState?.state == PlaybackState.STATE_PLAYING
             val duration = metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
             val position = local.playbackState?.position ?: 0L
             val isSpotify = local.packageName.contains("spotify", ignoreCase = true)
@@ -347,6 +434,7 @@ class MediaControlsController(private val context: Context) {
                 source = "watch",
                 volume = vol,
                 maxVolume = maxVol,
+                volumePercent = if (maxVol > 0) vol * 100 / maxVol else 0,
                 artwork = localArtwork,
                 positionMs = position,
                 durationMs = duration,
@@ -357,7 +445,7 @@ class MediaControlsController(private val context: Context) {
         }
 
         // Default standby state
-        val isPlaying = optimisticIsPlaying ?: false
+        val isPlaying = false
         val hasPermission = synced?.hasPermission ?: false
         val titleMsg = if (!hasPermission) "Allow Phone Permission" else if (isPlaying) "Playing on Phone" else "No Active Media"
         val artistMsg = if (!hasPermission) "Open phone app to allow" else "Start Spotify on phone or watch"

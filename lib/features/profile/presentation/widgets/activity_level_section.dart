@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/application/tdee_providers.dart';
 import 'package:herculex/features/nutrition/domain/activity_reset_policy.dart';
@@ -102,9 +103,7 @@ class ActivityLevelSection extends ConsumerWidget {
   }
 
   void _showSaved(BuildContext context, {required bool measured}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ActivityResetPolicy.snackbar(measured: measured))),
-    );
+    AppNotice.show(context, ActivityResetPolicy.snackbar(measured: measured));
   }
 }
 

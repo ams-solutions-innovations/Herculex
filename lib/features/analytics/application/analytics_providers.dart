@@ -24,6 +24,11 @@ final topOneRmsProvider = FutureProvider<List<OneRmProjection>>((ref) {
   return ref.watch(analyticsRepositoryProvider).topOneRms();
 });
 
+/// Every exercise's best estimated 1RM, for the Personal Records page.
+final allOneRmsProvider = FutureProvider<List<OneRmProjection>>((ref) {
+  return ref.watch(analyticsRepositoryProvider).topOneRms(limit: 1000);
+});
+
 /// This week's total tonnage plus the per-muscle-group breakdown behind the
 /// "Total Volume This Week" dashboard drop-down.
 final weeklyMuscleVolumeProvider = FutureProvider<WeeklyMuscleVolume>((

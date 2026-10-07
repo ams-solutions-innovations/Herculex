@@ -221,7 +221,26 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
       maxLines: 1,
     )..layout();
 
-    final contentWidth = math.max(labelPainter.width, valueRowPainter.width);
+    double actionWidth = 0.0;
+    if (widget.item.actionLabel != null) {
+      final actionPainter = TextPainter(
+        text: TextSpan(
+          text: widget.item.actionLabel,
+          style: const TextStyle(
+            fontFamily: AppTheme.fontBody,
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
+            letterSpacing: 0.2,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+      )..layout();
+      actionWidth = actionPainter.width + 30.0; // 22px padding + 8px gap
+    }
+
+    final contentWidth =
+        math.max(labelPainter.width, valueRowPainter.width) + actionWidth;
     final natural =
         _kCircleSize +
         _kPillPadding * 2 +
@@ -374,12 +393,14 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
                                           crossAxisAlignment:
                                               CrossAxisAlignment.baseline,
                                           textBaseline: TextBaseline.alphabetic,
-                                          mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Text(
-                                              widget.item.value,
-                                              style: _kValueStyle,
-                                              maxLines: 1,
+                                            Flexible(
+                                              child: Text(
+                                                widget.item.value,
+                                                style: _kValueStyle,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
                                             ),
                                             if (widget.item.delta != null) ...[
                                               const SizedBox(width: 7),
@@ -400,6 +421,50 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
                                 ),
                               ),
                             ),
+                            if (widget.item.actionLabel != null) ...[
+                              const SizedBox(width: 8),
+                              Opacity(
+                                opacity: contentOpacity.clamp(0.0, 1.0),
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    Haptics.selection();
+                                    widget.item.onAction?.call();
+                                    widget.onDismiss();
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 11,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: primaryColor.withValues(
+                                        alpha: 0.18,
+                                      ),
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        color: primaryColor.withValues(
+                                          alpha: 0.45,
+                                        ),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      widget.item.actionLabel!,
+                                      style: TextStyle(
+                                        fontFamily: AppTheme.fontBody,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12,
+                                        letterSpacing: 0.2,
+                                        height: 1.0,
+                                        color: primaryColor,
+                                        decoration: TextDecoration.none,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ],
                       ),

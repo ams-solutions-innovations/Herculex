@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget-picker preview for the Recovery Score pill. Mirrors
-     widget_pill_recovery, but keeps only the green progress bar: the runtime
-     layout stacks three pre-tinted bars and toggles visibility, which a static
-     preview does not need. Keep in sync with widget_pill_recovery.xml. -->
+<!-- Widget-picker preview for the Recovery Score pill.
+     Keep in sync with widget_pill_recovery.xml. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:gravity="center"
-    android:padding="10dp"
+    android:gravity="center_vertical"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
     android:background="@drawable/widget_pill_bg_dark">
 
     <ImageView
         android:layout_width="18dp"
         android:layout_height="18dp"
         android:layout_marginEnd="8dp"
-        android:src="@drawable/ic_widget_bolt" />
+        android:src="@drawable/ic_widget_bolt"
+        android:contentDescription="@null" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -29,7 +29,7 @@
             android:layout_height="wrap_content"
             android:text="RECOVERY"
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:letterSpacing="0.08"
             android:textAllCaps="true" />
 
@@ -38,14 +38,14 @@
             android:layout_height="wrap_content"
             android:text="78%"
             android:textSize="16sp"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/widget_text_primary"
             android:textStyle="bold" />
 
     </LinearLayout>
 
     <FrameLayout
-        android:layout_width="48dp"
-        android:layout_height="6dp">
+        android:layout_width="44dp"
+        android:layout_height="5dp">
 
         <ProgressBar
             style="?android:attr/progressBarStyleHorizontal"
@@ -53,8 +53,8 @@
             android:layout_height="match_parent"
             android:max="100"
             android:progress="78"
-            android:progressTint="#30D158"
-            android:progressBackgroundTint="#2B374E" />
+            android:progressTint="@color/widget_badge_green_text"
+            android:progressBackgroundTint="@color/widget_divider" />
 
     </FrameLayout>
 

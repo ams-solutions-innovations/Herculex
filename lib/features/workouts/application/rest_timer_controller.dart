@@ -66,13 +66,21 @@ class RestTimerController extends Notifier<RestTimerState> {
     return RestTimerState.idle;
   }
 
-  void start({required int seconds, String? exerciseName}) {
+  /// Starts (or restarts) the rest countdown.
+  ///
+  /// [seconds] is what is left to rest. [totalSeconds] is the full period it
+  /// belongs to, when the rest began earlier than now — a set completed on
+  /// the watch reaches the phone a moment late, and the progress bar should
+  /// reflect the whole rest rather than restart from empty.
+  void start({required int seconds, String? exerciseName, int? totalSeconds}) {
     if (!ref.read(restTimerEnabledProvider)) return;
     _ticker?.cancel();
     final clock = ref.read(clockProvider);
     state = RestTimerState(
       endsAt: clock.now().add(Duration(seconds: seconds)),
-      targetSeconds: seconds,
+      targetSeconds: totalSeconds != null && totalSeconds > seconds
+          ? totalSeconds
+          : seconds,
       exerciseName: exerciseName,
     );
 
@@ -90,7 +98,7 @@ class RestTimerController extends Notifier<RestTimerState> {
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       final remaining = state.remainingSecondsFrom(clock.now());
       if (remaining <= 0) {
-        cancel();
+        _expire();
       } else {
         // Trigger rebuild by nudging state (cheaply).
         state = RestTimerState(
@@ -125,11 +133,22 @@ class RestTimerController extends Notifier<RestTimerState> {
     }
   }
 
+  /// The user skipped the rest: stop counting and withdraw the scheduled
+  /// "rest finished" alert, which would otherwise still fire.
   void cancel() {
     _ticker?.cancel();
     _ticker = null;
     state = RestTimerState.idle;
     WorkoutNotificationService.instance.cancelRestTimer();
+  }
+
+  /// The rest ran out on its own. Unlike [cancel] this leaves the scheduled
+  /// alert alone — the ticker and the alarm fire within the same second, and
+  /// cancelling here used to swallow the very notification that was due.
+  void _expire() {
+    _ticker?.cancel();
+    _ticker = null;
+    state = RestTimerState.idle;
   }
 }
 

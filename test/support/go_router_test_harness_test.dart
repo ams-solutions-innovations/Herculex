@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
@@ -27,7 +28,8 @@ void main() {
         },
       );
 
-      await tester.pumpWidget(harness.app);
+      // The harness hosts in-app notices, which live in Riverpod.
+      await tester.pumpWidget(ProviderScope(child: harness.app));
 
       await tester.tap(find.text('Go'));
       await tester.pumpAndSettle();
@@ -42,7 +44,8 @@ void main() {
       home: (context) => const Scaffold(body: Center(child: Text('Home'))),
     );
 
-    await tester.pumpWidget(harness.app);
+    // The harness hosts in-app notices, which live in Riverpod.
+    await tester.pumpWidget(ProviderScope(child: harness.app));
 
     expect(find.text('Home'), findsOneWidget);
   });

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/hx_card.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
@@ -259,7 +260,7 @@ class _AdvancePrompt extends ConsumerWidget {
   final HxColors hx;
 
   Future<void> _advance(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final notices = AppNotice.of(context);
     final router = GoRouter.of(context);
     final target = ref
         .read(physiqueRoadmapEligibilityProvider(goalId))
@@ -270,24 +271,17 @@ class _AdvancePrompt extends ConsumerWidget {
         .advancePhase(goalId);
     if (!moved) return;
     Haptics.light();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('Moved to $label. Review your nutrition targets.'),
-        action: SnackBarAction(
-          label: 'Set targets',
-          onPressed: () =>
-              router.push(AppRoutes.nutritionTargets, extra: target),
-        ),
-      ),
+    notices.show(
+      'Moved to $label. Review your nutrition targets.',
+      actionLabel: 'Set targets',
+      onAction: () => router.push(AppRoutes.nutritionTargets, extra: target),
     );
   }
 
   Future<void> _postpone(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final notices = AppNotice.of(context);
     await ref.read(physiqueRoadmapRepositoryProvider).postponeAdvance(goalId);
-    messenger.showSnackBar(
-      const SnackBar(content: Text("We'll ask again in a week.")),
-    );
+    notices.show("We'll ask again in a week.", kind: AppNoticeKind.info);
   }
 
   @override

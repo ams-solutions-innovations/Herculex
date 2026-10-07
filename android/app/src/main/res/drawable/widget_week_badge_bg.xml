@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- "WEEK N" badge background on the Training card -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <corners android:radius="6dp" />
-    <solid android:color="#1F0A84FF" />
+    <solid android:color="@color/widget_badge_blue_bg" />
 </shape>

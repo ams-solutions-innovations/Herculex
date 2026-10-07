@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/features/nutrition/application/tdee_display_providers.dart';
@@ -129,6 +130,7 @@ Future<void> _pump(
         savedTargetForTodayProvider.overrideWith((ref) async => rule),
       ],
       child: MaterialApp(
+        builder: (context, child) => InAppNotificationHost(child: child!),
         theme: AppTheme.darkTheme,
         home: Scaffold(
           body: SingleChildScrollView(
@@ -140,6 +142,9 @@ Future<void> _pump(
   );
   await tester.pumpAndSettle();
 }
+
+/// Notices drop in as a pill whose text appears once the entrance settles.
+const _noticeReveal = Duration(milliseconds: 1200);
 
 Finder get _updateButton => find.text('Update my target to 2540 kcal');
 Finder get _keepButton => find.text('Keep current target');
@@ -189,6 +194,7 @@ void main() {
       expect(actions.updates.single.newKcal, 2640);
       expect(actions.updates.single.week, IsoWeek(2026, 40));
       expect(actions.keeps, isEmpty);
+      await tester.pump(_noticeReveal);
       expect(find.text('Target updated to 2540 kcal'), findsOneWidget);
     });
 
@@ -223,6 +229,7 @@ void main() {
         await tester.tap(_updateButton);
         await tester.pump();
         await tester.pump();
+        await tester.pump(_noticeReveal);
       }
 
       void expectEnabled(WidgetTester tester) {
@@ -298,6 +305,7 @@ void main() {
         await tester.tap(_keepButton);
         await tester.pump();
         await tester.pump();
+        await tester.pump(_noticeReveal);
         expect(
           find.text("Couldn't save your choice. Try again."),
           findsOneWidget,
@@ -323,6 +331,7 @@ void main() {
         );
         await tester.tap(_keepButton);
         await tester.pump();
+        await tester.pump(_noticeReveal);
         expect(actions.keeps, isEmpty);
         expect(
           find.text("Couldn't save your choice. Try again."),

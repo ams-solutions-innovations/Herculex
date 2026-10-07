@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/design_system/components/hx_back_button.dart';
+import 'package:herculex/design_system/components/hx_screen_shell.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
+import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart'
     as slot_prescription;
+import 'package:herculex/features/programs/presentation/sheets/template_scope_sheet.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
+import 'package:herculex/features/workouts/presentation/views/template_builder_view.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 
 /// A standalone pushed route (FLOW-02, D-09) rendering a scheduled workout's
@@ -29,30 +35,95 @@ class PlannedWorkoutPreviewView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dataAsync = ref.watch(plannedWorkoutPreviewProvider(scheduleId));
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Planned workout')),
-      body: dataAsync.when(
-        data: (data) {
-          if (data == null) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: Text('This scheduled workout no longer exists.'),
-              ),
-            );
-          }
-          return _PlanBody(data: data, scheduleId: scheduleId);
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => const Center(
-          child: Padding(
-            padding: EdgeInsets.all(32),
-            child: Text('This scheduled workout no longer exists.'),
+    final data = dataAsync.valueOrNull;
+    final canEdit =
+        data != null &&
+        (data.status == ScheduleStatus.planned ||
+            data.status == ScheduleStatus.moved);
+    const missing = Padding(
+      padding: EdgeInsets.all(32),
+      child: Center(child: Text('This scheduled workout no longer exists.')),
+    );
+    return HxScreenShell(
+      title: 'Planned workout',
+      actions: [
+        if (canEdit)
+          HxCircleButton(
+            icon: Icons.edit_outlined,
+            tooltip: 'Edit',
+            onTap: () => _edit(context, ref, data),
           ),
+      ],
+      children: [
+        dataAsync.when(
+          data: (data) => data == null
+              ? missing
+              : _PlanBody(data: data, scheduleId: scheduleId),
+          loading: () => const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (_, _) => missing,
         ),
-      ),
+      ],
     );
   }
+}
+
+/// Edits the workout the same way templates are edited everywhere else.
+///
+/// A day that already runs on a template opens that template. A day built
+/// from the program's own inline prescription has nothing to edit in place,
+/// so its plan is copied into a new template first; the user then chooses
+/// whether the edited version covers just this date or every future one.
+Future<void> _edit(
+  BuildContext context,
+  WidgetRef ref,
+  PlannedWorkoutPreviewData data,
+) async {
+  final scheduleId = data.scheduled.schedule.id;
+  final existing = data.scheduled.template;
+  if (existing != null) {
+    await TemplateBuilderView.show(context, existing: existing);
+    ref.invalidate(plannedWorkoutPreviewProvider(scheduleId));
+    return;
+  }
+
+  final templates = ref.read(templatesRepositoryProvider);
+  final copy = await templates.createFromPlannedSession(
+    data.plan,
+    name: data.scheduled.title,
+  );
+  if (!context.mounted) return;
+  final saved = await TemplateBuilderView.show(
+    context,
+    existing: copy,
+    returnsSelection: true,
+  );
+  if (saved == null || !context.mounted) {
+    // Backed out of the editor: don't leave an unused copy behind.
+    await templates.deleteTemplate(copy.id);
+    return;
+  }
+  final programId = data.scheduled.schedule.programId;
+  if (programId == null) {
+    await ref
+        .read(programsRepositoryProvider)
+        .setScheduleTemplateOverride(scheduleId, saved.id);
+  } else {
+    final applied = await TemplateScopeSheet.apply(
+      context,
+      ref,
+      scheduleId: scheduleId,
+      programDayId: data.scheduled.programDay.id,
+      programId: programId,
+      date: DateTime.parse(data.scheduled.schedule.dateIso),
+      dayTitle: data.scheduled.title,
+      templateId: saved.id,
+    );
+    if (!applied) await templates.deleteTemplate(saved.id);
+  }
+  ref.invalidate(plannedWorkoutPreviewProvider(scheduleId));
 }
 
 class _PlanBody extends StatelessWidget {
@@ -75,9 +146,11 @@ class _PlanBody extends StatelessWidget {
       if (context.mounted) Navigator.of(context).pop();
     } on StateError catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
+      AppNotice.show(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.message.toString())));
+        error.message.toString(),
+        kind: AppNoticeKind.error,
+      );
     }
   }
 
@@ -85,8 +158,8 @@ class _PlanBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final plan = data.plan;
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           '${plan.name} · ${plan.exercises.length} exercises',

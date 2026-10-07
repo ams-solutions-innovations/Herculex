@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/core/notifications/in_app_notification_controller.dart';
 import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/data/local/database.dart';
@@ -217,8 +218,10 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     final textVal = _quantity.text.trim().replaceAll(',', '.');
     final parsed = double.tryParse(textVal);
     if (parsed == null || parsed <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid amount')),
+      AppNotice.show(
+        context,
+        'Please enter a valid amount',
+        kind: AppNoticeKind.info,
       );
       return;
     }
@@ -238,10 +241,10 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
           ? total * (_kUnitToGrams[_selectedUnit] ?? 1.0)
           : FoodPortion.massForAmount(widget.food!, total, _selectedUnit);
       if (grams == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('This serving has no verified weight. Use grams.'),
-          ),
+        AppNotice.show(
+          context,
+          'This serving has no verified weight. Use grams.',
+          kind: AppNoticeKind.info,
         );
         setState(() => _saving = false);
         return;

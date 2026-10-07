@@ -884,7 +884,7 @@ class _ProfileAvatarButton extends StatelessWidget {
   }
 }
 
-/// Samsung One UI-style swipeable stacked widget with layered depth and pagination dots.
+/// Swipeable stacked widget with smooth infinite loop scrolling and pagination dots.
 class StackedDashboardWidget extends ConsumerStatefulWidget {
   const StackedDashboardWidget({
     super.key,
@@ -906,19 +906,61 @@ class StackedDashboardWidget extends ConsumerStatefulWidget {
 
 class _StackedDashboardWidgetState
     extends ConsumerState<StackedDashboardWidget> {
-  late final PageController _controller;
+  static const int _kInitialPageMultiple = 10000;
+
+  static int _computeInitialPage(int count) {
+    if (count <= 1) return 0;
+    return _kInitialPageMultiple - (_kInitialPageMultiple % count);
+  }
+
+  late PageController _controller;
   int _page = 0;
 
   @override
   void initState() {
     super.initState();
-    _controller = PageController();
+    final count = widget.types.length;
+    _controller = PageController(initialPage: _computeInitialPage(count));
+  }
+
+  @override
+  void didUpdateWidget(covariant StackedDashboardWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.types.length != oldWidget.types.length) {
+      final newCount = widget.types.length;
+      final initialPage = _computeInitialPage(newCount);
+      if (_controller.hasClients) {
+        _controller.jumpToPage(initialPage);
+      }
+      setState(() => _page = 0);
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  void _animateToLogicalPage(int targetLogical, int count) {
+    if (!_controller.hasClients || count <= 1) return;
+    final currentReal = _controller.page?.round() ?? _controller.initialPage;
+    final currentLogical = (currentReal % count + count) % count;
+    if (currentLogical == targetLogical) return;
+
+    int diff = (targetLogical - currentLogical) % count;
+    if (diff > count / 2) {
+      diff -= count;
+    } else if (diff < -count / 2) {
+      diff += count;
+    }
+
+    final targetReal = currentReal + diff;
+    _controller.animateToPage(
+      targetReal,
+      duration: HxMotion.base,
+      curve: HxMotion.emphasized,
+    );
   }
 
   double _heightForTypes(List<DashboardWidgetType> types) {
@@ -934,13 +976,8 @@ class _StackedDashboardWidgetState
   @override
   Widget build(BuildContext context) {
     final hx = context.hx;
-    final shape = ref.watch(dashboardCardShapeProvider);
     final height = _heightForTypes(widget.types);
     final count = widget.types.length;
-    final isPillOnly = widget.types.every(
-      (t) => t.kind == DashboardWidgetKind.pill,
-    );
-    final layerRadius = isPillOnly ? shape.pillRadius : shape.cardRadius;
 
     return GestureDetector(
       onLongPress: widget.onLongPress,
@@ -948,70 +985,32 @@ class _StackedDashboardWidgetState
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              // Bottom-most stack layer background (for 3+ items)
-              if (count > 2)
-                Positioned(
-                  top: -8,
-                  left: 16,
-                  right: 16,
-                  height: height,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: hx.surfaceContainerLowest.withValues(alpha: 0.35),
-                      borderRadius: BorderRadius.circular(
-                        layerRadius > 30 ? layerRadius - 4 : layerRadius,
-                      ),
-                      border: Border.all(
-                        color: hx.outlineVariant.withValues(alpha: 0.15),
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Middle stack layer background (for 2+ items)
-              if (count > 1)
-                Positioned(
-                  top: -4,
-                  left: 8,
-                  right: 8,
-                  height: height,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: hx.surfaceContainerLowest.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(layerRadius),
-                      border: Border.all(
-                        color: hx.outlineVariant.withValues(alpha: 0.25),
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Main swipeable PageView
-              SizedBox(
-                height: height,
-                child: PageView.builder(
-                  controller: _controller,
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: count,
-                  onPageChanged: (i) {
-                    Haptics.selection();
-                    setState(() => _page = i);
-                  },
-                  itemBuilder: (context, index) {
-                    final type = widget.types[index];
-                    final child = widget.renderWidget(type);
-                    if (height > 100 && type.kind == DashboardWidgetKind.pill) {
-                      return Center(child: child);
-                    }
-                    return child;
-                  },
-                ),
-              ),
-            ],
+          // Main swipeable PageView with infinite scroll
+          SizedBox(
+            height: height,
+            child: PageView.builder(
+              controller: _controller,
+              physics: const BouncingScrollPhysics(),
+              itemCount: count > 1 ? null : count,
+              onPageChanged: (i) {
+                final newPage = (i % count + count) % count;
+                if (newPage != _page) {
+                  Haptics.selection();
+                  setState(() => _page = newPage);
+                }
+              },
+              itemBuilder: (context, index) {
+                final logicalIndex = (index % count + count) % count;
+                final type = widget.types[logicalIndex];
+                final child = widget.renderWidget(type);
+                return KeyedSubtree(
+                  key: ValueKey('stacked_${type.id}_$index'),
+                  child: height > 100 && type.kind == DashboardWidgetKind.pill
+                      ? Center(child: child)
+                      : child,
+                );
+              },
+            ),
           ),
           const SizedBox(height: 10),
 
@@ -1023,11 +1022,7 @@ class _StackedDashboardWidgetState
                 GestureDetector(
                   onTap: () {
                     Haptics.selection();
-                    _controller.animateToPage(
-                      i,
-                      duration: HxMotion.base,
-                      curve: HxMotion.emphasized,
-                    );
+                    _animateToLogicalPage(i, count);
                   },
                   child: AnimatedContainer(
                     duration: HxMotion.base,

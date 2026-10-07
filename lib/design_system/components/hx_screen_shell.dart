@@ -15,6 +15,7 @@ class HxScreenShell extends StatefulWidget {
   const HxScreenShell({
     super.key,
     required this.title,
+    this.titleIcon,
     this.children,
     this.slivers,
     this.actions = const [],
@@ -27,6 +28,9 @@ class HxScreenShell extends StatefulWidget {
        );
 
   final String title;
+
+  /// Optional icon shown before the title in the header.
+  final IconData? titleIcon;
 
   /// Simple body: a vertical list of widgets.
   final List<Widget>? children;
@@ -165,24 +169,17 @@ class _HxScreenShellState extends State<HxScreenShell>
           // Floating header.
           Positioned(
             top: topInset,
-            left: widget.padding.left,
-            right: widget.padding.right,
+            // The header keeps the standard gutter even when the body runs
+            // edge to edge (padding: zero), so the back button never moves.
+            left: HxSpace.x5,
+            right: HxSpace.x5,
             child: AnimatedBuilder(
               animation: _header,
               builder: (context, child) {
                 final t = Curves.easeOut.transform(_header.value);
                 return IgnorePointer(
                   ignoring: t < 0.05,
-                  child: Opacity(
-                    opacity: t,
-                    child: Transform.translate(
-                      offset: Offset(
-                        0,
-                        -(_headerHeight + HxSpace.x2) * (1 - t),
-                      ),
-                      child: child,
-                    ),
-                  ),
+                  child: Opacity(opacity: t, child: child),
                 );
               },
               child: SizedBox(
@@ -204,15 +201,31 @@ class _HxScreenShellState extends State<HxScreenShell>
                                 left: titleLeftInset,
                                 right: titleRightInset,
                               ),
-                              child: Text(
-                                widget.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (widget.titleIcon != null) ...[
+                                    Icon(
+                                      widget.titleIcon,
+                                      size: 20,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                    const SizedBox(width: HxSpace.x2),
+                                  ],
+                                  Flexible(
+                                    child: Text(
+                                      widget.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),

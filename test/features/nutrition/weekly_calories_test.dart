@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/app/providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/nutrition/presentation/views/weekly_calories_view.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/macro_chart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
   testWidgets('MacroTrendChart renders with data', (tester) async {
     final history = {
       '2026-08-20': const DailyTotals(
@@ -68,6 +77,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           nutritionHistoryProvider.overrideWith(
             (ref) => Stream.value({
               '2026-08-20': const DailyTotals(
@@ -132,6 +142,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           nutritionHistoryProvider.overrideWith(
             (ref) => Stream.value(historyData),
           ),
@@ -150,6 +161,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           nutritionHistoryProvider.overrideWith(
             (ref) => Stream.value(historyData),
           ),
@@ -168,6 +180,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           nutritionHistoryProvider.overrideWith(
             (ref) => Stream.value(historyData),
           ),

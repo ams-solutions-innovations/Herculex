@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/features/nutrition/application/tdee_providers.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
@@ -50,6 +51,7 @@ void main() {
       ProviderScope(
         overrides: [latestTdeeEstimateProvider.overrideWith((ref) => stream)],
         child: MaterialApp(
+          builder: (context, child) => InAppNotificationHost(child: child!),
           theme: AppTheme.darkTheme,
           home: Scaffold(
             body: SingleChildScrollView(

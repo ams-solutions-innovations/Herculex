@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
@@ -181,11 +182,13 @@ class _Harness {
       ],
       child: MaterialApp(
         theme: theme ?? AppTheme.lightTheme,
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(textScale)),
-          child: child!,
+        builder: (context, child) => InAppNotificationHost(
+          child: MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(textScale)),
+            child: child!,
+          ),
         ),
         home: Scaffold(
           body: Builder(
@@ -545,6 +548,8 @@ void main() {
     final nav = Navigator.of(tester.element(find.byType(CheckInSheet)));
     await tester.runAsync(nav.maybePop);
     await tester.pump();
+    // Notices drop in as a pill; its text shows once the entrance settles.
+    await tester.pump(const Duration(milliseconds: 1200));
     expect(find.text('Hang on, almost done'), findsOneWidget);
     expect(find.byType(CheckInSheet), findsOneWidget);
 

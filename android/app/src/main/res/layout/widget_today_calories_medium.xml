@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Root is now vertical: a top row (ring + macro breakdown) over a bottom row
-     of action buttons, instead of a 3-column layout with buttons stacked down
-     the right edge. Matches the icon+label button style used in
-     widget_quick_actions.xml for a consistent look across widgets. -->
+<!-- Medium 4x2 Today's Calories widget: glassmorphic card with calorie ring,
+     macro breakdown bars, and modern action buttons (Search, Scan, AI Photo). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
@@ -10,12 +8,11 @@
     android:orientation="vertical"
     android:paddingStart="14dp"
     android:paddingEnd="14dp"
-    android:paddingTop="10dp"
-    android:paddingBottom="8dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="10dp"
     android:background="@drawable/widget_card_bg">
 
-    <!-- Top: ring + macro breakdown. Takes all height left over after the
-         button row below claims its wrap_content share. -->
+    <!-- Top: Calorie Gauge Ring + P/C/F Macro breakdown -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -23,12 +20,9 @@
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
-        <!-- Calorie Gauge Ring.
-             Height is match_parent with a fixed width and a fitCenter image, so
-             the ring grows into whatever height the host gives and scales down
-             instead of clipping when the widget is resized short. -->
+        <!-- Calorie Gauge Ring -->
         <FrameLayout
-            android:layout_width="108dp"
+            android:layout_width="96dp"
             android:layout_height="match_parent">
 
             <ImageView
@@ -50,8 +44,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="—"
-                    android:textSize="19sp"
-                    android:textColor="#FFFFFF"
+                    android:textSize="20sp"
+                    android:textColor="@color/widget_text_primary"
                     android:textStyle="bold"
                     android:includeFontPadding="false" />
 
@@ -59,24 +53,24 @@
                     android:id="@+id/calories_remaining_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Remaining"
-                    android:textSize="10sp"
-                    android:textColor="#94A3B8"
+                    android:text="KCAL LEFT"
+                    android:textSize="8.5sp"
+                    android:letterSpacing="0.06"
+                    android:textColor="@color/widget_text_secondary"
                     android:includeFontPadding="false"
-                    android:layout_marginTop="1dp" />
+                    android:layout_marginTop="2dp" />
 
             </LinearLayout>
 
         </FrameLayout>
 
-        <!-- P/C/F progress rows. match_parent height with one weight each, so
-             the three rows spread over the available height instead of
-             clustering in the middle and leaving dead space. -->
+        <!-- P/C/F progress rows -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:orientation="vertical"
+            android:gravity="center_vertical"
             android:layout_marginStart="14dp">
 
             <!-- Protein row -->
@@ -84,35 +78,53 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:orientation="horizontal"
+                android:orientation="vertical"
                 android:gravity="center_vertical">
 
-                <ImageView
-                    android:layout_width="10dp"
-                    android:layout_height="10dp"
-                    android:background="@drawable/widget_dot"
-                    android:backgroundTint="#4DA3FF" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:background="@drawable/widget_dot"
+                        android:backgroundTint="@color/widget_macro_protein" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:text="Protein"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/widget_text_primary"
+                        android:includeFontPadding="false" />
+
+                    <TextView
+                        android:id="@+id/macro_text_protein"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0/0"
+                        android:textSize="10sp"
+                        android:textColor="@color/widget_text_secondary"
+                        android:includeFontPadding="false" />
+
+                </LinearLayout>
 
                 <ProgressBar
                     android:id="@+id/macro_progress_protein"
                     style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="8dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="5dp"
+                    android:layout_marginTop="3dp"
                     android:max="100"
                     android:progress="0"
-                    android:progressTint="#4DA3FF"
-                    android:progressBackgroundTint="#2B374E" />
-
-                <TextView
-                    android:id="@+id/macro_text_protein"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0/0"
-                    android:textSize="10sp"
-                    android:textColor="#94A3B8" />
+                    android:progressTint="@color/widget_macro_protein"
+                    android:progressBackgroundTint="@color/widget_divider" />
 
             </LinearLayout>
 
@@ -121,35 +133,53 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:orientation="horizontal"
+                android:orientation="vertical"
                 android:gravity="center_vertical">
 
-                <ImageView
-                    android:layout_width="10dp"
-                    android:layout_height="10dp"
-                    android:background="@drawable/widget_dot"
-                    android:backgroundTint="#34C759" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:background="@drawable/widget_dot"
+                        android:backgroundTint="@color/widget_macro_carbs" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:text="Carbs"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/widget_text_primary"
+                        android:includeFontPadding="false" />
+
+                    <TextView
+                        android:id="@+id/macro_text_carbs"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0/0"
+                        android:textSize="10sp"
+                        android:textColor="@color/widget_text_secondary"
+                        android:includeFontPadding="false" />
+
+                </LinearLayout>
 
                 <ProgressBar
                     android:id="@+id/macro_progress_carbs"
                     style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="8dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="5dp"
+                    android:layout_marginTop="3dp"
                     android:max="100"
                     android:progress="0"
-                    android:progressTint="#34C759"
-                    android:progressBackgroundTint="#2B374E" />
-
-                <TextView
-                    android:id="@+id/macro_text_carbs"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0/0"
-                    android:textSize="10sp"
-                    android:textColor="#94A3B8" />
+                    android:progressTint="@color/widget_macro_carbs"
+                    android:progressBackgroundTint="@color/widget_divider" />
 
             </LinearLayout>
 
@@ -158,35 +188,53 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:orientation="horizontal"
+                android:orientation="vertical"
                 android:gravity="center_vertical">
 
-                <ImageView
-                    android:layout_width="10dp"
-                    android:layout_height="10dp"
-                    android:background="@drawable/widget_dot"
-                    android:backgroundTint="#FFD60A" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:background="@drawable/widget_dot"
+                        android:backgroundTint="@color/widget_macro_fat" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:text="Fat"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/widget_text_primary"
+                        android:includeFontPadding="false" />
+
+                    <TextView
+                        android:id="@+id/macro_text_fat"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0/0"
+                        android:textSize="10sp"
+                        android:textColor="@color/widget_text_secondary"
+                        android:includeFontPadding="false" />
+
+                </LinearLayout>
 
                 <ProgressBar
                     android:id="@+id/macro_progress_fat"
                     style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="8dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="5dp"
+                    android:layout_marginTop="3dp"
                     android:max="100"
                     android:progress="0"
-                    android:progressTint="#FFD60A"
-                    android:progressBackgroundTint="#2B374E" />
-
-                <TextView
-                    android:id="@+id/macro_text_fat"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0/0"
-                    android:textSize="10sp"
-                    android:textColor="#94A3B8" />
+                    android:progressTint="@color/widget_macro_fat"
+                    android:progressBackgroundTint="@color/widget_divider" />
 
             </LinearLayout>
 
@@ -194,122 +242,124 @@
 
     </LinearLayout>
 
-    <!-- Horizontal divider above the action row. FrameLayout, not View:
-         RemoteViews only inflates @RemoteView classes and plain
-         android.view.View is not one of them. -->
+    <!-- Subtle divider -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#2B374E"
+        android:background="@color/widget_divider"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp" />
 
-    <!-- Bottom: action buttons row, each tap taking the user straight to what
-         its icon shows (search → food search, scan → barcode viewfinder,
-         photo → camera capture) instead of a generic "open Nutrition tab". -->
+    <!-- Bottom: Modern tactile action pills (Search, Barcode Scan, AI Photo) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
-        <!-- Search -->
+        <!-- Search button -->
         <LinearLayout
-        android:id="@+id/col_search_food"
+            android:id="@+id/col_search_food"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="36dp"
             android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center">
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:background="@drawable/widget_action_btn_bg"
+            android:clickable="true">
 
             <ImageView
                 android:id="@+id/btn_search_food"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:padding="8dp"
-                android:background="@drawable/widget_action_btn_bg"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:src="@drawable/ic_widget_search"
                 android:contentDescription="Search food" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginStart="6dp"
                 android:text="Search"
-                android:textSize="9sp"
-                android:textColor="#94A3B8" />
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"
+                android:includeFontPadding="false" />
 
         </LinearLayout>
 
-        <!-- Divider. FrameLayout, not View: RemoteViews only inflates
-             @RemoteView classes and plain android.view.View is not one of
-             them. -->
+        <!-- Spacer -->
         <FrameLayout
-            android:layout_width="1dp"
-            android:layout_height="34dp"
-            android:background="#2B374E" />
+            android:layout_width="8dp"
+            android:layout_height="1dp" />
 
-        <!-- Scan -->
+        <!-- Barcode Scan button -->
         <LinearLayout
-        android:id="@+id/col_scan_food"
+            android:id="@+id/col_scan_food"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="36dp"
             android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center">
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:background="@drawable/widget_action_btn_bg"
+            android:clickable="true">
 
             <ImageView
                 android:id="@+id/btn_scan_food"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:padding="8dp"
-                android:background="@drawable/widget_action_btn_bg"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:src="@drawable/ic_widget_barcode"
                 android:contentDescription="Scan food barcode" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginStart="6dp"
                 android:text="Scan"
-                android:textSize="9sp"
-                android:textColor="#94A3B8" />
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"
+                android:includeFontPadding="false" />
 
         </LinearLayout>
 
-        <!-- Divider. FrameLayout, not View: RemoteViews only inflates
-             @RemoteView classes and plain android.view.View is not one of
-             them. -->
+        <!-- Spacer -->
         <FrameLayout
-            android:layout_width="1dp"
-            android:layout_height="34dp"
-            android:background="#2B374E" />
+            android:layout_width="8dp"
+            android:layout_height="1dp" />
 
-        <!-- Photo (highlighted, per mockup) -->
+        <!-- AI Photo button (Highlighted Primary Pill) -->
         <LinearLayout
-        android:id="@+id/col_camera_food"
+            android:id="@+id/col_camera_food"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center">
+            android:layout_height="36dp"
+            android:layout_weight="1.1"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:background="@drawable/widget_action_btn_bg_highlight"
+            android:clickable="true">
 
             <ImageView
                 android:id="@+id/btn_camera_food"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:padding="8dp"
-                android:background="@drawable/widget_action_btn_bg_highlight"
-                android:src="@drawable/ic_widget_camera"
-                android:contentDescription="Log food from photo" />
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_widget_camera_white"
+                android:contentDescription="Log food from AI photo" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Photo"
-                android:textSize="9sp"
-                android:textColor="#94A3B8" />
+                android:layout_marginStart="6dp"
+                android:text="AI Photo"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:includeFontPadding="false" />
 
         </LinearLayout>
 

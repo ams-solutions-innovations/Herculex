@@ -44,6 +44,8 @@ class NotificationSyncService {
 
     _ref.listen(supplementsProvider, (_, _) => _syncSupplements());
 
+    _ref.listen(takenTodayProvider, (_, _) => _syncSupplements());
+
     _ref.listen(fastingSchedulesProvider, (_, _) => _syncFastingSchedules());
   }
 
@@ -72,9 +74,13 @@ class NotificationSyncService {
       final supplements =
           _ref.read(supplementsProvider).asData?.value ??
           _ref.read(supplementRepositoryProvider).loadSupplements();
+      final takenToday =
+          _ref.read(takenTodayProvider).asData?.value ??
+          _ref.read(supplementRepositoryProvider).loadTakenToday();
       final scheduler = _ref.read(supplementNotificationSchedulerProvider);
       await scheduler.reschedule(
         supplements,
+        takenTodayIds: takenToday,
         enabled: settings.supplementRemindersEnabled,
       );
     } catch (_) {}

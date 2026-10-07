@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/features/programs/data/herculex_ai_brief_service.dart';
@@ -31,7 +32,8 @@ Future<void> _pumpBuilder(WidgetTester tester, AppDatabase db) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [appDatabaseProvider.overrideWithValue(db)],
-      child: const MaterialApp(
+      child: MaterialApp(
+        builder: (context, child) => InAppNotificationHost(child: child!),
         home: BlockBuilderView(autoRecommendExperience: false),
       ),
     ),
@@ -61,7 +63,8 @@ Future<void> _pumpBuilderWithBackend(
         appDatabaseProvider.overrideWithValue(db),
         geminiBackendProvider.overrideWithValue(backend),
       ],
-      child: const MaterialApp(
+      child: MaterialApp(
+        builder: (context, child) => InAppNotificationHost(child: child!),
         home: BlockBuilderView(autoRecommendExperience: false),
       ),
     ),
@@ -215,6 +218,8 @@ Future<void> _createBlock(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 100));
   await tester.pump(const Duration(milliseconds: 300));
+  // Notices drop in as a pill; its text shows once the entrance settles.
+  await tester.pump(const Duration(milliseconds: 1200));
 }
 
 void main() {
@@ -230,8 +235,9 @@ void main() {
     });
 
     await tester.pumpWidget(
-      const ProviderScope(
+      ProviderScope(
         child: MaterialApp(
+          builder: (context, child) => InAppNotificationHost(child: child!),
           home: BlockBuilderView(autoRecommendExperience: false),
         ),
       ),
@@ -316,8 +322,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -406,8 +413,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -447,8 +455,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -479,6 +488,8 @@ void main() {
       await tester.tap(find.text('4 weeks'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
+      // Notices drop in as a pill; its text shows once the entrance settles.
+      await tester.pump(const Duration(milliseconds: 1200));
 
       expect(
         find.textContaining('Not enough time to progress safely'),
@@ -509,8 +520,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -574,8 +586,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -623,8 +636,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -671,8 +685,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -708,8 +723,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -760,8 +776,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -822,8 +839,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -874,8 +892,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -920,8 +939,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -965,8 +985,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -1020,8 +1041,9 @@ void main() {
     });
 
     await tester.pumpWidget(
-      const ProviderScope(
+      ProviderScope(
         child: MaterialApp(
+          builder: (context, child) => InAppNotificationHost(child: child!),
           home: BlockBuilderView(autoRecommendExperience: false),
         ),
       ),
@@ -1063,8 +1085,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: BlockBuilderView(autoRecommendExperience: false),
           ),
         ),
@@ -1934,7 +1957,8 @@ void main() {
                 ),
               ),
             ],
-            child: const MaterialApp(
+            child: MaterialApp(
+              builder: (context, child) => InAppNotificationHost(child: child!),
               home: BlockBuilderView(autoRecommendExperience: false),
             ),
           ),

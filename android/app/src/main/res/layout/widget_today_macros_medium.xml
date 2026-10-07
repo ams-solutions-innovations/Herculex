@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Medium 4x2 Today's Macros widget: 3-column breakdown for Carbs, Fat, and Protein
+     with individual circular gauge rings, current/target values, and remaining labels. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp"
+    android:paddingStart="14dp"
+    android:paddingEnd="14dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp"
     android:background="@drawable/widget_card_bg">
 
     <!-- Column 1: Carbs -->
@@ -25,7 +27,7 @@
             android:layout_height="wrap_content"
             android:text="Carbs"
             android:textSize="13sp"
-            android:textColor="#34C759"
+            android:textColor="@color/widget_macro_carbs"
             android:textStyle="bold"
             android:includeFontPadding="false"
             android:layout_marginBottom="4dp" />
@@ -55,8 +57,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textSize="15sp"
-                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textColor="@color/widget_text_primary"
                     android:textStyle="bold"
                     android:includeFontPadding="false" />
 
@@ -66,7 +68,7 @@
                     android:layout_height="wrap_content"
                     android:text="/0g"
                     android:textSize="10sp"
-                    android:textColor="#94A3B8"
+                    android:textColor="@color/widget_text_secondary"
                     android:includeFontPadding="false" />
 
             </LinearLayout>
@@ -79,7 +81,7 @@
             android:layout_height="wrap_content"
             android:text="0 g left"
             android:textSize="11sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:includeFontPadding="false" />
 
     </LinearLayout>
@@ -98,7 +100,7 @@
             android:layout_height="wrap_content"
             android:text="Fat"
             android:textSize="13sp"
-            android:textColor="#FFD60A"
+            android:textColor="@color/widget_macro_fat"
             android:textStyle="bold"
             android:includeFontPadding="false"
             android:layout_marginBottom="4dp" />
@@ -128,8 +130,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textSize="15sp"
-                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textColor="@color/widget_text_primary"
                     android:textStyle="bold"
                     android:includeFontPadding="false" />
 
@@ -139,7 +141,7 @@
                     android:layout_height="wrap_content"
                     android:text="/0g"
                     android:textSize="10sp"
-                    android:textColor="#94A3B8"
+                    android:textColor="@color/widget_text_secondary"
                     android:includeFontPadding="false" />
 
             </LinearLayout>
@@ -152,7 +154,7 @@
             android:layout_height="wrap_content"
             android:text="0 g left"
             android:textSize="11sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:includeFontPadding="false" />
 
     </LinearLayout>
@@ -171,7 +173,7 @@
             android:layout_height="wrap_content"
             android:text="Protein"
             android:textSize="13sp"
-            android:textColor="#4DA3FF"
+            android:textColor="@color/widget_macro_protein"
             android:textStyle="bold"
             android:includeFontPadding="false"
             android:layout_marginBottom="4dp" />
@@ -201,8 +203,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textSize="15sp"
-                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textColor="@color/widget_text_primary"
                     android:textStyle="bold"
                     android:includeFontPadding="false" />
 
@@ -212,7 +214,7 @@
                     android:layout_height="wrap_content"
                     android:text="/0g"
                     android:textSize="10sp"
-                    android:textColor="#94A3B8"
+                    android:textColor="@color/widget_text_secondary"
                     android:includeFontPadding="false" />
 
             </LinearLayout>
@@ -225,7 +227,7 @@
             android:layout_height="wrap_content"
             android:text="0 g left"
             android:textSize="11sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:includeFontPadding="false" />
 
     </LinearLayout>

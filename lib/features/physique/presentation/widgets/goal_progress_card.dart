@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/hx_card.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/physique/application/physique_providers.dart';
@@ -30,9 +31,11 @@ class GoalProgressCard extends ConsumerWidget {
         .save(File(picked.path), goalUuid: uuid);
     ref.invalidate(physiqueDreamPhotoProvider(uuid));
     if (!ok && context.mounted) {
-      ScaffoldMessenger.of(
+      AppNotice.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Could not save the photo')));
+        'Could not save the photo',
+        kind: AppNoticeKind.error,
+      );
     }
   }
 

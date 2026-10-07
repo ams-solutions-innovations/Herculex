@@ -99,6 +99,7 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
 
     return HxScreenShell(
       title: 'Exercise Library',
+      titleIcon: Icons.fitness_center,
       actions: [
         IconButton(
           tooltip: 'Add Custom Exercise',

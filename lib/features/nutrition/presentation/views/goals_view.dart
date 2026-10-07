@@ -36,6 +36,7 @@ class GoalsView extends ConsumerWidget {
 
     return HxScreenShell(
       title: 'Goals',
+      titleIcon: Icons.flag_outlined,
       padding: EdgeInsets.zero,
       children: [
         // ── Weight & activity rows ────────────────────────────────────────

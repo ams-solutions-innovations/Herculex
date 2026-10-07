@@ -29,8 +29,15 @@ class WearWorkoutSyncService {
   bool _isApplyingRemoteSession = false;
   DateTime? _suppressOutboundUntil;
   Future<void> _remoteApplyQueue = Future.value();
+
+  /// A local edit that landed inside the post-apply echo window, held until
+  /// the window closes instead of being dropped.
   Timer? _pendingOutboundTimer;
   WorkoutSessionData? _pendingOutboundSession;
+
+  /// Outbound pushes run one at a time (see [pushActiveSessionToWatch]).
+  Future<void>? _pushDrain;
+  WorkoutSessionData? _queuedPush;
   late final SharedPreferences _prefs;
   late final WearRevisionAllocator _revisionAllocator;
   final WearDedupeState _remoteDedupe = WearDedupeState();
@@ -71,24 +78,39 @@ class WearWorkoutSyncService {
     if (_isApplyingRemoteSession) {
       return;
     }
-    _pendingOutboundSession = session;
     final until = _suppressOutboundUntil;
     final now = DateTime.now();
     if (until != null && now.isBefore(until)) {
-      final delay = until.difference(now) + const Duration(milliseconds: 50);
-      _pendingOutboundTimer?.cancel();
-      _pendingOutboundTimer = Timer(delay, () {
-        if (_pendingOutboundSession != null && !_isApplyingRemoteSession) {
-          final s = _pendingOutboundSession!;
-          _pendingOutboundSession = null;
-          pushActiveSessionToWatch(s);
-        }
-      });
+      // Inbound watch snapshot was just applied, so this Drift notification
+      // is most likely its echo — but it may also be a real phone edit made
+      // in the same half second (typing a weight right after the watch
+      // logged a set). Discarding it lost that edit for good: the watch
+      // never heard about it. Hold it until the window closes and push
+      // then. An echo costs one redundant message the watch merges as a
+      // no-op (same field versions); it never answers a push with a push.
+      _pendingOutboundSession = session;
+      _schedulePendingPush();
       return;
     }
     _pendingOutboundTimer?.cancel();
+    _pendingOutboundTimer = null;
     _pendingOutboundSession = null;
     pushActiveSessionToWatch(session);
+  }
+
+  void _schedulePendingPush() {
+    if (_pendingOutboundSession == null) return;
+    final until = _suppressOutboundUntil;
+    final wait = until == null
+        ? Duration.zero
+        : until.difference(DateTime.now()) + const Duration(milliseconds: 50);
+    _pendingOutboundTimer?.cancel();
+    _pendingOutboundTimer = Timer(wait.isNegative ? Duration.zero : wait, () {
+      _pendingOutboundTimer = null;
+      final pending = _pendingOutboundSession;
+      _pendingOutboundSession = null;
+      if (pending != null) scheduleOutboundSync(pending);
+    });
   }
 
   bool get hasActiveSyncedSession =>
@@ -510,16 +532,8 @@ class WearWorkoutSyncService {
         _suppressOutboundUntil = DateTime.now().add(
           const Duration(milliseconds: 500),
         );
-        if (_pendingOutboundSession != null) {
-          _pendingOutboundTimer?.cancel();
-          _pendingOutboundTimer = Timer(const Duration(milliseconds: 550), () {
-            if (_pendingOutboundSession != null && !_isApplyingRemoteSession) {
-              final s = _pendingOutboundSession!;
-              _pendingOutboundSession = null;
-              pushActiveSessionToWatch(s);
-            }
-          });
-        }
+        // A held local edit waits out this new window too.
+        _schedulePendingPush();
       }
     });
     _remoteApplyQueue = result.catchError((_) {});
@@ -716,7 +730,32 @@ class WearWorkoutSyncService {
     required DateTime? incomingCompletedAt,
     required WearSetSyncVersions incomingVersions,
   }) {
-    final state = _stateForLocalSet(sessionEntityId, existing, persist: false);
+    final key = _setSyncStateKey(sessionEntityId, setId);
+    final existingState = _setSyncStates[key];
+
+    final _PhoneSetSyncState state;
+    if (existingState == null) {
+      // No local edit metadata exists for this set. Adopt incoming remote
+      // versions as the winner so we don't mint a brand-new local stamp
+      // at DateTime.now() that inadvertently trumps the watch's edit.
+      state = _PhoneSetSyncState(
+        weightKg: incomingWeight,
+        reps: incomingReps,
+        isCompleted: incomingCompleted,
+        completedAt: incomingCompletedAt,
+        versions: incomingVersions,
+      );
+      _setSyncStates[key] = state;
+      _persistSetSyncStates();
+      return _ResolvedPhoneSet(
+        weightKg: incomingWeight,
+        reps: incomingReps,
+        isCompleted: incomingCompleted,
+        completedAt: incomingCompletedAt,
+      );
+    }
+    state = existingState;
+
     var weight = existing.weightKg;
     var reps = existing.reps;
     var completed = existing.isCompleted;
@@ -755,7 +794,8 @@ class WearWorkoutSyncService {
       ..isCompleted = completed
       ..completedAt = completedAt
       ..versions = versions;
-    _setSyncStates[_setSyncStateKey(sessionEntityId, setId)] = state;
+    _setSyncStates[key] = state;
+    _persistSetSyncStates();
 
     return _ResolvedPhoneSet(
       weightKg: weight,
@@ -1115,7 +1155,38 @@ class WearWorkoutSyncService {
     return json;
   }
 
-  Future<void> pushActiveSessionToWatch(WorkoutSessionData session) async {
+  /// Pushes [session] to the watch.
+  ///
+  /// Pushes are serialized and coalesced: each one awaits several queries
+  /// and used to run concurrently with the next. A slow push that had read a
+  /// set *before* an edit could finish *after* the push carrying the edit —
+  /// and because a value differing from the remembered one is stamped as a
+  /// fresh local change, the stale weight went out with the newer stamp and
+  /// the watch kept it. Now one push runs at a time (also never interleaved
+  /// with an inbound apply), and a burst of edits collapses into one push of
+  /// the latest state.
+  Future<void> pushActiveSessionToWatch(WorkoutSessionData session) {
+    _queuedPush = session;
+    return _pushDrain ??= _drainPushes();
+  }
+
+  Future<void> _drainPushes() async {
+    try {
+      while (_queuedPush != null) {
+        final next = _queuedPush!;
+        _queuedPush = null;
+        final run = _remoteApplyQueue
+            .catchError((_) {})
+            .then((_) => _pushActiveSessionNow(next));
+        _remoteApplyQueue = run.catchError((_) {});
+        await run;
+      }
+    } finally {
+      _pushDrain = null;
+    }
+  }
+
+  Future<void> _pushActiveSessionNow(WorkoutSessionData session) async {
     final isStart = _lastSyncedSessionId != session.id;
     _lastSyncedSessionId = session.id;
     // Fallback only guards a theoretical pre-migration NULL race; every

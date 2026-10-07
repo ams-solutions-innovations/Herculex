@@ -3,6 +3,7 @@ package com.ams.herculex
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
@@ -10,10 +11,22 @@ import android.widget.RemoteViews
 /**
  * "KCAL LEFT" pill widget (2x1).
  *
- * Restyled to the rounded-pill visual language: shows remaining calories for
- * the day next to a flame icon.
+ * Shows remaining calories for the day next to a flame icon.
+ * Adapts dynamically to light and dark theme changes.
  */
 class TodayCaloriesSmallWidgetProvider : AppWidgetProvider() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == Intent.ACTION_CONFIGURATION_CHANGED) {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val componentName = ComponentName(context, javaClass)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            if (appWidgetIds.isNotEmpty()) {
+                onUpdate(context, appWidgetManager, appWidgetIds)
+            }
+        }
+    }
 
     override fun onUpdate(
         context: Context,

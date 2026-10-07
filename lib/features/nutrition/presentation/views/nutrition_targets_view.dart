@@ -4,8 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
-import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
-import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
@@ -59,13 +58,13 @@ class NutritionTargetsView extends ConsumerWidget {
     final schedule = ref.watch(activeDietScheduleProvider).asData?.value;
 
     return HxScreenShell(
-      title: 'Cilji in prehrana',
+      title: 'Goals & nutrition',
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: HxSpace.x2),
           child: Text(
-            'Nastavi ciljne kalorije, hitro izberi prehransko fazo in '
-            'prilagodi makrohranila glede na življenjski slog in trening.',
+            'Set your calorie target, pick a nutrition phase quickly and '
+            'adjust macros to your lifestyle and training.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: hx.onSurfaceVariant,
@@ -80,15 +79,15 @@ class NutritionTargetsView extends ConsumerWidget {
         _QuickPhasePlannerSection(initialPhase: initialPhase),
 
         const SizedBox(height: HxSpace.x6),
-        _SectionHeaderTitle('NAPREDNE NASTAVITVE IN RAZPOREDI'),
+        _SectionHeaderTitle('ADVANCED SETTINGS AND SCHEDULES'),
         const SizedBox(height: HxSpace.x3),
 
         _HubTile(
           icon: Icons.flag_rounded,
-          title: 'Dnevni cilji',
+          title: 'Daily targets',
           subtitle: targets == null || targets.isEmpty
-              ? 'Uporabljeni so cilji, izračunani iz profila'
-              : 'Lastni cilji: ${targets.length}',
+              ? 'Using targets calculated from your profile'
+              : 'Custom targets: ${targets.length}',
           onTap: () => Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => const DailyTargetsView())),
@@ -96,14 +95,14 @@ class NutritionTargetsView extends ConsumerWidget {
         const SizedBox(height: HxSpace.x3),
         _HubTile(
           icon: Icons.timeline_rounded,
-          title: 'Aktiven razpored',
+          title: 'Active schedule',
           subtitle: schedule == null
-              ? 'Samodejna sprememba kalorij ni vklopljena'
+              ? 'Automatic calorie adjustment is off'
               : schedule.reducePct < 0
-              ? 'Masa · +${(-schedule.reducePct).toStringAsFixed(1)} % '
-                    'vsakih ${schedule.intervalDays} dni'
-              : 'Redukcija · −${schedule.reducePct.toStringAsFixed(1)} % '
-                    'vsakih ${schedule.intervalDays} dni',
+              ? 'Bulk · +${(-schedule.reducePct).toStringAsFixed(1)} % '
+                    'every ${schedule.intervalDays} days'
+              : 'Cut · −${schedule.reducePct.toStringAsFixed(1)} % '
+                    'every ${schedule.intervalDays} days',
           onTap: () => Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => const ActiveScheduleView())),
@@ -111,8 +110,8 @@ class NutritionTargetsView extends ConsumerWidget {
         const SizedBox(height: HxSpace.x3),
         _HubTile(
           icon: Icons.bakery_dining_rounded,
-          title: 'Ciklanje ogljikovih hidratov',
-          subtitle: 'Najtežji treningi dobijo največ ogljikovih hidratov',
+          title: 'Carb cycling',
+          subtitle: 'Hardest workouts get the most carbs',
           onTap: () => Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => const CarbCycleView())),
@@ -262,7 +261,7 @@ class _QuickPhasePlannerSectionState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hitri načrt kalorij in faz',
+                      'Quick calorie and phase plan',
                       style: TextStyle(
                         color: hx.onSurface,
                         fontWeight: FontWeight.bold,
@@ -271,7 +270,7 @@ class _QuickPhasePlannerSectionState
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Izhodišče: $baselineKcal kcal (TDEE)',
+                      'Baseline: $baselineKcal kcal (TDEE)',
                       style: TextStyle(
                         color: hx.onSurfaceVariant,
                         fontSize: 12,
@@ -289,66 +288,60 @@ class _QuickPhasePlannerSectionState
             onAddAge: () => context.push(AppRoutes.profile),
           ),
           if (eligibility.isRestricted) const SizedBox(height: 12),
-          // ── Phase Selector (Cut, Bulk, Maingain, Maintain) ──
-          Row(
-            children: [
-              for (final phase in DietPhase.values) ...[
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: _PhaseChipButton(
-                      phase: phase,
-                      selected: _effectivePhase == phase,
+          // ── Phase selector (opens a bottom sheet) ──
+          HxPickerPill(
+            caption: 'GOAL',
+            label: _effectivePhase.label,
+            icon: phaseIcon,
+            color: phaseColor,
+            onTap: () async {
+              final picked = await showHxPicker<DietPhase>(
+                context,
+                title: 'Goal',
+                selected: _effectivePhase,
+                options: [
+                  for (final phase in DietPhase.values)
+                    HxPickerOption<DietPhase>(
+                      value: phase,
+                      label: phase.label,
+                      description: phase.subtitle,
+                      icon: phase.uiIcon,
+                      color: phase.uiColor,
                       enabled: eligibility.allows(phase),
-                      onTap: () => _onPhaseSelected(phase),
                     ),
-                  ),
-                ),
-              ],
-            ],
+                ],
+              );
+              if (picked != null) _onPhaseSelected(picked);
+            },
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
-          // ── Pace / Rate Selector ──
-          Text(
-            _effectivePhase == DietPhase.maintain
-                ? 'TEMPO IN INTENZIVNOST'
-                : 'TEDENSKI TEMPO / AGRESIVNOST',
-            style: TextStyle(
-              color: hx.onSurfaceVariant,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (int i = 0; i < paceOptions.length; i++)
-                ChoiceChip(
-                  label: Text(paceOptions[i].label),
-                  selected: _selectedPaceIndex == i,
-                  selectedColor: phaseColor.withValues(alpha: 0.25),
-                  labelStyle: TextStyle(
-                    color: _selectedPaceIndex == i
-                        ? phaseColor
-                        : hx.onSurfaceVariant,
-                    fontWeight: _selectedPaceIndex == i
-                        ? FontWeight.bold
-                        : FontWeight.w500,
-                    fontSize: 12,
-                  ),
-                  side: BorderSide(
-                    color: _selectedPaceIndex == i
-                        ? phaseColor
-                        : hx.outlineVariant.withValues(alpha: 0.4),
-                  ),
-                  onSelected: (_) => setState(() => _selectedPaceIndex = i),
-                ),
-            ],
+          // ── Pace / aggressiveness selector (opens a bottom sheet) ──
+          HxPickerPill(
+            caption: _effectivePhase == DietPhase.maintain
+                ? 'PACE AND INTENSITY'
+                : 'WEEKLY PACE / AGGRESSIVENESS',
+            label: currentPace.label,
+            icon: Icons.speed_rounded,
+            color: phaseColor,
+            onTap: () async {
+              final picked = await showHxPicker<int>(
+                context,
+                title: 'Weekly pace',
+                selected: _selectedPaceIndex,
+                options: [
+                  for (int i = 0; i < paceOptions.length; i++)
+                    HxPickerOption<int>(
+                      value: i,
+                      label: paceOptions[i].label,
+                      description: paceOptions[i].description,
+                      color: phaseColor,
+                    ),
+                ],
+              );
+              if (picked != null) setState(() => _selectedPaceIndex = picked);
+            },
           ),
 
           const SizedBox(height: 6),
@@ -391,7 +384,7 @@ class _QuickPhasePlannerSectionState
                           ),
                         ),
                         Text(
-                          'Ciljni dnevni vnos',
+                          'Daily target intake',
                           style: TextStyle(
                             color: hx.onSurfaceVariant,
                             fontSize: 12,
@@ -413,8 +406,8 @@ class _QuickPhasePlannerSectionState
                       ),
                       child: Text(
                         targets.deltaKcal == 0
-                            ? 'TDEE vzdrževanje'
-                            : '${targets.deltaKcal > 0 ? '+' : ''}${targets.deltaKcal} kcal / dan',
+                            ? 'TDEE maintenance'
+                            : '${targets.deltaKcal > 0 ? '+' : ''}${targets.deltaKcal} kcal / day',
                         style: TextStyle(
                           color: phaseColor,
                           fontWeight: FontWeight.bold,
@@ -434,7 +427,7 @@ class _QuickPhasePlannerSectionState
                   children: [
                     Expanded(
                       child: _MacroStatBox(
-                        label: 'Beljakovine',
+                        label: 'Protein',
                         value: '${targets.proteinG}g',
                         subtext: bwKg != null
                             ? '${(targets.proteinG / bwKg).toStringAsFixed(1)} g/kg'
@@ -445,7 +438,7 @@ class _QuickPhasePlannerSectionState
                     const SizedBox(width: 8),
                     Expanded(
                       child: _MacroStatBox(
-                        label: 'Ogljikovi hidrati',
+                        label: 'Carbs',
                         value: '${targets.carbsG}g',
                         subtext:
                             '${((targets.carbsG * 4 / targets.kcal) * 100).round()}%',
@@ -455,7 +448,7 @@ class _QuickPhasePlannerSectionState
                     const SizedBox(width: 8),
                     Expanded(
                       child: _MacroStatBox(
-                        label: 'Maščobe',
+                        label: 'Fat',
                         value: '${targets.fatG}g',
                         subtext:
                             '${((targets.fatG * 9 / targets.kcal) * 100).round()}%',
@@ -490,7 +483,7 @@ class _QuickPhasePlannerSectionState
                             ),
                           ),
                           child: Text(
-                            'Min. beljakovine: ${minProteinG} g',
+                            'Min. protein: ${minProteinG} g',
                             style: TextStyle(
                               color: AppColors.macroProtein,
                               fontSize: 11,
@@ -512,7 +505,7 @@ class _QuickPhasePlannerSectionState
                             ),
                           ),
                           child: Text(
-                            'Min. kalorije: $minKcal kcal',
+                            'Min. calories: $minKcal kcal',
                             style: TextStyle(
                               color: AppColors.macroKcal,
                               fontSize: 11,
@@ -568,8 +561,8 @@ class _QuickPhasePlannerSectionState
                   : const Icon(Icons.check_circle_outline_rounded, size: 20),
               label: Text(
                 _saving
-                    ? 'Shranjujem …'
-                    : 'Uporabi: ${_effectivePhase.label} (${targets.kcal} kcal)',
+                    ? 'Saving …'
+                    : 'Apply: ${_effectivePhase.label} (${targets.kcal} kcal)',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
@@ -581,7 +574,7 @@ class _QuickPhasePlannerSectionState
                       setState(() => _saving = true);
                       final repo = ref.read(nutritionRepositoryProvider);
                       await repo.upsertTarget(
-                        label: 'Splošno (${_effectivePhase.label})',
+                        label: 'General (${_effectivePhase.label})',
                         appliesTo: 'global',
                         kcal: targets.kcal,
                         proteinG: targets.proteinG,
@@ -598,75 +591,15 @@ class _QuickPhasePlannerSectionState
                           );
                       if (!mounted) return;
                       setState(() => _saving = false);
-                      ref
-                          .read(hxToastControllerProvider.notifier)
-                          .show(
-                            HxToastItem.targetsUpdated(
-                              message:
-                                  '${_effectivePhase.label} • ${targets.kcal} kcal',
-                            ),
-                          );
+                      AppNotice.showWith(
+                        ref,
+                        '${_effectivePhase.label} • ${targets.kcal} kcal',
+                        title: 'Targets updated',
+                      );
                     },
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PhaseChipButton extends StatelessWidget {
-  final DietPhase phase;
-  final bool selected;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  const _PhaseChipButton({
-    required this.phase,
-    required this.selected,
-    required this.onTap,
-    this.enabled = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final hx = context.hx;
-    final color = phase.uiColor;
-    final sel = selected && enabled;
-    final fg = sel ? color : (enabled ? hx.onSurfaceVariant : hx.tertiary);
-
-    return InkWell(
-      onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-        decoration: BoxDecoration(
-          color: sel
-              ? color.withValues(alpha: 0.2)
-              : hx.surfaceContainer.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: sel ? color : hx.outlineVariant.withValues(alpha: 0.3),
-            width: sel ? 1.5 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(phase.uiIcon, size: 18, color: fg),
-            const SizedBox(height: 4),
-            Text(
-              phase.label,
-              style: TextStyle(
-                color: fg,
-                fontWeight: sel ? FontWeight.bold : FontWeight.w600,
-                fontSize: 12,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -820,11 +753,11 @@ class DailyTargetsView extends ConsumerWidget {
     final targets = ref.watch(nutritionTargetsProvider);
 
     return HxScreenShell(
-      title: 'Dnevni cilji',
+      title: 'Daily targets',
       pinnedBottom: SizedBox(
         width: double.infinity,
         child: PremiumButton(
-          text: 'DODAJ / UREDI CILJ',
+          text: 'ADD / EDIT TARGET',
           isPrimary: true,
           icon: Icons.add_rounded,
           onTap: () => Navigator.of(
@@ -836,7 +769,7 @@ class DailyTargetsView extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: HxSpace.x2),
           child: Text(
-            'Velja najbolj specifičen cilj: datum > dan v tednu > trening/počitek > splošno.',
+            'The most specific target wins: date > weekday > training/rest > general.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: hx.onSurfaceVariant,
@@ -866,7 +799,7 @@ class DailyTargetsView extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Še ni lastnih ciljev',
+                        'No custom targets yet',
                         style: TextStyle(
                           color: hx.onSurface,
                           fontWeight: FontWeight.bold,
@@ -875,7 +808,7 @@ class DailyTargetsView extends ConsumerWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Trenutno veljajo izhodiščne kalorije in makrohranila, izračunana iz tvojega profila.',
+                        'Baseline calories and macros calculated from your profile currently apply.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: hx.onSurfaceVariant,
@@ -899,24 +832,21 @@ class DailyTargetsView extends ConsumerWidget {
                           final repo = ref.read(nutritionRepositoryProvider);
                           await repo.deleteTarget(t.id);
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Cilj »${t.label}« izbrisan'),
-                                action: SnackBarAction(
-                                  label: 'Razveljavi',
-                                  onPressed: () {
-                                    repo.upsertTarget(
-                                      label: t.label,
-                                      appliesTo: t.appliesTo,
-                                      kcal: t.kcal,
-                                      proteinG: t.proteinG,
-                                      carbsG: t.carbsG,
-                                      fatG: t.fatG,
-                                      fiberG: t.fiberG,
-                                    );
-                                  },
-                                ),
-                              ),
+                            AppNotice.show(
+                              context,
+                              'Target "${t.label}" deleted',
+                              actionLabel: 'Undo',
+                              onAction: () {
+                                repo.upsertTarget(
+                                  label: t.label,
+                                  appliesTo: t.appliesTo,
+                                  kcal: t.kcal,
+                                  proteinG: t.proteinG,
+                                  carbsG: t.carbsG,
+                                  fatG: t.fatG,
+                                  fiberG: t.fiberG,
+                                );
+                              },
                             );
                           }
                         },
@@ -927,7 +857,7 @@ class DailyTargetsView extends ConsumerWidget {
             padding: EdgeInsets.all(32),
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (e, _) => Center(child: Text('Napaka: $e')),
+          error: (e, _) => Center(child: Text('Error: $e')),
         ),
       ],
     );
@@ -1032,7 +962,7 @@ class _TargetCard extends StatelessWidget {
                     ),
                     if (target.fiberG != null && target.fiberG! > 0)
                       _MacroBadge(
-                        label: 'Vlaknine',
+                        label: 'Fiber',
                         grams: target.fiberG!,
                         color: hx.tertiary,
                       ),
@@ -1102,12 +1032,12 @@ class ActiveScheduleView extends ConsumerWidget {
     final schedule = ref.watch(activeDietScheduleProvider);
 
     return HxScreenShell(
-      title: 'Aktiven razpored',
+      title: 'Active schedule',
       pinnedBottom: Row(
         children: [
           Expanded(
             child: PremiumButton(
-              text: 'ZAČNI REDUKCIJO',
+              text: 'START CUT',
               isPrimary: false,
               icon: Icons.trending_down_rounded,
               onTap: () => _showCutBulkSheet(context, ref, isBulk: false),
@@ -1116,7 +1046,7 @@ class ActiveScheduleView extends ConsumerWidget {
           const SizedBox(width: 12),
           Expanded(
             child: PremiumButton(
-              text: 'ZAČNI MASO',
+              text: 'START BULK',
               isPrimary: true,
               icon: Icons.trending_up_rounded,
               onTap: () => _showCutBulkSheet(context, ref, isBulk: true),
@@ -1128,8 +1058,8 @@ class ActiveScheduleView extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: HxSpace.x2),
           child: Text(
-            'Razpored samodejno zvišuje ali znižuje kalorije v stalnih '
-            'intervalih, da ti ni treba ponovno vnašati ciljev.',
+            'A schedule automatically raises or lowers calories at fixed '
+            'intervals so you do not have to re-enter targets.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: hx.onSurfaceVariant,
@@ -1160,7 +1090,7 @@ class ActiveScheduleView extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Ni aktivnega razporeda',
+                      'No active schedule',
                       style: TextStyle(
                         color: hx.onSurface,
                         fontWeight: FontWeight.bold,
@@ -1169,7 +1099,7 @@ class ActiveScheduleView extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Samodejno postopno prilagajanje kalorij: spodaj začni cikel redukcije ali mase.',
+                      'Automatic gradual calorie adjustment: start a cut or bulk cycle below.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: hx.onSurfaceVariant,
@@ -1214,7 +1144,7 @@ class ActiveScheduleView extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              isBulk ? 'Aktivna masa' : 'Aktivna redukcija',
+                              isBulk ? 'Active bulk' : 'Active cut',
                               style: TextStyle(
                                 color: hx.onSurface,
                                 fontWeight: FontWeight.bold,
@@ -1224,8 +1154,8 @@ class ActiveScheduleView extends ConsumerWidget {
                             const SizedBox(height: 2),
                             Text(
                               isBulk
-                                  ? '+${(-s.reducePct).toStringAsFixed(1)} % vsakih ${s.intervalDays} dni'
-                                  : '−${s.reducePct.toStringAsFixed(1)} % vsakih ${s.intervalDays} dni',
+                                  ? '+${(-s.reducePct).toStringAsFixed(1)} % every ${s.intervalDays} days'
+                                  : '−${s.reducePct.toStringAsFixed(1)} % every ${s.intervalDays} days',
                               style: TextStyle(
                                 color: color,
                                 fontWeight: FontWeight.w600,
@@ -1244,7 +1174,7 @@ class ActiveScheduleView extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Začeto ${s.startDateIso}',
+                        'Started ${s.startDateIso}',
                         style: TextStyle(
                           color: hx.onSurfaceVariant,
                           fontSize: 13,
@@ -1252,7 +1182,7 @@ class ActiveScheduleView extends ConsumerWidget {
                       ),
                       TextButton.icon(
                         icon: const Icon(Icons.stop_circle_outlined, size: 18),
-                        label: const Text('Ustavi'),
+                        label: const Text('Stop'),
                         style: TextButton.styleFrom(foregroundColor: hx.danger),
                         onPressed: () => ref
                             .read(nutritionRepositoryProvider)
@@ -1265,7 +1195,7 @@ class ActiveScheduleView extends ConsumerWidget {
             );
           },
           loading: () => const SizedBox.shrink(),
-          error: (e, _) => Center(child: Text('Napaka: $e')),
+          error: (e, _) => Center(child: Text('Error: $e')),
         ),
       ],
     );
@@ -1304,11 +1234,11 @@ class CarbCycleView extends ConsumerWidget {
     );
 
     return HxScreenShell(
-      title: 'Ciklanje ogljikovih hidratov',
+      title: 'Carb cycling',
       pinnedBottom: SizedBox(
         width: double.infinity,
         child: PremiumButton(
-          text: 'SHRANI TEDENSKI NAČRT',
+          text: 'SAVE WEEKLY PLAN',
           isPrimary: true,
           icon: Icons.auto_awesome_rounded,
           onTap: () async {
@@ -1321,14 +1251,11 @@ class CarbCycleView extends ConsumerWidget {
                   dayLevelsJson: CarbCycleService.encodeLevels(levels),
                 );
             if (context.mounted) {
-              ref
-                  .read(hxToastControllerProvider.notifier)
-                  .show(
-                    HxToastItem.targetsUpdated(
-                      title: 'Ciklanje shranjeno',
-                      message: 'Tedenski načrt je pripravljen',
-                    ),
-                  );
+              AppNotice.showWith(
+                ref,
+                'Carb cycling saved',
+                title: 'Weekly plan is ready',
+              );
             }
           },
         ),
@@ -1337,7 +1264,7 @@ class CarbCycleView extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: HxSpace.x2),
           child: Text(
-            'Ustvarjeno iz tvojega treninga: najtežji dnevi dobijo največ ogljikovih hidratov za boljšo zmogljivost.',
+            'Generated from your training: the hardest days get the most carbs for better performance.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: hx.onSurfaceVariant,
@@ -1353,7 +1280,7 @@ class CarbCycleView extends ConsumerWidget {
             padding: EdgeInsets.all(32),
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (e, _) => Center(child: Text('Napaka: $e')),
+          error: (e, _) => Center(child: Text('Error: $e')),
         ),
       ],
     );
@@ -1526,11 +1453,11 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
   }
 
   String get _scopeLabel {
-    if (_scope == 'global') return 'Splošno';
-    if (_scope == 'training_day') return 'Dan treninga';
-    if (_scope == 'rest_day') return 'Dan počitka';
+    if (_scope == 'global') return 'General';
+    if (_scope == 'training_day') return 'Training day';
+    if (_scope == 'rest_day') return 'Rest day';
     if (_scope == 'weekday' && _weekday != null) {
-      const names = ['Pon', 'Tor', 'Sre', 'Čet', 'Pet', 'Sob', 'Ned'];
+      const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       return names[(_weekday! - 1).clamp(0, 6)];
     }
     return _scope;
@@ -1539,14 +1466,14 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
   Future<void> _save() async {
     final resolved = _resolve();
     if (resolved == null) {
-      String msg = 'Izpolni kalorije in vsa polja makrohranil.';
+      String msg = 'Fill in calories and all macro fields.';
       if (_mode == _MacroMode.percent && (_pctSum - 100).abs() > 1) {
         msg =
-            'Odstotki makrohranil morajo skupaj znašati 100 % (trenutno ${_pctSum.round()} %).';
+            'Macro percentages must add up to 100 % (currently ${_pctSum.round()} %).';
       } else if (_mode == _MacroMode.perLb && _bodyweightKg == null) {
-        msg = 'Najprej dodaj telesno težo v profilu.';
+        msg = 'Add your body weight in your profile first.';
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      AppNotice.show(context, msg, kind: AppNoticeKind.info);
       return;
     }
     await ref
@@ -1574,7 +1501,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
     final resolved = kcalVal > 0 ? _resolve() : null;
 
     return HxScreenShell(
-      title: widget.initialTarget != null ? 'Uredi cilj' : 'Dodaj cilj',
+      title: widget.initialTarget != null ? 'Edit target' : 'Add target',
       pinnedBottom: SizedBox(
         width: double.infinity,
         child: PremiumButton(
@@ -1587,7 +1514,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
       children: [
         Center(
           child: Text(
-            'Shranjevanje za isti obseg nadomesti obstoječi cilj za ta obseg.',
+            'Saving for the same scope replaces the existing target for that scope.',
             textAlign: TextAlign.center,
             style: TextStyle(color: hx.onSurfaceVariant, fontSize: 13),
           ),
@@ -1595,7 +1522,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         const SizedBox(height: HxSpace.x5),
 
         // ── Dieting phase (§5) ──
-        _SectionTitle('PREHRANSKA FAZA'),
+        _SectionTitle('NUTRITION PHASE'),
         const SizedBox(height: HxSpace.x2),
         RestrictionNoticeList(
           eligibility: eligibility,
@@ -1618,7 +1545,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         const SizedBox(height: HxSpace.x3),
         _NumField(
           controller: _maintenanceKcal,
-          label: 'Vzdrževalne kalorije',
+          label: 'Maintenance calories',
           suffix: 'kcal',
           onChanged: (_) => _applyPhase(_phase),
         ),
@@ -1633,16 +1560,16 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         const SizedBox(height: HxSpace.x6),
 
         // ── Scope ──
-        _SectionTitle('VELJA ZA'),
+        _SectionTitle('APPLIES TO'),
         const SizedBox(height: HxSpace.x2),
         Wrap(
           spacing: 8,
           children: [
             for (final entry in {
-              'global': 'Splošno (vsak dan)',
-              'training_day': 'Dan treninga',
-              'rest_day': 'Dan počitka',
-              'weekday': 'Določen dan v tednu',
+              'global': 'General (every day)',
+              'training_day': 'Training day',
+              'rest_day': 'Rest day',
+              'weekday': 'Specific weekday',
             }.entries)
               ChoiceChip(
                 label: Text(entry.value),
@@ -1657,7 +1584,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         if (_scope == 'weekday') ...[
           const SizedBox(height: HxSpace.x3),
           Text(
-            'IZBERI DAN',
+            'CHOOSE DAY',
             style: TextStyle(
               color: hx.onSurfaceVariant,
               fontSize: 11,
@@ -1672,7 +1599,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
               for (var i = 1; i <= 7; i++)
                 ChoiceChip(
                   label: Text(
-                    ['Pon', 'Tor', 'Sre', 'Čet', 'Pet', 'Sob', 'Ned'][i - 1],
+                    ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i - 1],
                   ),
                   selected: _weekday == i,
                   onSelected: (_) => setState(() => _weekday = i),
@@ -1684,11 +1611,11 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         const SizedBox(height: HxSpace.x6),
 
         // ── Calories ──
-        _SectionTitle('KALORIJE'),
+        _SectionTitle('CALORIES'),
         const SizedBox(height: HxSpace.x2),
         _NumField(
           controller: _kcal,
-          label: 'Dnevne ciljne kalorije',
+          label: 'Daily target calories',
           suffix: 'kcal',
           onChanged: (_) => setState(() {}),
         ),
@@ -1696,23 +1623,23 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         const SizedBox(height: HxSpace.x6),
 
         // ── Macro input mode ──
-        _SectionTitle('NAČIN VNOSA MAKROHRANIL'),
+        _SectionTitle('MACRO INPUT MODE'),
         const SizedBox(height: HxSpace.x2),
         Wrap(
           spacing: 8,
           children: [
             ChoiceChip(
-              label: const Text('Grami'),
+              label: const Text('Grams'),
               selected: _mode == _MacroMode.grams,
               onSelected: (_) => setState(() => _mode = _MacroMode.grams),
             ),
             ChoiceChip(
-              label: const Text('% kalorij'),
+              label: const Text('% of calories'),
               selected: _mode == _MacroMode.percent,
               onSelected: (_) => setState(() => _mode = _MacroMode.percent),
             ),
             ChoiceChip(
-              label: const Text('g / lb telesne teže'),
+              label: const Text('g / lb body weight'),
               selected: _mode == _MacroMode.perLb,
               onSelected: (_) => setState(() => _mode = _MacroMode.perLb),
             ),
@@ -1728,7 +1655,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
               Expanded(
                 child: _NumField(
                   controller: _protein,
-                  label: 'Beljakovine',
+                  label: 'Protein',
                   suffix: 'g',
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1750,7 +1677,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
               Expanded(
                 child: _NumField(
                   controller: _fat,
-                  label: 'Maščobe',
+                  label: 'Fat',
                   suffix: 'g',
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1759,7 +1686,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
               Expanded(
                 child: _NumField(
                   controller: _fiber,
-                  label: 'Vlaknine (neobvezno)',
+                  label: 'Fiber (optional)',
                   suffix: 'g',
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1781,7 +1708,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
 
         if (_mode == _MacroMode.percent) ...[
           Text(
-            'Nastavi odstotek vseh kalorij za posamezno makrohranilo. Skupaj mora biti 100 %.',
+            'Set the share of total calories for each macro. Must add up to 100 %.',
             style: TextStyle(color: hx.onSurfaceVariant, fontSize: 13),
           ),
           const SizedBox(height: 10),
@@ -1790,7 +1717,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
               Expanded(
                 child: _NumField(
                   controller: _proteinPct,
-                  label: 'Beljakovine',
+                  label: 'Protein',
                   suffix: '%',
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1808,7 +1735,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
               Expanded(
                 child: _NumField(
                   controller: _fatPct,
-                  label: 'Maščobe',
+                  label: 'Fat',
                   suffix: '%',
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1819,7 +1746,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
           Row(
             children: [
               Text(
-                'Skupaj: ${_pctSum.round()} %',
+                'Total: ${_pctSum.round()} %',
                 style: TextStyle(
                   color: (_pctSum - 100).abs() <= 1
                       ? const Color(0xFF30D158)
@@ -1833,7 +1760,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
                 width: 150,
                 child: _NumField(
                   controller: _fiber,
-                  label: 'Vlaknine (neobvezno)',
+                  label: 'Fiber (optional)',
                   suffix: 'g',
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1845,12 +1772,12 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         if (_mode == _MacroMode.perLb) ...[
           if (bwLb != null)
             Text(
-              'Tvoja telesna teža: ${bwLb.toStringAsFixed(1)} lb (${bwKg!.toStringAsFixed(1)} kg)',
+              'Your body weight: ${bwLb.toStringAsFixed(1)} lb (${bwKg!.toStringAsFixed(1)} kg)',
               style: TextStyle(color: hx.onSurfaceVariant, fontSize: 13),
             )
           else
             Text(
-              'Za ta način dodaj telesno težo v profilu.',
+              'Add your body weight in your profile to use this mode.',
               style: TextStyle(color: hx.danger, fontSize: 13),
             ),
           const SizedBox(height: 10),
@@ -1859,7 +1786,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
               Expanded(
                 child: _NumField(
                   controller: _proteinPerLb,
-                  label: 'Beljakovine',
+                  label: 'Protein',
                   suffix: 'g/lb',
                   hint: '1.0',
                   onChanged: (_) => setState(() {}),
@@ -1869,7 +1796,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
               Expanded(
                 child: _NumField(
                   controller: _fiber,
-                  label: 'Vlaknine (neobvezno)',
+                  label: 'Fiber (optional)',
                   suffix: 'g',
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1879,12 +1806,12 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
           if (bwLb != null) ...[
             const SizedBox(height: 6),
             Text(
-              'Predlog: 1,0 g/lb = ${(bwLb * 1.0).round()} g beljakovin',
+              'Suggestion: 1.0 g/lb = ${(bwLb * 1.0).round()} g protein',
               style: TextStyle(color: hx.onSurfaceVariant, fontSize: 12),
             ),
           ],
           Text(
-            'Preostale kalorije se razdelijo: 55 % OH / 45 % maščob.',
+            'Remaining calories are split: 55 % carbs / 45 % fat.',
             style: TextStyle(color: hx.onSurfaceVariant, fontSize: 12),
           ),
         ],
@@ -1960,7 +1887,7 @@ class _MacroKcalSummary extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Vsota makrov: $totalMacroKcal kcal ${targetKcal > 0 ? '(cilj: $targetKcal kcal · ${diff >= 0 ? '+' : ''}$diff)' : ''}',
+              'Macro total: $totalMacroKcal kcal ${targetKcal > 0 ? '(target: $targetKcal kcal · ${diff >= 0 ? '+' : ''}$diff)' : ''}',
               style: TextStyle(
                 color: isMatch ? const Color(0xFF30D158) : hx.onSurfaceVariant,
                 fontSize: 12,
@@ -1993,7 +1920,7 @@ class _LivePreviewCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _PreviewItem(
-            label: 'Beljakovine',
+            label: 'Protein',
             value: '${resolved.protein}g',
             color: AppColors.macroProtein,
           ),
@@ -2003,12 +1930,12 @@ class _LivePreviewCard extends StatelessWidget {
             color: AppColors.macroCarbs,
           ),
           _PreviewItem(
-            label: 'Maščobe',
+            label: 'Fat',
             value: '${resolved.fat}g',
             color: AppColors.macroFat,
           ),
           _PreviewItem(
-            label: 'Kalorije',
+            label: 'Calories',
             value: '${resolved.kcal} kcal',
             color: hx.primary,
           ),
@@ -2083,8 +2010,10 @@ class _CutBulkSheetState extends State<_CutBulkSheet> {
     final pct = double.tryParse(_pct.text);
     final interval = int.tryParse(_interval.text);
     if (pct == null || interval == null || pct <= 0 || interval <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vnesi veljavna pozitivna števila')),
+      AppNotice.show(
+        context,
+        'Enter valid positive numbers',
+        kind: AppNoticeKind.info,
       );
       return;
     }
@@ -2104,8 +2033,8 @@ class _CutBulkSheetState extends State<_CutBulkSheet> {
     final hx = context.hx;
     final mq = MediaQuery.of(context);
     final color = widget.isBulk ? const Color(0xFF30D158) : hx.primary;
-    final title = widget.isBulk ? 'Začni maso' : 'Začni redukcijo';
-    final verb = widget.isBulk ? 'Povečaj' : 'Zmanjšaj';
+    final title = widget.isBulk ? 'Start bulk' : 'Start cut';
+    final verb = widget.isBulk ? 'Increase' : 'Decrease';
 
     return Padding(
       padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
@@ -2155,8 +2084,8 @@ class _CutBulkSheetState extends State<_CutBulkSheet> {
               const SizedBox(height: 6),
               Text(
                 widget.isBulk
-                    ? 'Kalorije se vsak interval povečajo za nastavljeni %. Beljakovine ostanejo enake; presežek gre v OH in maščobe.'
-                    : 'Kalorije se vsak interval zmanjšajo za nastavljeni %. Beljakovine ostanejo enake; primanjkljaj pride iz OH in maščob.',
+                    ? 'Calories increase by the set % every interval. Protein stays the same; the surplus goes to carbs and fat.'
+                    : 'Calories decrease by the set % every interval. Protein stays the same; the deficit comes from carbs and fat.',
                 style: TextStyle(color: hx.onSurfaceVariant, fontSize: 13),
               ),
               const SizedBox(height: 20),
@@ -2165,7 +2094,7 @@ class _CutBulkSheetState extends State<_CutBulkSheet> {
                   Expanded(
                     child: _NumField(
                       controller: _pct,
-                      label: '$verb za (%)',
+                      label: '$verb by (%)',
                       suffix: '%',
                       hint: widget.isBulk ? '3' : '5',
                     ),
@@ -2174,7 +2103,7 @@ class _CutBulkSheetState extends State<_CutBulkSheet> {
                   Expanded(
                     child: _NumField(
                       controller: _interval,
-                      label: 'Vsakih (dni)',
+                      label: 'Every (days)',
                       suffix: 'dni',
                       hint: '14',
                     ),
@@ -2273,7 +2202,7 @@ class _CarbCycleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hx = context.hx;
-    const days = ['Pon', 'Tor', 'Sre', 'Čet', 'Pet', 'Sob', 'Ned'];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -2422,7 +2351,7 @@ class __MinimumTargetsSectionState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Minimalni cilji (beljakovine in kalorije)',
+                        'Minimum targets (protein and calories)',
                         style: TextStyle(
                           color: hx.onSurface,
                           fontWeight: FontWeight.bold,
@@ -2432,7 +2361,7 @@ class __MinimumTargetsSectionState
                       if (minTargets.enabled && resolvedMinP != null) ...[
                         const SizedBox(height: 2),
                         Text(
-                          'Min. beljakovine: ${resolvedMinP} g'
+                          'Min. protein: ${resolvedMinP} g'
                           '${minTargets.minCaloriesKcal != null ? ' • Min. ${minTargets.minCaloriesKcal} kcal' : ''}',
                           style: TextStyle(
                             color: hx.primary,
@@ -2443,7 +2372,7 @@ class __MinimumTargetsSectionState
                       ] else if (!minTargets.enabled) ...[
                         const SizedBox(height: 2),
                         Text(
-                          'Nastavi spodnjo mejo za proteine in kalorije',
+                          'Set a lower limit for protein and calories',
                           style: TextStyle(
                             color: hx.onSurfaceVariant,
                             fontSize: 11,
@@ -2471,7 +2400,7 @@ class __MinimumTargetsSectionState
 
                       // ── Minimum Protein Presets & Formulas ──
                       Text(
-                        'MINIMALNE BELJAKOVINE (FORMULA)',
+                        'MINIMUM PROTEIN (FORMULA)',
                         style: TextStyle(
                           color: hx.onSurfaceVariant,
                           fontSize: 10,
@@ -2485,7 +2414,7 @@ class __MinimumTargetsSectionState
                         runSpacing: 6,
                         children: [
                           _MinProteinChip(
-                            label: '1.0 g/lb (Optimalno)',
+                            label: '1.0 g/lb (Optimal)',
                             selected:
                                 minTargets.mode == MinProteinMode.perLb &&
                                 (minTargets.proteinValue - 1.0).abs() < 0.05,
@@ -2505,7 +2434,7 @@ class __MinimumTargetsSectionState
                             },
                           ),
                           _MinProteinChip(
-                            label: '1.2 g/lb (Visoko)',
+                            label: '1.2 g/lb (High)',
                             selected:
                                 minTargets.mode == MinProteinMode.perLb &&
                                 (minTargets.proteinValue - 1.2).abs() < 0.05,
@@ -2550,7 +2479,7 @@ class __MinimumTargetsSectionState
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
-                                  'Izračunan minimum: ${resolvedMinP}g '
+                                  'Calculated minimum: ${resolvedMinP}g '
                                   '(${bwLb.toStringAsFixed(1)} lb @ ${minTargets.proteinValue} ${minTargets.mode.label})',
                                   style: TextStyle(
                                     color: AppColors.macroProtein,
@@ -2564,7 +2493,7 @@ class __MinimumTargetsSectionState
                         )
                       else
                         Text(
-                          'Za samodejni izračun g/lb dodajte težo v profilu.',
+                          'Add your weight in your profile for automatic g/lb calculation.',
                           style: TextStyle(
                             color: hx.onSurfaceVariant,
                             fontSize: 11,
@@ -2575,7 +2504,7 @@ class __MinimumTargetsSectionState
 
                       // ── Minimum Calories Floor ──
                       Text(
-                        'MINIMALNE KALORIJE (MEJA DEFICITA)',
+                        'MINIMUM CALORIES (DEFICIT LIMIT)',
                         style: TextStyle(
                           color: hx.onSurfaceVariant,
                           fontSize: 10,
@@ -2589,9 +2518,9 @@ class __MinimumTargetsSectionState
                           Expanded(
                             child: _NumField(
                               controller: _kcalController,
-                              label: 'Minimalne kalorije',
+                              label: 'Minimum calories',
                               suffix: 'kcal',
-                              hint: 'npr. 1500',
+                              hint: 'e.g. 1500',
                               onChanged: (val) {
                                 final parsed = int.tryParse(val.trim());
                                 notifier.setMinCalories(parsed);

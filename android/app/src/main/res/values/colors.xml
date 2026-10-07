@@ -13,4 +13,48 @@
          Alpha is baked into the color, but the view's own alpha is what's
          actually animated for the fade in/out (see WorkoutBubbleController). -->
     <color name="bubble_scrim">#59000000</color>
+
+    <!-- ── Light Mode Widget System (Glassmorphic Frosted Surface) ── -->
+    <color name="widget_card_bg_start">#FFFFFFFF</color>
+    <color name="widget_card_bg_end">#F4F7FC</color>
+    <color name="widget_card_stroke">#D4E0EE</color>
+
+    <color name="widget_pill_bg_start">#FFFFFFFF</color>
+    <color name="widget_pill_bg_end">#F4F7FC</color>
+    <color name="widget_pill_stroke">#D4E0EE</color>
+
+    <color name="widget_text_primary">#0B1526</color>
+    <color name="widget_text_secondary">#52627A</color>
+    <color name="widget_text_tertiary">#8A9BB3</color>
+    <color name="widget_divider">#E1EAF4</color>
+
+    <color name="widget_action_btn_bg">#EDF3FA</color>
+    <color name="widget_action_btn_stroke">#D5E2F1</color>
+    <color name="widget_action_btn_highlight">#0A84FF</color>
+    <color name="widget_action_btn_highlight_stroke">#006FDB</color>
+
+    <color name="widget_icon_tint">#162033</color>
+    <color name="widget_icon_tint_highlight">#FFFFFF</color>
+    <color name="widget_icon_tint_secondary">#52627A</color>
+
+    <color name="widget_ring_track">#E2EAF4</color>
+    <color name="widget_ring_progress">#0A84FF</color>
+    <color name="widget_ring_danger">#E0362C</color>
+
+    <color name="widget_macro_protein">#0A84FF</color>
+    <color name="widget_macro_carbs">#248A3D</color>
+    <color name="widget_macro_fat">#D97706</color>
+
+    <color name="widget_badge_green_bg">#E6F8ED</color>
+    <color name="widget_badge_green_text">#1B7532</color>
+    <color name="widget_badge_amber_bg">#FEF3C7</color>
+    <color name="widget_badge_amber_text">#B45309</color>
+    <color name="widget_badge_red_bg">#FEE2E2</color>
+    <color name="widget_badge_red_text">#DC2626</color>
+    <color name="widget_badge_blue_bg">#E5F1FF</color>
+    <color name="widget_badge_blue_text">#0A84FF</color>
+
+    <color name="widget_scanner_pill_start">#0A84FF</color>
+    <color name="widget_scanner_pill_end">#0063CC</color>
+    <color name="widget_start_workout_bg">#0A84FF</color>
 </resources>

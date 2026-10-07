@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
@@ -60,7 +61,7 @@ class _TdeeShiftCardState extends ConsumerState<TdeeShiftCard> {
   }
 
   Future<void> _update(TdeeTargetProposal proposal) async {
-    final messenger = ScaffoldMessenger.maybeOf(context);
+    final notices = AppNotice.of(context);
     setState(() => _busy = true);
     String? message;
     try {
@@ -82,15 +83,15 @@ class _TdeeShiftCardState extends ConsumerState<TdeeShiftCard> {
       if (mounted) setState(() => _busy = false);
     }
     if (message != null) {
-      messenger?.showSnackBar(SnackBar(content: Text(message)));
+      notices.show(message);
     }
   }
 
   Future<void> _keep(int currentKcal) async {
-    final messenger = ScaffoldMessenger.maybeOf(context);
+    final notices = AppNotice.of(context);
     if (currentKcal < WeeklyReportRepository.minDecisionKcal ||
         currentKcal > WeeklyReportRepository.maxDecisionKcal) {
-      messenger?.showSnackBar(const SnackBar(content: Text(_saveFailed)));
+      notices.show(_saveFailed, kind: AppNoticeKind.error);
       return;
     }
     setState(() => _busy = true);
@@ -108,7 +109,7 @@ class _TdeeShiftCardState extends ConsumerState<TdeeShiftCard> {
       if (mounted) setState(() => _busy = false);
     }
     if (message != null) {
-      messenger?.showSnackBar(SnackBar(content: Text(message)));
+      notices.show(message);
     }
   }
 

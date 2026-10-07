@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/in_app_notification_controller.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/hx_sheet.dart';
 import 'package:herculex/design_system/components/premium_text_field.dart';
 import 'package:herculex/design_system/theme/colors.dart';
-import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/exercise_substitution.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
@@ -362,30 +363,14 @@ class _SmartSubstitutionSheetState
         ref.invalidate(recentExerciseIdsProvider);
         if (mounted) {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    permanently
-                        ? "Permanently replaced with ${candidate.name}"
-                        : "Substituted to ${candidate.name}",
-                  ),
-                ],
-              ),
-              backgroundColor: AppColors.primary,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
+          ref
+              .read(inAppNotificationControllerProvider.notifier)
+              .show(
+                InAppNotificationItem.exerciseReplaced(
+                  exerciseName: candidate.name,
+                  permanently: permanently,
+                ),
+              );
         }
       },
       borderRadius: BorderRadius.circular(24),

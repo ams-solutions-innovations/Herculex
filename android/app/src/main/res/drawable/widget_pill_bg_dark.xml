@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Modern glassmorphic pill: adapts smoothly between phone's Light and Dark mode. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <corners android:radius="999dp" />
     <gradient
         android:angle="270"
-        android:startColor="#18223A"
-        android:endColor="#0E1624" />
+        android:startColor="@color/widget_pill_bg_start"
+        android:endColor="@color/widget_pill_bg_end" />
     <stroke
         android:width="1dp"
-        android:color="#2B374E" />
+        android:color="@color/widget_pill_stroke" />
 </shape>

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
@@ -132,6 +133,7 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: Scaffold(
               body: DayDetailSheet(date: date, programId: row.program.id),
             ),
@@ -178,6 +180,7 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: MaterialApp(
+            builder: (context, child) => InAppNotificationHost(child: child!),
             home: Scaffold(
               body: DayDetailSheet(date: date, programId: row.program.id),
             ),
@@ -384,7 +387,7 @@ void main() {
 
   testWidgets(
     'Tapping View workout on a done row with null completedSessionId shows the '
-    '"no longer exists" SnackBar and does not navigate',
+    '"no longer exists" notice and does not navigate',
     (tester) async {
       final row = await createTestRow(
         scheduleId: 606,
@@ -424,6 +427,10 @@ void main() {
       );
       expect(find.textContaining('WorkoutHistory:'), findsNothing);
       expect(find.textContaining('PlannedWorkoutPreview:'), findsNothing);
+      // Let the notice run its course: this test owns its ProviderContainer,
+      // so nothing else would cancel the pill's auto-dismiss timer.
+      await tester.pump(const Duration(seconds: 8));
+      await tester.pump(const Duration(seconds: 1));
     },
   );
 }

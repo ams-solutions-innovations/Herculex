@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
@@ -79,15 +80,12 @@ class WorkoutHistoryView extends ConsumerWidget {
         );
 
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success
-                ? 'Workout "${_titleFor(session)}" ($kcal kcal) sent to Health Connect / Samsung Health!'
-                : 'Sync failed. Please check Health Connect permissions in settings.',
-          ),
-          backgroundColor: success ? const Color(0xFF30D158) : Colors.redAccent,
-        ),
+      AppNotice.show(
+        context,
+        success
+            ? 'Workout "${_titleFor(session)}" ($kcal kcal) sent to Health Connect / Samsung Health!'
+            : 'Sync failed. Please check Health Connect permissions in settings.',
+        kind: success ? AppNoticeKind.success : AppNoticeKind.error,
       );
     }
   }

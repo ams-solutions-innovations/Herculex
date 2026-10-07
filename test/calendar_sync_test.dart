@@ -48,6 +48,17 @@ void main() {
       expect(int.parse(match.group(1)!), 42);
     });
 
+    test('Regex pattern correctly matches [herculex_session_id:X] tags', () {
+      final sessionRegex = RegExp(r'\[herculex_session_id:(\d+)\]');
+      const desc =
+          'Completed training session recorded in Herculex.\n[herculex_session_id:108]';
+
+      final match = sessionRegex.firstMatch(desc);
+      expect(match, isNotNull);
+      expect(match!.group(1), '108');
+      expect(int.parse(match.group(1)!), 108);
+    });
+
     test('Inbound change logic updates ScheduledWorkout in database', () async {
       // 1. Create a dummy program, week, and program day
       final programId = await db

@@ -3,6 +3,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/features/nutrition/application/tdee_providers.dart';
@@ -122,6 +123,7 @@ Widget _host({
       maintenanceKcalProvider.overrideWith((ref) => 2500),
     ],
     child: MaterialApp(
+      builder: (context, child) => InAppNotificationHost(child: child!),
       theme: theme,
       home: Scaffold(
         body: Builder(
@@ -233,8 +235,8 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('Accept roadmap'), findsOneWidget);
-        expect(find.text('Masa'), findsNothing);
-        expect(find.text('Redukcija'), findsOneWidget);
+        expect(find.text('Bulk'), findsNothing);
+        expect(find.text('Cut'), findsOneWidget);
         expect(find.text('12 weeks'), findsOneWidget);
         expect(find.text('About 0.5 kg per week'), findsOneWidget);
         expect(find.text('Paced to a safe weekly rate'), findsOneWidget);
@@ -303,14 +305,15 @@ void main() {
         );
         await tester.tap(find.byIcon(Icons.delete_outline_rounded).at(1));
         await tester.pump();
-        expect(find.text('Vzdrževanje'), findsNothing);
-        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('Maintenance'), findsNothing);
+        // The notice pill's text appears once its entrance has settled.
+        await tester.pump(const Duration(milliseconds: 1200));
         expect(find.text('Phase removed'), findsOneWidget);
         await tester.tap(find.text('Undo'));
         await tester.pump();
-        expect(find.text('Vzdrževanje'), findsOneWidget);
-        expect(_y(tester, 'Redukcija') < _y(tester, 'Vzdrževanje'), isTrue);
-        expect(_y(tester, 'Vzdrževanje') < _y(tester, 'Rekompozicija'), isTrue);
+        expect(find.text('Maintenance'), findsOneWidget);
+        expect(_y(tester, 'Cut') < _y(tester, 'Maintenance'), isTrue);
+        expect(_y(tester, 'Maintenance') < _y(tester, 'Recomp'), isTrue);
       });
 
       testWidgets('the last remaining phase cannot be deleted', (tester) async {
@@ -341,12 +344,12 @@ void main() {
         // First row (Cut) moves down: Maintain now precedes Cut.
         _performCustom(tester, 'Move down', 0);
         await tester.pumpAndSettle();
-        expect(_y(tester, 'Vzdrževanje') < _y(tester, 'Redukcija'), isTrue);
-        expect(_y(tester, 'Redukcija') < _y(tester, 'Rekompozicija'), isTrue);
+        expect(_y(tester, 'Maintenance') < _y(tester, 'Cut'), isTrue);
+        expect(_y(tester, 'Cut') < _y(tester, 'Recomp'), isTrue);
         // Move the last row up.
         _performCustom(tester, 'Move up', -1);
         await tester.pumpAndSettle();
-        expect(_y(tester, 'Rekompozicija') < _y(tester, 'Redukcija'), isTrue);
+        expect(_y(tester, 'Recomp') < _y(tester, 'Cut'), isTrue);
         handle.dispose();
       });
 
@@ -379,7 +382,7 @@ void main() {
         }
         await gesture.up();
         await tester.pumpAndSettle();
-        expect(_y(tester, 'Redukcija') > _y(tester, 'Vzdrževanje'), isTrue);
+        expect(_y(tester, 'Cut') > _y(tester, 'Maintenance'), isTrue);
       });
 
       testWidgets('restricted phases are disabled with the reason shown', (
@@ -394,21 +397,21 @@ void main() {
           ),
         );
         expect(
-          find.textContaining('Redukcija in Masa nista na voljo pod 18 let'),
+          find.textContaining('Cut and Bulk are not available under 18'),
           findsOneWidget,
         );
         await tester.tap(find.text('Add phase'));
         await tester.pump();
         // The row list still shows Cut; the picker adds a second "Cut" pill.
-        expect(find.text('Redukcija'), findsNWidgets(2));
-        final rows = find.text('Masa');
+        expect(find.text('Cut'), findsNWidgets(2));
+        final rows = find.text('Bulk');
         expect(rows, findsOneWidget);
         await tester.tap(rows);
         await tester.pump();
         // Bulk was ignored: still three rows.
         expect(find.byIcon(Icons.delete_outline_rounded), findsNWidgets(3));
         // Allowed phase appends with 8 weeks.
-        await tester.tap(find.text('Čista rast'));
+        await tester.tap(find.text('Lean bulk'));
         await tester.pumpAndSettle();
         expect(find.byIcon(Icons.delete_outline_rounded), findsNWidgets(4));
         expect(find.text('8 weeks'), findsNWidgets(2));
@@ -430,13 +433,13 @@ void main() {
         expect(find.text('Reset your roadmap?'), findsOneWidget);
         await tester.tap(find.text('Keep my edits'));
         await tester.pumpAndSettle();
-        expect(find.text('Redukcija'), findsOneWidget);
+        expect(find.text('Cut'), findsOneWidget);
         await tester.tap(find.text('Reset to suggestion'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Reset roadmap'));
         await tester.pumpAndSettle();
-        expect(find.text('Redukcija'), findsNothing);
-        expect(find.text('Masa'), findsOneWidget);
+        expect(find.text('Cut'), findsNothing);
+        expect(find.text('Bulk'), findsOneWidget);
         expect(find.text('20 weeks'), findsOneWidget);
       });
 

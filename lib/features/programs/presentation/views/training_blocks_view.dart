@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/app_bottom_sheet.dart';
@@ -205,15 +206,12 @@ class _BlockHeader extends ConsumerWidget {
                 .read(calendarSyncControllerProvider.notifier)
                 .syncNow();
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    res.success
-                        ? 'Calendar synced (${res.pushedCount} pushed, ${res.pulledCount} pulled)'
-                        : 'Sync error: ${res.error}',
-                  ),
-                  duration: const Duration(seconds: 2),
-                ),
+              AppNotice.show(
+                context,
+                res.success
+                    ? 'Calendar synced (${res.pushedCount} pushed, ${res.pulledCount} pulled)'
+                    : 'Sync error: ${res.error}',
+                kind: res.success ? AppNoticeKind.success : AppNoticeKind.error,
               );
             }
           },

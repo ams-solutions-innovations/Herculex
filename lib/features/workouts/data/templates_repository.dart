@@ -76,6 +76,55 @@ class TemplatesRepository {
     )..where((t) => t.id.equals(id))).getSingle();
   }
 
+  /// Copies a resolved plan (a program day's inline prescription) into a new
+  /// editable template, set by set — warmups, set types, rep ranges and
+  /// target loads included. Used when the user edits a scheduled workout that
+  /// has no template of its own yet.
+  Future<WorkoutTemplateData> createFromPlannedSession(
+    PlannedSessionSnapshot plan, {
+    String? name,
+  }) {
+    return _db.transaction(() async {
+      final template = await createTemplate(name: name ?? plan.name);
+      for (final (index, exercise) in plan.exercises.indexed) {
+        final working = exercise.sets.where((s) => !s.isWarmup).toList();
+        final first = working.isNotEmpty ? working.first : null;
+        final templateExerciseId = await _db
+            .into(_db.templateExercises)
+            .insert(
+              TemplateExercisesCompanion.insert(
+                templateId: template.id,
+                exerciseId: exercise.exerciseId,
+                orderIndex: index,
+                targetSets: Value(exercise.sets.length),
+                targetRepsMin: Value(first?.repsMin),
+                targetRepsMax: Value(first?.repsMax),
+                targetRestSeconds: Value(exercise.restSeconds),
+                supersetGroup: Value(exercise.supersetGroup),
+              ),
+            );
+        for (final (setIndex, set) in exercise.sets.indexed) {
+          await _db
+              .into(_db.templateSets)
+              .insert(
+                TemplateSetsCompanion.insert(
+                  templateExerciseId: templateExerciseId,
+                  setOrder: setIndex + 1,
+                  setType: Value(set.setType),
+                  setTypeMetaJson: Value(set.setTypeMetaJson),
+                  targetReps: Value(set.repsMin),
+                  targetRepsMin: Value(set.repsMin),
+                  targetRepsMax: Value(set.repsMax),
+                  targetWeightKg: Value(set.weightKg),
+                  isWarmup: Value(set.isWarmup),
+                ),
+              );
+        }
+      }
+      return template;
+    });
+  }
+
   Future<void> updateTemplate(
     int id, {
     String? name,

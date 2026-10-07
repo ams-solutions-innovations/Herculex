@@ -6,33 +6,33 @@ import 'package:herculex/features/nutrition/domain/phase_eligibility.dart';
 /// labelling them, so the saved target already reflects the deficit or
 /// surplus — nothing downstream has to know a phase was involved.
 enum DietPhase {
-  maintain('Vzdrževanje'),
-  maingain('Čista rast'),
-  cut('Redukcija'),
-  bulk('Masa'),
-  recomp('Rekompozicija');
+  maintain('Maintenance'),
+  maingain('Lean bulk'),
+  cut('Cut'),
+  bulk('Bulk'),
+  recomp('Recomp');
 
   const DietPhase(this.label);
   final String label;
 
-  /// Confirmation-button text: «Shrani Redukcija» itd., «Shrani cilj» za vzdrževanje.
+  /// Confirmation-button text: "Save: Cut" etc., "Save target" for maintenance.
   String get saveLabel => switch (this) {
-    DietPhase.maintain => 'Shrani cilj',
-    _ => 'Shrani: $label',
+    DietPhase.maintain => 'Save target',
+    _ => 'Save: $label',
   };
 
   /// One-line explanation of what this phase does to calories and macros.
   String get subtitle => switch (this) {
     DietPhase.cut =>
-      'Kalorični primanjkljaj za izgubo maščobe z veliko beljakovinami za zaščito mišične mase (2,2 g beljakovin/kg).',
+      'Calorie deficit to lose fat, with high protein to protect muscle (2.2 g protein/kg).',
     DietPhase.bulk =>
-      'Kalorični presežek z veliko ogljikovimi hidrati za največjo moč in rast mišic.',
+      'Calorie surplus with plenty of carbs for maximum strength and muscle growth.',
     DietPhase.maingain =>
-      'Majhen, nadzorovan presežek z 2,2 g/kg beljakovin za postopno, pretežno čisto rast mišic.',
+      'Small, controlled surplus with 2.2 g/kg protein for gradual, mostly lean muscle gain.',
     DietPhase.maintain =>
-      'Brez kalorične razlike (TDEE) in 1,8 g/kg beljakovin za stabilno težo in okrevanje.',
+      'No calorie difference (TDEE) and 1.8 g/kg protein for stable weight and recovery.',
     DietPhase.recomp =>
-      'Rekompozicija telesa: brez kalorične razlike (TDEE) z 2,2 g/kg beljakovin za gradnjo mišic in izgubo maščobe pri stabilni teži.',
+      'Body recomposition: no calorie difference (TDEE) with 2.2 g/kg protein to build muscle and lose fat at a stable weight.',
   };
 }
 
@@ -101,89 +101,89 @@ class DietPhaseCalculator {
           DietPaceOption(
             weeklyKg: 0.25,
             kcalDelta: -250,
-            label: '0,25 kg/ted (blago)',
-            description: 'Minimalen primanjkljaj za ohranitev največje moči.',
+            label: '0.25 kg/wk (gentle)',
+            description: 'Minimal deficit to preserve maximum strength.',
           ),
           DietPaceOption(
             weeklyKg: 0.50,
             kcalDelta: -500,
-            label: '0,50 kg/ted (standardno)',
-            description: 'Standardni priporočeni tempo za izgubo maščobe.',
+            label: '0.50 kg/wk (standard)',
+            description: 'Standard recommended pace for fat loss.',
           ),
           DietPaceOption(
             weeklyKg: 0.75,
             kcalDelta: -750,
-            label: '0,75 kg/ted (hitro)',
-            description: 'Hitra izguba maščobe z velikim vnosom beljakovin.',
+            label: '0.75 kg/wk (fast)',
+            description: 'Fast fat loss with high protein intake.',
           ),
           DietPaceOption(
             weeklyKg: 1.00,
             kcalDelta: -1000,
-            label: '1,00 kg/ted (agresivno)',
-            description: 'Največji tempo (do 1 kg na teden).',
+            label: '1.00 kg/wk (aggressive)',
+            description: 'Maximum pace (up to 1 kg per week).',
           ),
         ],
         DietPhase.bulk => const [
           DietPaceOption(
             weeklyKg: 0.25,
             kcalDelta: 250,
-            label: '0,25 kg/ted (čisto)',
-            description: 'Čist presežek z minimalnim pridobivanjem maščobe.',
+            label: '0.25 kg/wk (clean)',
+            description: 'Clean surplus with minimal fat gain.',
           ),
           DietPaceOption(
             weeklyKg: 0.50,
             kcalDelta: 500,
-            label: '0,50 kg/ted (standardno)',
-            description: 'Optimalen tempo za gradnjo mišic in moči.',
+            label: '0.50 kg/wk (standard)',
+            description: 'Optimal pace for building muscle and strength.',
           ),
           DietPaceOption(
             weeklyKg: 0.75,
             kcalDelta: 750,
-            label: '0,75 kg/ted (hitro)',
-            description: 'Hitro pridobivanje teže in okrevanje.',
+            label: '0.75 kg/wk (fast)',
+            description: 'Fast weight gain and recovery.',
           ),
           DietPaceOption(
             weeklyKg: 1.00,
             kcalDelta: 1000,
-            label: '1,00 kg/ted (agresivno)',
-            description: 'Velik presežek za največjo maso.',
+            label: '1.00 kg/wk (aggressive)',
+            description: 'Large surplus for maximum mass.',
           ),
         ],
         DietPhase.maingain => const [
           DietPaceOption(
             weeklyKg: 0.05,
             kcalDelta: 75,
-            label: 'Minimalno (+75 kcal)',
-            description: 'Najmanjši presežek za skoraj povsem čisto rast.',
+            label: 'Minimal (+75 kcal)',
+            description: 'Smallest surplus for almost entirely lean growth.',
           ),
           DietPaceOption(
             weeklyKg: 0.15,
             kcalDelta: 150,
-            label: 'Čisto (+150 kcal)',
-            description: 'Počasna čista rast mišic z minimalno maščobe.',
+            label: 'Clean (+150 kcal)',
+            description: 'Slow, lean muscle growth with minimal fat.',
           ),
           DietPaceOption(
             weeklyKg: 0.25,
             kcalDelta: 250,
-            label: 'Progresivno (+250 kcal)',
-            description: 'Enakomeren napredek v moči in hipertrofiji.',
+            label: 'Progressive (+250 kcal)',
+            description: 'Steady progress in strength and hypertrophy.',
           ),
         ],
         DietPhase.maintain => const [
           DietPaceOption(
             weeklyKg: 0.0,
             kcalDelta: 0,
-            label: 'Vzdrževanje (0 kcal)',
-            description: 'Popolno kalorično ravnovesje (TDEE).',
+            label: 'Maintenance (0 kcal)',
+            description: 'Perfect calorie balance (TDEE).',
           ),
         ],
         DietPhase.recomp => const [
           DietPaceOption(
             weeklyKg: 0.0,
             kcalDelta: 0,
-            label: 'Rekompozicija (0 kcal)',
+            label: 'Recomp (0 kcal)',
             description:
-                'Rekompozicija telesa pri stabilni teži z 2,2 g/kg beljakovin.',
+                'Body recomposition at stable weight with 2.2 g/kg protein.',
           ),
         ],
       };

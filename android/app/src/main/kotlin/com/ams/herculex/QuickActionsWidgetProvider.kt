@@ -10,9 +10,8 @@ import android.widget.RemoteViews
 /**
  * Quick Actions row widget (4x1).
  *
- * Four static tap targets: add 250 ml of water, scan a barcode, log food, and
- * jump to the active/today workout. Has no dynamic data — it never needs an
- * `AppWidgetManager.updateAppWidget` sync call beyond the initial bind.
+ * Four tactile shortcuts: add 250 ml of water, scan a barcode, AI photo food
+ * recognition, and jump to active/today workout.
  */
 class QuickActionsWidgetProvider : AppWidgetProvider() {
 
@@ -30,61 +29,53 @@ class QuickActionsWidgetProvider : AppWidgetProvider() {
     private fun buildViews(context: Context): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_quick_actions)
 
-        // Water: forwarded through MainActivity to Dart's "addWater" handler,
-        // which calls NutritionRepository.addWaterMl(now, 250) — see
-        // app.dart's widgetChannel.setMethodCallHandler.
+        // Water: forwarded through MainActivity to Dart's "addWater" handler
         val waterIntent = Intent(context, MainActivity::class.java).apply {
             action = ACTION_ADD_WATER
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-        views.setOnClickPendingIntent(
-            R.id.col_quick_water,
-            PendingIntent.getActivity(
-                context, 501, waterIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
+        val waterPendingIntent = PendingIntent.getActivity(
+            context, 501, waterIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        views.setOnClickPendingIntent(R.id.col_quick_water, waterPendingIntent)
+        views.setOnClickPendingIntent(R.id.btn_quick_water, waterPendingIntent)
 
-        // Scan: reuses the Scanner widget's existing deep link.
+        // Scan barcode: opens Barcode Scanner
         val scanIntent = Intent(context, MainActivity::class.java).apply {
             action = ScannerWidgetProvider.ACTION_SCAN
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-        views.setOnClickPendingIntent(
-            R.id.col_quick_scan,
-            PendingIntent.getActivity(
-                context, 502, scanIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
+        val scanPendingIntent = PendingIntent.getActivity(
+            context, 502, scanIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        views.setOnClickPendingIntent(R.id.col_quick_scan, scanPendingIntent)
+        views.setOnClickPendingIntent(R.id.btn_quick_scan, scanPendingIntent)
 
-        // Log food: reuses the Today's Calories (Medium) search-food deep
-        // link — closer to "log food" intent than the plain nutrition-tab one.
-        val logFoodIntent = Intent(context, MainActivity::class.java).apply {
-            action = TodayCaloriesMediumWidgetProvider.ACTION_SEARCH_FOOD
+        // AI Camera: opens camera for AI photo food recognition
+        val cameraIntent = Intent(context, MainActivity::class.java).apply {
+            action = TodayCaloriesMediumWidgetProvider.ACTION_OPEN_CAMERA_FOOD_LOG
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-        views.setOnClickPendingIntent(
-            R.id.col_quick_log_food,
-            PendingIntent.getActivity(
-                context, 503, logFoodIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
+        val cameraPendingIntent = PendingIntent.getActivity(
+            context, 503, cameraIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        views.setOnClickPendingIntent(R.id.col_quick_camera, cameraPendingIntent)
+        views.setOnClickPendingIntent(R.id.btn_quick_camera, cameraPendingIntent)
 
-        // Workout: same "open_active_workout" deep link the Training card's
-        // Start button and the Workout Bubble already use.
+        // Workout: jump to active / planned workout
         val workoutIntent = Intent(context, MainActivity::class.java).apply {
             putExtra("open_active_workout", true)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-        views.setOnClickPendingIntent(
-            R.id.col_quick_workout,
-            PendingIntent.getActivity(
-                context, 504, workoutIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
+        val workoutPendingIntent = PendingIntent.getActivity(
+            context, 504, workoutIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        views.setOnClickPendingIntent(R.id.col_quick_workout, workoutPendingIntent)
+        views.setOnClickPendingIntent(R.id.btn_quick_workout, workoutPendingIntent)
 
         return views
     }

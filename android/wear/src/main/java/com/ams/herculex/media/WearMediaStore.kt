@@ -22,6 +22,8 @@ data class SyncedMediaInfo(
     val positionMs: Long = 0L,
     val durationMs: Long = 0L,
     val volume: Int = 0,
+    val maxVolume: Int = 15,
+    val volumePercent: Int = 50,
     val updatedAtEpochMs: Long = 0L,
     val artwork: Bitmap? = null,
 ) {
@@ -50,7 +52,15 @@ object WearMediaStore {
     fun save(context: Context, json: String) {
         if (json.isBlank()) return
         val parsed = parse(json) ?: return
-        _mediaFlow.value = parsed
+        // The phone's quick post-command updates carry no artwork (they must
+        // stay small to be fast). Keep the cover we already have for the same
+        // track instead of flashing to the placeholder.
+        val current = _mediaFlow.value
+        _mediaFlow.value = if (parsed.artwork == null && current?.artwork != null && current.title == parsed.title) {
+            parsed.copy(artwork = current.artwork)
+        } else {
+            parsed
+        }
 
         context.applicationContext
             .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -66,6 +76,22 @@ object WearMediaStore {
         _mediaFlow.value = cur.copy(isPlaying = isPlaying)
     }
 
+    // Every state message used to re-decode the same cover from base64.
+    private var cachedArtworkKey: Int = 0
+    private var cachedArtwork: Bitmap? = null
+
+    private fun decodeArtwork(encoded: String): Bitmap? {
+        val key = encoded.hashCode()
+        if (key == cachedArtworkKey && cachedArtwork != null) return cachedArtwork
+        val bitmap = runCatching {
+            val bytes = Base64.decode(encoded, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        }.getOrNull()
+        cachedArtworkKey = key
+        cachedArtwork = bitmap
+        return bitmap
+    }
+
     private fun parse(json: String): SyncedMediaInfo? {
         return try {
             val obj = JSONObject(json)
@@ -73,6 +99,10 @@ object WearMediaStore {
             val pkg = obj.optString("packageName", "")
             val explicitSpotify = obj.optBoolean("isSpotify", false)
             val isSpotify = explicitSpotify || app.contains("spotify", ignoreCase = true) || pkg.contains("spotify", ignoreCase = true)
+            val vol = obj.optInt("volume", 0)
+            val maxVol = obj.optInt("maxVolume", 15)
+            val explicitPercent = obj.optInt("volumePercent", -1)
+            val volumePercent = if (explicitPercent >= 0) explicitPercent else if (maxVol > 0) vol * 100 / maxVol else 50
             SyncedMediaInfo(
                 title = obj.optString("title", ""),
                 artist = obj.optString("artist", ""),
@@ -84,14 +114,11 @@ object WearMediaStore {
                 hasPermission = obj.optBoolean("hasPermission", false),
                 positionMs = obj.optLong("positionMs", 0L),
                 durationMs = obj.optLong("durationMs", 0L),
-                volume = obj.optInt("volume", 0),
+                volume = vol,
+                maxVolume = maxVol,
+                volumePercent = volumePercent,
                 updatedAtEpochMs = obj.optLong("updatedAtEpochMs", System.currentTimeMillis()),
-                artwork = obj.optString("artworkBase64", "").takeIf { it.isNotBlank() }?.let { encoded ->
-                    runCatching {
-                        val bytes = Base64.decode(encoded, Base64.DEFAULT)
-                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    }.getOrNull()
-                },
+                artwork = obj.optString("artworkBase64", "").takeIf { it.isNotBlank() }?.let(::decodeArtwork),
             )
         } catch (_: Exception) {
             null

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
 
 /// A minimal, reusable `GoRouter` harness for widget tests.
 ///
@@ -50,7 +51,11 @@ class GoRouterTestHarness {
   final GoRouter router;
 
   /// A `MaterialApp.router` ready to hand straight to `tester.pumpWidget`.
-  Widget get app => MaterialApp.router(routerConfig: router);
+  Widget get app => MaterialApp.router(
+    // Same host the real app wraps every route in, so notices are visible.
+    builder: (context, child) => InAppNotificationHost(child: child!),
+    routerConfig: router,
+  );
 }
 
 /// A minimal stub destination screen for asserting on pushed routes.

@@ -1108,4 +1108,125 @@ void main() {
       expect(syncCalls, isNotEmpty);
     },
   );
+
+  test(
+    'incoming watch set update applies cleanly when set sync state is unseeded without being trumped by a new phone stamp',
+    () async {
+      buildService();
+      final exerciseId = await createExercise('Overhead Press');
+      final sessionId = await repo.startSession(
+        sessionUuid: 'unseeded-session-1',
+      );
+      final workoutExerciseId = await repo.addExerciseToSession(
+        sessionId: sessionId,
+        exerciseId: exerciseId,
+      );
+      final set =
+          (await repo.watchSetsForWorkoutExercise(workoutExerciseId).first)
+              .single;
+      // Phone initialized set with 50kg, 10 reps, but never pushed to watch,
+      // so _setSyncStates is empty for this set.
+      await repo.updateSet(setId: set.id, weightKg: 50, reps: 10);
+
+      // Watch sends update with weight 60, reps 12 with a moderate watch revision.
+      final watchUpdate = workoutEnvelopeJson(
+        entityId: 'unseeded-session-1',
+        revision: 100,
+        updatedAtEpochMs: 100,
+        exercises: [
+          exerciseWithWireId(
+            exerciseId,
+            'Overhead Press',
+            wireId: 'exercise_$workoutExerciseId',
+            sets: [
+              {
+                'wireId': 'set_${set.id}',
+                'weight': 60,
+                'reps': 12,
+                'completed': false,
+                'syncVersions': {
+                  'weight': {'revision': 100, 'origin': wearSyncOriginWatch},
+                  'reps': {'revision': 100, 'origin': wearSyncOriginWatch},
+                  'completion': {
+                    'revision': 100,
+                    'origin': wearSyncOriginWatch,
+                  },
+                },
+              },
+            ],
+          ),
+        ],
+      );
+
+      await emitWorkoutUpdated(watchUpdate);
+      await pumpEventQueue();
+
+      final resolved =
+          (await repo.watchSetsForWorkoutExercise(workoutExerciseId).first)
+              .single;
+      expect(resolved.weightKg, 60);
+      expect(resolved.reps, 12);
+    },
+  );
+
+  test(
+    'scheduleOutboundSync drops echo notification when inside the suppression window',
+    () async {
+      final service = buildService();
+      final exerciseId = await createExercise('Deadlift');
+      final sessionId = await repo.startSession(
+        sessionUuid: 'echo-guard-uuid-1',
+      );
+      final workoutExerciseId = await repo.addExerciseToSession(
+        sessionId: sessionId,
+        exerciseId: exerciseId,
+      );
+      final set =
+          (await repo.watchSetsForWorkoutExercise(workoutExerciseId).first)
+              .single;
+
+      // Simulate receiving an update from watch. This applies to Drift and sets _suppressOutboundUntil.
+      final watchUpdate = workoutEnvelopeJson(
+        entityId: 'echo-guard-uuid-1',
+        revision: 50,
+        updatedAtEpochMs: 50,
+        exercises: [
+          exerciseWithWireId(
+            exerciseId,
+            'Deadlift',
+            wireId: 'exercise_$workoutExerciseId',
+            sets: [
+              {
+                'wireId': 'set_${set.id}',
+                'weight': 100,
+                'reps': 5,
+                'completed': false,
+                'syncVersions': {
+                  'weight': {'revision': 50, 'origin': wearSyncOriginWatch},
+                  'reps': {'revision': 50, 'origin': wearSyncOriginWatch},
+                  'completion': {'revision': 50, 'origin': wearSyncOriginWatch},
+                },
+              },
+            ],
+          ),
+        ],
+      );
+
+      await emitWorkoutUpdated(watchUpdate);
+      await pumpEventQueue();
+
+      dispatchedCalls.clear();
+
+      final session = (await repo.watchActiveSession().first)!;
+      // Drift stream emissions within the 500ms window call scheduleOutboundSync
+      service.scheduleOutboundSync(session);
+      await pumpEventQueue();
+
+      final syncCalls = dispatchedCalls
+          .where((c) => c.method == 'syncActiveSession')
+          .toList();
+      // Must not dispatch an echo back to the watch!
+      expect(syncCalls, isEmpty);
+    },
+  );
 }

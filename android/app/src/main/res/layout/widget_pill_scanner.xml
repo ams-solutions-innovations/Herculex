@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="horizontal"
     android:gravity="center"
-    android:paddingStart="14dp"
+    android:paddingStart="16dp"
     android:paddingEnd="16dp"
     android:background="@drawable/widget_pill_bg_scanner">
 
@@ -14,8 +14,8 @@
         android:id="@+id/scanner_icon"
         android:layout_width="20dp"
         android:layout_height="20dp"
-        android:src="@drawable/ic_widget_barcode"
-        android:contentDescription="Scan food" />
+        android:src="@drawable/ic_widget_barcode_white"
+        android:contentDescription="Scan food barcode" />
 
     <TextView
         android:id="@+id/scanner_label"

@@ -14,22 +14,22 @@ class RestrictionNotice extends StatelessWidget {
 
   static String copyFor(PhaseRestrictionReason reason) => switch (reason) {
     PhaseRestrictionReason.under18 =>
-      'Redukcija in Masa nista na voljo pod 18 let. Vzdrževanje, '
-          'Rekompozicija ali majhna Čista rast te varno vodijo naprej, '
-          'Vzdrževanje pa je dobra izhodiščna izbira.',
+      'Cut and Bulk are not available under 18. Maintenance, '
+          'Recomp or a small Lean bulk move you forward safely, '
+          'and Maintenance is a good starting point.',
     PhaseRestrictionReason.ageMissing =>
-      'Dodaj starost, da odkleneš vse faze. Do takrat ponujamo Vzdrževanje, '
-          'Rekompozicijo in Čisto rast.',
+      'Add your age to unlock all phases. Until then we offer Maintenance, '
+          'Recomp and Lean bulk.',
     PhaseRestrictionReason.lowConfidence =>
-      'Ta analiza ni dovolj zanesljiva za načrt redukcije ali mase. '
-          'Vnesi meritve, da jo izboljšaš.',
+      'This analysis is not reliable enough for a cut or bulk plan. '
+          'Add measurements to improve it.',
   };
 
   static String? actionLabelFor(PhaseRestrictionReason reason) =>
       switch (reason) {
         PhaseRestrictionReason.under18 => null,
-        PhaseRestrictionReason.ageMissing => 'Dodaj starost v profilu',
-        PhaseRestrictionReason.lowConfidence => 'Vnesi meritve',
+        PhaseRestrictionReason.ageMissing => 'Add age in profile',
+        PhaseRestrictionReason.lowConfidence => 'Add measurements',
       };
 
   @override

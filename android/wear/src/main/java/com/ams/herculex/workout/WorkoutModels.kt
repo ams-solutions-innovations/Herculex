@@ -331,6 +331,39 @@ data class ActiveExercise(
     val supersetGroup: Int? = null,
 ) {
     val completedSets: Int get() = sets.count { it.completed }
+
+    /// Working sets planned or logged — warmups never count toward the
+    /// "x of y" a lifter reads, so two warmups and three working sets show
+    /// 1/3, 2/3, 3/3 rather than 3/5, 4/5, 5/5.
+    val workingSetTotal: Int
+        get() {
+            val plannedWarmups = template.plannedSets.count { it.isWarmup }
+            return maxOf(
+                sets.count { !it.isWarmup },
+                template.targetSets - plannedWarmups,
+                1,
+            )
+        }
+
+    val warmupSetTotal: Int
+        get() = maxOf(
+            sets.count { it.isWarmup },
+            template.plannedSets.count { it.isWarmup },
+        )
+
+    /// "1/3" for the working set at [index], or "1/2" counted among the
+    /// warmups when [asWarmup]. [index] may equal `sets.size` (the next set
+    /// still to be logged).
+    fun setNumberLabel(index: Int, asWarmup: Boolean): String {
+        val before = sets.take(index.coerceIn(0, sets.size))
+        return if (asWarmup) {
+            val ordinal = before.count { it.isWarmup } + 1
+            "$ordinal/${maxOf(warmupSetTotal, ordinal)}"
+        } else {
+            val ordinal = before.count { !it.isWarmup } + 1
+            "$ordinal/${maxOf(workingSetTotal, ordinal)}"
+        }
+    }
 }
 
 data class WorkoutSession(

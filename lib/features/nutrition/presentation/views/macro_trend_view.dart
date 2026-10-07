@@ -5,6 +5,7 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/nutrition/application/goals_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/macro_chart.dart';
@@ -43,6 +44,18 @@ class _MacroTrendViewState extends ConsumerState<MacroTrendView> {
     final today = DateTime(now.year, now.month, now.day);
     final targets = ref.watch(effectiveTargetsProvider(today)).asData?.value;
     final target = macroTargetFor(targets, macro);
+    final minTargets = ref.watch(minimumTargetsProvider);
+    final minValue = switch (macro) {
+      'kcal' => minTargets.effectiveMinCaloriesKcal?.toDouble(),
+      'protein' =>
+        minTargets.resolvedMinProteinG(profile?.weightKg)?.toDouble(),
+      _ => null,
+    };
+
+    final todayTotals = ref.watch(dailyTotalsProvider(today)).asData?.value;
+    final todayValue = todayTotals == null
+        ? null
+        : macroValueForTotals(todayTotals, macro);
 
     final rangeStats = historyAsync.asData?.value == null
         ? null
@@ -61,6 +74,34 @@ class _MacroTrendViewState extends ConsumerState<MacroTrendView> {
     return HxScreenShell(
       title: title,
       children: [
+        // ── 0. Today Card ──
+        HxCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${_macroName(macro).toUpperCase()} TODAY',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: hx.secondary,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: HxSpace.x1),
+              Text(
+                todayValue == null
+                    ? '—'
+                    : '${todayValue.round()}${target != null ? ' / ${target.round()}' : ''} $unit',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: HxSpace.x4),
+
         // ── 1. 7-Day Average Header Card ──
         Container(
           decoration: BoxDecoration(
@@ -150,6 +191,7 @@ class _MacroTrendViewState extends ConsumerState<MacroTrendView> {
                   macro: macro,
                   range: _range,
                   targetValue: target,
+                  minValue: minValue,
                   height: 200,
                 ),
                 loading: () => const SizedBox(

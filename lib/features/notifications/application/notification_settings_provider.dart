@@ -121,5 +121,6 @@ final supplementNotificationSchedulerProvider =
     Provider<SupplementNotificationScheduler>((ref) {
       return SupplementNotificationScheduler(
         ref.watch(localNotificationsPluginProvider),
+        clock: ref.watch(clockProvider),
       );
     });

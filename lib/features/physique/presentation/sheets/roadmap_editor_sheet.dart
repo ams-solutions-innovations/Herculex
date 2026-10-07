@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/hx_sheet.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
@@ -119,21 +120,16 @@ class _RoadmapEditorSheetState extends ConsumerState<RoadmapEditorSheet> {
     if (drafts.length <= 1) return;
     final removed = drafts[index];
     _set(RoadmapDraftEditor.remove(drafts, index));
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.clearSnackBars();
-    messenger.showSnackBar(
-      SnackBar(
-        content: const Text('Phase removed'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () {
-            if (!mounted) return;
-            final current = [..._drafts!];
-            current.insert(index.clamp(0, current.length), removed);
-            _set(current);
-          },
-        ),
-      ),
+    final notices = AppNotice.of(context);
+    notices.show(
+      'Phase removed',
+      actionLabel: 'Undo',
+      onAction: () {
+        if (!mounted) return;
+        final current = [..._drafts!];
+        current.insert(index.clamp(0, current.length), removed);
+        _set(current);
+      },
     );
   }
 
@@ -183,10 +179,10 @@ class _RoadmapEditorSheetState extends ConsumerState<RoadmapEditorSheet> {
     } on Object {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("We couldn't save your roadmap. Try again."),
-        ),
+      AppNotice.show(
+        context,
+        "We couldn't save your roadmap. Try again.",
+        kind: AppNoticeKind.error,
       );
       return;
     }

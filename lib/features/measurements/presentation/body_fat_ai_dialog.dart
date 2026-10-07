@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
@@ -167,16 +168,9 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Body fat (${_result!.estimatedBfPercent.toStringAsFixed(1)}%) saved!',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+      AppNotice.show(
+        context,
+        'Body fat (${_result!.estimatedBfPercent.toStringAsFixed(1)}%) saved!',
       );
       Navigator.of(context).pop(true);
     } catch (e) {

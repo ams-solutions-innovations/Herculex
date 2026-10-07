@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/hx_nav_bar.dart';
 import 'package:herculex/design_system/components/keyboard_obstruction_scope.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
@@ -55,6 +56,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
   final _quickAddMenuKey = GlobalKey<QuickAddMenuState>();
   bool _quickAddOpen = false;
   bool _migrationNoticeShown = false;
+
+  /// Keyboard inset seen by the previous [didChangeMetrics] call.
+  double _lastBottomInset = 0;
 
   @override
   void initState() {
@@ -203,7 +207,18 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
     // bottom MediaQuery inset while resizing. Rebuild this shell from the
     // platform view metrics instead so its navigation reliably follows the
     // physical keyboard both opening and closing.
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    final bottomInset = View.of(context).viewInsets.bottom;
+    // Same rule as ActiveWorkoutView: only an inset that drops from >0 to 0
+    // is the keyboard closing. A zero inset right after a field is tapped is
+    // the keyboard not having opened yet.
+    final keyboardJustClosed = _lastBottomInset > 0 && bottomInset == 0;
+    _lastBottomInset = bottomInset;
+    if (keyboardJustClosed && ref.read(workoutInputFocusedProvider)) {
+      ref.read(workoutInputFocusedProvider.notifier).state = false;
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+    setState(() {});
   }
 
   @override
@@ -216,9 +231,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
         final message = LegacyMigrationNotice.messageFor(next.valueOrNull);
         if (message == null) return;
         _migrationNoticeShown = true;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-        );
+        AppNotice.show(context, message, kind: AppNoticeKind.info);
       },
     );
     final index = ref.watch(mainTabIndexProvider);
@@ -237,6 +250,10 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
         (View.of(context).viewInsets.bottom > 0 || workoutInputFocused);
 
     ref.listen<int>(mainTabIndexProvider, (prev, next) {
+      if (prev != next && ref.read(workoutInputFocusedProvider)) {
+        ref.read(workoutInputFocusedProvider.notifier).state = false;
+        FocusManager.instance.primaryFocus?.unfocus();
+      }
       if (!_pageController.hasClients) return;
       final current = _pageController.page?.round() ?? 0;
       if (current == next) return;

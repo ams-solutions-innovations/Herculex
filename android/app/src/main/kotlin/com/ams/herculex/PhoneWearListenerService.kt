@@ -583,11 +583,18 @@ class PhoneWearListenerService : WearableListenerService() {
         try {
             val obj = JSONObject(commandJson)
             val action = obj.optString("action")
+            val targetPackage = obj.optString("packageName", "")
             val audioManager = getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager ?: return
             val stream = android.media.AudioManager.STREAM_MUSIC
             when (action) {
-                "volume_up" -> audioManager.adjustStreamVolume(stream, android.media.AudioManager.ADJUST_RAISE, 0)
-                "volume_down" -> audioManager.adjustStreamVolume(stream, android.media.AudioManager.ADJUST_LOWER, 0)
+                "volume_up" -> {
+                    audioManager.adjustStreamVolume(stream, android.media.AudioManager.ADJUST_RAISE, 0)
+                    syncVolumeBackToWear(audioManager, stream)
+                }
+                "volume_down" -> {
+                    audioManager.adjustStreamVolume(stream, android.media.AudioManager.ADJUST_LOWER, 0)
+                    syncVolumeBackToWear(audioManager, stream)
+                }
                 // The watch and phone have different volume ranges, so the
                 // watch sends a 0-100 percentage rather than a raw step.
                 "set_volume_percent" -> {
@@ -595,20 +602,59 @@ class PhoneWearListenerService : WearableListenerService() {
                     if (percent >= 0) {
                         val max = audioManager.getStreamMaxVolume(stream)
                         val target = Math.round(percent.coerceIn(0, 100) * max / 100f)
+                        // No FLAG_SHOW_UI: the watch shows its own ring; popping the phone's
+                        // volume panel on every detent was noise.
                         audioManager.setStreamVolume(stream, target, 0)
+                        syncVolumeBackToWear(audioManager, stream)
                     }
                 }
-                "play_pause", "play", "pause", "next", "previous" -> sendTransport(audioManager, action)
+                "play_pause", "playPause", "play", "pause", "next", "previous" -> {
+                    sendTransport(audioManager, action, targetPackage)
+                }
             }
         } catch (e: Exception) {
             Log.e("PhoneWearListener", "Failed media command", e)
         }
     }
 
+    private fun syncVolumeBackToWear(audioManager: android.media.AudioManager, stream: Int) {
+        serviceScope.launch {
+            try {
+                val curVol = audioManager.getStreamVolume(stream)
+                val maxVol = audioManager.getStreamMaxVolume(stream)
+                val percent = if (maxVol > 0) curVol * 100 / maxVol else 50
+                val syncManager = MobileWearSyncManager(applicationContext)
+                val currentJson = syncManager.getStoredMediaState()
+                val updatedJson = if (!currentJson.isNullOrBlank()) {
+                    val obj = JSONObject(currentJson)
+                    // Volume echoes go out on every detent; the cover image
+                    // made each one tens of kilobytes. The watch keeps the
+                    // cover it already has for the same track.
+                    obj.remove("artworkBase64")
+                    obj.put("volume", curVol)
+                    obj.put("maxVolume", maxVol)
+                    obj.put("volumePercent", percent)
+                    obj.put("updatedAtEpochMs", System.currentTimeMillis())
+                    obj.toString()
+                } else {
+                    JSONObject().apply {
+                        put("volume", curVol)
+                        put("maxVolume", maxVol)
+                        put("volumePercent", percent)
+                        put("updatedAtEpochMs", System.currentTimeMillis())
+                    }.toString()
+                }
+                syncManager.syncMediaState(updatedJson)
+            } catch (e: Exception) {
+                Log.e("PhoneWearListener", "Failed to sync volume back to wear", e)
+            }
+        }
+    }
+
     /// Prefers the active session's transport controls (what the in-app sheet
     /// uses and what Spotify honours reliably); falls back to a media key event
-    /// if no session is reachable (e.g. notification access not granted).
-    private fun sendTransport(audioManager: android.media.AudioManager, action: String) {
+    /// and targeted Spotify media broadcast if no session is reachable.
+    private fun sendTransport(audioManager: android.media.AudioManager, action: String, targetPackage: String = "") {
         val controller = runCatching {
             val manager = getSystemService(Context.MEDIA_SESSION_SERVICE) as android.media.session.MediaSessionManager
             val sessions = manager.getActiveSessions(
@@ -617,21 +663,38 @@ class PhoneWearListenerService : WearableListenerService() {
                     com.example.flutter_media_controller.MediaNotificationListener::class.java,
                 ),
             )
-            sessions.firstOrNull { it.playbackState.isAudiblyPlaying() } ?: sessions.firstOrNull()
+            val byTarget = if (targetPackage.isNotBlank()) sessions.firstOrNull { it.packageName == targetPackage } else null
+            val spotifyPlaying = sessions.firstOrNull { it.packageName.contains("spotify", ignoreCase = true) && it.playbackState.isAudiblyPlaying() }
+            val anyPlaying = sessions.firstOrNull { it.playbackState.isAudiblyPlaying() }
+            val spotifyAny = sessions.firstOrNull { it.packageName.contains("spotify", ignoreCase = true) }
+
+            byTarget ?: spotifyPlaying ?: anyPlaying ?: spotifyAny ?: sessions.firstOrNull()
         }.onFailure { Log.w("PhoneWearListener", "No media session access", it) }.getOrNull()
 
         if (controller != null) {
             val controls = controller.transportControls
+            // The Dart poller mirrors state only once a second, so the watch
+            // used to wait 1-2 s to see the new track or play state. Report
+            // straight from the session shortly after the command lands, and
+            // once more after slower players (Spotify) have caught up.
+            scheduleQuickMediaState(controller)
             when (action) {
                 "next" -> controls.skipToNext()
                 "previous" -> controls.skipToPrevious()
+                "play" -> controls.play()
+                "pause" -> controls.pause()
+                "play_pause", "playPause" -> {
+                    if (controller.playbackState.isAudiblyPlaying()) {
+                        controls.pause()
+                    } else {
+                        controls.play()
+                    }
+                }
                 else -> {
-                    val playing = controller.playbackState.isAudiblyPlaying()
-                    when {
-                        action == "play" -> controls.play()
-                        action == "pause" -> controls.pause()
-                        playing -> controls.pause()
-                        else -> controls.play()
+                    if (controller.playbackState.isAudiblyPlaying()) {
+                        controls.pause()
+                    } else {
+                        controls.play()
                     }
                 }
             }
@@ -641,10 +704,60 @@ class PhoneWearListenerService : WearableListenerService() {
         val keyCode = when (action) {
             "next" -> android.view.KeyEvent.KEYCODE_MEDIA_NEXT
             "previous" -> android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
+            "play" -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY
+            "pause" -> android.view.KeyEvent.KEYCODE_MEDIA_PAUSE
             else -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
         }
         audioManager.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode))
         audioManager.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode))
+
+        // No session to address: a media key alone. This used to also send a
+        // MEDIA_BUTTON broadcast to Spotify, so a player that honoured both
+        // skipped two tracks and toggled play/pause twice (= nothing).
+    }
+
+    private fun scheduleQuickMediaState(controller: android.media.session.MediaController) {
+        for (delayMs in longArrayOf(350L, 1200L)) {
+            serviceScope.launch {
+                kotlinx.coroutines.delay(delayMs)
+                runCatching { pushQuickMediaState(controller) }
+                    .onFailure { Log.w("PhoneWearListener", "Quick media state failed", it) }
+            }
+        }
+    }
+
+    /// A small, artwork-free snapshot of [controller] for the watch.
+    private suspend fun pushQuickMediaState(controller: android.media.session.MediaController) {
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager ?: return
+        val stream = android.media.AudioManager.STREAM_MUSIC
+        val metadata = controller.metadata ?: return
+        val playback = controller.playbackState
+        val title = metadata.getString(android.media.MediaMetadata.METADATA_KEY_TITLE)
+            ?: metadata.getString(android.media.MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
+            ?: return
+        val pkg = controller.packageName.orEmpty()
+        val isSpotify = pkg.contains("spotify", ignoreCase = true)
+        val curVol = audioManager.getStreamVolume(stream)
+        val maxVol = audioManager.getStreamMaxVolume(stream)
+        val json = JSONObject().apply {
+            put("title", title)
+            put("artist", metadata.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST)
+                ?: metadata.getString(android.media.MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
+                ?: "")
+            put("album", "")
+            put("isPlaying", playback.isAudiblyPlaying())
+            put("appName", if (isSpotify) "Spotify" else "Music")
+            put("packageName", pkg)
+            put("isSpotify", isSpotify)
+            put("hasPermission", true)
+            put("volume", curVol)
+            put("maxVolume", maxVol)
+            put("volumePercent", if (maxVol > 0) curVol * 100 / maxVol else 50)
+            put("positionMs", playback?.position ?: 0L)
+            put("durationMs", metadata.getLong(android.media.MediaMetadata.METADATA_KEY_DURATION))
+            put("updatedAtEpochMs", System.currentTimeMillis())
+        }.toString()
+        MobileWearSyncManager(applicationContext).syncMediaState(json)
     }
 
     private fun android.media.session.PlaybackState?.isAudiblyPlaying(): Boolean =

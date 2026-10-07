@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/hx_nav_bar.dart';
 import 'package:herculex/design_system/components/keyboard_obstruction_scope.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
@@ -14,20 +15,20 @@ import 'package:herculex/features/buddy/domain/buddy_scope.dart';
 import 'package:herculex/features/buddy/presentation/buddy_presence_bar.dart';
 import 'package:herculex/features/buddy/presentation/buddy_share_sheet.dart';
 import 'package:herculex/features/health/application/health_providers.dart';
+import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/circuits_providers.dart';
 import 'package:herculex/features/workouts/application/finish_workout_action.dart';
-import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/circuit_stats.dart';
 import 'package:herculex/features/workouts/domain/workout_name_generator.dart';
 import 'package:herculex/features/workouts/presentation/dialogs/duration_picker_dialog.dart';
 import 'package:herculex/features/workouts/presentation/sheets/equipment_variant_sheet.dart';
 import 'package:herculex/features/workouts/presentation/sheets/exercise_picker_sheet.dart';
+import 'package:herculex/features/workouts/presentation/sheets/reorder_exercises_sheet.dart';
 import 'package:herculex/features/workouts/presentation/sheets/workout_settings_sheet.dart';
 import 'package:herculex/features/workouts/presentation/views/dynamic_workout_view.dart';
 import 'package:herculex/features/workouts/presentation/views/workout_finish_view.dart';
 import 'package:herculex/features/workouts/presentation/widgets/active_exercise_card.dart';
-import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 import 'package:herculex/features/workouts/presentation/widgets/rest_timer_banner.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -42,10 +43,9 @@ class ActiveWorkoutView extends ConsumerStatefulWidget {
 class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
     with WidgetsBindingObserver {
   final Map<int, FocusNode> _firstSetFocusNodes = {};
-  // While a drag is in progress the list collapses every exercise (and each
-  // superset's exercises together) into compact pills, so long lists stay
-  // legible enough to actually see where a row is landing.
-  bool _reorderMode = false;
+
+  /// Keyboard inset seen by the previous [didChangeMetrics] call.
+  double _lastBottomInset = 0;
 
   /// Buckets [rows] into superset groups, preserving first-appearance order
   /// so a linked group always drags — and lands — as one unit.
@@ -83,6 +83,29 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
   }
 
   @override
+  void activate() {
+    super.activate();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void deactivate() {
+    // Finishing a workout removes this view while the Finish dialog (and its
+    // keyboard) is still closing. Metrics callbacks from that keyboard must
+    // not reach a view that is leaving the tree: `didChangeMetrics` looks up
+    // `View.of(context)` and calls setState.
+    WidgetsBinding.instance.removeObserver(this);
+    if (ref.read(workoutInputFocusedProvider)) {
+      // Deferred: the shell watches this flag, and the tree is locked while
+      // elements deactivate — a synchronous write would schedule a rebuild
+      // mid-teardown.
+      final focused = ref.read(workoutInputFocusedProvider.notifier);
+      Future.microtask(() => focused.state = false);
+    }
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     // Always release the wakelock when leaving the workout screen.
@@ -98,7 +121,19 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
     // Scaffold removes the bottom MediaQuery inset from its body while it
     // resizes. Listening to platform metrics keeps this floating bar in sync
     // with the actual keyboard instead.
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    final bottomInset = View.of(context).viewInsets.bottom;
+    // Only a keyboard that was up and has now gone counts as "closed". The
+    // first metrics event after tapping a field still reports a zero inset
+    // (the keyboard has not started animating in yet); treating that as a
+    // close used to unfocus the field the instant it was tapped.
+    final keyboardJustClosed = _lastBottomInset > 0 && bottomInset == 0;
+    _lastBottomInset = bottomInset;
+    if (keyboardJustClosed && ref.read(workoutInputFocusedProvider)) {
+      ref.read(workoutInputFocusedProvider.notifier).state = false;
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+    setState(() {});
   }
 
   @override
@@ -137,182 +172,210 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
     return Stack(
       children: [
         // ── Main scrollable column ──────────────────────────────────────
-        Column(
-          children: [
-            // Top SafeArea so the header clears the status bar / notch.
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () =>
-                                _editWorkoutName(context, ref, session),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    (session.name != null &&
-                                            session.name!.isNotEmpty)
-                                        ? session.name!
-                                        : 'Workout in progress',
-                                    style: theme.textTheme.displayMedium
-                                        ?.copyWith(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Icon(
-                                  Icons.edit_outlined,
-                                  size: 16,
-                                  color: AppColors.primary,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.group_add_outlined, size: 22),
-                          tooltip: 'Gym Buddy',
-                          onPressed: () => BuddyShareSheet.show(context),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.settings_outlined, size: 22),
-                          tooltip: 'Workout settings',
-                          onPressed: () => WorkoutSettingsSheet.show(context),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.fullscreen, size: 22),
-                          tooltip: 'Dynamic mode',
-                          onPressed: () =>
-                              ref
-                                      .read(dynamicWorkoutModeProvider.notifier)
-                                      .state =
-                                  true,
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, size: 22),
-                          tooltip: 'Cancel workout',
-                          onPressed: () => _confirmCancel(context, ref),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _ActiveWorkoutStatsBar(
-                      startedAt: session.startedAt,
-                      originalEndedAt: editingOriginalEndedAt,
-                      formatElapsed: _elapsed,
-                      totalSets: liveStats.totalSets,
-                      completedSets: liveStats.completedSets,
-                      tonnageText: weightFormat.formatTonnage(
-                        liveStats.totalTonnageKg,
-                      ),
-                      onEditDuration: () async {
-                        final currentDur = _resolvedEndedAt(
-                          session.startedAt,
-                          editingOriginalEndedAt,
-                        ).difference(session.startedAt);
-                        final newMins = await DurationPickerDialog.show(
-                          context,
-                          initialMinutes: currentDur.inMinutes > 0
-                              ? currentDur.inMinutes
-                              : 45,
-                        );
-                        if (newMins != null && newMins > 0) {
-                          final newEndedAt = session.startedAt.add(
-                            Duration(minutes: newMins),
-                          );
-                          ref
-                              .read(
-                                editingSessionOriginalEndedAtProvider.notifier,
-                              )
-                              .update(
-                                (state) => {...state, session.id: newEndedAt},
-                              );
-                          setState(() {});
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const BuddyPresenceBar(),
-            const _HealthActivityAdjustmentBanner(),
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: RestTimerBanner(),
-            ),
-            Expanded(
-              child: sessionExercises.when(
-                data: (rows) {
-                  if (rows.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+        GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            if (ref.read(workoutInputFocusedProvider)) {
+              ref.read(workoutInputFocusedProvider.notifier).state = false;
+            }
+            FocusScope.of(context).unfocus();
+          },
+          child: Column(
+            children: [
+              // Top SafeArea so the header clears the status bar / notch.
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Icon(
-                            Icons.fitness_center,
-                            size: 56,
-                            color: AppColors.primary.withValues(alpha: 0.4),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              size: 18,
+                            ),
+                            tooltip: 'Back to Dashboard',
+                            onPressed: () {
+                              if (ref.read(workoutInputFocusedProvider)) {
+                                ref
+                                        .read(
+                                          workoutInputFocusedProvider.notifier,
+                                        )
+                                        .state =
+                                    false;
+                              }
+                              FocusScope.of(context).unfocus();
+                              if (Navigator.of(context).canPop()) {
+                                Navigator.of(context).pop();
+                              } else {
+                                ref.read(mainTabIndexProvider.notifier).state =
+                                    0;
+                              }
+                            },
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No exercises yet',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: AppColors.secondary,
+                          const SizedBox(width: 2),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () =>
+                                  _editWorkoutName(context, ref, session),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      (session.name != null &&
+                                              session.name!.isNotEmpty)
+                                          ? session.name!
+                                          : 'Workout in progress',
+                                      style: theme.textTheme.displayMedium
+                                          ?.copyWith(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.edit_outlined,
+                                    size: 16,
+                                    color: AppColors.primary,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Tap + Add Exercise to start logging',
-                            style: theme.textTheme.bodySmall,
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(
+                              Icons.group_add_outlined,
+                              size: 20,
+                            ),
+                            tooltip: 'Gym Buddy',
+                            onPressed: () => BuddyShareSheet.show(context),
+                          ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.settings_outlined, size: 20),
+                            tooltip: 'Workout settings',
+                            onPressed: () => WorkoutSettingsSheet.show(context),
+                          ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.fullscreen, size: 20),
+                            tooltip: 'Dynamic mode',
+                            onPressed: () =>
+                                ref
+                                        .read(
+                                          dynamicWorkoutModeProvider.notifier,
+                                        )
+                                        .state =
+                                    true,
+                          ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.close, size: 20),
+                            tooltip: 'Cancel workout',
+                            onPressed: () => _confirmCancel(context, ref),
                           ),
                         ],
                       ),
-                    );
-                  }
-                  final groups = _groupRows(rows);
-                  return ReorderableListView.builder(
-                    // Enough clearance for the floating bar + nav bar.
-                    padding: const EdgeInsets.only(bottom: 200),
-                    itemCount: groups.length,
-                    buildDefaultDragHandles: false,
-                    proxyDecorator: (child, _, animation) => AnimatedBuilder(
-                      animation: animation,
-                      builder: (_, child) => Transform.scale(
-                        scale: 1 + animation.value * 0.02,
-                        child: Material(
-                          elevation: 8 * animation.value,
-                          color: Colors.transparent,
-                          child: child,
+                      const SizedBox(height: 10),
+                      _ActiveWorkoutStatsBar(
+                        startedAt: session.startedAt,
+                        originalEndedAt: editingOriginalEndedAt,
+                        formatElapsed: _elapsed,
+                        totalSets: liveStats.totalSets,
+                        completedSets: liveStats.completedSets,
+                        tonnageText: weightFormat.formatTonnage(
+                          liveStats.totalTonnageKg,
                         ),
+                        onEditDuration: () async {
+                          final currentDur = _resolvedEndedAt(
+                            session.startedAt,
+                            editingOriginalEndedAt,
+                          ).difference(session.startedAt);
+                          final newMins = await DurationPickerDialog.show(
+                            context,
+                            initialMinutes: currentDur.inMinutes > 0
+                                ? currentDur.inMinutes
+                                : 45,
+                          );
+                          if (newMins != null && newMins > 0) {
+                            final newEndedAt = session.startedAt.add(
+                              Duration(minutes: newMins),
+                            );
+                            ref
+                                .read(
+                                  editingSessionOriginalEndedAtProvider
+                                      .notifier,
+                                )
+                                .update(
+                                  (state) => {...state, session.id: newEndedAt},
+                                );
+                            setState(() {});
+                          }
+                        },
                       ),
-                      child: child,
-                    ),
-                    onReorderStart: (_) => setState(() => _reorderMode = true),
-                    onReorderEnd: (_) => setState(() => _reorderMode = false),
-                    onReorderItem: (oldIndex, newIndex) {
-                      // onReorderItem already hands over the adjusted index
-                      // (unlike onReorder), so no `-1` for downward moves.
-                      final reorderedGroups =
-                          List<List<WorkoutExerciseData>>.from(groups);
-                      final movedGroup = reorderedGroups.removeAt(oldIndex);
-                      reorderedGroups.insert(newIndex, movedGroup);
-                      final orderedIds = reorderedGroups
-                          .expand((group) => group)
-                          .map((r) => r.id)
-                          .toList();
-                      repo.reorderWorkoutExerciseGroups(
+                    ],
+                  ),
+                ),
+              ),
+              const BuddyPresenceBar(),
+              const _HealthActivityAdjustmentBanner(),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 4),
+                child: RestTimerBanner(),
+              ),
+              Expanded(
+                child: sessionExercises.when(
+                  data: (rows) {
+                    if (rows.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.fitness_center,
+                              size: 56,
+                              color: AppColors.primary.withValues(alpha: 0.4),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No exercises yet',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tap + Add Exercise to start logging',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    final groups = _groupRows(rows);
+                    ExerciseCatalogData exerciseFor(WorkoutExerciseData we) =>
+                        catalog.asData?.value.firstWhere(
+                          (e) => e.id == we.exerciseId,
+                          orElse: () => _placeholderExercise(we.exerciseId),
+                        ) ??
+                        _placeholderExercise(we.exerciseId);
+                    Future<void> openReorder() async {
+                      FocusScope.of(context).unfocus();
+                      final orderedIds = await ReorderExercisesSheet.show(
+                        context,
+                        groups: groups,
+                        exerciseFor: exerciseFor,
+                      );
+                      if (orderedIds == null) return;
+                      await repo.reorderWorkoutExerciseGroups(
                         sessionId: session.id,
                         orderedWorkoutExerciseIds: orderedIds,
                       );
@@ -320,52 +383,60 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
                         workoutExerciseIdsInOrder: orderedIds,
                         scope: BuddyScope.both,
                       );
-                    },
-                    itemBuilder: (_, i) {
-                      final group = groups[i];
-                      return _ExerciseGroupTile(
-                        key: ValueKey('exercise_group_${group.first.id}'),
-                        groupIndex: i,
-                        members: group,
-                        reorderMode: _reorderMode,
-                        catalogExercises: catalog.asData?.value ?? const [],
-                        placeholderExercise: _placeholderExercise,
-                        cardBuilder: (we, exercise, dragHandle) =>
-                            ActiveExerciseCard(
-                              workoutExercise: we,
-                              exercise: exercise,
-                              sessionExercises: rows,
-                              catalogExercises:
-                                  catalog.asData?.value ?? const [],
-                              firstSetFocusNode: _focusNodeFor(we.id),
-                              onCompletedSet:
-                                  (completedWorkoutExerciseId, setIndex) =>
-                                      _advanceWithinLinkedGroup(
-                                        rows,
-                                        completedWorkoutExerciseId,
-                                        setIndex,
-                                      ),
-                              onRemove: () {
-                                if (buddySender != null) {
-                                  buddySender.removeExercise(
-                                    workoutExerciseId: we.id,
-                                    scope: BuddyScope.mine,
-                                  );
-                                } else {
-                                  repo.removeWorkoutExercise(we.id);
-                                }
-                              },
-                              dragHandle: dragHandle,
-                            ),
-                      );
-                    },
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
+                    }
+
+                    return ListView.builder(
+                      // Enough clearance for the floating bar + nav bar.
+                      padding: const EdgeInsets.only(bottom: 200),
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      itemCount: groups.length,
+                      itemBuilder: (_, i) {
+                        final group = groups[i];
+                        return _ExerciseGroupTile(
+                          key: ValueKey('exercise_group_${group.first.id}'),
+                          members: group,
+                          onReorder: openReorder,
+                          catalogExercises: catalog.asData?.value ?? const [],
+                          placeholderExercise: _placeholderExercise,
+                          cardBuilder: (we, exercise, dragHandle) =>
+                              ActiveExerciseCard(
+                                workoutExercise: we,
+                                exercise: exercise,
+                                sessionExercises: rows,
+                                catalogExercises:
+                                    catalog.asData?.value ?? const [],
+                                firstSetFocusNode: _focusNodeFor(we.id),
+                                onCompletedSet:
+                                    (completedWorkoutExerciseId, setIndex) =>
+                                        _advanceWithinLinkedGroup(
+                                          rows,
+                                          completedWorkoutExerciseId,
+                                          setIndex,
+                                        ),
+                                onRemove: () {
+                                  if (buddySender != null) {
+                                    buddySender.removeExercise(
+                                      workoutExerciseId: we.id,
+                                      scope: BuddyScope.mine,
+                                    );
+                                  } else {
+                                    repo.removeWorkoutExercise(we.id);
+                                  }
+                                },
+                                dragHandle: dragHandle,
+                              ),
+                        );
+                      },
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Center(child: Text('Error: $e')),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         // ── Floating action bar ─────────────────────────────────────────
         // Hidden while the keyboard is up (logging kg/reps/RPE) so it never
@@ -376,7 +447,7 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
           child: SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, HxNavBar.clearance),
               child: Row(
                 children: [
                   Expanded(
@@ -496,25 +567,10 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
     final groupIndex = groupRows.indexWhere((r) => r.id == workoutExerciseId);
     if (groupIndex < 0) return false;
 
-    final isLastInGroup = groupIndex == groupRows.length - 1;
-    if (isLastInGroup) {
-      // Completed the round for the entire superset / giant set group!
-      final rest = currentEx.targetRestSeconds ?? 90;
-      final groupLabel = groupRows.length == 2
-          ? 'Superset'
-          : (groupRows.length == 3 ? 'Tri-Set' : 'Giant Set');
-      ref
-          .read(restTimerProvider.notifier)
-          .start(
-            seconds: rest,
-            exerciseName: '$groupLabel Rest (Round $setIndex)',
-          );
-      // Dismiss keyboard cleanly when round ends — user is resting
-      FocusManager.instance.primaryFocus?.unfocus();
-    } else {
-      // Intra-round transition between linked exercises: dismiss keyboard cleanly
-      FocusManager.instance.primaryFocus?.unfocus();
-    }
+    // Either the round ended (the group rests — restTimerAutoStartProvider
+    // starts that from the database change) or the user moves straight on to
+    // the next linked exercise. Both want the keyboard out of the way.
+    FocusManager.instance.primaryFocus?.unfocus();
     return true;
   }
 
@@ -708,13 +764,15 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
                             session.startedAt,
                             currentEndedAt,
                           ).difference(session.startedAt);
+                          // `ctx`, not this view's context: the dialog
+                          // outlives the view once the workout is finished.
                           final newMins = await DurationPickerDialog.show(
-                            context,
+                            ctx,
                             initialMinutes: currentDur.inMinutes > 0
                                 ? currentDur.inMinutes
                                 : 45,
                           );
-                          if (newMins != null && newMins > 0) {
+                          if (newMins != null && newMins > 0 && ctx.mounted) {
                             setStateDialog(() {
                               currentEndedAt = session.startedAt.add(
                                 Duration(minutes: newMins),
@@ -843,14 +901,12 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Renders one drag target in the reorderable list — a single exercise, or
-/// (when [members] has more than one row) a whole superset group that always
-/// drags and lands together, since [groupIndex] is the one index every
-/// member's drag handle reports to `ReorderableListView`.
+/// Renders one unit of the exercise list — a single exercise, or (when
+/// [members] has more than one row) a whole superset group. Every member's
+/// handle opens [ReorderExercisesSheet], where the group moves as one.
 class _ExerciseGroupTile extends ConsumerWidget {
-  final int groupIndex;
   final List<WorkoutExerciseData> members;
-  final bool reorderMode;
+  final VoidCallback onReorder;
   final List<ExerciseCatalogData> catalogExercises;
   final ExerciseCatalogData Function(int exerciseId) placeholderExercise;
   final Widget Function(
@@ -862,9 +918,8 @@ class _ExerciseGroupTile extends ConsumerWidget {
 
   const _ExerciseGroupTile({
     super.key,
-    required this.groupIndex,
     required this.members,
-    required this.reorderMode,
+    required this.onReorder,
     required this.catalogExercises,
     required this.placeholderExercise,
     required this.cardBuilder,
@@ -889,9 +944,13 @@ class _ExerciseGroupTile extends ConsumerWidget {
         : (groupCount == 3 ? 'Tri-Set' : 'Giant Set');
 
     final dragHandle = Tooltip(
-      message: 'Hold to reorder',
-      child: ReorderableDelayedDragStartListener(
-        index: groupIndex,
+      message: 'Reorder exercises',
+      child: GestureDetector(
+        onTap: onReorder,
+        onLongPress: () {
+          Haptics.medium();
+          onReorder();
+        },
         child: Container(
           width: 32,
           height: 32,
@@ -911,16 +970,6 @@ class _ExerciseGroupTile extends ConsumerWidget {
         ),
       ),
     );
-
-    if (reorderMode) {
-      return _ReorderPillGroup(
-        members: members,
-        isLinked: isLinked,
-        label: label,
-        exerciseFor: _exerciseFor,
-        dragHandle: dragHandle,
-      );
-    }
 
     // Calculate circuit metrics
     CircuitPerformanceStats stats = CircuitPerformanceStats.empty;
@@ -1073,124 +1122,6 @@ class _ExerciseGroupTile extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Compact reorder-mode stand-in for a group's full exercise cards — just
-/// enough (artwork, name, drag handle) to see where a row is landing when
-/// the list is long. Linked exercises stay visually bracketed together so
-/// it stays obvious they'll move as one.
-class _ReorderPillGroup extends StatelessWidget {
-  final List<WorkoutExerciseData> members;
-  final bool isLinked;
-  final String label;
-  final ExerciseCatalogData Function(WorkoutExerciseData) exerciseFor;
-  final Widget dragHandle;
-
-  const _ReorderPillGroup({
-    required this.members,
-    required this.isLinked,
-    required this.label,
-    required this.exerciseFor,
-    required this.dragHandle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final pills = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var j = 0; j < members.length; j++)
-          Padding(
-            padding: EdgeInsets.only(top: j == 0 ? 0 : 6),
-            child: _ReorderPill(
-              exercise: exerciseFor(members[j]),
-              dragHandle: dragHandle,
-            ),
-          ),
-      ],
-    );
-
-    if (!isLinked) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: pills,
-      );
-    }
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: AppColors.primaryContainer.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(6, 2, 6, 6),
-            child: Row(
-              children: [
-                Icon(Icons.repeat_rounded, size: 13, color: AppColors.primary),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          pills,
-        ],
-      ),
-    );
-  }
-}
-
-class _ReorderPill extends StatelessWidget {
-  final ExerciseCatalogData exercise;
-  final Widget dragHandle;
-
-  const _ReorderPill({required this.exercise, required this.dragHandle});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Row(
-        children: [
-          ExerciseArtwork(exercise: exercise, size: 28, radius: 14),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              exercise.name,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
-          ),
-          const SizedBox(width: 8),
-          dragHandle,
-        ],
-      ),
     );
   }
 }

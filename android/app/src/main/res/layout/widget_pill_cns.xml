@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- CNS Load ring card (2x2). Renamed conceptually from the old 2x1 pill,
-     filename kept as widget_pill_cns to minimize the manifest/provider
-     blast radius — see CnsWidgetProvider.kt. -->
+<!-- CNS Load ring card (2x2) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
@@ -14,16 +12,17 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
         <TextView
             android:id="@+id/cns_label"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="CNS"
+            android:text="CNS LOAD"
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:letterSpacing="0.08"
             android:textAllCaps="true" />
 
@@ -32,18 +31,18 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="—"
-            android:textSize="9sp"
+            android:textSize="9.5sp"
             android:textStyle="bold"
-            android:textColor="#30D158"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp"
+            android:textColor="@color/widget_badge_green_text"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
             android:paddingTop="3dp"
             android:paddingBottom="3dp"
             android:background="@drawable/widget_badge_green" />
 
     </LinearLayout>
 
-    <!-- Ring + percentage, centered in the remaining space -->
+    <!-- Ring + percentage, centered in remaining space -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -74,7 +73,7 @@
                     android:layout_height="wrap_content"
                     android:text="—"
                     android:textSize="20sp"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/widget_text_primary"
                     android:textStyle="bold"
                     android:includeFontPadding="false" />
 
@@ -83,7 +82,7 @@
                     android:layout_height="wrap_content"
                     android:text="readiness"
                     android:textSize="9sp"
-                    android:textColor="#94A3B8"
+                    android:textColor="@color/widget_text_secondary"
                     android:includeFontPadding="false"
                     android:layout_marginTop="1dp" />
 

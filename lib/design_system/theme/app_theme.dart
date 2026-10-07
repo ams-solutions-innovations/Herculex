@@ -212,7 +212,11 @@ class AppTheme {
       ),
 
       switchTheme: SwitchThemeData(
-        thumbColor: const WidgetStatePropertyAll(Colors.white),
+        // An off switch keeps an outline-coloured thumb: a white thumb on a
+        // pale track vanished against the light themes' white cards.
+        thumbColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? Colors.white : p.outline,
+        ),
         trackColor: WidgetStateProperty.resolveWith(
           (s) =>
               s.contains(WidgetState.selected) ? p.primary : p.surfaceVariant,

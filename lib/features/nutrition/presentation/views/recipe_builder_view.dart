@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
@@ -181,8 +182,10 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
           child: InkWell(
             onTap: () {
               Haptics.selection();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Add photo feature coming soon')),
+              AppNotice.show(
+                context,
+                'Add photo feature coming soon',
+                kind: AppNoticeKind.info,
               );
             },
             borderRadius: BorderRadius.circular(20),

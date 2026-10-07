@@ -9,7 +9,6 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/router.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
-import 'package:herculex/core/notifications/toast/hx_toast_overlay.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
@@ -24,19 +23,25 @@ import 'package:herculex/features/fasting/domain/fasting_plan.dart';
 import 'package:herculex/features/fasting/domain/fasting_schedule_occurrence.dart';
 import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
 import 'package:herculex/features/notifications/data/notification_sync_service.dart';
+import 'package:herculex/features/nutrition/application/minimum_reached_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/application/tdee_recalibration_controller.dart';
 import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/presentation/dialogs/gemini_photo_analysis_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/food_picker_sheet.dart';
-import 'package:herculex/features/nutrition/presentation/views/barcode_scanner_view.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/quick_scan_food.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
+import 'package:herculex/features/supplements/application/supplement_providers.dart';
+import 'package:herculex/features/supplements/data/pending_supplement_action_queue.dart';
 import 'package:herculex/features/supplements/data/supplement_repository.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
+import 'package:herculex/features/supplements/domain/supplement_notification_payload.dart';
 import 'package:herculex/features/weekly_report/application/weekly_report_deep_link.dart';
 import 'package:herculex/features/weekly_report/application/weekly_report_resume.dart';
 import 'package:herculex/features/weekly_report/data/weekly_report_action_queue.dart';
 import 'package:herculex/features/workouts/application/circuits_providers.dart';
+import 'package:herculex/features/workouts/application/rest_timer_auto_start.dart';
+import 'package:herculex/features/workouts/application/rest_timer_wear_bridge.dart';
 import 'package:herculex/features/workouts/application/workout_bubble_controller.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/workout_notification_action_queue.dart';
@@ -102,12 +107,24 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     Future<void>.microtask(_drainPendingWorkoutNotificationActions);
     Future<void>.microtask(_drainPendingFastingScheduleActions);
     Future<void>.microtask(_drainPendingWeeklyReportOpen);
+    Future<void>.microtask(_drainPendingSupplementActions);
     Future<void>.microtask(() async {
       // The plugin does not fire the tap callback for the launching tap.
       final plugin = ref.read(localNotificationsPluginProvider);
-      if (await WeeklyReportDeepLink.checkColdStart(plugin)) {
-        await _openWeeklyReport();
-      }
+      try {
+        final launchDetails = await plugin.getNotificationAppLaunchDetails();
+        if (launchDetails != null && launchDetails.didNotificationLaunchApp) {
+          final payload = launchDetails.notificationResponse?.payload;
+          if (WeeklyReportDeepLink.launchedByWeeklyReport(launchDetails)) {
+            await _openWeeklyReport();
+          } else if (isSupplementPayload(payload)) {
+            final suppId = supplementIdFromPayload(payload);
+            if (suppId != null) {
+              await _handleSupplementTap(suppId);
+            }
+          }
+        }
+      } catch (_) {}
     });
     Future<void>.microtask(_checkAndAutoStartFastingSchedules);
     _startFastingScheduleCheck();
@@ -199,18 +216,13 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         return;
       }
       if (call.method == 'openScanner' && mounted) {
-        // Navigate to the nutrition tab and open the scanner.
-        // BarcodeScannerView is pushed as a full-screen route from
-        // nutrition_view.dart — we replicate that here from the root navigator.
+        ref.read(mainTabIndexProvider.notifier).state = 1;
+        ref.read(routerProvider).go(AppRoutes.app);
         final ctx = context;
         if (ctx.mounted) {
-          await Navigator.of(ctx, rootNavigator: true).push(
-            MaterialPageRoute(
-              builder: (_) => const BarcodeScannerView(),
-              fullscreenDialog: true,
-            ),
-          );
+          await scanAndLogFood(ctx, ref);
         }
+        return;
       }
       if (call.method == 'openCameraFoodLog' && mounted) {
         // The Today's Calories widget's "Photo" button: go straight to the
@@ -296,6 +308,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     _drainPendingWorkoutNotificationActions();
     _drainPendingFastingScheduleActions();
     unawaited(_drainPendingWeeklyReportOpen());
+    unawaited(_drainPendingSupplementActions());
     unawaited(_checkAndAutoStartFastingSchedules());
     _startFastingScheduleCheck();
     _syncNotification();
@@ -351,7 +364,8 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       startedAtEpochMs: session.startedAt.millisecondsSinceEpoch,
       exerciseName: resolved.exerciseName,
       subtitle: resolved.subtitle,
-      setNumber: resolved.currentSet != null ? '${resolved.currentSet}' : '1',
+      setNumber: resolved.setNumberShort,
+      isWarmup: resolved.isWarmup,
       weight: resolved.weightKg != null
           ? weightFormat.formatValue(resolved.weightKg!)
           : '-',
@@ -406,9 +420,14 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
 
       final prefs = ref.read(sharedPreferencesProvider);
       final repo = SupplementRepository(prefs);
+      final takenToday = repo.loadTakenToday();
       final postWorkout = repo
           .loadSupplements()
-          .where((s) => s.schedule == SupplementSchedule.postWorkout)
+          .where(
+            (s) =>
+                s.schedule == SupplementSchedule.postWorkout &&
+                !takenToday.contains(s.id),
+          )
           .map((s) => s.name)
           .toList();
       if (postWorkout.isNotEmpty) {
@@ -480,6 +499,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         actions: snapshot.actions,
         targetSetId: snapshot.targetSetId,
         reps: snapshot.reps,
+        setLabel: snapshot.setLabel,
       ),
     );
   }
@@ -523,6 +543,17 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         await _syncWorkoutNotificationFor(session);
         return true;
       }
+    } else if (actionId == 'toggle_warmup') {
+      // Tapping the bubble's set number flips the target set between a
+      // warmup and a working set — the same switch the set-type menu makes.
+      if (targetSet.id > 0) {
+        await repo.updateSet(
+          setId: targetSet.id,
+          isWarmup: !targetSet.isWarmup,
+        );
+        await _syncWorkoutNotificationFor(session);
+      }
+      return true;
     } else if (actionId == 'complete_set') {
       final newCompleted = !targetSet.isCompleted;
       await repo.updateSet(setId: targetSet.id, isCompleted: newCompleted);
@@ -711,6 +742,52 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     }
   }
 
+  Future<void> _drainPendingSupplementActions() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final ids = PendingSupplementActionQueue.read(prefs);
+    if (ids.isEmpty) return;
+    await PendingSupplementActionQueue.replace(prefs, const []);
+    final repo = ref.read(supplementRepositoryProvider);
+    for (final id in ids) {
+      await repo.markTaken(id, true);
+    }
+  }
+
+  Future<void> _handleSupplementAction(
+    String supplementId,
+    String actionId,
+  ) async {
+    if (actionId == SupplementNotificationActionIds.done) {
+      await ref
+          .read(supplementRepositoryProvider)
+          .markTaken(supplementId, true);
+      return;
+    }
+    if (actionId == SupplementNotificationActionIds.snooze30 ||
+        actionId == SupplementNotificationActionIds.snooze60) {
+      final minutes = actionId == SupplementNotificationActionIds.snooze30
+          ? 30
+          : 60;
+      final supplements =
+          ref.read(supplementsProvider).asData?.value ??
+          ref.read(supplementRepositoryProvider).loadSupplements();
+      await ref
+          .read(supplementNotificationSchedulerProvider)
+          .snoozeById(
+            supplementId,
+            supplements,
+            duration: Duration(minutes: minutes),
+          );
+      return;
+    }
+  }
+
+  Future<void> _handleSupplementTap(String supplementId) async {
+    if (!mounted) return;
+    ref.read(mainTabIndexProvider.notifier).state = 1;
+    ref.read(routerProvider).go(AppRoutes.app);
+  }
+
   Future<void> _rehydrateFastingSchedules() async {
     final repo = ref.read(fastingRepositoryProvider);
     final scheduler = ref.read(fastingScheduleServiceProvider);
@@ -736,9 +813,15 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     // Initialize wear sync listening.
     ref.watch(wearSyncControllerProvider);
     ref.watch(wearWorkoutSyncControllerProvider);
+    // Rest after every completed set, wherever it was completed.
+    ref.watch(restTimerAutoStartProvider);
+    // Rest countdown + "IT'S GO TIME" on the watch.
+    ref.watch(restTimerWearBridgeProvider);
 
     // Initialize Android home-screen widget sync.
     ref.watch(widgetMacroSyncControllerProvider);
+    // Top pill when today's intake first reaches the minimum kcal / protein.
+    ref.watch(minimumReachedControllerProvider);
     // Adaptive TDEE: recalibrates on app open, on resume and on ActivityLevel change
     ref.watch(tdeeRecalibrationControllerProvider);
     // Weekly report card: re-read the due week when the app is foregrounded.
@@ -761,6 +844,8 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     };
     WorkoutNotificationService.onFastingScheduleTap = _handleFastingScheduleTap;
     WorkoutNotificationService.onWeeklyReportTap = _openWeeklyReport;
+    WorkoutNotificationService.onSupplementAction = _handleSupplementAction;
+    WorkoutNotificationService.onSupplementTap = _handleSupplementTap;
 
     // Keep notification in sync when active session changes.
     ref.listen(activeSessionProvider, (previous, next) {
@@ -836,9 +921,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       builder: (context, child) {
         return Container(
           decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
-          child: InAppNotificationHost(
-            child: HxToastHost(child: child ?? const SizedBox.shrink()),
-          ),
+          child: InAppNotificationHost(child: child ?? const SizedBox.shrink()),
         );
       },
     );

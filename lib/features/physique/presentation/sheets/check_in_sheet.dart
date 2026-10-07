@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
@@ -44,7 +45,7 @@ class CheckInSheet extends ConsumerStatefulWidget {
   const CheckInSheet({
     super.key,
     required this.goal,
-    required this.outerMessenger,
+    required this.outerNotices,
     this.resumed,
     this.capture,
   });
@@ -53,8 +54,8 @@ class CheckInSheet extends ConsumerStatefulWidget {
   final ResumedCapture? resumed;
   final CheckInCapture? capture;
 
-  /// The messenger outside the sheet, so confirmations outlive it.
-  final ScaffoldMessengerState outerMessenger;
+  /// Notices captured outside the sheet, so confirmations outlive it.
+  final AppNotices outerNotices;
 
   /// DRAFT copy pending legal review (RESEARCH A10, Open Question 7). The one
   /// place to edit it.
@@ -68,7 +69,7 @@ class CheckInSheet extends ConsumerStatefulWidget {
     ResumedCapture? resumed,
     @visibleForTesting CheckInCapture? capture,
   }) {
-    final messenger = ScaffoldMessenger.of(context);
+    final notices = AppNotice.of(context);
     return HxSheet.show<void>(
       context,
       builder: (_) => SheetSnackBarScope(
@@ -76,7 +77,7 @@ class CheckInSheet extends ConsumerStatefulWidget {
           goal: goal,
           resumed: resumed,
           capture: capture,
-          outerMessenger: messenger,
+          outerNotices: notices,
         ),
       ),
     );
@@ -144,11 +145,7 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
   }
 
   void _snack(String text) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(text), behavior: SnackBarBehavior.floating),
-      );
+    AppNotice.show(context, text, kind: AppNoticeKind.info);
   }
 
   Future<void> _pick(ImageSource source) async {
@@ -257,14 +254,9 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
       await _flow.saveBaseline(goal: widget.goal, staged: staged, pose: _pose);
       _staged = null;
       if (!mounted) return;
-      final messenger = widget.outerMessenger;
+      final notices = widget.outerNotices;
       Navigator.of(context).pop();
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Baseline photo saved.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      notices.show('Baseline photo saved.');
     } on Object {
       // Keep the staged file so the user can retry from the same screen.
       if (mounted) {
@@ -339,17 +331,13 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
       await _flow.discardStaged(staged);
       _staged = null;
       if (!mounted) return;
-      final messenger = widget.outerMessenger;
+      final notices = widget.outerNotices;
       Navigator.of(context).pop();
       final next = DateFormat('EEE, MMM d').format(e.nextEligibleDate);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            "You've already checked in this week. Your next check-in is "
-            'available $next.',
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
+      notices.show(
+        "You've already checked in this week. Your next check-in is "
+        'available $next.',
+        kind: AppNoticeKind.info,
       );
     } on Object {
       if (!mounted) return;

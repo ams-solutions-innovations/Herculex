@@ -31,6 +31,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     private val _elapsedSeconds = MutableStateFlow(0L)
     val elapsedSeconds: StateFlow<Long> = _elapsedSeconds.asStateFlow()
 
+    private val heartRateMonitor = HeartRateMonitor(application)
     private val _heartRate = MutableStateFlow(-1)
     val heartRate: StateFlow<Int> = _heartRate.asStateFlow()
 
@@ -57,7 +58,11 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         // reclaiming backgrounded activities) can restore it instead of
         // silently losing it.
         viewModelScope.launch {
+            heartRateMonitor.bpm.collect { _heartRate.value = it }
+        }
+        viewModelScope.launch {
             _session.collect { session ->
+                if (session != null) heartRateMonitor.start() else heartRateMonitor.stop()
                 if (session != null) {
                     WorkoutStore.saveActiveSession(
                         getApplication(),
@@ -79,6 +84,11 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         sessionStartEpochMs = persistedEpoch
         _elapsedSeconds.value = ((System.currentTimeMillis() - persistedEpoch) / 1000).coerceAtLeast(0)
         startServiceIfNeeded(persistedEpoch)
+    }
+
+    /** Called once the user answers the heart-rate permission prompt. */
+    fun onHeartRatePermissionResult() {
+        if (_session.value != null) heartRateMonitor.start()
     }
 
     fun loadWorkouts() {
@@ -375,13 +385,14 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         if (setIndex !in exercise.sets.indices) return
 
         val currentSet = exercise.sets[setIndex]
-        if (currentSet.weight == weight &&
-            currentSet.reps == reps &&
-            currentSet.durationSeconds == durationSeconds &&
-            currentSet.distanceMeters == distanceMeters &&
-            (setType == null || currentSet.setType == setType) &&
-            (isWarmup == null || currentSet.isWarmup == isWarmup)
-        ) {
+        val weightChanged = currentSet.weight != weight
+        val repsChanged = currentSet.reps != reps
+        val durationChanged = durationSeconds != null && currentSet.durationSeconds != durationSeconds
+        val distanceChanged = distanceMeters != null && currentSet.distanceMeters != distanceMeters
+        val setTypeChanged = setType != null && currentSet.setType != setType
+        val isWarmupChanged = isWarmup != null && currentSet.isWarmup != isWarmup
+
+        if (!weightChanged && !repsChanged && !durationChanged && !distanceChanged && !setTypeChanged && !isWarmupChanged) {
             return
         }
 
@@ -396,8 +407,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                         setType = setType ?: set.setType,
                         isWarmup = isWarmup ?: set.isWarmup,
                     ),
-                    weight = true,
-                    reps = true,
+                    weight = weightChanged,
+                    reps = repsChanged,
                 )
             } else {
                 set
@@ -870,6 +881,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun endSession(isFinish: Boolean, notifyPhone: Boolean, saveAsTemplate: Boolean) {
+        // No rest to count down once the workout is over.
+        RestTimerStore.clear(getApplication())
         val currentSession = _session.value
         val endingSessionId = currentSession?.sessionId
         if (isFinish && currentSession != null) {
@@ -929,6 +942,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     override fun onCleared() {
         if (SyncService.activeViewModel == this) SyncService.activeViewModel = null
         timerJob?.cancel()
+        heartRateMonitor.stop()
         super.onCleared()
     }
 }

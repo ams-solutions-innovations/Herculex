@@ -1,8 +1,11 @@
+import 'package:collection/collection.dart';
 import 'package:device_calendar/device_calendar.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -25,14 +28,34 @@ class CalendarService {
   final DeviceCalendarPlugin _deviceCalendarPlugin = DeviceCalendarPlugin();
 
   CalendarService(this._db) {
-    // Ensure timezone data is initialized
-    tz.initializeTimeZones();
+    _ensureTimezone();
+  }
+
+  Future<void> _ensureTimezone() async {
+    try {
+      tz.initializeTimeZones();
+      final deviceTz = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(deviceTz.identifier));
+    } catch (_) {}
   }
 
   /// Checks if calendar permissions are granted.
   Future<bool> hasPermissions() async {
-    final permissionsGranted = await _deviceCalendarPlugin.hasPermissions();
-    return permissionsGranted.isSuccess && permissionsGranted.data == true;
+    try {
+      final permissionsGranted = await _deviceCalendarPlugin.hasPermissions();
+      if (permissionsGranted.isSuccess && permissionsGranted.data == true) {
+        return true;
+      }
+    } catch (_) {}
+
+    try {
+      final status = await Permission.calendarFullAccess.status;
+      if (status.isGranted) return true;
+      final writeOnly = await Permission.calendarWriteOnly.status;
+      if (writeOnly.isGranted) return true;
+    } catch (_) {}
+
+    return false;
   }
 
   /// Request permissions to read and write events to the device calendar.
@@ -40,8 +63,22 @@ class CalendarService {
     if (await hasPermissions()) {
       return true;
     }
-    final requestResult = await _deviceCalendarPlugin.requestPermissions();
-    return requestResult.isSuccess && requestResult.data == true;
+
+    try {
+      final requestResult = await _deviceCalendarPlugin.requestPermissions();
+      if (requestResult.isSuccess && requestResult.data == true) {
+        return true;
+      }
+    } catch (_) {}
+
+    try {
+      final status = await Permission.calendarFullAccess.request();
+      if (status.isGranted) return true;
+      final writeOnly = await Permission.calendarWriteOnly.request();
+      if (writeOnly.isGranted) return true;
+    } catch (_) {}
+
+    return false;
   }
 
   /// Returns all writable calendars available on this device.
@@ -49,44 +86,89 @@ class CalendarService {
     final hasPerm = await requestPermissions();
     if (!hasPerm) return [];
 
-    final calendarsResult = await _deviceCalendarPlugin.retrieveCalendars();
-    if (calendarsResult.isSuccess && calendarsResult.data != null) {
-      return calendarsResult.data!.where((c) => c.isReadOnly == false).toList();
+    try {
+      final calendarsResult = await _deviceCalendarPlugin.retrieveCalendars();
+      if (calendarsResult.isSuccess && calendarsResult.data != null) {
+        return calendarsResult.data!
+            .where((c) => c.isReadOnly == false && c.id != null)
+            .toList();
+      }
+    } catch (e) {
+      debugPrint("CalendarService: retrieveCalendars failed: $e");
     }
     return [];
   }
 
-  /// Locates "Herculex Training" calendar, creating it if missing. Fallbacks to default if unavailable.
+  /// Locates "Herculex Training" calendar, creating it if missing. Fallbacks to Google / default calendar if unavailable.
   Future<String> findOrCreateHerculexCalendar() async {
     final calendarsResult = await _deviceCalendarPlugin.retrieveCalendars();
-    if (calendarsResult.isSuccess && calendarsResult.data != null) {
-      for (final cal in calendarsResult.data!) {
-        if (cal.name == "Herculex Training" && cal.isReadOnly == false) {
-          return cal.id!;
+    final cals = (calendarsResult.isSuccess && calendarsResult.data != null)
+        ? calendarsResult.data!
+        : <Calendar>[];
+
+    // 1. Check if "Herculex Training" calendar already exists and is writable
+    for (final cal in cals) {
+      if (cal.name == "Herculex Training" &&
+          cal.isReadOnly == false &&
+          cal.id != null) {
+        return cal.id!;
+      }
+    }
+
+    // 2. Look for an existing Google account or primary account
+    Calendar? googleCal;
+    for (final cal in cals) {
+      if (cal.isReadOnly == false) {
+        final isGoogle =
+            (cal.accountType?.toLowerCase().contains('google') == true) ||
+            (cal.accountName?.contains('@') == true);
+        if (isGoogle) {
+          googleCal = cal;
+          break;
         }
       }
     }
 
-    // Try creating custom calendar
-    final creationResult = await _deviceCalendarPlugin.createCalendar(
-      "Herculex Training",
-      calendarColor: Colors.deepPurple,
-      localAccountName: "Herculex",
-    );
+    // 3. Try creating custom calendar "Herculex Training"
+    try {
+      final creationResult = await _deviceCalendarPlugin.createCalendar(
+        "Herculex Training",
+        calendarColor: Colors.deepPurple,
+        localAccountName: googleCal?.accountName ?? "Herculex",
+      );
 
-    if (creationResult.isSuccess && creationResult.data != null) {
-      return creationResult.data!;
+      if (creationResult.isSuccess &&
+          creationResult.data != null &&
+          creationResult.data!.isNotEmpty) {
+        return creationResult.data!;
+      }
+    } catch (e) {
+      debugPrint("CalendarService: createCalendar failed: $e");
     }
 
-    // Fallback: Use the first writable calendar
-    if (calendarsResult.isSuccess &&
-        calendarsResult.data != null &&
-        calendarsResult.data!.isNotEmpty) {
-      final writable = calendarsResult.data!.firstWhere(
-        (c) => c.isReadOnly == false,
-        orElse: () => calendarsResult.data!.first,
-      );
-      return writable.id!;
+    // 4. Fallback: If Google calendar exists and is writable, use it
+    if (googleCal != null && googleCal.id != null) {
+      return googleCal.id!;
+    }
+
+    // 5. Fallback: Default writable calendar
+    final defaultCal = cals.firstWhereOrNull(
+      (c) => c.isDefault == true && c.isReadOnly == false && c.id != null,
+    );
+    if (defaultCal != null) {
+      return defaultCal.id!;
+    }
+
+    // 6. Fallback: Any writable calendar
+    final anyWritable = cals.firstWhereOrNull(
+      (c) => c.isReadOnly == false && c.id != null,
+    );
+    if (anyWritable != null) {
+      return anyWritable.id!;
+    }
+
+    if (cals.isNotEmpty && cals.first.id != null) {
+      return cals.first.id!;
     }
 
     throw Exception("No writable calendars found on device.");
@@ -108,6 +190,7 @@ class CalendarService {
     }
 
     try {
+      await _ensureTimezone();
       final String targetCalendarId =
           calendarId ?? await findOrCreateHerculexCalendar();
 
@@ -206,7 +289,7 @@ class CalendarService {
         windowEndIso,
       );
 
-      // 4. PHASE 2: OUTBOUND SYNC (Herculex -> Google Calendar)
+      // 4. PHASE 2: OUTBOUND SYNC (Herculex scheduled workouts -> Google Calendar)
       for (final item in updatedScheduledRows) {
         final workout = item.workout;
         final existingEvent = eventsByWorkoutId[workout.id];
@@ -222,23 +305,26 @@ class CalendarService {
           continue;
         }
 
-        final date = DateTime.parse(workout.dateIso);
+        final date = DateTime.tryParse(workout.dateIso) ?? now;
         final int startMin = workout.startTimeMinutes ?? 540; // Default 9:00 AM
         final int startHour = startMin ~/ 60;
         final int startMinute = startMin % 60;
 
-        final startDateTime = tz.TZDateTime.from(
-          DateTime(date.year, date.month, date.day, startHour, startMinute),
+        final startDateTime = tz.TZDateTime(
           tz.local,
+          date.year,
+          date.month,
+          date.day,
+          startHour,
+          startMinute,
         );
         final endDateTime = startDateTime.add(const Duration(minutes: 90));
 
         final String dayName = item.dayName;
-        final String emoji = _getEmojiForDay(dayName);
-        final bool isDone = workout.status == 'done';
-        final String title = isDone
-            ? "✅ $emoji Herculex: $dayName (Done)"
-            : "$emoji Herculex: $dayName";
+        final String title = calendarEventTitle(
+          dayName,
+          done: workout.status == 'done',
+        );
 
         final String description =
             "Programmed training session scheduled via your Herculex app.\n[herculex_workout_id:${workout.id}]";
@@ -259,8 +345,12 @@ class CalendarService {
             existingEvent.start = startDateTime;
             existingEvent.end = endDateTime;
             existingEvent.description = description;
-            await _deviceCalendarPlugin.createOrUpdateEvent(existingEvent);
-            pushedCount++;
+            final res = await _deviceCalendarPlugin.createOrUpdateEvent(
+              existingEvent,
+            );
+            if (res?.isSuccess == true) {
+              pushedCount++;
+            }
           }
         } else {
           final newEvent = Event(
@@ -271,8 +361,93 @@ class CalendarService {
             description: description,
             allDay: false,
           );
-          await _deviceCalendarPlugin.createOrUpdateEvent(newEvent);
-          pushedCount++;
+          final res = await _deviceCalendarPlugin.createOrUpdateEvent(newEvent);
+          if (res?.isSuccess == true) {
+            pushedCount++;
+          }
+        }
+      }
+
+      // 5. PHASE 3: OUTBOUND SYNC FOR COMPLETED SESSIONS (even if unscheduled)
+      final completedSessions =
+          await (_db.select(_db.workoutSessions)..where(
+                (t) =>
+                    t.endedAt.isNotNull() &
+                    t.startedAt.isBiggerOrEqualValue(windowStart) &
+                    t.startedAt.isSmallerOrEqualValue(windowEnd),
+              ))
+              .get();
+
+      final sessionRegex = RegExp(r'\[herculex_session_id:(\d+)\]');
+      final Map<int, Event> eventsBySessionId = {};
+      for (final event in calendarEvents) {
+        if (event.description != null) {
+          final match = sessionRegex.firstMatch(event.description!);
+          if (match != null) {
+            final sId = int.tryParse(match.group(1)!);
+            if (sId != null) {
+              eventsBySessionId[sId] = event;
+            }
+          }
+        }
+      }
+
+      final scheduledSessionIds = updatedScheduledRows
+          .map((r) => r.workout.completedSessionId)
+          .whereType<int>()
+          .toSet();
+
+      for (final session in completedSessions) {
+        if (scheduledSessionIds.contains(session.id)) {
+          continue; // Already synced via scheduled workouts
+        }
+
+        final existingEvent = eventsBySessionId[session.id];
+        final sessionStart = tz.TZDateTime.from(session.startedAt, tz.local);
+        final sessionEnd = session.endedAt != null
+            ? tz.TZDateTime.from(session.endedAt!, tz.local)
+            : sessionStart.add(const Duration(minutes: 60));
+
+        final sessionName = (session.name?.trim().isNotEmpty == true)
+            ? session.name!.trim()
+            : 'Workout';
+        final title = calendarEventTitle(sessionName, done: true);
+        final description =
+            "Completed training session recorded in Herculex.\n[herculex_session_id:${session.id}]";
+
+        if (existingEvent != null) {
+          final eventStartLocal = existingEvent.start?.toLocal();
+          final sameStart =
+              eventStartLocal != null &&
+              (eventStartLocal.difference(session.startedAt).inMinutes.abs() <
+                  1);
+          final sameTitle = existingEvent.title == title;
+
+          if (!sameStart || !sameTitle) {
+            existingEvent.title = title;
+            existingEvent.start = sessionStart;
+            existingEvent.end = sessionEnd;
+            existingEvent.description = description;
+            final res = await _deviceCalendarPlugin.createOrUpdateEvent(
+              existingEvent,
+            );
+            if (res?.isSuccess == true) {
+              pushedCount++;
+            }
+          }
+        } else {
+          final newEvent = Event(
+            targetCalendarId,
+            title: title,
+            start: sessionStart,
+            end: sessionEnd,
+            description: description,
+            allDay: false,
+          );
+          final res = await _deviceCalendarPlugin.createOrUpdateEvent(newEvent);
+          if (res?.isSuccess == true) {
+            pushedCount++;
+          }
         }
       }
 
@@ -293,11 +468,12 @@ class CalendarService {
     if (!hasPerm) return false;
 
     try {
+      await _ensureTimezone();
       final String calendarId =
           targetCalendarId ?? await findOrCreateHerculexCalendar();
 
       final query = _db.select(_db.scheduledWorkouts).join([
-        innerJoin(
+        leftOuterJoin(
           _db.programDays,
           _db.programDays.id.equalsExp(_db.scheduledWorkouts.programDayId),
         ),
@@ -308,25 +484,28 @@ class CalendarService {
 
       final row = rows.first;
       final workout = row.readTable(_db.scheduledWorkouts);
-      final day = row.readTable(_db.programDays);
+      final day = row.readTableOrNull(_db.programDays);
 
-      final date = DateTime.parse(workout.dateIso);
+      final date = DateTime.tryParse(workout.dateIso) ?? DateTime.now();
       final int startMin = workout.startTimeMinutes ?? 540;
       final int startHour = startMin ~/ 60;
       final int startMinute = startMin % 60;
 
-      final startDateTime = tz.TZDateTime.from(
-        DateTime(date.year, date.month, date.day, startHour, startMinute),
+      final startDateTime = tz.TZDateTime(
         tz.local,
+        date.year,
+        date.month,
+        date.day,
+        startHour,
+        startMinute,
       );
       final endDateTime = startDateTime.add(const Duration(minutes: 90));
 
-      final String dayName = day.name;
-      final String emoji = _getEmojiForDay(dayName);
-      final bool isDone = workout.status == 'done';
-      final String title = isDone
-          ? "✅ $emoji Herculex: $dayName (Done)"
-          : "$emoji Herculex: $dayName";
+      final String dayName = day?.name ?? 'Workout';
+      final String title = calendarEventTitle(
+        dayName,
+        done: workout.status == 'done',
+      );
       final String description =
           "Programmed training session scheduled via your Herculex app.\n[herculex_workout_id:${workout.id}]";
 
@@ -447,7 +626,7 @@ class CalendarService {
   ) async {
     final query =
         _db.select(_db.scheduledWorkouts).join([
-          innerJoin(
+          leftOuterJoin(
             _db.programDays,
             _db.programDays.id.equalsExp(_db.scheduledWorkouts.programDayId),
           ),
@@ -459,13 +638,16 @@ class CalendarService {
     final rows = await query.get();
     return rows.map((row) {
       final workout = row.readTable(_db.scheduledWorkouts);
-      final day = row.readTable(_db.programDays);
-      return ScheduledWorkoutWithDay(workout: workout, dayName: day.name);
+      final day = row.readTableOrNull(_db.programDays);
+      return ScheduledWorkoutWithDay(
+        workout: workout,
+        dayName: day?.name ?? 'Workout',
+      );
     }).toList();
   }
 
   /// Resolves target emoji depending on the program day's description name.
-  String _getEmojiForDay(String dayName) {
+  static String emojiForDay(String dayName) {
     final name = dayName.toLowerCase();
     if (name.contains("leg") ||
         name.contains("squat") ||
@@ -474,6 +656,8 @@ class CalendarService {
       return "🦵";
     }
     if (name.contains("push") ||
+        name.contains("upper") ||
+        name.contains("arm") ||
         name.contains("chest") ||
         name.contains("bench") ||
         name.contains("shoulder") ||
@@ -500,4 +684,16 @@ class ScheduledWorkoutWithDay {
   final String dayName;
 
   const ScheduledWorkoutWithDay({required this.workout, required this.dayName});
+}
+
+/// Calendar event title for a workout: the session's own name and its emoji,
+/// e.g. "Upper 💪" — short enough to read in a month view, with no app
+/// prefix. A finished session gets a trailing ✅.
+///
+/// Events are matched by the `[herculex_workout_id:…]` marker in their
+/// description, never by title, so the wording can change freely.
+String calendarEventTitle(String name, {required bool done}) {
+  final trimmed = name.trim().isEmpty ? 'Workout' : name.trim();
+  final base = '$trimmed ${CalendarService.emojiForDay(trimmed)}';
+  return done ? '$base ✅' : base;
 }

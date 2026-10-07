@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget-picker preview for the Fat pill. Mirrors widget_pill_fat with
-     sample values baked in; ids are omitted because nothing addresses this
-     layout at runtime. Keep in sync with widget_pill_fat.xml. -->
+<!-- Widget-picker preview for the Fat pill.
+     Keep in sync with widget_pill_fat.xml. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:gravity="center"
-    android:padding="10dp"
+    android:gravity="center_vertical"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
     android:background="@drawable/widget_pill_bg_dark">
 
     <ImageView
         android:layout_width="8dp"
         android:layout_height="8dp"
         android:background="@drawable/widget_dot"
-        android:backgroundTint="#FFD60A"
+        android:backgroundTint="@color/widget_macro_fat"
         android:layout_marginEnd="8dp"
         android:contentDescription="@null" />
 
@@ -30,7 +30,7 @@
             android:layout_height="wrap_content"
             android:text="FAT"
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:letterSpacing="0.08"
             android:textAllCaps="true" />
 
@@ -43,9 +43,9 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="52g"
+                android:text="48g"
                 android:textSize="16sp"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/widget_text_primary"
                 android:textStyle="bold" />
 
             <TextView
@@ -53,7 +53,7 @@
                 android:layout_height="wrap_content"
                 android:text="/70g"
                 android:textSize="10sp"
-                android:textColor="#94A3B8"
+                android:textColor="@color/widget_text_secondary"
                 android:layout_marginStart="2dp"
                 android:layout_marginBottom="1dp" />
 
@@ -63,11 +63,11 @@
 
     <ProgressBar
         style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="36dp"
-        android:layout_height="6dp"
+        android:layout_width="40dp"
+        android:layout_height="5dp"
         android:max="100"
-        android:progress="74"
-        android:progressTint="#FFD60A"
-        android:progressBackgroundTint="#2B374E" />
+        android:progress="69"
+        android:progressTint="@color/widget_macro_fat"
+        android:progressBackgroundTint="@color/widget_divider" />
 
 </LinearLayout>

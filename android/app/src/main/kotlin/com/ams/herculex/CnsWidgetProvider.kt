@@ -7,7 +7,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.graphics.Color
 import android.widget.RemoteViews
 import java.util.Calendar
 
@@ -19,6 +18,18 @@ import java.util.Calendar
  * handler whenever Flutter pushes new CNS data.
  */
 class CnsWidgetProvider : AppWidgetProvider() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == Intent.ACTION_CONFIGURATION_CHANGED) {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val componentName = ComponentName(context, javaClass)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            if (appWidgetIds.isNotEmpty()) {
+                onUpdate(context, appWidgetManager, appWidgetIds)
+            }
+        }
+    }
 
     override fun onUpdate(
         context: Context,
@@ -38,6 +49,7 @@ class CnsWidgetProvider : AppWidgetProvider() {
 
     private fun buildViews(context: Context, readiness: Int, status: String?): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_pill_cns)
+        val trackColor = context.getColor(R.color.widget_ring_track)
 
         if (readiness < 0 || status == null) {
             views.setTextViewText(R.id.cns_readiness, "—")
@@ -46,8 +58,8 @@ class CnsWidgetProvider : AppWidgetProvider() {
                 sizePx = 220,
                 strokeWidthPx = 16f,
                 progress = 0f,
-                progressColor = Color.parseColor("#E5E5EA"),
-                trackColor = Color.parseColor("#2B374E")
+                progressColor = context.getColor(R.color.widget_ring_progress),
+                trackColor = trackColor
             )
             views.setImageViewBitmap(R.id.cns_ring_image, emptyRing)
         } else {
@@ -55,9 +67,9 @@ class CnsWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.cns_status, status)
 
             val (ringColor, bgResId) = when (status) {
-                "FRESH" -> Pair(Color.parseColor("#30D158"), R.drawable.widget_badge_green)
-                "MODERATE" -> Pair(Color.parseColor("#FFD60A"), R.drawable.widget_badge_amber)
-                else -> Pair(Color.parseColor("#FF453A"), R.drawable.widget_badge_red)
+                "FRESH" -> Pair(context.getColor(R.color.widget_badge_green_text), R.drawable.widget_badge_green)
+                "MODERATE" -> Pair(context.getColor(R.color.widget_badge_amber_text), R.drawable.widget_badge_amber)
+                else -> Pair(context.getColor(R.color.widget_badge_red_text), R.drawable.widget_badge_red)
             }
             views.setTextColor(R.id.cns_status, ringColor)
             views.setInt(R.id.cns_status, "setBackgroundResource", bgResId)
@@ -67,7 +79,7 @@ class CnsWidgetProvider : AppWidgetProvider() {
                 strokeWidthPx = 16f,
                 progress = (readiness / 100f).coerceIn(0f, 1f),
                 progressColor = ringColor,
-                trackColor = Color.parseColor("#2B374E")
+                trackColor = trackColor
             )
             views.setImageViewBitmap(R.id.cns_ring_image, ringBitmap)
         }

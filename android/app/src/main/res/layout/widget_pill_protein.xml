@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Generic macro pill widget layout — reused for Net Carbs, Fat, and Protein.
-     Color accent is set programmatically in each WidgetProvider. -->
+<!-- Protein pill widget layout (2x1) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:gravity="center"
-    android:padding="10dp"
+    android:gravity="center_vertical"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
     android:background="@drawable/widget_pill_bg_dark">
 
     <!-- Colored accent dot -->
@@ -16,7 +16,7 @@
         android:layout_width="8dp"
         android:layout_height="8dp"
         android:background="@drawable/widget_dot"
-        android:backgroundTint="#4DA3FF"
+        android:backgroundTint="@color/widget_macro_protein"
         android:layout_marginEnd="8dp" />
 
     <LinearLayout
@@ -30,9 +30,9 @@
             android:id="@+id/macro_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="MACRO"
+            android:text="PROTEIN"
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:letterSpacing="0.08"
             android:textAllCaps="true" />
 
@@ -48,7 +48,7 @@
                 android:layout_height="wrap_content"
                 android:text="0g"
                 android:textSize="16sp"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/widget_text_primary"
                 android:textStyle="bold" />
 
             <TextView
@@ -57,7 +57,7 @@
                 android:layout_height="wrap_content"
                 android:text="/—"
                 android:textSize="10sp"
-                android:textColor="#94A3B8"
+                android:textColor="@color/widget_text_secondary"
                 android:layout_marginStart="2dp"
                 android:layout_marginBottom="1dp" />
 
@@ -65,15 +65,15 @@
 
     </LinearLayout>
 
-    <!-- Mini ring progress (circular) shown when widget is wider -->
+    <!-- Mini progress bar -->
     <ProgressBar
         android:id="@+id/macro_progress"
         style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="36dp"
-        android:layout_height="6dp"
+        android:layout_width="40dp"
+        android:layout_height="5dp"
         android:max="100"
         android:progress="0"
-        android:progressTint="#4DA3FF"
-        android:progressBackgroundTint="#2B374E" />
+        android:progressTint="@color/widget_macro_protein"
+        android:progressBackgroundTint="@color/widget_divider" />
 
 </LinearLayout>

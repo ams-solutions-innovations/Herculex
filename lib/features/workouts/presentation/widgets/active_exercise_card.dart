@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:collection/collection.dart';
@@ -7,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/in_app_notification_controller.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
@@ -14,7 +17,6 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/gamification/application/gamification_providers.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
-import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
@@ -23,6 +25,7 @@ import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
 import 'package:herculex/features/workouts/domain/progression_engine.dart';
 import 'package:herculex/features/workouts/domain/set_metric_format.dart';
+import 'package:herculex/features/workouts/domain/set_numbering.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/presentation/sheets/accessory_tray_sheet.dart';
 import 'package:herculex/features/workouts/presentation/sheets/down_set_config_sheet.dart';
@@ -162,10 +165,7 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
               ),
             ],
           ),
-          sets.maybeWhen(
-            data: (rows) => _plannedTargetCard(context, rows),
-            orElse: () => const SizedBox.shrink(),
-          ),
+
           lastPerformance.maybeWhen(
             data: (snapshot) {
               final allLastSets = snapshot?.sets ?? const <SetEntryData>[];
@@ -282,6 +282,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                 downSetChain = r.setType == 'down_sets' ? downSetChain + 1 : 0;
                 downSetOrdinals.add(downSetChain);
               }
+              // Working sets count from 1 past any warmups (W W 1 2 3).
+              final setNumbers = numberSets(rows);
               // Collapse long set lists (item 7) but never hide the set the
               // user is about to log.
               final collapse =
@@ -305,7 +307,7 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                 children: [
                   for (final i in visibleIndices)
                     _SetRow(
-                      index: i + 1,
+                      index: setNumbers[i].ordinal,
                       set: rows[i],
                       metric: metric,
                       downSetOrdinal: downSetOrdinals[i],
@@ -334,6 +336,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         clearRpe: values.clearRpe,
                       ),
                       onComplete: (completed) async {
+                        // The rest timer starts itself from the database
+                        // change (restTimerAutoStartProvider), so it no
+                        // longer depends on anything below succeeding.
                         await repo.updateSet(
                           setId: rows[i].id,
                           isCompleted: completed,
@@ -376,82 +381,56 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                                   setType: SetType.fromId(rows[i].setType),
                                 );
                           }
-                          final isLinked =
-                              workoutExercise.supersetGroup != null;
-                          final advanced = isLinked
-                              ? (widget.onCompletedSet?.call(
-                                      workoutExercise.id,
-                                      rows[i].setIndex,
-                                    ) ??
-                                    false)
-                              : false;
-                          if (!advanced) {
-                            final rest =
-                                workoutExercise.targetRestSeconds ??
-                                exercise.defaultRestSeconds;
-                            ref
-                                .read(restTimerProvider.notifier)
-                                .start(
-                                  seconds: rest,
-                                  exerciseName: exercise.name,
-                                );
+                          if (workoutExercise.supersetGroup != null) {
+                            widget.onCompletedSet?.call(
+                              workoutExercise.id,
+                              rows[i].setIndex,
+                            );
                           }
                         }
                       },
                       onDelete: () async {
                         final setToRestore = rows[i];
-                        final setNumber = i + 1;
+                        final setNumber = setNumbers[i].short;
                         final bands = await repo.bandsForSet(setToRestore.id);
                         final accessories = await repo.accessoriesForSet(
                           setToRestore.id,
                         );
                         await repo.deleteSet(setToRestore.id);
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Set $setNumber deleted'),
-                              duration: const Duration(seconds: 3),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              action: SnackBarAction(
-                                label: 'Undo',
-                                textColor: AppColors.primary,
-                                onPressed: () async {
-                                  await repo.restoreSet(
-                                    setToRestore,
-                                    bands: bands,
-                                    accessories: accessories,
-                                  );
-                                },
-                              ),
-                            ),
-                          );
+                          ref
+                              .read(
+                                inAppNotificationControllerProvider.notifier,
+                              )
+                              .show(
+                                InAppNotificationItem.workoutAction(
+                                  label:
+                                      '${widget.exercise.name} · Set deleted',
+                                  value: 'Set $setNumber deleted',
+                                  actionLabel: 'Undo',
+                                  onAction: () async {
+                                    await repo.restoreSet(
+                                      setToRestore,
+                                      bands: bands,
+                                      accessories: accessories,
+                                    );
+                                  },
+                                ),
+                              );
                         }
                       },
                       // One-tap set-type switch (§15, §26).
                       onTypeTap: () async {
-                        final role = SlotRole.fromId(
-                          widget.workoutExercise.plannedSlotRole,
-                        );
-                        final allowed = isAdvancedTechniqueAllowed(
-                          role,
-                          widget
-                              .workoutExercise
-                              .plannedAllowsAdvancedTechniques,
-                        );
                         final sel = await SetTypeMenu.show(
                           context,
                           current: SetType.fromId(rows[i].setType),
                           isWarmup: rows[i].isWarmup,
-                          allowAdvancedTechniques: allowed,
+                          allowAdvancedTechniques: true,
                         );
                         if (sel != null) {
                           if (sel.delete) {
                             final setToRestore = rows[i];
-                            final setNumber = i + 1;
+                            final setNumber = setNumbers[i].short;
                             final bands = await repo.bandsForSet(
                               setToRestore.id,
                             );
@@ -460,30 +439,26 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                             );
                             await repo.deleteSet(setToRestore.id);
                             if (context.mounted) {
-                              ScaffoldMessenger.of(
-                                context,
-                              ).hideCurrentSnackBar();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Set $setNumber deleted'),
-                                  duration: const Duration(seconds: 3),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  action: SnackBarAction(
-                                    label: 'Undo',
-                                    textColor: AppColors.primary,
-                                    onPressed: () async {
-                                      await repo.restoreSet(
-                                        setToRestore,
-                                        bands: bands,
-                                        accessories: accessories,
-                                      );
-                                    },
-                                  ),
-                                ),
-                              );
+                              ref
+                                  .read(
+                                    inAppNotificationControllerProvider
+                                        .notifier,
+                                  )
+                                  .show(
+                                    InAppNotificationItem.workoutAction(
+                                      label:
+                                          '${widget.exercise.name} · Set deleted',
+                                      value: 'Set $setNumber deleted',
+                                      actionLabel: 'Undo',
+                                      onAction: () async {
+                                        await repo.restoreSet(
+                                          setToRestore,
+                                          bands: bands,
+                                          accessories: accessories,
+                                        );
+                                      },
+                                    ),
+                                  );
                             }
                           } else if (sel.isWarmup == true) {
                             await repo.updateSet(
@@ -655,113 +630,6 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
         ],
       ),
     );
-  }
-
-  Widget _plannedTargetCard(BuildContext context, List<SetEntryData> rows) {
-    final planned = rows.where(
-      (set) =>
-          set.plannedRepsMin != null ||
-          set.plannedWeightKg != null ||
-          set.plannedRpeX10 != null ||
-          set.plannedPercentOf1Rm != null,
-    );
-    if (planned.isEmpty) return const SizedBox.shrink();
-
-    final workoutExercise = widget.workoutExercise;
-    final method = workoutExercise.plannedTrainingMethod;
-    final why = workoutExercise.plannedPrescriptionWhy;
-    final working = planned.where((set) => !set.isWarmup).toList();
-    final first = working.firstOrNull ?? planned.first;
-    final wave = workoutExercise.plannedWaveIndex == null
-        ? null
-        : 'Wave ${workoutExercise.plannedWaveIndex! + 1}'
-              '${workoutExercise.plannedWaveCount == null ? '' : '/${workoutExercise.plannedWaveCount}'}';
-    final target = method == 'max_effort'
-        ? 'Ramp • top set 1–3 @ RPE 8.5–9.5 • 3 back-off sets'
-        : _plannedTargetText(working, first);
-
-    return Container(
-      margin: const EdgeInsets.only(top: 12, bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.primaryContainer.withValues(alpha: .35),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withValues(alpha: .25)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.flag_outlined, size: 18, color: AppColors.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  ['TARGET', ?wave].join('  •  '),
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: .7,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  target,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ?(why == null
-              ? null
-              : IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Why this target?',
-                  icon: const Icon(Icons.info_outline, size: 19),
-                  onPressed: () => showDialog<void>(
-                    context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      title: const Text('Why this target?'),
-                      content: Text(why),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          child: const Text('Got it'),
-                        ),
-                      ],
-                    ),
-                  ),
-                )),
-        ],
-      ),
-    );
-  }
-
-  String _plannedTargetText(
-    List<SetEntryData> working,
-    SetEntryData representative,
-  ) {
-    final count = working.isEmpty ? 1 : working.length;
-    final min = representative.plannedRepsMin;
-    final max = representative.plannedRepsMax;
-    final reps = min == null
-        ? null
-        : max != null && max != min
-        ? '$min–$max reps'
-        : '$min reps';
-    final intensity = representative.plannedWeightKg != null
-        ? '${representative.plannedWeightKg!.toStringAsFixed(1)} kg'
-        : representative.plannedPercentOf1Rm != null
-        ? '${(representative.plannedPercentOf1Rm! * 100).round()}% 1RM'
-        : representative.plannedRir != null
-        ? 'RIR ${representative.plannedRir}'
-        : representative.plannedRpeX10 != null
-        ? 'RPE ${(representative.plannedRpeX10! / 10).toStringAsFixed(1)}'
-        : null;
-    return ['$count sets', ?reps, ?intensity].join(' • ');
   }
 
   SetEntryData? _findPriorSet(
@@ -997,28 +865,26 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
       await repo.updateSet(setId: row.id, weightKg: weightKg, reps: reps);
     }
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          rationale == null || rationale.trim().isEmpty
-              ? 'Safe numeric target applied.'
-              : 'Target applied: $rationale',
-        ),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () async {
-            for (final row in before) {
-              await repo.updateSet(
-                setId: row.id,
-                weightKg: row.weightKg,
-                reps: row.reps,
-              );
-            }
-          },
-        ),
-      ),
-    );
+    ref
+        .read(inAppNotificationControllerProvider.notifier)
+        .show(
+          InAppNotificationItem.workoutAction(
+            label: widget.exercise.name,
+            value: rationale == null || rationale.trim().isEmpty
+                ? 'Safe numeric target applied'
+                : 'Target applied: $rationale',
+            actionLabel: 'Undo',
+            onAction: () async {
+              for (final row in before) {
+                await repo.updateSet(
+                  setId: row.id,
+                  weightKg: row.weightKg,
+                  reps: row.reps,
+                );
+              }
+            },
+          ),
+        );
   }
 
   /// Per-row micro-label under a set (item 1): a compact "Down: X-Y" once per
@@ -1207,6 +1073,37 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                   context.push(AppPaths.exercise(widget.exercise.id));
                 },
               ),
+              if (widget.workoutExercise.plannedPrescriptionWhy != null &&
+                  widget.workoutExercise.plannedPrescriptionWhy!
+                      .trim()
+                      .isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: const Text('Prescription target'),
+                  subtitle: Text(
+                    widget.workoutExercise.plannedPrescriptionWhy!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    showDialog<void>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('Prescription target'),
+                        content: Text(
+                          widget.workoutExercise.plannedPrescriptionWhy!,
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            child: const Text('Got it'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.fitness_center),
                 title: const Text('Change equipment'),
@@ -1543,6 +1440,12 @@ class _SetRowState extends ConsumerState<_SetRow> {
   final _caloriesFieldKey = GlobalKey();
   final _rpeFieldKey = GlobalKey();
 
+  /// Saves typed values shortly after the user stops typing, so a value is
+  /// never lost because the keyboard was dismissed some way other than
+  /// "done" or a tap outside (back gesture, app switch, the field scrolling
+  /// away) — and so the watch sees the edit without waiting for a blur.
+  Timer? _commitDebounce;
+
   /// Set the moment the user types in the reps field. A detected count never
   /// overwrites a number the user entered themselves — a proposal that
   /// silently replaced typing would be worse than no proposal at all.
@@ -1581,10 +1484,14 @@ class _SetRowState extends ConsumerState<_SetRow> {
       _weightFocusNode.addListener(_scrollWeightIntoViewOnFocus);
     }
     // Resync if upstream value diverged (e.g. duplicated from prev set).
-    if (oldWidget.set.weightKg != widget.set.weightKg) {
+    // A field with focus is the user's: a debounced save of their own
+    // half-typed value echoing back from the database must not overwrite
+    // what they have typed since.
+    if (oldWidget.set.weightKg != widget.set.weightKg &&
+        !_weightFocusNode.hasFocus) {
       _weight.text = _fmtWeight(widget.set.weightKg);
     }
-    if (oldWidget.set.reps != widget.set.reps) {
+    if (oldWidget.set.reps != widget.set.reps && !_repsFocusNode.hasFocus) {
       _reps.text = widget.set.reps == 0 ? '' : widget.set.reps.toString();
     }
     if (oldWidget.set.durationSeconds != widget.set.durationSeconds) {
@@ -1609,8 +1516,12 @@ class _SetRowState extends ConsumerState<_SetRow> {
 
   @override
   void dispose() {
+    _commitDebounce?.cancel();
     if (_weightFocusNode.hasFocus || _repsFocusNode.hasFocus) {
-      ref.read(workoutInputFocusedProvider.notifier).state = false;
+      // Deferred for the same reason as ActiveWorkoutView.deactivate: the
+      // shell watches this flag and the tree is locked during disposal.
+      final focused = ref.read(workoutInputFocusedProvider.notifier);
+      Future.microtask(() => focused.state = false);
     }
     _weightFocusNode.removeListener(_scrollWeightIntoViewOnFocus);
     _repsFocusNode.removeListener(_scrollRepsIntoViewOnFocus);
@@ -1640,6 +1551,8 @@ class _SetRowState extends ConsumerState<_SetRow> {
     _syncInputFocus();
     if (_weightFocusNode.hasFocus) {
       _scrollFieldIntoView(_weightFieldKey);
+    } else {
+      _commit();
     }
   }
 
@@ -1647,7 +1560,16 @@ class _SetRowState extends ConsumerState<_SetRow> {
     _syncInputFocus();
     if (_repsFocusNode.hasFocus) {
       _scrollFieldIntoView(_repsFieldKey);
+    } else {
+      _commit();
     }
+  }
+
+  void _scheduleCommit() {
+    _commitDebounce?.cancel();
+    _commitDebounce = Timer(const Duration(milliseconds: 600), () {
+      if (mounted) _commit();
+    });
   }
 
   void _scrollFieldIntoView(GlobalKey fieldKey) {
@@ -1744,6 +1666,8 @@ class _SetRowState extends ConsumerState<_SetRow> {
   }
 
   void _commit() {
+    _commitDebounce?.cancel();
+    _commitDebounce = null;
     final metric = widget.metric;
     final rpe = double.tryParse(_rpe.text);
     // Only the fields this exercise actually declares are sent. A field the
@@ -2359,7 +2283,7 @@ class _SetRowState extends ConsumerState<_SetRow> {
       key: fieldKey,
       controller: ctrl,
       focusNode: focusNode,
-      onChanged: onChanged,
+      onChanged: onChanged ?? (_) => _scheduleCommit(),
       textInputAction: TextInputAction.done,
       onTap: fieldKey == null ? null : () => _scrollFieldIntoView(fieldKey),
       onEditingComplete: _commit,

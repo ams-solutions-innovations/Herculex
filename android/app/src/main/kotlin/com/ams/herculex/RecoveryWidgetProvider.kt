@@ -2,8 +2,9 @@ package com.ams.herculex
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
-import android.graphics.Color
+import android.content.Intent
 import android.widget.RemoteViews
 
 /**
@@ -11,8 +12,21 @@ import android.widget.RemoteViews
  *
  * Shows the average muscle recovery score (0–100) with a color-coded
  * horizontal progress bar: green ≥ 70, amber ≥ 30, red < 30.
+ * Adapts dynamically to light and dark theme changes.
  */
 class RecoveryWidgetProvider : AppWidgetProvider() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == Intent.ACTION_CONFIGURATION_CHANGED) {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val componentName = ComponentName(context, javaClass)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            if (appWidgetIds.isNotEmpty()) {
+                onUpdate(context, appWidgetManager, appWidgetIds)
+            }
+        }
+    }
 
     override fun onUpdate(
         context: Context,

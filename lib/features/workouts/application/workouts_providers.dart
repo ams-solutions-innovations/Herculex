@@ -13,6 +13,7 @@ import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
 import 'package:herculex/features/workouts/data/media_sync_service.dart';
 import 'package:herculex/features/workouts/data/micro_workouts_repository.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
+import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
 import 'package:herculex/features/workouts/data/templates_repository.dart';
 import 'package:herculex/features/workouts/data/wear_workout_sync_service.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';

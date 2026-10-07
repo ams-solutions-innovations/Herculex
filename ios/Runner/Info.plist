@@ -14,6 +14,12 @@
 	<string>Sync daily steps, active calories, sleep, and heart rate to provide accurate workout and nutrition recommendations.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Record completed workouts, hydration, and nutrition data to Apple Health.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Herculex uses calendar access to sync your scheduled workouts.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Herculex uses calendar access to sync your scheduled workouts.</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>Herculex uses calendar access to sync your scheduled workouts.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

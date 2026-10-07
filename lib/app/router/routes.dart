@@ -44,6 +44,8 @@ abstract final class AppRoutes {
   static const insights = '/insights';
   static const cns = '/cns';
   static const recovery = '/recovery';
+  static const personalRecords = '/personal-records';
+  static const supplements = '/supplements';
   static const muscleVolume = '/muscle-volume';
   static const muscleVolumeDetail = '/muscle-volume/:muscle';
   static const weeklyReports = '/weekly-reports';

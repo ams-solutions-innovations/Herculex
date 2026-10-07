@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -13,6 +14,7 @@ import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
 import 'package:herculex/features/programs/presentation/sheets/template_picker_sheet.dart';
+import 'package:herculex/features/programs/presentation/sheets/template_scope_sheet.dart';
 import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/calendar_providers.dart';
@@ -455,9 +457,11 @@ class _SessionCard extends ConsumerWidget {
       navigator.pop();
     } on StateError catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
+      AppNotice.show(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.message.toString())));
+        error.message.toString(),
+        kind: AppNoticeKind.error,
+      );
     }
   }
 
@@ -472,10 +476,10 @@ class _SessionCard extends ConsumerWidget {
     if (row.isDone || row.isInProgress) {
       final completedSessionId = row.completedSessionId;
       if (completedSessionId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('This scheduled workout no longer exists.'),
-          ),
+        AppNotice.show(
+          context,
+          'This scheduled workout no longer exists.',
+          kind: AppNoticeKind.info,
         );
         return;
       }
@@ -504,52 +508,21 @@ class _SessionCard extends ConsumerWidget {
     await _applyTemplate(context, ref, created.id);
   }
 
-  /// Asks whether the template applies to this occurrence only or to every
-  /// future session of this program day — the difference between a one-off swap
-  /// and re-pointing the live link.
   Future<void> _applyTemplate(
     BuildContext context,
     WidgetRef ref,
     int templateId,
   ) async {
-    final scope = await showModalBottomSheet<_TemplateScope>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => HxSheet(
-        scrollable: false,
-        title: 'Apply to',
-        subtitle: 'This template can cover one session or all of them.',
-        child: Column(
-          children: [
-            _ScopeOption(
-              icon: Icons.today_rounded,
-              title: 'This session only',
-              subtitle: 'Swap just ${DateFormat('MMM d').format(row.date)}.',
-              onTap: () => Navigator.pop(context, _TemplateScope.thisSession),
-            ),
-            const SizedBox(height: 8),
-            _ScopeOption(
-              icon: Icons.repeat_rounded,
-              title: 'Every future ${row.title} day',
-              subtitle:
-                  'Re-links the program day; past sessions are untouched.',
-              onTap: () => Navigator.pop(context, _TemplateScope.everyFuture),
-            ),
-          ],
-        ),
-      ),
+    await TemplateScopeSheet.apply(
+      context,
+      ref,
+      scheduleId: row.id,
+      programDayId: row.day.id,
+      programId: row.program.id,
+      date: row.date,
+      dayTitle: row.title,
+      templateId: templateId,
     );
-    if (scope == null) return;
-
-    final repo = ref.read(programsRepositoryProvider);
-    Haptics.success();
-    if (scope == _TemplateScope.thisSession) {
-      await repo.setScheduleTemplateOverride(row.id, templateId);
-    } else {
-      await repo.setProgramDayTemplate(row.day.id, templateId);
-      await repo.setScheduleTemplateOverride(row.id, null);
-      await repo.rematerializeProgram(row.program.id);
-    }
   }
 
   Future<void> _unlink(BuildContext context, WidgetRef ref) async {
@@ -578,66 +551,6 @@ class _SessionCard extends ConsumerWidget {
       final calId = ref.read(selectedCalendarIdProvider);
       unawaited(calService.syncWorkoutNow(row.id, targetCalendarId: calId));
     }
-  }
-}
-
-enum _TemplateScope { thisSession, everyFuture }
-
-class _ScopeOption extends StatelessWidget {
-  const _ScopeOption({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppColors.outlineVariant.withValues(alpha: 0.4),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.primary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 

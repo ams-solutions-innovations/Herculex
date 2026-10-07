@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget-picker preview for the "KCAL LEFT" pill. Mirrors
-     widget_today_calories_small with a sample value baked in.
+<!-- Widget-picker preview for the "KCAL LEFT" pill.
      Keep in sync with widget_today_calories_small.xml. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="10dp"
+    android:paddingStart="12dp"
+    android:paddingEnd="14dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
     android:background="@drawable/widget_pill_bg_dark">
 
     <FrameLayout
-        android:layout_width="30dp"
-        android:layout_height="30dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
         android:background="@drawable/widget_action_btn_bg">
 
         <ImageView
@@ -30,23 +32,23 @@
         android:layout_weight="1"
         android:orientation="vertical"
         android:gravity="center_vertical"
-        android:layout_marginStart="8dp">
+        android:layout_marginStart="10dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="KCAL LEFT"
             android:textSize="9sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:letterSpacing="0.08"
             android:textAllCaps="true" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="642"
-            android:textSize="15sp"
-            android:textColor="#FFFFFF"
+            android:text="1,420"
+            android:textSize="16sp"
+            android:textColor="@color/widget_text_primary"
             android:textStyle="bold"
             android:includeFontPadding="false" />
 

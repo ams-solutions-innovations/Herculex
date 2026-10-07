@@ -343,4 +343,67 @@ void main() {
       expect(find.text('PILL_nutritionStreak'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'Dashboard stacked widgets support infinite circular scrolling in both directions',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  return StackedDashboardWidget(
+                    types: const [
+                      DashboardWidgetType.herculInsights,
+                      DashboardWidgetType.quickScan,
+                    ],
+                    theme: Theme.of(context),
+                    renderWidget: (type) =>
+                        Center(child: Text('WIDGET_${type.name}')),
+                    onLongPress: () {},
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Initially shows herculInsights
+      expect(find.text('WIDGET_herculInsights'), findsOneWidget);
+      expect(find.text('WIDGET_quickScan'), findsNothing);
+
+      // Swiping right from initial page loops backwards to quickScan infinitely
+      await tester.fling(find.byType(PageView), const Offset(600, 0), 1000);
+      await tester.pumpAndSettle();
+      expect(find.text('WIDGET_quickScan'), findsOneWidget);
+      expect(find.text('WIDGET_herculInsights'), findsNothing);
+
+      // Swiping left goes forward back to herculInsights
+      await tester.fling(find.byType(PageView), const Offset(-600, 0), 1000);
+      await tester.pumpAndSettle();
+      expect(find.text('WIDGET_herculInsights'), findsOneWidget);
+
+      // Swiping left again continues forward to quickScan
+      await tester.fling(find.byType(PageView), const Offset(-600, 0), 1000);
+      await tester.pumpAndSettle();
+      expect(find.text('WIDGET_quickScan'), findsOneWidget);
+
+      // Swiping left once again loops forward back to herculInsights smoothly
+      await tester.fling(find.byType(PageView), const Offset(-600, 0), 1000);
+      await tester.pumpAndSettle();
+      expect(find.text('WIDGET_herculInsights'), findsOneWidget);
+    },
+  );
 }

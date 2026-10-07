@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
-import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -175,9 +174,11 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
       ref.invalidate(workoutSessionProvider(widget.sessionId));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        AppNotice.show(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error selecting image: $e')));
+          'Error selecting image: $e',
+          kind: AppNoticeKind.error,
+        );
       }
     }
   }
@@ -208,13 +209,14 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
           _syncingHealth = false;
           _healthSyncSuccess = success;
         });
-        ref
-            .read(hxToastControllerProvider.notifier)
-            .show(
-              success
-                  ? HxToastItem.workoutSynced()
-                  : HxToastItem.workoutSyncFailed(),
-            );
+        AppNotice.showWith(
+          ref,
+          success ? 'Synced to Health Connect' : 'Sync failed',
+          title: success
+              ? 'Workout saved'
+              : 'Check Health Connect permissions in settings',
+          kind: success ? AppNoticeKind.success : AppNoticeKind.error,
+        );
       }
     } catch (_) {
       if (mounted) {

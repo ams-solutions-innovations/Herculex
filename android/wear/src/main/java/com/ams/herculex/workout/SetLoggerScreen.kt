@@ -28,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -128,7 +129,6 @@ fun SetLoggerScreen(
     }
 
     val exercise = s.exercises.getOrNull(exerciseIndex) ?: return
-    val setNumber = exercise.completedSets + 1
     val plannedOrCurrentSet = remember(exerciseIndex, exercise.sets) {
         exercise.sets.firstOrNull { !it.completed } ?: exercise.sets.lastOrNull()
     }
@@ -235,39 +235,72 @@ fun SetLoggerScreen(
         }
     }
 
+    var isProgrammaticSync by remember { mutableStateOf(false) }
+    var userInteractedWeight by remember(exerciseIndex, currentSetIdx) { mutableStateOf(false) }
+    var userInteractedReps by remember(exerciseIndex, currentSetIdx) { mutableStateOf(false) }
+    var userInteractedDuration by remember(exerciseIndex, currentSetIdx) { mutableStateOf(false) }
+    var userInteractedDistance by remember(exerciseIndex, currentSetIdx) { mutableStateOf(false) }
+
+    LaunchedEffect(weightState.isScrollInProgress) {
+        if (weightState.isScrollInProgress && !isProgrammaticSync) {
+            userInteractedWeight = true
+        }
+    }
+    LaunchedEffect(repsState.isScrollInProgress) {
+        if (repsState.isScrollInProgress && !isProgrammaticSync) {
+            userInteractedReps = true
+        }
+    }
+    LaunchedEffect(durationState.isScrollInProgress) {
+        if (durationState.isScrollInProgress && !isProgrammaticSync) {
+            userInteractedDuration = true
+        }
+    }
+    LaunchedEffect(distanceState.isScrollInProgress) {
+        if (distanceState.isScrollInProgress && !isProgrammaticSync) {
+            userInteractedDistance = true
+        }
+    }
+
     LaunchedEffect(exerciseIndex, currentSetIdx, plannedOrCurrentSet?.weight, plannedOrCurrentSet?.reps, plannedOrCurrentSet?.durationSeconds, plannedOrCurrentSet?.distanceMeters) {
-        val targetWeight = plannedOrCurrentSet?.weight?.takeIf { it > 0 }
-            ?: currentPlannedSet?.targetWeightKg?.takeIf { it > 0 }
-            ?: exercise.template.prevWeight
-        val wIdx = weightOptions.indexOfFirst { it >= targetWeight }.takeIf { it >= 0 } ?: 0
-        if (wIdx != weightState.selectedOption && wIdx in 0 until weightOptions.size) {
-            weightState.scrollToOption(wIdx)
-        }
+        isProgrammaticSync = true
+        try {
+            val targetWeight = plannedOrCurrentSet?.weight?.takeIf { it > 0 }
+                ?: currentPlannedSet?.targetWeightKg?.takeIf { it > 0 }
+                ?: exercise.template.prevWeight
+            val wIdx = weightOptions.indexOfFirst { it >= targetWeight }.takeIf { it >= 0 } ?: 0
+            if (wIdx != weightState.selectedOption && wIdx in 0 until weightOptions.size) {
+                weightState.scrollToOption(wIdx)
+            }
 
-        val targetReps = plannedOrCurrentSet?.reps?.takeIf { it > 0 }
-            ?: currentPlannedSet?.targetReps?.takeIf { it > 0 }
-            ?: currentPlannedSet?.targetRepsMin?.takeIf { it > 0 }
-            ?: exercise.template.prevReps.takeIf { it > 0 }
-            ?: 10
-        val rIdx = (targetReps - 1).coerceIn(0, repsOptions.size - 1)
-        if (rIdx != repsState.selectedOption && rIdx in 0 until repsOptions.size) {
-            repsState.scrollToOption(rIdx)
-        }
+            val targetReps = plannedOrCurrentSet?.reps?.takeIf { it > 0 }
+                ?: currentPlannedSet?.targetReps?.takeIf { it > 0 }
+                ?: currentPlannedSet?.targetRepsMin?.takeIf { it > 0 }
+                ?: exercise.template.prevReps.takeIf { it > 0 }
+                ?: 10
+            val rIdx = (targetReps - 1).coerceIn(0, repsOptions.size - 1)
+            if (rIdx != repsState.selectedOption && rIdx in 0 until repsOptions.size) {
+                repsState.scrollToOption(rIdx)
+            }
 
-        val targetDur = plannedOrCurrentSet?.durationSeconds?.takeIf { it > 0 }
-            ?: currentPlannedSet?.durationSeconds?.takeIf { it > 0 }
-            ?: 30
-        val dIdx = durationOptions.indexOfFirst { it >= targetDur }.takeIf { it >= 0 } ?: 0
-        if (dIdx != durationState.selectedOption && dIdx in 0 until durationOptions.size) {
-            durationState.scrollToOption(dIdx)
-        }
+            val targetDur = plannedOrCurrentSet?.durationSeconds?.takeIf { it > 0 }
+                ?: currentPlannedSet?.durationSeconds?.takeIf { it > 0 }
+                ?: 30
+            val dIdx = durationOptions.indexOfFirst { it >= targetDur }.takeIf { it >= 0 } ?: 0
+            if (dIdx != durationState.selectedOption && dIdx in 0 until durationOptions.size) {
+                durationState.scrollToOption(dIdx)
+            }
 
-        val targetDistance = plannedOrCurrentSet?.distanceMeters?.takeIf { it > 0 }
-            ?: currentPlannedSet?.targetDistanceMeters?.takeIf { it > 0 }
-            ?: 0.0
-        val distIdx = distanceOptions.indexOfFirst { it >= targetDistance }.takeIf { it >= 0 } ?: 0
-        if (distIdx != distanceState.selectedOption && distIdx in 0 until distanceOptions.size) {
-            distanceState.scrollToOption(distIdx)
+            val targetDistance = plannedOrCurrentSet?.distanceMeters?.takeIf { it > 0 }
+                ?: currentPlannedSet?.targetDistanceMeters?.takeIf { it > 0 }
+                ?: 0.0
+            val distIdx = distanceOptions.indexOfFirst { it >= targetDistance }.takeIf { it >= 0 } ?: 0
+            if (distIdx != distanceState.selectedOption && distIdx in 0 until distanceOptions.size) {
+                distanceState.scrollToOption(distIdx)
+            }
+        } finally {
+            delay(50L)
+            isProgrammaticSync = false
         }
     }
 
@@ -292,28 +325,37 @@ fun SetLoggerScreen(
     val selectedDistance = distanceOptions.getOrNull(distanceState.selectedOption) ?: 0
     val prevWeight = "%.1f".format(exercise.template.prevWeight)
 
-    // Debounced outbound broadcast when user changes values on the watch pickers
+    val hasUserInteraction = userInteractedWeight || userInteractedReps || userInteractedDuration || userInteractedDistance
+
+    // Debounced outbound broadcast ONLY when user explicitly changes values on the watch pickers (rotary or touch drag)
     LaunchedEffect(
-        exerciseIndex,
-        currentSetIdx,
+        hasUserInteraction,
+        userInteractedWeight,
+        userInteractedReps,
+        userInteractedDuration,
+        userInteractedDistance,
         selectedWeight,
         selectedReps,
         selectedDuration,
         selectedDistance,
-        setType.id,
     ) {
+        if (!hasUserInteraction || isProgrammaticSync) return@LaunchedEffect
         delay(300L)
         if (plannedOrCurrentSet != null && !plannedOrCurrentSet.completed) {
             viewModel.updateActiveSetValues(
                 exerciseIndex = exerciseIndex,
                 setIndex = currentSetIdx,
-                weight = selectedWeight,
-                reps = selectedReps,
-                durationSeconds = if (isTimeBased) selectedDuration else null,
-                distanceMeters = if (showsDistanceInWeightSlot || showsDistanceInValueSlot) selectedDistance.toDouble() else null,
+                weight = if (userInteractedWeight) selectedWeight else plannedOrCurrentSet.weight,
+                reps = if (userInteractedReps) selectedReps else plannedOrCurrentSet.reps,
+                durationSeconds = if (isTimeBased && userInteractedDuration) selectedDuration else plannedOrCurrentSet.durationSeconds,
+                distanceMeters = if ((showsDistanceInWeightSlot || showsDistanceInValueSlot) && userInteractedDistance) selectedDistance.toDouble() else plannedOrCurrentSet.distanceMeters,
                 setType = setType.id,
                 isWarmup = setType.id == "warmup",
             )
+            userInteractedWeight = false
+            userInteractedReps = false
+            userInteractedDuration = false
+            userInteractedDistance = false
         }
     }
 
@@ -427,6 +469,14 @@ fun SetLoggerScreen(
                                             rotaryTarget = rotaryTarget,
                                             focusRequester = setPickerFocus,
                                             isFocused = horizontalPagerState.currentPage == 0 && verticalPagerState.currentPage == 1,
+                                            onUserStep = { target ->
+                                                when (target) {
+                                                    RotaryTarget.WEIGHT -> userInteractedWeight = true
+                                                    RotaryTarget.REPS -> userInteractedReps = true
+                                                    RotaryTarget.TIME -> userInteractedDuration = true
+                                                    RotaryTarget.DISTANCE -> userInteractedDistance = true
+                                                }
+                                            },
                                         )
                                         .padding(top = 18.dp, bottom = 4.dp, start = 10.dp, end = 10.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -583,12 +633,17 @@ fun SetLoggerScreen(
                                                 )
                                                 Spacer(Modifier.height(2.dp))
                                             }
+                                            // Next set to log: the first open one, or a new
+                                            // one past the end. Warmups count separately.
+                                            val numberIdx = exercise.sets.indexOfFirst { !it.completed }
+                                                .let { if (it >= 0) it else exercise.sets.size }
                                             Text(
-                                                "$setNumber/${exercise.template.targetSets}",
+                                                exercise.setNumberLabel(numberIdx, asWarmup = setType.id == "warmup"),
                                                 color = Color.White,
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.Bold,
                                             )
+                                            RestCountdownLabel()
                                         }
 
                                         // Value Column: Time (if isTimeBased) or Reps (if not isTimeBased)
@@ -822,7 +877,7 @@ fun SetLoggerScreen(
                             }
                         }
                         2 -> {
-                            MediaControlsScreen()
+                            MediaControlsScreen(isFocused = horizontalPagerState.currentPage == 0 && verticalPagerState.currentPage == 2)
                         }
                     }
                 }
@@ -864,7 +919,23 @@ fun SetLoggerScreen(
                             title = type.label,
                             icon = if (isSel) "✓" else "•",
                             style = if (isSel) OneUiPillStyle.RoyalBlue else OneUiPillStyle.SlateNavy,
-                            onClick = { setType = type },
+                            onClick = {
+                                if (setType.id != type.id) {
+                                    setType = type
+                                    if (plannedOrCurrentSet != null && !plannedOrCurrentSet.completed) {
+                                        viewModel.updateActiveSetValues(
+                                            exerciseIndex = exerciseIndex,
+                                            setIndex = currentSetIdx,
+                                            weight = plannedOrCurrentSet.weight,
+                                            reps = plannedOrCurrentSet.reps,
+                                            durationSeconds = plannedOrCurrentSet.durationSeconds,
+                                            distanceMeters = plannedOrCurrentSet.distanceMeters,
+                                            setType = type.id,
+                                            isWarmup = type.id == "warmup",
+                                        )
+                                    }
+                                }
+                            },
                         )
                     }
                     item {
@@ -1296,4 +1367,27 @@ private fun NavCircleButton(
             fontWeight = FontWeight.Bold,
         )
     }
+}
+
+/// Rest left before the next set, small and amber under the set number —
+/// only while the phone's rest timer (Workout settings) is running.
+@Composable
+private fun RestCountdownLabel() {
+    val timer by RestTimerStore.timer.collectAsState()
+    val active = timer?.takeIf { it.showOnWatch } ?: return
+    var now by remember(active.endsAtEpochMs) { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(active.endsAtEpochMs) {
+        while (now < active.endsAtEpochMs) {
+            delay(1000L - (System.currentTimeMillis() % 1000L))
+            now = System.currentTimeMillis()
+        }
+    }
+    val remaining = active.remainingSeconds(now)
+    if (remaining <= 0) return
+    Text(
+        "%d:%02d".format(remaining / 60, remaining % 60),
+        color = Color(0xFFFFA726),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+    )
 }

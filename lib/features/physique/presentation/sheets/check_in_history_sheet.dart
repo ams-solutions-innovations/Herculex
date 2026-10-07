@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/hx_sheet.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
@@ -53,7 +54,7 @@ class _CheckInHistorySheetState extends ConsumerState<CheckInHistorySheet> {
   Future<void> _delete(PhysiqueAssessmentData a) async {
     final ok = await DeleteCheckInDialog.show(context);
     if (ok != true || !mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final notices = AppNotice.of(context);
     final store = ref.read(physiquePhotoStoreProvider);
     try {
       final paths = await ref
@@ -63,13 +64,10 @@ class _CheckInHistorySheetState extends ConsumerState<CheckInHistorySheet> {
         await store.delete(path);
       }
     } on Object {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-            "We couldn't save your photo. Check your free storage and try "
-            'again.',
-          ),
-        ),
+      notices.show(
+        "We couldn't save your photo. Check your free storage and try "
+        'again.',
+        kind: AppNoticeKind.error,
       );
       return;
     }

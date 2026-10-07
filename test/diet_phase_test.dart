@@ -5,11 +5,11 @@ import 'package:herculex/features/nutrition/domain/phase_eligibility.dart';
 void main() {
   group('DietPhase', () {
     test('save labels name the phase', () {
-      expect(DietPhase.cut.saveLabel, 'Shrani: Redukcija');
-      expect(DietPhase.bulk.saveLabel, 'Shrani: Masa');
-      expect(DietPhase.maingain.saveLabel, 'Shrani: Čista rast');
-      expect(DietPhase.maintain.saveLabel, 'Shrani cilj');
-      expect(DietPhase.recomp.saveLabel, 'Shrani: Rekompozicija');
+      expect(DietPhase.cut.saveLabel, 'Save: Cut');
+      expect(DietPhase.bulk.saveLabel, 'Save: Bulk');
+      expect(DietPhase.maingain.saveLabel, 'Save: Lean bulk');
+      expect(DietPhase.maintain.saveLabel, 'Save target');
+      expect(DietPhase.recomp.saveLabel, 'Save: Recomp');
     });
   });
 

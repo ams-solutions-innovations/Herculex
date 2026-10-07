@@ -1,6 +1,7 @@
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/workouts/domain/active_workout_notification_target.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
+import 'package:herculex/features/workouts/domain/set_numbering.dart';
 import 'package:herculex/features/workouts/domain/workout_notification_command.dart';
 
 class OngoingWorkoutSurfaceSnapshot {
@@ -14,6 +15,10 @@ class OngoingWorkoutSurfaceSnapshot {
   final double loadStepKg;
   final String loadStepLabel;
   final List<OngoingWorkoutSurfaceAction> actions;
+
+  /// Display numbering of the target set (W1 / 2 …); null for an exercise
+  /// with no sets yet.
+  final SetNumber? setNumber;
 
   /// "{muscle} • {equipment}", e.g. "Quads • Barbell" — same wording the full
   /// active-workout screen uses (`active_exercise_card.dart`'s exercise
@@ -37,9 +42,23 @@ class OngoingWorkoutSurfaceSnapshot {
     required this.actions,
     this.subtitle = '',
     this.lastSetSummary,
+    this.setNumber,
   });
 
+  bool get isWarmup => setNumber?.isWarmup ?? false;
+
+  /// Compact number for the bubble's set pill: `W1`, `2`.
+  String get setNumberShort =>
+      setNumber?.short ?? (currentSet != null ? '$currentSet' : '1');
+
+  /// "Warmup W1" or "Set 2/4" — warmups never take a working-set number.
   String get setLabel {
+    final number = setNumber;
+    if (number != null) {
+      return number.isWarmup
+          ? 'Warmup ${number.short}'
+          : 'Set ${number.withTotal}';
+    }
     if (currentSet == null) return '';
     if (totalSets == null || totalSets! <= 0) return 'Set $currentSet';
     return 'Set $currentSet/$totalSets';
@@ -78,6 +97,7 @@ OngoingWorkoutSurfaceSnapshot buildOngoingWorkoutSurfaceSnapshot({
     loadStepKg: loadStepKg,
     loadStepLabel: loadStepLabel,
     actions: buildOngoingWorkoutSurfaceActions(loadStepLabel: loadStepLabel),
+    setNumber: target?.setNumber,
     subtitle: target == null ? '' : _subtitleFor(target),
     lastSetSummary: target == null
         ? null

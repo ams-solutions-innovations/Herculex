@@ -266,9 +266,11 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     await _saveWaist();
     if (!mounted) return;
     setState(() => _saving = false);
-    ref
-        .read(hxToastControllerProvider.notifier)
-        .show(HxToastItem.profileSaved());
+    AppNotice.showWith(
+      ref,
+      'Profile saved',
+      title: 'Stats and targets are up to date',
+    );
   }
 
   Future<void> _clearData(BuildContext context) async {
@@ -403,8 +405,11 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               heightCm: widget.profile!.heightCm!,
             ),
           ),
+        // Body-fat chip (read-only, calculated) sits right under BMI.
+        const SizedBox(height: 8),
+        Center(child: _bodyFatChip(latest)),
 
-        // -- Show more: inseam, arm span, torso, waist, body fat -----------
+        // -- Show more: inseam, arm span, torso, waist ---------------------
         const SizedBox(height: 8),
         Center(
           child: TextButton.icon(
@@ -417,54 +422,67 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             label: Text(_showMore ? 'Show less' : 'Show more'),
           ),
         ),
-        if (_showMore) ...[
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Expanded(
-                child: _StatField(
-                  label: isMetric ? 'Inseam (cm)' : 'Inseam (in)',
-                  hint: isMetric ? 'cm' : 'in',
-                  controller: _inseamCtrl,
-                  onChanged: _onFieldChanged,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatField(
-                  label: isMetric ? 'Arm Span (cm)' : 'Arm Span (in)',
-                  hint: isMetric ? 'cm' : 'in',
-                  controller: _armSpanCtrl,
-                  onChanged: _onFieldChanged,
-                ),
-              ),
-            ],
+        AnimatedSize(
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeInOutCubic,
+          alignment: Alignment.topCenter,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 220),
+            opacity: _showMore ? 1 : 0,
+            child: !_showMore
+                ? const SizedBox(width: double.infinity)
+                : Column(
+                    children: [
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StatField(
+                              label: isMetric ? 'Inseam (cm)' : 'Inseam (in)',
+                              hint: isMetric ? 'cm' : 'in',
+                              controller: _inseamCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatField(
+                              label: isMetric
+                                  ? 'Arm Span (cm)'
+                                  : 'Arm Span (in)',
+                              hint: isMetric ? 'cm' : 'in',
+                              controller: _armSpanCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StatField(
+                              label: isMetric ? 'Torso (cm)' : 'Torso (in)',
+                              hint: isMetric ? 'cm' : 'in',
+                              controller: _torsoCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatField(
+                              label: isMetric ? 'Waist (cm)' : 'Waist (in)',
+                              hint: isMetric ? 'cm' : 'in',
+                              controller: _waistCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _StatField(
-                  label: isMetric ? 'Torso (cm)' : 'Torso (in)',
-                  hint: isMetric ? 'cm' : 'in',
-                  controller: _torsoCtrl,
-                  onChanged: _onFieldChanged,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatField(
-                  label: isMetric ? 'Waist (cm)' : 'Waist (in)',
-                  hint: isMetric ? 'cm' : 'in',
-                  controller: _waistCtrl,
-                  onChanged: _onFieldChanged,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Center(child: _bodyFatChip(latest)),
-        ],
+        ),
 
         const SizedBox(height: 28),
 
@@ -991,9 +1009,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     if (error != null) {
       // Nothing was deleted — `AccountDeletionService` only wipes the device
       // after the backend confirms — so this is safe to retry.
-      ref
-          .read(hxToastControllerProvider.notifier)
-          .show(HxToastItem.saveFailed(message: error));
+      AppNotice.showWith(
+        ref,
+        error.trim().isEmpty ? 'Check your connection and retry' : error,
+        title: 'Could not save',
+        kind: AppNoticeKind.error,
+      );
     }
     // On success the cleared profile drops the router back to onboarding,
     // exactly as `_clearData` does.
@@ -1143,43 +1164,26 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     await notifier.set(granted);
     if (granted || !mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'Herculex needs "Display over other apps" to float the workout '
-          'bubble. You can grant it any time in system settings.',
-        ),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-      ),
+    AppNotice.show(
+      context,
+      'Herculex needs "Display over other apps" to float the workout '
+      'bubble. You can grant it any time in system settings.',
+      kind: AppNoticeKind.info,
     );
   }
 
   void _exportData(BuildContext context) {
-    // ScaffoldMessenger indicating that export is started
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Exporting data as JSON...'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-      ),
+    // Tell the user the export has started
+    AppNotice.show(
+      context,
+      'Exporting data as JSON...',
+      kind: AppNoticeKind.info,
     );
-    final messenger = ScaffoldMessenger.of(context);
+    final notices = AppNotice.of(context);
     // In a real implementation this would fetch from Drift and use path_provider to save a file.
     Future.delayed(const Duration(seconds: 1), () {
       if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: const Text('Data export saved to Downloads folder.'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-        ),
-      );
+      notices.show('Data export saved to Downloads folder.');
     });
   }
 

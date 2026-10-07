@@ -34,6 +34,10 @@ class InAppNotificationNotifier extends StateNotifier<InAppNotificationState> {
 
   Timer? _autoDismissTimer;
 
+  /// Waits out the exit animation before the queue advances. A Timer rather
+  /// than `Future.delayed` so [dispose] can cancel it.
+  Timer? _advanceTimer;
+
   /// Post a new in-app notification / achievement.
   void show(InAppNotificationItem item) {
     if (state.current == null) {
@@ -66,7 +70,8 @@ class InAppNotificationNotifier extends StateNotifier<InAppNotificationState> {
 
     // Wait for the exit animation to finish before advancing the queue.
     // Must match the overlay's _exitCtrl duration (collapse + fly-off).
-    Future.delayed(const Duration(milliseconds: 560), () {
+    _advanceTimer?.cancel();
+    _advanceTimer = Timer(const Duration(milliseconds: 560), () {
       if (!mounted) return;
       if (state.queue.isNotEmpty) {
         final next = state.queue.first;
@@ -88,6 +93,7 @@ class InAppNotificationNotifier extends StateNotifier<InAppNotificationState> {
   @override
   void dispose() {
     _autoDismissTimer?.cancel();
+    _advanceTimer?.cancel();
     super.dispose();
   }
 }

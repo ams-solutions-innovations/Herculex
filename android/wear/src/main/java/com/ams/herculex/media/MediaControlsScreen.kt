@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +37,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,8 +51,9 @@ import com.ams.herculex.R
 import kotlinx.coroutines.delay
 
 @Composable
-fun MediaControlsScreen() {
+fun MediaControlsScreen(isFocused: Boolean = true) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val controller = remember(context) { MediaControlsController(context) }
     val state by controller.stateFlow.collectAsStateWithLifecycle()
 
@@ -57,18 +62,31 @@ fun MediaControlsScreen() {
         onDispose { controller.stop() }
     }
 
-    LaunchedEffect(controller) {
+    // Repaint once a second so the progress line advances. This used to call
+    // controller.refresh(), which re-registered the media callbacks and
+    // re-read every value each second — overwriting what the user had just
+    // tapped or dialled with stale data.
+    var clockTick by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(Unit) {
         while (true) {
             delay(1000)
-            controller.refresh()
+            clockTick = System.currentTimeMillis()
         }
     }
+    var volumeRevision by remember { mutableLongStateOf(0L) }
+    val previousInteraction = remember { MutableInteractionSource() }
+    val playPauseInteraction = remember { MutableInteractionSource() }
+    val nextInteraction = remember { MutableInteractionSource() }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .mediaVolumeRotary { controller.adjustVolume(it) },
+            .mediaVolumeRotary(isFocused = isFocused) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                controller.adjustVolume(it)
+                volumeRevision = System.nanoTime()
+            },
         contentAlignment = Alignment.Center,
     ) {
         // ── 1. Fullscreen Media Artwork / Default Backdrop ──────────────────
@@ -176,7 +194,8 @@ fun MediaControlsScreen() {
             Spacer(Modifier.height(8.dp))
 
             // ── Live Progress Line ────────────────────────────────────
-            val progress = state.progress
+            // Keyed on the tick so it is re-estimated every second.
+            val progress = remember(clockTick, state) { state.progress }
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.78f)
@@ -209,10 +228,14 @@ fun MediaControlsScreen() {
                         .size(48.dp)
                         .clip(CircleShape)
                         .background(Color(0xFF222222))
+                        .pressFeedback(previousInteraction)
                         .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
+                            interactionSource = previousInteraction,
                             indication = null,
-                            onClick = { controller.previous() },
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                controller.previous()
+                            },
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -227,10 +250,14 @@ fun MediaControlsScreen() {
                         .size(62.dp)
                         .clip(CircleShape)
                         .background(if (state.isPlaying) SpotifyGreen else Color.White)
+                        .pressFeedback(playPauseInteraction)
                         .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
+                            interactionSource = playPauseInteraction,
                             indication = null,
-                            onClick = { controller.playPause() },
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                controller.playPause()
+                            },
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -249,10 +276,14 @@ fun MediaControlsScreen() {
                         .size(48.dp)
                         .clip(CircleShape)
                         .background(Color(0xFF222222))
+                        .pressFeedback(nextInteraction)
                         .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
+                            interactionSource = nextInteraction,
                             indication = null,
-                            onClick = { controller.next() },
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                controller.next()
+                            },
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -260,9 +291,18 @@ fun MediaControlsScreen() {
                 }
             }
 
+            Spacer(Modifier.height(8.dp))
+
             // Bottom space
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
         }
+
+        // ── 4. Volume: a ring around the edge while the bezel turns ─────────
+        VolumeBezelRing(
+            volumePercent = state.volumePercent,
+            revision = volumeRevision,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }
 

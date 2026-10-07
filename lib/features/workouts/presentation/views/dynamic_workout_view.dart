@@ -7,16 +7,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/hx_nav_bar.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/gamification/application/gamification_providers.dart';
 import 'package:herculex/features/workouts/application/finish_workout_action.dart';
 import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
+import 'package:herculex/features/workouts/domain/set_numbering.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/domain/set_type_meta.dart';
 import 'package:herculex/features/workouts/presentation/views/workout_finish_view.dart';
@@ -39,6 +43,10 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
 
   // Track user-selected set index override per exercise ID (if user manually taps a set dot)
   final Map<int, int> _selectedSetIndexByExercise = {};
+
+  /// The set just completed with COMPLETE SET, whose RPE the quick strip
+  /// above the button is asking for. Null once answered or skipped.
+  int? _rpePromptSetId;
 
   @override
   void initState() {
@@ -261,52 +269,67 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
 
           // ── Central Body: PageView for horizontal exercise swiping ──
           Expanded(
-            child: restTimer.isRunning
-                ? _buildRestTimerDisplay(context, restTimer)
-                : PageView.builder(
-                    controller: _pageController,
-                    onPageChanged: (idx) {
-                      setState(() {
-                        _exerciseIndex = idx;
-                      });
-                    },
-                    itemCount: exercises.length,
-                    itemBuilder: (context, exIdx) {
-                      final we = exercises[exIdx];
-                      final catalogEx = catalog.firstWhereOrNull(
-                        (e) => e.id == we.exerciseId,
-                      );
-                      final sets =
-                          ref
-                              .watch(setsForWorkoutExerciseProvider(we.id))
-                              .asData
-                              ?.value ??
-                          const <SetEntryData>[];
-                      final setIdxForThisEx =
-                          _selectedSetIndexByExercise[we.id];
-                      final nextUncomp = sets.indexWhere((s) => !s.isCompleted);
-                      final activeIdx =
-                          setIdxForThisEx != null &&
-                              setIdxForThisEx < sets.length
-                          ? setIdxForThisEx
-                          : (nextUncomp >= 0
-                                ? nextUncomp
-                                : (sets.isNotEmpty ? sets.length - 1 : 0));
-                      final selectedSet = sets.elementAtOrNull(activeIdx);
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: (idx) {
+                setState(() {
+                  _exerciseIndex = idx;
+                });
+              },
+              itemCount: exercises.length,
+              itemBuilder: (context, exIdx) {
+                final we = exercises[exIdx];
+                final catalogEx = catalog.firstWhereOrNull(
+                  (e) => e.id == we.exerciseId,
+                );
+                final sets =
+                    ref
+                        .watch(setsForWorkoutExerciseProvider(we.id))
+                        .asData
+                        ?.value ??
+                    const <SetEntryData>[];
+                final setIdxForThisEx = _selectedSetIndexByExercise[we.id];
+                final nextUncomp = sets.indexWhere((s) => !s.isCompleted);
+                final activeIdx =
+                    setIdxForThisEx != null && setIdxForThisEx < sets.length
+                    ? setIdxForThisEx
+                    : (nextUncomp >= 0
+                          ? nextUncomp
+                          : (sets.isNotEmpty ? sets.length - 1 : 0));
+                final selectedSet = sets.elementAtOrNull(activeIdx);
 
-                      return _buildExerciseScreen(
-                        context,
-                        we: we,
-                        catalogExercise: catalogEx,
-                        sets: sets,
-                        activeSet: selectedSet,
-                        activeSetIndex: activeIdx,
-                      );
-                    },
-                  ),
+                return _buildExerciseScreen(
+                  context,
+                  we: we,
+                  catalogExercise: catalogEx,
+                  sets: sets,
+                  activeSet: selectedSet,
+                  activeSetIndex: activeIdx,
+                );
+              },
+            ),
           ),
 
-          // ── Bottom Action Area: Complete Set / Skip Rest / Next Exercise ──
+          // ── Rest Countdown Bar (between reps and complete set) ──
+          if (restTimer.isRunning) _buildRestCountdownBar(context, restTimer),
+
+          // ── RPE for the set just completed ──
+          if (_rpePromptSetId != null)
+            _RpeQuickPicker(
+              key: ValueKey('rpe_$_rpePromptSetId'),
+              onPicked: (rpeX10) {
+                final setId = _rpePromptSetId;
+                setState(() => _rpePromptSetId = null);
+                if (setId == null) return;
+                Haptics.selection();
+                ref
+                    .read(workoutsRepositoryProvider)
+                    .updateSet(setId: setId, rpeX10: rpeX10);
+              },
+              onSkip: () => setState(() => _rpePromptSetId = null),
+            ),
+
+          // ── Bottom Action Area: Complete Set / Next Exercise / Finish ──
           _buildActionArea(
             context,
             exercises: exercises,
@@ -314,60 +337,149 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
             currentExercise: currentExercise,
             currentSets: currentSets,
             activeSet: activeSet,
-            restTimer: restTimer,
           ),
 
           // ── Bottom Navigation Bar: Exercise stepping < > ──
           _buildBottomExerciseNav(context, exercises),
+
+          // The app's floating nav bar overlays this screen; keep the
+          // Complete Set button, rest countdown and RPE strip clear of it.
+          const SizedBox(height: HxNavBar.clearance - HxSpace.x2),
         ],
       ),
     );
   }
 
-  /// Big Rest Timer Screen
-  Widget _buildRestTimerDisplay(
+  /// Sleek Rest Countdown Bar placed between reps and complete set
+  Widget _buildRestCountdownBar(
     BuildContext context,
     RestTimerState restTimer,
   ) {
     final theme = Theme.of(context);
-    final remaining = restTimer.remainingSecondsFrom(DateTime.now());
-    return Center(
+    final now = ref.watch(clockProvider).now();
+    final remaining = restTimer.remainingSecondsFrom(now);
+    final progress = restTimer.progressFrom(now).clamp(0.0, 1.0);
+    final formattedTime = _fmtSeconds(remaining);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(24, 2, 24, 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.35),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'REST',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 4,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            _fmtSeconds(remaining),
-            style: theme.textTheme.displayLarge?.copyWith(
-              fontSize: 88,
-              fontWeight: FontWeight.w900,
-              color: AppColors.primary,
-              fontFeatures: const [FontFeature.tabularFigures()],
-              height: 1.0,
-            ),
-          ),
-          if (restTimer.exerciseName != null) ...[
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                restTimer.exerciseName!,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.titleMedium?.copyWith(
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.timer_outlined,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      restTimer.exerciseName != null
+                          ? 'REST • ${restTimer.exerciseName!.toUpperCase()}'
+                          : 'REST TIMER',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.secondary,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                        fontSize: 10,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      formattedTime,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 26,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              FilledButton.tonal(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  minimumSize: const Size(0, 34),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () {
+                  Haptics.light();
+                  ref.read(restTimerProvider.notifier).addSeconds(30);
+                },
+                child: const Text(
+                  '+30s',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                style: IconButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.all(6),
+                ),
+                tooltip: 'Skip rest',
+                onPressed: () {
+                  Haptics.light();
+                  ref.read(restTimerProvider.notifier).cancel();
+                },
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 20,
                   color: AppColors.secondary,
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 4,
+              backgroundColor: AppColors.outlineVariant.withValues(alpha: 0.25),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -393,224 +505,271 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
     final weightFmt = ref.watch(weightFormatProvider);
     final allDone = sets.isNotEmpty && sets.every((s) => s.isCompleted);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 8),
+    final hasWeight = metric.has(SetField.weight);
+    final hasReps = metric.isRepBased;
+    final hasDuration = metric.has(SetField.duration);
+    final metricCount =
+        (hasWeight ? 1 : 0) + (hasReps ? 1 : 0) + (hasDuration ? 1 : 0);
+    final isSingleMetric = metricCount <= 1;
+    final metricFontSize = isSingleMetric ? 88.0 : 58.0;
 
-          // Exercise Name
-          if (catalogExercise != null) ...[
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                Haptics.selection();
-                context.push(AppPaths.exercise(catalogExercise.id));
-              },
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      catalogExercise.name,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.displayMedium?.copyWith(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        height: 1.15,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    equipmentVariantLabel(
-                      we.equipmentVariant ?? catalogExercise.modality,
-                    ),
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: AppColors.secondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+                  const SizedBox(height: 8),
 
-          const SizedBox(height: 18),
-
-          if (sets.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              child: Text(
-                'No sets added for this exercise',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: AppColors.secondary,
-                ),
-              ),
-            )
-          else ...[
-            // Set Badge & Number (e.g. SET 2/4)
-            if (activeSet != null) ...[
-              _buildSetHeaderBadge(
-                context,
-                set: activeSet,
-                setIndex: activeSetIndex + 1,
-                totalSets: sets.length,
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            // Interactive Set Dots / Selector Bar
-            if (sets.length > 1) ...[
-              _buildSetDotsBar(
-                context,
-                exerciseId: we.id,
-                sets: sets,
-                activeSetIndex: activeSetIndex,
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // If active set exists, display the interactive watch-style wheels
-            if (activeSet != null) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Weight Column
-                  if (metric.has(SetField.weight))
-                    _WatchCrownNumberWheel(
-                      key: ValueKey('w_${activeSet.id}_${activeSet.weightKg}'),
-                      label: weightFmt.suffix.toUpperCase(),
-                      value: activeSet.weightKg,
-                      step: 0.5,
-                      min: 0.0,
-                      max: 999.0,
-                      displayFormatter: (val) => weightFmt.formatValue(val),
-                      onChanged: (newWeight) async {
-                        await ref
-                            .read(workoutsRepositoryProvider)
-                            .updateSet(
-                              setId: activeSet.id,
-                              weightKg: newWeight.clamp(0.0, 999.0),
-                            );
+                  // Exercise Name
+                  if (catalogExercise != null) ...[
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        Haptics.selection();
+                        context.push(AppPaths.exercise(catalogExercise.id));
                       },
-                    ),
-
-                  // Divider between metrics
-                  if (metric.has(SetField.weight) && metric.isRepBased)
-                    Container(
-                      height: 70,
-                      width: 1,
-                      color: AppColors.outlineVariant.withValues(alpha: 0.3),
-                    ),
-
-                  // Reps Column
-                  if (metric.isRepBased)
-                    _WatchCrownNumberWheel(
-                      key: ValueKey('r_${activeSet.id}_${activeSet.reps}'),
-                      label: 'REPS',
-                      value: activeSet.reps.toDouble(),
-                      step: 1.0,
-                      min: 1.0,
-                      max: 999.0,
-                      isInteger: true,
-                      displayFormatter: (val) => val.toInt().toString(),
-                      onChanged: (newReps) async {
-                        await ref
-                            .read(workoutsRepositoryProvider)
-                            .updateSet(
-                              setId: activeSet.id,
-                              reps: newReps.toInt().clamp(1, 999),
-                            );
-                      },
-                    ),
-
-                  // Duration for timed metrics
-                  if (metric.has(SetField.duration))
-                    _WatchCrownNumberWheel(
-                      key: ValueKey(
-                        'd_${activeSet.id}_${activeSet.durationSeconds}',
-                      ),
-                      label: 'SEC',
-                      value: (activeSet.durationSeconds ?? 30).toDouble(),
-                      step: 5.0,
-                      min: 1.0,
-                      max: 3600.0,
-                      isInteger: true,
-                      displayFormatter: (val) => val.toInt().toString(),
-                      onChanged: (newSec) async {
-                        await ref
-                            .read(workoutsRepositoryProvider)
-                            .updateSet(
-                              setId: activeSet.id,
-                              durationSeconds: newSec.toInt().clamp(1, 3600),
-                            );
-                      },
-                    ),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-
-              Text(
-                'Drag continuously up/down or tap to type',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.secondary.withValues(alpha: 0.7),
-                  fontSize: 11,
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Extra Reps Chips (Forced / Cheat / Myo)
-              _buildExtraRepsSection(context, set: activeSet),
-
-              const SizedBox(height: 8),
-
-              // Accessories / Bands Pills
-              _DynamicSetAccessoryPills(setId: activeSet.id),
-            ],
-
-            if (allDone) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.check_circle_rounded,
-                      color: AppColors.primary,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'All sets done 🎉',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              catalogExercise.name,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.displayMedium?.copyWith(
+                                fontSize: 30,
+                                fontWeight: FontWeight.bold,
+                                height: 1.15,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            equipmentVariantLabel(
+                              we.equipmentVariant ?? catalogExercise.modality,
+                            ),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: AppColors.secondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
+
+                  const SizedBox(height: 14),
+
+                  if (sets.isEmpty)
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          'No sets added for this exercise',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                      ),
+                    )
+                  else ...[
+                    // Set Badge & Number (e.g. SET 2/4)
+                    if (activeSet != null) ...[
+                      _buildSetHeaderBadge(
+                        context,
+                        set: activeSet,
+                        number: numberSets(sets)[activeSetIndex],
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+
+                    // Interactive Set Dots / Selector Bar
+                    if (sets.length > 1) ...[
+                      _buildSetDotsBar(
+                        context,
+                        exerciseId: we.id,
+                        sets: sets,
+                        activeSetIndex: activeSetIndex,
+                      ),
+                    ],
+
+                    // Vertically center the metric in the available screen space
+                    const Spacer(),
+
+                    // Reps / Weight Flick Pickers
+                    if (activeSet != null) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Weight Column
+                          if (metric.has(SetField.weight))
+                            Expanded(
+                              child: _FlickNumberPicker(
+                                key: ValueKey(
+                                  'w_${activeSet.id}_${activeSet.weightKg}',
+                                ),
+                                label: weightFmt.suffix.toUpperCase(),
+                                value: activeSet.weightKg,
+                                step: 0.5,
+                                min: 0.0,
+                                max: 999.0,
+                                fontSize: metricFontSize,
+                                displayFormatter: (val) =>
+                                    weightFmt.formatValue(val),
+                                onChanged: (newWeight) async {
+                                  await ref
+                                      .read(workoutsRepositoryProvider)
+                                      .updateSet(
+                                        setId: activeSet.id,
+                                        weightKg: newWeight.clamp(0.0, 999.0),
+                                      );
+                                },
+                              ),
+                            ),
+
+                          // Divider between metrics
+                          if (metric.has(SetField.weight) && metric.isRepBased)
+                            Container(
+                              height: 80,
+                              width: 1,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              color: AppColors.outlineVariant.withValues(
+                                alpha: 0.3,
+                              ),
+                            ),
+
+                          // Reps Column
+                          if (metric.isRepBased)
+                            Expanded(
+                              child: _FlickNumberPicker(
+                                key: ValueKey(
+                                  'r_${activeSet.id}_${activeSet.reps}',
+                                ),
+                                label: 'REPS',
+                                value: activeSet.reps.toDouble(),
+                                step: 1.0,
+                                min: 1.0,
+                                max: 999.0,
+                                isInteger: true,
+                                fontSize: metricFontSize,
+                                displayFormatter: (val) =>
+                                    val.toInt().toString(),
+                                onChanged: (newReps) async {
+                                  await ref
+                                      .read(workoutsRepositoryProvider)
+                                      .updateSet(
+                                        setId: activeSet.id,
+                                        reps: newReps.toInt().clamp(1, 999),
+                                      );
+                                },
+                              ),
+                            ),
+
+                          // Duration for timed metrics
+                          if (metric.has(SetField.duration))
+                            Expanded(
+                              child: _FlickNumberPicker(
+                                key: ValueKey(
+                                  'd_${activeSet.id}_${activeSet.durationSeconds}',
+                                ),
+                                label: 'SEC',
+                                value: (activeSet.durationSeconds ?? 30)
+                                    .toDouble(),
+                                step: 5.0,
+                                min: 1.0,
+                                max: 3600.0,
+                                isInteger: true,
+                                fontSize: metricFontSize,
+                                displayFormatter: (val) =>
+                                    val.toInt().toString(),
+                                onChanged: (newSec) async {
+                                  await ref
+                                      .read(workoutsRepositoryProvider)
+                                      .updateSet(
+                                        setId: activeSet.id,
+                                        durationSeconds: newSec.toInt().clamp(
+                                          1,
+                                          3600,
+                                        ),
+                                      );
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        'Flick up/down to adjust • Tap to type',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.secondary.withValues(alpha: 0.7),
+                          fontSize: 11,
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Extra Reps Chips (Forced / Cheat / Myo)
+                      _buildExtraRepsSection(context, set: activeSet),
+
+                      const SizedBox(height: 8),
+
+                      // Accessories / Bands Pills
+                      _DynamicSetAccessoryPills(setId: activeSet.id),
+                    ],
+
+                    if (allDone) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle_rounded,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'All sets done 🎉',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // Spacer below to balance vertical centering
+                    const Spacer(),
+                  ],
+                ],
               ),
-            ],
-          ],
-        ],
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -618,8 +777,7 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
   Widget _buildSetHeaderBadge(
     BuildContext context, {
     required SetEntryData set,
-    required int setIndex,
-    required int totalSets,
+    required SetNumber number,
   }) {
     final setType = SetType.fromId(set.setType);
     return Row(
@@ -668,7 +826,9 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                 ),
               ],
               Text(
-                'SET $setIndex/$totalSets',
+                number.isWarmup
+                    ? 'SET ${number.ordinal}/${number.ofKind}'
+                    : 'SET ${number.withTotal}',
                 style: TextStyle(
                   color: set.isCompleted
                       ? AppColors.primary
@@ -696,6 +856,7 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
     required int activeSetIndex,
   }) {
     final theme = Theme.of(context);
+    final numbers = numberSets(sets);
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -740,7 +901,7 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                     const SizedBox(width: 3),
                   ],
                   Text(
-                    '${idx + 1}',
+                    numbers[idx].short,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: isSelected
@@ -951,54 +1112,7 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
     required ExerciseCatalogData? currentExercise,
     required List<SetEntryData> currentSets,
     required SetEntryData? activeSet,
-    required RestTimerState restTimer,
   }) {
-    if (restTimer.isRunning) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(24, 6, 24, 8),
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: AppColors.primary, width: 2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                  ),
-                  onPressed: () =>
-                      ref.read(restTimerProvider.notifier).cancel(),
-                  child: const Text(
-                    'SKIP REST',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                  ),
-                  onPressed: () =>
-                      ref.read(restTimerProvider.notifier).addSeconds(30),
-                  child: const Text(
-                    '+30s',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     final targetSet =
         activeSet ?? currentSets.firstWhereOrNull((s) => !s.isCompleted);
     final allCurrentSetsCompleted =
@@ -1054,6 +1168,11 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
             Haptics.medium();
             final repo = ref.read(workoutsRepositoryProvider);
             final ex = currentExercise;
+            // Ask for the effort while the user rests; re-logging an
+            // already-completed set keeps whatever RPE it has.
+            if (!targetSet.isCompleted) {
+              setState(() => _rpePromptSetId = targetSet.id);
+            }
             await repo.updateSet(setId: targetSet.id, isCompleted: true);
 
             if (ex != null && !targetSet.isWarmup) {
@@ -1080,7 +1199,8 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
             // Clear any manual set override for this exercise so it moves forward
             _selectedSetIndexByExercise.remove(currentWe.id);
 
-            // Progression & rest timer logic
+            // Progression. The rest timer starts itself from the database
+            // change (restTimerAutoStartProvider).
             if (currentWe.supersetGroup != null) {
               final groupExercises = exercises
                   .where((e) => e.supersetGroup == currentWe.supersetGroup)
@@ -1089,21 +1209,6 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                 final currentPosInGroup = groupExercises.indexWhere(
                   (e) => e.id == currentWe.id,
                 );
-                final isLastInRound =
-                    currentPosInGroup == groupExercises.length - 1;
-
-                if (isLastInRound) {
-                  final restSec =
-                      currentWe.targetRestSeconds ??
-                      (ex?.defaultRestSeconds ?? 90);
-                  ref
-                      .read(restTimerProvider.notifier)
-                      .start(
-                        seconds: restSec,
-                        exerciseName:
-                            'Circuit Rest (Round ${targetSet.setIndex})',
-                      );
-                }
 
                 // Look for the next exercise in the superset with incomplete sets
                 bool foundNextInSuperset = false;
@@ -1130,12 +1235,6 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                 }
                 if (foundNextInSuperset) return;
               }
-            } else {
-              final restSec =
-                  currentWe.targetRestSeconds ?? (ex?.defaultRestSeconds ?? 90);
-              ref
-                  .read(restTimerProvider.notifier)
-                  .start(seconds: restSec, exerciseName: ex?.name);
             }
 
             // Normal progression: check if all sets are done for this exercise
@@ -1314,21 +1413,23 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
   }
 }
 
-/// Continuous Watch-Style Digital Crown Number Wheel for Weight & Reps.
-/// Allows continuous finger dragging up/down without interruptions,
-/// responsive 120fps local updates, haptic ticks on every notch,
-/// mouse wheel scroll support, and direct tap-to-type dialog.
-class _WatchCrownNumberWheel extends StatefulWidget {
+/// Discrete Flick Number Picker for Weight, Reps & Duration.
+/// Allows flicking/swiping up or down rep-by-rep,
+/// tapping chevrons to increment/decrement,
+/// tapping the number to type directly,
+/// with animated slide transitions and haptic feedback.
+class _FlickNumberPicker extends StatefulWidget {
   final String label;
   final double value;
   final double step;
   final double min;
   final double max;
   final bool isInteger;
+  final double fontSize;
   final String Function(double) displayFormatter;
   final ValueChanged<double> onChanged;
 
-  const _WatchCrownNumberWheel({
+  const _FlickNumberPicker({
     super.key,
     required this.label,
     required this.value,
@@ -1336,19 +1437,24 @@ class _WatchCrownNumberWheel extends StatefulWidget {
     this.min = 0.0,
     this.max = 999.0,
     this.isInteger = false,
+    this.fontSize = 88.0,
     required this.displayFormatter,
     required this.onChanged,
   });
 
   @override
-  State<_WatchCrownNumberWheel> createState() => _WatchCrownNumberWheelState();
+  State<_FlickNumberPicker> createState() => _FlickNumberPickerState();
 }
 
-class _WatchCrownNumberWheelState extends State<_WatchCrownNumberWheel> {
+class _FlickNumberPickerState extends State<_FlickNumberPicker> {
   late double _localValue;
-  double _dragAccumulator = 0;
-  static const double _pixelsPerStep = 13.0;
   Timer? _debounceTimer;
+  int _lastDeltaDirection = 1; // 1 = up, -1 = down
+
+  // Flick gesture tracking
+  double? _dragStartY;
+  bool _flickTriggeredThisStroke = false;
+  static const double _flickDistanceThreshold = 22.0;
 
   @override
   void initState() {
@@ -1357,7 +1463,7 @@ class _WatchCrownNumberWheelState extends State<_WatchCrownNumberWheel> {
   }
 
   @override
-  void didUpdateWidget(covariant _WatchCrownNumberWheel oldWidget) {
+  void didUpdateWidget(covariant _FlickNumberPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.value != widget.value) {
       _localValue = widget.value;
@@ -1370,11 +1476,11 @@ class _WatchCrownNumberWheelState extends State<_WatchCrownNumberWheel> {
     super.dispose();
   }
 
-  void _applyDelta(int steps) {
-    if (steps == 0) return;
+  void _applyStep(int direction) {
+    if (direction == 0) return;
     Haptics.selection();
 
-    final delta = steps * widget.step;
+    final delta = direction * widget.step;
     var newVal = _localValue + delta;
     newVal = newVal.clamp(widget.min, widget.max);
 
@@ -1382,12 +1488,15 @@ class _WatchCrownNumberWheelState extends State<_WatchCrownNumberWheel> {
         ? newVal.roundToDouble()
         : ((newVal * 10).round() / 10.0);
 
+    if (rounded == _localValue) return;
+
     setState(() {
+      _lastDeltaDirection = direction > 0 ? 1 : -1;
       _localValue = rounded;
     });
 
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 250), () {
+    _debounceTimer = Timer(const Duration(milliseconds: 200), () {
       widget.onChanged(_localValue);
     });
   }
@@ -1401,37 +1510,54 @@ class _WatchCrownNumberWheelState extends State<_WatchCrownNumberWheel> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final formatted = widget.displayFormatter(_localValue);
+    final isLarge = widget.fontSize >= 75;
 
     return Listener(
       onPointerSignal: (pointerSignal) {
         if (pointerSignal is PointerScrollEvent) {
           if (pointerSignal.scrollDelta.dy < 0) {
-            _applyDelta(1);
+            _applyStep(1);
+            _flushImmediate();
           } else if (pointerSignal.scrollDelta.dy > 0) {
-            _applyDelta(-1);
+            _applyStep(-1);
+            _flushImmediate();
           }
         }
       },
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onVerticalDragStart: (_) {
-          _dragAccumulator = 0;
+        onVerticalDragStart: (details) {
+          _dragStartY = details.localPosition.dy;
+          _flickTriggeredThisStroke = false;
         },
         onVerticalDragUpdate: (details) {
-          // Negative dy means dragging UP -> increment value
-          _dragAccumulator -= details.primaryDelta ?? 0;
-          if (_dragAccumulator.abs() >= _pixelsPerStep) {
-            final steps = (_dragAccumulator / _pixelsPerStep).truncate();
-            _dragAccumulator -= steps * _pixelsPerStep;
-            _applyDelta(steps);
+          if (_flickTriggeredThisStroke || _dragStartY == null) return;
+          final dyDelta = _dragStartY! - details.localPosition.dy;
+
+          if (dyDelta >= _flickDistanceThreshold) {
+            _flickTriggeredThisStroke = true;
+            _applyStep(1);
+          } else if (dyDelta <= -_flickDistanceThreshold) {
+            _flickTriggeredThisStroke = true;
+            _applyStep(-1);
           }
         },
-        onVerticalDragEnd: (_) {
-          _dragAccumulator = 0;
+        onVerticalDragEnd: (details) {
+          if (!_flickTriggeredThisStroke) {
+            final vy = details.primaryVelocity ?? 0;
+            if (vy < -140) {
+              _applyStep(1);
+            } else if (vy > 140) {
+              _applyStep(-1);
+            }
+          }
+          _dragStartY = null;
+          _flickTriggeredThisStroke = false;
           _flushImmediate();
         },
         onVerticalDragCancel: () {
-          _dragAccumulator = 0;
+          _dragStartY = null;
+          _flickTriggeredThisStroke = false;
           _flushImmediate();
         },
         onTap: () async {
@@ -1471,60 +1597,118 @@ class _WatchCrownNumberWheelState extends State<_WatchCrownNumberWheel> {
             _flushImmediate();
           }
         },
-        child: Container(
-          width: 140,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.35),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Up crown tick arrow
-              Icon(
-                Icons.keyboard_arrow_up_rounded,
-                size: 22,
-                color: AppColors.primary.withValues(alpha: 0.7),
+              // Up Chevron (Tap target + visual flick hint)
+              Material(
+                color: Colors.transparent,
+                child: InkResponse(
+                  radius: 28,
+                  onTap: () {
+                    _applyStep(1);
+                    _flushImmediate();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 6,
+                    ),
+                    child: Icon(
+                      Icons.keyboard_arrow_up_rounded,
+                      size: isLarge ? 36 : 28,
+                      color: AppColors.primary.withValues(alpha: 0.75),
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(height: 1),
+
+              // Metric Label (e.g. REPS or KG)
               Text(
                 widget.label,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: AppColors.secondary,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 2.0,
+                  fontSize: isLarge ? 14 : 12,
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                formatted,
-                style: theme.textTheme.displayMedium?.copyWith(
-                  fontSize: 50,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primary,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                  height: 1.05,
+
+              // Giant Number with Slide/Fade Transition
+              SizedBox(
+                height: widget.fontSize * 1.15,
+                child: Center(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    transitionBuilder: (child, animation) {
+                      final inFromBottom = _lastDeltaDirection >= 0;
+                      final beginOffset = inFromBottom
+                          ? const Offset(0.0, 0.4)
+                          : const Offset(0.0, -0.4);
+                      return ClipRect(
+                        child: SlideTransition(
+                          position:
+                              Tween<Offset>(
+                                begin: beginOffset,
+                                end: Offset.zero,
+                              ).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOutCubic,
+                                ),
+                              ),
+                          child: FadeTransition(
+                            opacity: CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOut,
+                            ),
+                            child: child,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      formatted,
+                      key: ValueKey(formatted),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.displayLarge?.copyWith(
+                        fontSize: widget.fontSize,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        height: 1.05,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 1),
-              // Down crown tick arrow
-              Icon(
-                Icons.keyboard_arrow_down_rounded,
-                size: 22,
-                color: AppColors.primary.withValues(alpha: 0.7),
+              const SizedBox(height: 2),
+
+              // Down Chevron (Tap target + visual flick hint)
+              Material(
+                color: Colors.transparent,
+                child: InkResponse(
+                  radius: 28,
+                  onTap: () {
+                    _applyStep(-1);
+                    _flushImmediate();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 6,
+                    ),
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: isLarge ? 36 : 28,
+                      color: AppColors.primary.withValues(alpha: 0.75),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -1598,6 +1782,69 @@ class _DynamicSetAccessoryPills extends ConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// One-row RPE prompt shown after COMPLETE SET in full-screen mode: tap a
+/// value (6–10 in half steps) or skip. Logging effort should cost one tap
+/// during the rest, not a trip back to the classic list.
+class _RpeQuickPicker extends StatelessWidget {
+  const _RpeQuickPicker({
+    super.key,
+    required this.onPicked,
+    required this.onSkip,
+  });
+
+  /// Receives the chosen RPE ×10 (e.g. 85 for 8.5), as stored.
+  final ValueChanged<int> onPicked;
+  final VoidCallback onSkip;
+
+  static const _values = [60, 65, 70, 75, 80, 85, 90, 95, 100];
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 2, 12, 4),
+      child: Row(
+        children: [
+          Text(
+            'RPE',
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final value in _values)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ActionChip(
+                        visualDensity: VisualDensity.compact,
+                        label: Text(
+                          value % 10 == 0
+                              ? '${value ~/ 10}'
+                              : (value / 10).toStringAsFixed(1),
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        onPressed: () => onPicked(value),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          TextButton(onPressed: onSkip, child: const Text('Skip')),
+        ],
+      ),
     );
   }
 }

@@ -198,7 +198,7 @@ fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewMode
                     OneUiPill(
                         modifier = Modifier.padding(start = if (isLinked) 12.dp else 0.dp),
                         title = exercise.template.name,
-                        statValue = "${exercise.completedSets}/${exercise.template.targetSets}",
+                        statValue = "${exercise.sets.count { it.completed && !it.isWarmup }}/${exercise.workingSetTotal}",
                         statLabel = statLabelText,
                         iconComposable = {
                             ExerciseArtwork(

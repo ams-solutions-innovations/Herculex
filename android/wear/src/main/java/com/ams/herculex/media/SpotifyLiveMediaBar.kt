@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,10 +81,13 @@ fun SpotifyLiveMediaBar(
         onDispose { mediaController.stop() }
     }
 
-    LaunchedEffect(mediaController) {
+    // Once-a-second repaint for the progress line only — see MediaControlsScreen
+    // for why this no longer calls refresh().
+    var clockTick by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(Unit) {
         while (true) {
             delay(1000)
-            mediaController.refresh()
+            clockTick = System.currentTimeMillis()
         }
     }
 
@@ -182,7 +186,7 @@ fun SpotifyLiveMediaBar(
             Spacer(Modifier.height(5.dp))
 
             // ── Middle: Live Progress Line ─────────────────────────────
-            val currentProgress = state.progress
+            val currentProgress = remember(clockTick, state) { state.progress }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -364,8 +368,7 @@ fun SpotifyExpandedPlayerDialog(
     onDismiss: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    var liveVolume by remember(state.volume) { mutableStateOf(state.volume) }
-    val maxVol = remember(state.maxVolume) { if (state.maxVolume > 0) state.maxVolume else 15 }
+    var volumeRevision by remember { mutableLongStateOf(0L) }
 
     Dialog(
         showDialog = true,
@@ -376,16 +379,16 @@ fun SpotifyExpandedPlayerDialog(
                 .fillMaxSize()
                 .background(Color.Black)
                 .mediaVolumeRotary { step ->
-                    val next = (liveVolume + step).coerceIn(0, maxVol)
-                    liveVolume = next
-                    controller.setVolume(next)
-                }
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    controller.adjustVolume(step)
+                    volumeRevision = System.nanoTime()
+                },
             contentAlignment = Alignment.Center,
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -418,7 +421,7 @@ fun SpotifyExpandedPlayerDialog(
                     }
                 }
 
-                // Middle: Track title, artist & Volume slider
+                // Middle: Track title and artist (volume is the bezel ring)
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth(),
@@ -444,67 +447,6 @@ fun SpotifyExpandedPlayerDialog(
                     )
 
                     Spacer(Modifier.height(8.dp))
-
-                    // Volume Bar + Percentage
-                    val volPercent = ((liveVolume.toFloat() / maxVol.toFloat()) * 100).toInt()
-                    Row(
-                        modifier = Modifier.fillMaxWidth(0.85f),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = "−",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable {
-                                val next = (liveVolume - 1).coerceAtLeast(0)
-                                liveVolume = next
-                                controller.setVolume(next)
-                            }
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(6.dp)
-                                .padding(horizontal = 8.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(Color(0xFF333333)),
-                        ) {
-                            val pct = (liveVolume.toFloat() / maxVol.toFloat()).coerceIn(0f, 1f)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(pct)
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            listOf(SpotifyGreen, Color(0xFF1ED760))
-                                        )
-                                    ),
-                            )
-                        }
-
-                        Text(
-                            text = "+",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable {
-                                val next = (liveVolume + 1).coerceAtMost(maxVol)
-                                liveVolume = next
-                                controller.setVolume(next)
-                            }
-                        )
-                    }
-
-                    Text(
-                        text = "Volume: $volPercent%",
-                        color = Color(0xFF888888),
-                        fontSize = 9.sp,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
                 }
 
                 // Controls Row: Prev | Play/Pause | Next
@@ -566,6 +508,12 @@ fun SpotifyExpandedPlayerDialog(
                     }
                 }
             }
+
+            VolumeBezelRing(
+                volumePercent = state.volumePercent,
+                revision = volumeRevision,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }

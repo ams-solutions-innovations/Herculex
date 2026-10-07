@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
@@ -21,6 +24,10 @@ class LatestPrsCard extends ConsumerWidget {
 
         return dashboardCard(
           accent: context.hx.domainTraining,
+          onTap: () {
+            Haptics.selection();
+            context.push(AppRoutes.personalRecords);
+          },
           padding: EdgeInsets.symmetric(
             horizontal: isCompact ? 14 : 20,
             vertical: isCompact ? 12 : 16,

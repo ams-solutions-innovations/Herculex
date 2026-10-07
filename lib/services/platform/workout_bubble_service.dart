@@ -88,6 +88,7 @@ class WorkoutBubbleService {
     required List<Map<String, Object?>> actions,
     int? targetSetId,
     String? lastSetText,
+    bool isWarmup = false,
   }) async {
     if (!isSupported) return;
     await _guard<void>(
@@ -104,6 +105,7 @@ class WorkoutBubbleService {
         'tonnageText': tonnageText,
         'lastSetText': lastSetText,
         'targetSetId': targetSetId,
+        'isWarmup': isWarmup,
         'actions': actions,
       }),
     );

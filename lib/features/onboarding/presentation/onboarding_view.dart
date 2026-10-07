@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
-import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
-import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/core/utils/auth_validator.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
@@ -237,14 +236,17 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   }
 
   void _showMessage(String message) {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    messenger?.showSnackBar(SnackBar(content: Text(message)));
+    final notices = AppNotice.of(context);
+    notices.show(message);
   }
 
   void _showError(String message) {
-    ref
-        .read(hxToastControllerProvider.notifier)
-        .show(HxToastItem.saveFailed(message: message));
+    AppNotice.showWith(
+      ref,
+      message.trim().isEmpty ? 'Check your connection and retry' : message,
+      title: 'Could not save',
+      kind: AppNoticeKind.error,
+    );
   }
 
   @override

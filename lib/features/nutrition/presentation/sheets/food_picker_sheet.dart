@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
@@ -925,10 +926,10 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                 title: 'Copy Previous Meal',
                 onTap: () {
                   Haptics.selection();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Copying previous meal functionality'),
-                    ),
+                  AppNotice.show(
+                    context,
+                    'Copying previous meal functionality',
+                    kind: AppNoticeKind.info,
                   );
                 },
               ),
@@ -1006,10 +1007,10 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                 title: 'Discover Recipes',
                 onTap: () {
                   Haptics.selection();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Discover recipes coming soon'),
-                    ),
+                  AppNotice.show(
+                    context,
+                    'Discover recipes coming soon',
+                    kind: AppNoticeKind.info,
                   );
                 },
               ),

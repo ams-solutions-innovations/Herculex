@@ -430,6 +430,22 @@ class WearSyncService {
     }
   }
 
+  /// Mirrors the rest timer onto the watch. Returns true when a connected
+  /// watch received it (and will buzz at the end itself).
+  Future<bool> syncRestTimer(String restJson) async {
+    try {
+      final delivered = await _channel.invokeMethod<bool>('syncRestTimer', {
+        'rest_json': restJson,
+      });
+      return delivered ?? false;
+    } on PlatformException catch (e) {
+      debugPrint('Failed to sync rest timer to wear: ${e.message}');
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
   Future<void> syncMediaState(String mediaJson) async {
     try {
       await _channel.invokeMethod('syncMediaState', {'media_json': mediaJson});

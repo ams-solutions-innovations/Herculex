@@ -5,6 +5,7 @@ library;
 export 'hx_back_button.dart';
 export 'hx_card.dart';
 export 'hx_glass.dart';
+export 'hx_picker.dart';
 export 'hx_pill.dart';
 export 'hx_screen_shell.dart';
 export 'hx_sheet.dart';

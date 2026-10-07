@@ -38,6 +38,32 @@ void main() {
     (w) => w is TextField && w.controller?.text == text,
   );
 
+  Finder phaseRow(String label) =>
+      find.descendant(of: find.byType(ListTile), matching: find.text(label));
+
+  Future<void> openPhasePicker(WidgetTester tester) async {
+    await tester.tap(find.byType(HxPickerPill).first);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> closeSheet(WidgetTester tester) async {
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> pickPhase(WidgetTester tester, String label) async {
+    await openPhasePicker(tester);
+    await tester.tap(phaseRow(label));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> pickPace(WidgetTester tester, String label) async {
+    await tester.tap(find.byType(HxPickerPill).at(1));
+    await tester.pumpAndSettle();
+    await tester.tap(phaseRow(label));
+    await tester.pumpAndSettle();
+  }
+
   final observed2650 = TdeeEstimateResult(
     kcal: 2650,
     method: TdeeMethod.observed,
@@ -97,16 +123,18 @@ void main() {
       await tester.pumpWidget(testApp(const NutritionTargetsView()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Cilji in prehrana'), findsOneWidget);
+      expect(find.text('Goals & nutrition'), findsOneWidget);
       expect(find.byType(HxBackButton), findsOneWidget);
-      expect(find.text('Hitri načrt kalorij in faz'), findsOneWidget);
-      expect(find.text('Redukcija'), findsAtLeastNWidgets(1));
-      expect(find.text('Masa'), findsAtLeastNWidgets(1));
-      expect(find.text('Čista rast'), findsAtLeastNWidgets(1));
-      expect(find.text('Vzdrževanje'), findsAtLeastNWidgets(1));
-      expect(find.text('Dnevni cilji'), findsOneWidget);
-      expect(find.text('Aktiven razpored'), findsOneWidget);
-      expect(find.text('Ciklanje ogljikovih hidratov'), findsOneWidget);
+      expect(find.text('Quick calorie and phase plan'), findsOneWidget);
+      expect(find.byType(HxPickerPill), findsNWidgets(2));
+      await openPhasePicker(tester);
+      for (final l in ['Cut', 'Bulk', 'Lean bulk', 'Maintenance', 'Recomp']) {
+        expect(phaseRow(l), findsOneWidget, reason: l);
+      }
+      await closeSheet(tester);
+      expect(find.text('Daily targets'), findsOneWidget);
+      expect(find.text('Active schedule'), findsOneWidget);
+      expect(find.text('Carb cycling'), findsOneWidget);
     },
   );
 
@@ -120,19 +148,17 @@ void main() {
       await tester.pumpWidget(testApp(const NutritionTargetsView()));
       await tester.pumpAndSettle();
 
-      // Tap Maingain
-      await tester.tap(find.text('Čista rast').first);
-      await tester.pumpAndSettle();
+      // Pick Lean bulk
+      await pickPhase(tester, 'Lean bulk');
 
-      expect(find.text('Čisto (+150 kcal)'), findsOneWidget);
-      expect(find.textContaining('Uporabi: Čista rast'), findsOneWidget);
+      expect(find.text('Clean (+150 kcal)'), findsOneWidget);
+      expect(find.textContaining('Apply: Lean bulk'), findsOneWidget);
 
-      // Tap Bulk
-      await tester.tap(find.text('Masa').first);
-      await tester.pumpAndSettle();
+      // Pick Bulk
+      await pickPhase(tester, 'Bulk');
 
-      expect(find.text('0,50 kg/ted (standardno)'), findsOneWidget);
-      expect(find.textContaining('Uporabi: Masa'), findsOneWidget);
+      expect(find.text('0.50 kg/wk (standard)'), findsOneWidget);
+      expect(find.textContaining('Apply: Bulk'), findsOneWidget);
     },
   );
 
@@ -142,9 +168,9 @@ void main() {
       await tester.pumpWidget(testApp(const DailyTargetsView()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Dnevni cilji'), findsOneWidget);
+      expect(find.text('Daily targets'), findsOneWidget);
       expect(find.byType(HxBackButton), findsOneWidget);
-      expect(find.text('DODAJ / UREDI CILJ'), findsOneWidget);
+      expect(find.text('ADD / EDIT TARGET'), findsOneWidget);
     },
   );
 
@@ -154,30 +180,30 @@ void main() {
       await tester.pumpWidget(testApp(const TargetEditorView()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Dodaj cilj'), findsOneWidget);
+      expect(find.text('Add target'), findsOneWidget);
       expect(find.byType(HxBackButton), findsOneWidget);
-      expect(find.text('PREHRANSKA FAZA'), findsOneWidget);
-      expect(find.text('VELJA ZA'), findsOneWidget);
-      expect(find.text('KALORIJE'), findsOneWidget);
-      expect(find.text('NAČIN VNOSA MAKROHRANIL'), findsOneWidget);
+      expect(find.text('NUTRITION PHASE'), findsOneWidget);
+      expect(find.text('APPLIES TO'), findsOneWidget);
+      expect(find.text('CALORIES'), findsOneWidget);
+      expect(find.text('MACRO INPUT MODE'), findsOneWidget);
 
       // Tapping 'Cut' chip changes phase and updates save label
-      await tester.tap(find.text('Redukcija'));
+      await tester.tap(find.text('Cut'));
       await tester.pumpAndSettle();
 
-      expect(find.text('SHRANI: REDUKCIJA'), findsOneWidget);
+      expect(find.text('SAVE: CUT'), findsOneWidget);
 
       // Tapping 'Maingain' chip changes phase and updates save label
-      await tester.tap(find.text('Čista rast'));
+      await tester.tap(find.text('Lean bulk'));
       await tester.pumpAndSettle();
 
-      expect(find.text('SHRANI: ČISTA RAST'), findsOneWidget);
+      expect(find.text('SAVE: LEAN BULK'), findsOneWidget);
 
       // Tapping 'Bulk' chip changes phase and updates save label
-      await tester.tap(find.text('Masa'));
+      await tester.tap(find.text('Bulk'));
       await tester.pumpAndSettle();
 
-      expect(find.text('SHRANI: MASA'), findsOneWidget);
+      expect(find.text('SAVE: BULK'), findsOneWidget);
     },
   );
 
@@ -269,7 +295,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Izhodišče: 3000 kcal (TDEE)'), findsOneWidget);
+    expect(find.text('Baseline: 3000 kcal (TDEE)'), findsOneWidget);
   });
 
   testWidgets('RemainingCaloriesCard renders Set a goal when null', (
@@ -321,12 +347,16 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
     }
 
-    VoidCallback? chipTap(WidgetTester tester, String label) {
-      final ink = find.ancestor(
-        of: find.text(label).first,
-        matching: find.byType(InkWell),
+    /// Whether [label] can be picked: opens the phase sheet, reads the row's
+    /// onTap, and closes the sheet again.
+    Future<bool> phaseEnabled(WidgetTester tester, String label) async {
+      await openPhasePicker(tester);
+      final tile = tester.widget<ListTile>(
+        find.ancestor(of: find.text(label), matching: find.byType(ListTile)),
       );
-      return tester.widget<InkWell>(ink.first).onTap;
+      final enabled = tile.onTap != null;
+      await closeSheet(tester);
+      return enabled;
     }
 
     testWidgets('quick planner disables Cut and Bulk for under 18', (
@@ -338,20 +368,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(chipTap(tester, 'Redukcija'), isNull);
-      expect(chipTap(tester, 'Masa'), isNull);
-      expect(chipTap(tester, 'Vzdrževanje'), isNotNull);
-      expect(chipTap(tester, 'Rekompozicija'), isNotNull);
-      expect(chipTap(tester, 'Čista rast'), isNotNull);
+      expect(await phaseEnabled(tester, 'Cut'), isFalse);
+      expect(await phaseEnabled(tester, 'Bulk'), isFalse);
+      expect(await phaseEnabled(tester, 'Maintenance'), isTrue);
+      expect(await phaseEnabled(tester, 'Recomp'), isTrue);
+      expect(await phaseEnabled(tester, 'Lean bulk'), isTrue);
       expect(
-        find.textContaining('Redukcija in Masa nista na voljo pod 18 let'),
+        find.textContaining('Cut and Bulk are not available under 18'),
         findsOneWidget,
       );
-      expect(find.text('Dodaj starost v profilu'), findsNothing);
-
-      await tester.tap(find.text('Redukcija').first);
-      await tester.pumpAndSettle();
-      expect(find.textContaining('Uporabi: Redukcija'), findsNothing);
+      expect(find.text('Add age in profile'), findsNothing);
+      expect(find.textContaining('Apply: Cut'), findsNothing);
     });
 
     testWidgets('quick planner shows Add age action when age is missing', (
@@ -363,9 +390,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(chipTap(tester, 'Redukcija'), isNull);
-      expect(chipTap(tester, 'Masa'), isNull);
-      expect(find.text('Dodaj starost v profilu'), findsOneWidget);
+      expect(await phaseEnabled(tester, 'Cut'), isFalse);
+      expect(await phaseEnabled(tester, 'Bulk'), isFalse);
+      expect(find.text('Add age in profile'), findsOneWidget);
     });
 
     testWidgets('adult keeps every chip enabled and no notice', (tester) async {
@@ -373,16 +400,10 @@ void main() {
       await tester.pumpWidget(testApp(const NutritionTargetsView()));
       await tester.pumpAndSettle();
 
-      for (final l in [
-        'Redukcija',
-        'Masa',
-        'Vzdrževanje',
-        'Rekompozicija',
-        'Čista rast',
-      ]) {
-        expect(chipTap(tester, l), isNotNull, reason: l);
+      for (final l in ['Cut', 'Bulk', 'Maintenance', 'Recomp', 'Lean bulk']) {
+        expect(await phaseEnabled(tester, l), isTrue, reason: l);
       }
-      expect(find.textContaining('nista na voljo pod 18 let'), findsNothing);
+      expect(find.textContaining('are not available under 18'), findsNothing);
     });
 
     testWidgets('deep-link Cut is coerced for under 18', (tester) async {
@@ -394,8 +415,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.textContaining('Uporabi: Rekompozicija'), findsOneWidget);
-      expect(find.textContaining('Uporabi: Redukcija'), findsNothing);
+      expect(find.textContaining('Apply: Recomp'), findsOneWidget);
+      expect(find.textContaining('Apply: Cut'), findsNothing);
     });
 
     testWidgets('deep-link Cut is kept for an adult', (tester) async {
@@ -407,7 +428,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.textContaining('Uporabi: Redukcija'), findsOneWidget);
+      expect(find.textContaining('Apply: Cut'), findsOneWidget);
     });
 
     testWidgets('maingain surplus is capped at +150 for under 18', (
@@ -419,13 +440,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Čista rast').first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Progresivno (+250 kcal)'));
-      await tester.pumpAndSettle();
+      await pickPhase(tester, 'Lean bulk');
+      await pickPace(tester, 'Progressive (+250 kcal)');
 
       expect(
-        find.textContaining('Uporabi: Čista rast (3150 kcal)'),
+        find.textContaining('Apply: Lean bulk (3150 kcal)'),
         findsOneWidget,
       );
     });
@@ -441,23 +460,23 @@ void main() {
       ChoiceChip chip(String l) => tester.widget<ChoiceChip>(
         find.ancestor(of: find.text(l), matching: find.byType(ChoiceChip)),
       );
-      expect(chip('Redukcija').onSelected, isNull);
-      expect(chip('Masa').onSelected, isNull);
-      expect(chip('Vzdrževanje').onSelected, isNotNull);
-      expect(chip('Rekompozicija').onSelected, isNotNull);
-      expect(chip('Čista rast').onSelected, isNotNull);
+      expect(chip('Cut').onSelected, isNull);
+      expect(chip('Bulk').onSelected, isNull);
+      expect(chip('Maintenance').onSelected, isNotNull);
+      expect(chip('Recomp').onSelected, isNotNull);
+      expect(chip('Lean bulk').onSelected, isNotNull);
       expect(
-        find.textContaining('Redukcija in Masa nista na voljo pod 18 let'),
+        find.textContaining('Cut and Bulk are not available under 18'),
         findsOneWidget,
       );
 
-      await tester.tap(find.text('Redukcija'), warnIfMissed: false);
+      await tester.tap(find.text('Cut'), warnIfMissed: false);
       await tester.pumpAndSettle();
-      expect(find.text('SHRANI: REDUKCIJA'), findsNothing);
+      expect(find.text('SAVE: CUT'), findsNothing);
 
-      await tester.tap(find.text('Čista rast'));
+      await tester.tap(find.text('Lean bulk'));
       await tester.pumpAndSettle();
-      expect(find.text('SHRANI: ČISTA RAST'), findsOneWidget);
+      expect(find.text('SAVE: LEAN BULK'), findsOneWidget);
     });
 
     testWidgets('TargetEditorView shows Add age action for null age', (
@@ -467,9 +486,9 @@ void main() {
         testApp(const TargetEditorView(), overrides: as(noAge)),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Dodaj starost v profilu'), findsOneWidget);
+      expect(find.text('Add age in profile'), findsOneWidget);
       final chip = tester.widget<ChoiceChip>(
-        find.ancestor(of: find.text('Masa'), matching: find.byType(ChoiceChip)),
+        find.ancestor(of: find.text('Bulk'), matching: find.byType(ChoiceChip)),
       );
       expect(chip.onSelected, isNull);
     });

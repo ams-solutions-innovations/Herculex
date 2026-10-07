@@ -13,6 +13,7 @@ import 'package:herculex/features/analytics/presentation/views/cns_view.dart';
 import 'package:herculex/features/analytics/presentation/views/insights_view.dart';
 import 'package:herculex/features/analytics/presentation/views/muscle_volume_detail_view.dart';
 import 'package:herculex/features/analytics/presentation/views/muscle_volume_overview_view.dart';
+import 'package:herculex/features/analytics/presentation/views/personal_records_view.dart';
 import 'package:herculex/features/buddy/presentation/buddy_join_scanner_view.dart';
 import 'package:herculex/features/fasting/presentation/fasting_schedule_view.dart';
 import 'package:herculex/features/fasting/presentation/fasting_view.dart';
@@ -46,6 +47,7 @@ import 'package:herculex/features/programs/presentation/views/rotation_pools_vie
 import 'package:herculex/features/recovery/presentation/recovery_view.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/shell/splash_view.dart';
+import 'package:herculex/features/supplements/presentation/supplements_view.dart';
 import 'package:herculex/features/weekly_report/domain/iso_week.dart';
 import 'package:herculex/features/weekly_report/presentation/views/weekly_report_view.dart';
 import 'package:herculex/features/weekly_report/presentation/views/weekly_reports_history_view.dart';
@@ -199,6 +201,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.recovery,
         builder: (_, _) => const RecoveryView(),
+      ),
+      GoRoute(
+        path: AppRoutes.personalRecords,
+        builder: (_, _) => const PersonalRecordsView(),
+      ),
+      GoRoute(
+        path: AppRoutes.supplements,
+        builder: (_, _) => const SupplementsView(),
       ),
       GoRoute(
         path: AppRoutes.muscleVolume,

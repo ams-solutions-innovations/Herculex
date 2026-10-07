@@ -1,17 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget-picker preview for Today's Macros (4x2). Mirrors
-     widget_today_macros_medium with sample values baked in. Rings are static
-     shapes here; at runtime WidgetRingRenderer paints real arc bitmaps.
+<!-- Widget-picker preview for Today's Macros (4x2).
      Keep in sync with widget_today_macros_medium.xml. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp"
+    android:paddingStart="14dp"
+    android:paddingEnd="14dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp"
     android:background="@drawable/widget_card_bg">
 
     <!-- Column 1: Carbs -->
@@ -27,7 +25,7 @@
             android:layout_height="wrap_content"
             android:text="Carbs"
             android:textSize="13sp"
-            android:textColor="#34C759"
+            android:textColor="@color/widget_macro_carbs"
             android:textStyle="bold"
             android:includeFontPadding="false"
             android:layout_marginBottom="4dp" />
@@ -56,8 +54,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="186"
-                    android:textSize="15sp"
-                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textColor="@color/widget_text_primary"
                     android:textStyle="bold"
                     android:includeFontPadding="false" />
 
@@ -66,7 +64,7 @@
                     android:layout_height="wrap_content"
                     android:text="/240g"
                     android:textSize="10sp"
-                    android:textColor="#94A3B8"
+                    android:textColor="@color/widget_text_secondary"
                     android:includeFontPadding="false" />
 
             </LinearLayout>
@@ -78,7 +76,7 @@
             android:layout_height="wrap_content"
             android:text="54 g left"
             android:textSize="11sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:includeFontPadding="false" />
 
     </LinearLayout>
@@ -96,76 +94,7 @@
             android:layout_height="wrap_content"
             android:text="Fat"
             android:textSize="13sp"
-            android:textColor="#FFD60A"
-            android:textStyle="bold"
-            android:includeFontPadding="false"
-            android:layout_marginBottom="4dp" />
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginBottom="4dp">
-
-            <ImageView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="fitCenter"
-                android:src="@drawable/widget_preview_ring_purple"
-                android:contentDescription="@null" />
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="52"
-                    android:textSize="15sp"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:includeFontPadding="false" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="/70g"
-                    android:textSize="10sp"
-                    android:textColor="#94A3B8"
-                    android:includeFontPadding="false" />
-
-            </LinearLayout>
-
-        </FrameLayout>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="18 g left"
-            android:textSize="11sp"
-            android:textColor="#94A3B8"
-            android:includeFontPadding="false" />
-
-    </LinearLayout>
-
-    <!-- Column 3: Protein -->
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:gravity="center_horizontal">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Protein"
-            android:textSize="13sp"
-            android:textColor="#4DA3FF"
+            android:textColor="@color/widget_macro_fat"
             android:textStyle="bold"
             android:includeFontPadding="false"
             android:layout_marginBottom="4dp" />
@@ -193,9 +122,78 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:text="48"
+                    android:textSize="16sp"
+                    android:textColor="@color/widget_text_primary"
+                    android:textStyle="bold"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="/70g"
+                    android:textSize="10sp"
+                    android:textColor="@color/widget_text_secondary"
+                    android:includeFontPadding="false" />
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="22 g left"
+            android:textSize="11sp"
+            android:textColor="@color/widget_text_secondary"
+            android:includeFontPadding="false" />
+
+    </LinearLayout>
+
+    <!-- Column 3: Protein -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Protein"
+            android:textSize="13sp"
+            android:textColor="@color/widget_macro_protein"
+            android:textStyle="bold"
+            android:includeFontPadding="false"
+            android:layout_marginBottom="4dp" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginBottom="4dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter"
+                android:src="@drawable/widget_preview_ring_purple"
+                android:contentDescription="@null" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="142"
-                    android:textSize="15sp"
-                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textColor="@color/widget_text_primary"
                     android:textStyle="bold"
                     android:includeFontPadding="false" />
 
@@ -204,7 +202,7 @@
                     android:layout_height="wrap_content"
                     android:text="/180g"
                     android:textSize="10sp"
-                    android:textColor="#94A3B8"
+                    android:textColor="@color/widget_text_secondary"
                     android:includeFontPadding="false" />
 
             </LinearLayout>
@@ -216,7 +214,7 @@
             android:layout_height="wrap_content"
             android:text="38 g left"
             android:textSize="11sp"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_text_secondary"
             android:includeFontPadding="false" />
 
     </LinearLayout>
