@@ -22,10 +22,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Text
 
 /**
@@ -110,15 +112,20 @@ data class OneUiPillStyle(
 
 /**
  * Standard Samsung One UI 9 Watch Stadium Pill
+ *
+ * Badge content, first match wins: [iconComposable], [iconVector] (an
+ * [HxIcons] glyph, 22dp), then the legacy text/emoji [icon].
  */
 @Composable
 fun OneUiPill(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    subtitleColor: Color? = null,
     statValue: String? = null,
     statLabel: String? = null,
     icon: String? = null,
+    iconVector: ImageVector? = null,
     iconComposable: (@Composable () -> Unit)? = null,
     style: OneUiPillStyle = OneUiPillStyle.SlateNavy,
     rightContent: (@Composable () -> Unit)? = null,
@@ -141,7 +148,7 @@ fun OneUiPill(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Left Circular Icon Badge
-        if (iconComposable != null || icon != null) {
+        if (iconComposable != null || iconVector != null || icon != null) {
             Box(
                 modifier = Modifier
                     .size(38.dp)
@@ -150,6 +157,13 @@ fun OneUiPill(
             ) {
                 if (iconComposable != null) {
                     iconComposable()
+                } else if (iconVector != null) {
+                    Icon(
+                        imageVector = iconVector,
+                        contentDescription = null,
+                        tint = style.badgeIconColor ?: style.contentColor,
+                        modifier = Modifier.size(22.dp),
+                    )
                 } else if (icon != null) {
                     if (icon == "▶") {
                         Box(
@@ -222,7 +236,7 @@ fun OneUiPill(
             } else if (!subtitle.isNullOrEmpty()) {
                 Text(
                     text = subtitle,
-                    color = style.secondaryColor,
+                    color = subtitleColor ?: style.secondaryColor,
                     fontWeight = FontWeight.Medium,
                     fontSize = 11.sp,
                     maxLines = 1,
@@ -237,4 +251,15 @@ fun OneUiPill(
             rightContent()
         }
     }
+}
+
+/** Trailing glyph for [OneUiPill]'s `rightContent` (chevron, selected ✓, …). */
+@Composable
+fun OneUiPillTrailingIcon(imageVector: ImageVector, style: OneUiPillStyle) {
+    Icon(
+        imageVector = imageVector,
+        contentDescription = null,
+        tint = style.secondaryColor,
+        modifier = Modifier.size(20.dp),
+    )
 }

@@ -56,8 +56,10 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.dialog.Dialog
 import androidx.wear.compose.material.rememberPickerState
 import com.ams.herculex.media.MediaControlsScreen
+import com.ams.herculex.ui.HxIcons
 import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
+import com.ams.herculex.ui.OneUiPillTrailingIcon
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -88,6 +90,14 @@ private val setTypes = listOf(
     WatchSetType("pause", "Pause Reps"),
 )
 private val accessoryOptions = listOf("None", "Belt", "Straps", "Bands", "Chains")
+
+private val accessoryIcons = mapOf(
+    "None" to HxIcons.None,
+    "Belt" to HxIcons.Belt,
+    "Straps" to HxIcons.Straps,
+    "Bands" to HxIcons.Bands,
+    "Chains" to HxIcons.Chains,
+)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -905,10 +915,14 @@ fun SetLoggerScreen(
                     }
                     items(accessoryOptions) { acc ->
                         val isSelected = (acc == "None" && selectedAccessory == null) || selectedAccessory == acc
+                        val accStyle = if (isSelected) OneUiPillStyle.RoyalBlue else OneUiPillStyle.SlateNavy
                         OneUiPill(
                             title = acc,
-                            icon = if (isSelected) "✓" else "⚙️",
-                            style = if (isSelected) OneUiPillStyle.RoyalBlue else OneUiPillStyle.SlateNavy,
+                            iconVector = accessoryIcons.getValue(acc),
+                            style = accStyle,
+                            rightContent = if (isSelected) {
+                                { OneUiPillTrailingIcon(HxIcons.Check, accStyle) }
+                            } else null,
                             onClick = {
                                 selectedAccessory = if (acc == "None") null else acc
                             },

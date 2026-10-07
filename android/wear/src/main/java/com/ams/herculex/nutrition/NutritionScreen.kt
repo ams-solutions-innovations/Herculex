@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -19,22 +20,23 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Text
+import com.ams.herculex.ui.HxIcons
 import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
 import com.ams.herculex.workout.attachRotaryScroll
 
 private data class MenuItem(
     val label: String,
-    val icon: String,
+    val icon: ImageVector,
     val style: OneUiPillStyle,
     val route: String,
 )
 
 private val menuItems = listOf(
-    MenuItem("Log food",      "+",  OneUiPillStyle.SlateNavy,    "log_food"),
-    MenuItem("Nutrients",     "≡",  OneUiPillStyle.VioletIndigo, "nutrients"),
-    MenuItem("Add kcal",      "⚡", OneUiPillStyle.Terracotta,   "add_calories"),
-    MenuItem("Add water",     "○",  OneUiPillStyle.AccentBlue,   "add_water"),
+    MenuItem("Log food",      HxIcons.Utensils,  OneUiPillStyle.SlateNavy,    "log_food"),
+    MenuItem("Nutrients",     HxIcons.Nutrients, OneUiPillStyle.VioletIndigo, "nutrients"),
+    MenuItem("Add kcal",      HxIcons.Flame,     OneUiPillStyle.Terracotta,   "add_calories"),
+    MenuItem("Add water",     HxIcons.Drop,      OneUiPillStyle.AccentBlue,   "add_water"),
 )
 
 @Composable
@@ -67,7 +69,7 @@ fun NutritionScreen(navController: NavController) {
         items(menuItems) { item ->
             OneUiPill(
                 title = item.label,
-                icon = item.icon,
+                iconVector = item.icon,
                 style = item.style,
                 onClick = { navController.navigate(item.route) },
             )
