@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#091322</color>
+    <color name="bubble_popup_surface">#F21C1C1E</color>
+    <color name="bubble_accent">#0A84FF</color>
+    <color name="bubble_on_surface">#FFFFFFFF</color>
+    <color name="bubble_on_surface_variant">#B3FFFFFF</color>
+    <color name="bubble_scrim">#59000000</color>
+
+    <!-- ── Dark Mode Widget System (Obsidian Glass / Modern Herculex Aesthetic) ── -->
+    <color name="widget_card_bg_start">#162236</color>
+    <color name="widget_card_bg_end">#0C1320</color>
+    <color name="widget_card_stroke">#283952</color>
+
+    <color name="widget_pill_bg_start">#162236</color>
+    <color name="widget_pill_bg_end">#0C1320</color>
+    <color name="widget_pill_stroke">#283952</color>
+
+    <color name="widget_text_primary">#FFFFFF</color>
+    <color name="widget_text_secondary">#94A3B8</color>
+    <color name="widget_text_tertiary">#64748B</color>
+    <color name="widget_divider">#1E2C40</color>
+
+    <color name="widget_action_btn_bg">#182335</color>
+    <color name="widget_action_btn_stroke">#2B3C54</color>
+    <color name="widget_action_btn_highlight">#0A84FF</color>
+    <color name="widget_action_btn_highlight_stroke">#3898FF</color>
+
+    <color name="widget_icon_tint">#F1F5F9</color>
+    <color name="widget_icon_tint_highlight">#FFFFFF</color>
+    <color name="widget_icon_tint_secondary">#94A3B8</color>
+
+    <color name="widget_ring_track">#1E2C40</color>
+    <color name="widget_ring_progress">#4DA3FF</color>
+    <color name="widget_ring_danger">#FF453A</color>
+
+    <color name="widget_macro_protein">#4DA3FF</color>
+    <color name="widget_macro_carbs">#34C759</color>
+    <color name="widget_macro_fat">#FFD60A</color>
+
+    <color name="widget_badge_green_bg">#1A30D158</color>
+    <color name="widget_badge_green_text">#30D158</color>
+    <color name="widget_badge_amber_bg">#1AFFD60A</color>
+    <color name="widget_badge_amber_text">#FFD60A</color>
+    <color name="widget_badge_red_bg">#1AFF453A</color>
+    <color name="widget_badge_red_text">#FF453A</color>
+    <color name="widget_badge_blue_bg">#1F0A84FF</color>
+    <color name="widget_badge_blue_text">#4DA3FF</color>
+
+    <color name="widget_scanner_pill_start">#2B93FF</color>
+    <color name="widget_scanner_pill_end">#0A6BE0</color>
+    <color name="widget_start_workout_bg">#0A84FF</color>
+</resources>
