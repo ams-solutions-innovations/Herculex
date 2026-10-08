@@ -12,6 +12,11 @@ enum ChartRange {
   final String label;
   final int? days;
 
+  /// How far the plan line reaches past the last weigh-in: as far as the
+  /// window looks back, so history and outlook stay in proportion. Null for
+  /// [all], which shows the plan to the end of the roadmap.
+  int? get projectionDays => days;
+
   /// Start of the window, by calendar arithmetic; null for [all].
   DateTime? windowStart(DateTime now) {
     final d = days;
@@ -86,6 +91,7 @@ class WeightChartData {
     required this.raw,
     required this.bands,
     required this.textSummary,
+    this.projection = const [],
   });
 
   static const empty = WeightChartData(
@@ -100,6 +106,10 @@ class WeightChartData {
   final List<PhaseBandSpan> bands;
   final String textSummary;
 
+  /// The roadmap's weights going forward, starting at the last trend point.
+  /// Empty when there is nothing planned ahead.
+  final List<ChartPoint> projection;
+
   bool get isSparse => raw.length < 3;
 }
 
@@ -110,6 +120,7 @@ abstract final class PhysiqueSeriesBuilder {
     required ChartRange range,
     required DateTime goalStartedAt,
     required List<PhaseBandInput> phases,
+    List<ChartPoint> planStops = const [],
   }) {
     final series = TrendSeries.fromLogs(logs);
     if (series.isEmpty) return WeightChartData.empty;
@@ -144,7 +155,48 @@ abstract final class PhysiqueSeriesBuilder {
       raw: raw,
       bands: _bands(phases, windowStart),
       textSummary: _summary(trend, range),
+      projection: _projection(trend, planStops, range),
     );
+  }
+
+  /// The plan line: the last trend point, then each of [stops] (the weight a
+  /// phase is due to end at) that lies after it. Cut off, by interpolation,
+  /// where [range] says the outlook ends.
+  static List<ChartPoint> _projection(
+    List<ChartPoint> trend,
+    List<ChartPoint> stops,
+    ChartRange range,
+  ) {
+    if (trend.isEmpty || stops.isEmpty) return const [];
+    final anchor = trend.last;
+    final anchorDay = TrendSeries.dayNumber(anchor.date);
+    final limit = range.projectionDays;
+    final cutoffDay = limit == null ? null : anchorDay + limit;
+    final ordered = [...stops]..sort((a, b) => a.date.compareTo(b.date));
+
+    final out = <ChartPoint>[anchor];
+    for (final stop in ordered) {
+      final prev = out.last;
+      final prevDay = TrendSeries.dayNumber(prev.date);
+      final stopDay = TrendSeries.dayNumber(stop.date);
+      if (stopDay <= prevDay || !stop.value.isFinite) continue;
+      if (cutoffDay != null && stopDay > cutoffDay) {
+        final t = (cutoffDay - prevDay) / (stopDay - prevDay);
+        out.add(
+          ChartPoint(
+            DateTime(
+              anchor.date.year,
+              anchor.date.month,
+              anchor.date.day + (cutoffDay - anchorDay),
+            ),
+            prev.value + (stop.value - prev.value) * t,
+          ),
+        );
+        break;
+      }
+      out.add(stop);
+    }
+    return out.length < 2 ? const [] : List.unmodifiable(out);
   }
 
   static List<PhaseBandSpan> _bands(

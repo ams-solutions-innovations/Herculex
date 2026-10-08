@@ -11,7 +11,8 @@ import 'package:herculex/features/physique/presentation/widgets/chart_card_frame
 import 'package:herculex/features/physique/presentation/widgets/chart_style.dart';
 import 'package:intl/intl.dart';
 
-/// Bodyweight trend with raw weigh-ins and the moving phase-target band.
+/// Bodyweight trend with raw weigh-ins, the moving phase-target band and a
+/// dashed plan line through the weights the roadmap still has ahead.
 class WeightChartCard extends ConsumerWidget {
   const WeightChartCard({super.key, required this.goalId});
 
@@ -32,6 +33,8 @@ class WeightChartCard extends ConsumerWidget {
       plot: trend.length < 2 ? null : _WeightPlot(data: data),
       legend: [
         ChartLegendItem(color: hx.onSurface, label: 'Trend'),
+        if (data.projection.isNotEmpty)
+          ChartLegendItem(color: hx.domainNutrition, label: 'Plan'),
         if (data.bands.isNotEmpty)
           ChartLegendItem(
             color: hx.domainNutrition.withValues(alpha: 0.14),
@@ -40,10 +43,18 @@ class WeightChartCard extends ConsumerWidget {
         else
           ChartLegendItem(color: hx.secondary, label: 'Weigh-ins'),
       ],
-      summary: data.textSummary,
+      summary: _summaryWithPlan(data),
       emptyText: 'Log your weight to see your trend.',
     );
   }
+}
+
+/// The one-line text alternative, plus where the plan goes next.
+String _summaryWithPlan(WeightChartData data) {
+  final next = data.projection.length < 2 ? null : data.projection[1];
+  if (next == null) return data.textSummary;
+  return '${data.textSummary} Plan: ${PhysiqueChartStyle.kg(next.value)} kg '
+      'by ${DateFormat('MMM d').format(next.date)}.';
 }
 
 class _WeightPlot extends StatelessWidget {
@@ -57,11 +68,17 @@ class _WeightPlot extends StatelessWidget {
     final origin = data.trend.first.date;
     final originDay = TrendSeries.dayNumber(origin);
     double xOf(DateTime d) => (TrendSeries.dayNumber(d) - originDay).toDouble();
-    final maxX = xOf(data.trend.last.date);
-
     final trendSpots = [
       for (final p in data.trend) FlSpot(xOf(p.date), p.value),
     ];
+    final planSpots = [
+      for (final p in data.projection) FlSpot(xOf(p.date), p.value),
+    ];
+    // The axis reaches as far ahead as the plan line does.
+    final maxX = math.max(
+      xOf(data.trend.last.date),
+      planSpots.isEmpty ? 0.0 : planSpots.last.x,
+    );
     final rawSpots = [
       for (final p in data.raw)
         if (xOf(p.date) >= 0) FlSpot(xOf(p.date), p.value),
@@ -73,7 +90,7 @@ class _WeightPlot extends StatelessWidget {
     final boundaries = <double>[];
     var minY = trendSpots.map((s) => s.y).reduce(math.min);
     var maxY = trendSpots.map((s) => s.y).reduce(math.max);
-    for (final s in rawSpots) {
+    for (final s in [...rawSpots, ...planSpots]) {
       minY = math.min(minY, s.y);
       maxY = math.max(maxY, s.y);
     }
@@ -119,6 +136,8 @@ class _WeightPlot extends StatelessWidget {
     final leftInterval = math.max(1.0, ((maxY - minY) / 3).ceilToDouble());
     final bottomInterval = math.max(1.0, (maxX / 3).ceilToDouble());
     final fmt = DateFormat('MMM d');
+    // Appended after the bands, so their `BetweenBarsData` indices still hold.
+    final planBar = planSpots.isEmpty ? -1 : 2 + bandBars.length;
 
     return LineChart(
       LineChartData(
@@ -145,9 +164,16 @@ class _WeightPlot extends StatelessWidget {
         betweenBarsData: bands,
         lineTouchData: PhysiqueChartStyle.touch(
           context,
-          format: (s) => s.barIndex == 0
-              ? '${fmt.format(DateTime(origin.year, origin.month, origin.day + s.x.round()))}: ${s.y.toStringAsFixed(1)} kg'
-              : null,
+          format: (s) {
+            final day = fmt.format(
+              DateTime(origin.year, origin.month, origin.day + s.x.round()),
+            );
+            if (s.barIndex == 0) return '$day: ${s.y.toStringAsFixed(1)} kg';
+            if (s.barIndex == planBar) {
+              return '$day: ${s.y.toStringAsFixed(1)} kg (plan)';
+            }
+            return null;
+          },
         ),
         lineBarsData: [
           LineChartBarData(
@@ -174,6 +200,14 @@ class _WeightPlot extends StatelessWidget {
             ),
           ),
           ...bandBars,
+          if (planSpots.isNotEmpty)
+            LineChartBarData(
+              spots: planSpots,
+              color: hx.domainNutrition,
+              barWidth: 2,
+              dashArray: const [6, 4],
+              dotData: const FlDotData(show: false),
+            ),
         ],
       ),
       duration: PhysiqueChartStyle.animationDuration(context),

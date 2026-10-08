@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/physique/application/physique_providers.dart';
+import 'package:herculex/features/physique/application/physique_schedule_provider.dart';
 import 'package:herculex/features/physique/domain/physique_series.dart';
 import 'package:herculex/features/physique/domain/physique_strength_series.dart';
+import 'package:herculex/features/physique/domain/roadmap_schedule.dart';
 import 'package:herculex/features/programs/domain/primary_lift_specialization.dart';
 
 // Series maths lives in the domain builders; this file only selects inputs.
@@ -54,6 +56,14 @@ final physiqueWeightChartProvider = Provider.family<WeightChartData, int>((
       ref.watch(physiqueRoadmapPhasesProvider(goalId)).asData?.value ??
       const [];
 
+  // Where the roadmap says each unfinished phase ends, for the plan line.
+  final schedule = ref.watch(physiqueRoadmapScheduleProvider(goalId));
+  final planStops = [
+    for (final p in schedule?.phases ?? const <ScheduledPhase>[])
+      if (p.status != 'done' && p.endKg != null)
+        ChartPoint(p.endDate, p.endKg!),
+  ];
+
   // Chain each phase's start weight from the previous phase's target.
   double? startKg = goal.startWeightKg ?? (logs.isEmpty ? null : logs.first.kg);
   final inputs = <PhaseBandInput>[];
@@ -76,6 +86,7 @@ final physiqueWeightChartProvider = Provider.family<WeightChartData, int>((
     range: ref.watch(physiqueEffectiveRangeProvider(goalId)),
     goalStartedAt: goal.startedAt,
     phases: inputs,
+    planStops: planStops,
   );
 });
 

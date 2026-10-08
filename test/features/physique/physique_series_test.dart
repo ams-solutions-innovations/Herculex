@@ -132,6 +132,92 @@ void main() {
     });
   });
 
+  group('plan projection', () {
+    // Weighs in daily to 2026-09-30 (82 kg); the plan has stops after that.
+    WeightChartData build(
+      List<ChartPoint> stops, {
+      ChartRange range = ChartRange.all,
+      List<WeightLog>? logs,
+    }) => PhysiqueSeriesBuilder.weight(
+      logs: logs ?? _linear(DateTime(2026, 8, 1), 60, 85, 82),
+      now: now,
+      range: range,
+      goalStartedAt: DateTime(2026, 8, 1),
+      phases: const [],
+      planStops: stops,
+    );
+
+    final oct28 = ChartPoint(DateTime(2026, 10, 28), 80);
+    final dec30 = ChartPoint(DateTime(2026, 12, 30), 80);
+    final mar1 = ChartPoint(DateTime(2027, 3, 1), 84);
+
+    test('starts at the last weigh-in and follows every stop', () {
+      final d = build([oct28, dec30, mar1]);
+      expect(d.projection.first.date, d.trend.last.date);
+      expect(d.projection.first.value, d.trend.last.value);
+      expect(d.projection.map((p) => p.date), [
+        DateTime(2026, 9, 30),
+        DateTime(2026, 10, 28),
+        DateTime(2026, 12, 30),
+        DateTime(2027, 3, 1),
+      ]);
+      expect(d.projection.last.value, 84);
+    });
+
+    test('stops are ordered by date and stops already behind are skipped', () {
+      final d = build([
+        mar1,
+        ChartPoint(DateTime(2026, 9, 20), 83),
+        ChartPoint(DateTime(2026, 9, 30), 82),
+        oct28,
+      ]);
+      expect(d.projection.map((p) => p.date), [
+        DateTime(2026, 9, 30),
+        DateTime(2026, 10, 28),
+        DateTime(2027, 3, 1),
+      ]);
+    });
+
+    test('1M and 3M reach as far ahead as they look back', () {
+      final month = build([
+        ChartPoint(DateTime(2026, 11, 30), 79),
+      ], range: ChartRange.month);
+      // 30 of the 61 days to the stop, from wherever the trend ends.
+      final from = month.projection.first.value;
+      expect(month.projection.last.date, DateTime(2026, 10, 30));
+      expect(
+        month.projection.last.value,
+        closeTo(from + (79 - from) * 30 / 61, 1e-9),
+      );
+
+      final quarter = build([oct28, dec30, mar1], range: ChartRange.quarter);
+      // 90 days from Sep 30 is Dec 29, just before the Dec 30 stop.
+      expect(quarter.projection.last.date, DateTime(2026, 12, 29));
+      expect(quarter.projection.last.value, 80);
+      expect(quarter.projection[1].date, DateTime(2026, 10, 28));
+    });
+
+    test('a stop inside the reach is kept as it is', () {
+      final month = build([oct28], range: ChartRange.month);
+      expect(month.projection.last.date, DateTime(2026, 10, 28));
+      expect(month.projection.last.value, 80);
+    });
+
+    test('nothing ahead means no line', () {
+      expect(build(const []).projection, isEmpty);
+      expect(
+        build([ChartPoint(DateTime(2026, 9, 1), 83)]).projection,
+        isEmpty,
+        reason: 'only stops in the past',
+      );
+      expect(
+        build([oct28], logs: [WeightLog(DateTime(2026, 9, 1), 80)]).projection,
+        isEmpty,
+        reason: 'no trend to start from',
+      );
+    });
+  });
+
   group('WeightTrendRate', () {
     test('null when under 7 days, slope otherwise', () {
       final short = TrendSeries.fromLogs(

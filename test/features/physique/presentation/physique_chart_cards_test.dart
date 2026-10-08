@@ -48,6 +48,18 @@ WeightChartData _richWeight() => WeightChartData(
   textSummary: 'Down 3.0 kg over 3 months.',
 );
 
+/// [_richWeight] with the plan running 40 days past the last weigh-in.
+WeightChartData _plannedWeight() {
+  final base = _richWeight();
+  return WeightChartData(
+    trend: base.trend,
+    raw: base.raw,
+    bands: base.bands,
+    textSummary: base.textSummary,
+    projection: [ChartPoint(_d(60), 87), ChartPoint(_d(100), 82)],
+  );
+}
+
 const _emptyWeight = WeightChartData.empty;
 final _singleWeight = WeightChartData(
   trend: [ChartPoint(_d(0), 90)],
@@ -140,6 +152,50 @@ void main() {
       expect(find.text('Down 3.0 kg over 3 months.'), findsOneWidget);
       expect(find.text('87 kg'), findsNothing);
       expect(find.text('87.0 kg'), findsOneWidget);
+    });
+
+    testWidgets('${t.$1}: weight card draws the plan as a dashed line', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          theme: theme,
+          weight: _plannedWeight(),
+          child: const WeightChartCard(goalId: _goal),
+        ),
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Plan'), findsOneWidget);
+      expect(
+        find.text('Down 3.0 kg over 3 months. Plan: 82 kg by Sep 9.'),
+        findsOneWidget,
+      );
+      final data = tester.widget<LineChart>(find.byType(LineChart)).data;
+      // The axis reaches the end of the plan, 40 days past the last weigh-in.
+      expect(data.maxX, 100);
+      final plan = data.lineBarsData.last;
+      expect(plan.dashArray, [6, 4]);
+      expect(plan.spots.first.x, 60);
+      expect(plan.spots.last.y, 82);
+      expect(plan.dotData.show, isFalse);
+    });
+
+    testWidgets('${t.$1}: no plan, no plan line', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          theme: theme,
+          weight: _richWeight(),
+          child: const WeightChartCard(goalId: _goal),
+        ),
+      );
+      await tester.pump();
+      expect(find.text('Plan'), findsNothing);
+      final data = tester.widget<LineChart>(find.byType(LineChart)).data;
+      expect(data.maxX, 60);
+      // trend + raw + two bands (low and high edge each).
+      expect(data.lineBarsData, hasLength(6));
+      expect(data.lineBarsData.any((b) => b.dashArray != null), isFalse);
     });
 
     testWidgets('${t.$1}: weight card empty and single point', (tester) async {
@@ -290,7 +346,7 @@ void main() {
       await tester.pumpWidget(
         _host(
           theme: AppTheme.lightTheme,
-          weight: data ? _richWeight() : WeightChartData.empty,
+          weight: data ? _plannedWeight() : WeightChartData.empty,
           strength: data ? _strength() : StrengthChartData.empty,
           levels: data ? _levels() : const [],
           width: 320,
