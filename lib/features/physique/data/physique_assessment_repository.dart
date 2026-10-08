@@ -253,6 +253,24 @@ class PhysiqueAssessmentRepository {
   Future<DateTime?> lastCheckInAt(int goalId) =>
       _lastCheckInIncludingDeleted(goalId);
 
+  /// When the newest analysis of [goalId] was made, the one at the start of
+  /// the goal included. A new analysis (roadmap update) waits one check-in
+  /// window after it.
+  Future<DateTime?> latestAnalysisAt(int goalId) async {
+    final row =
+        await (_db.select(_db.physiqueAssessments)
+              ..where(
+                (a) =>
+                    a.goalId.equals(goalId) &
+                    a.kind.equals('analysis') &
+                    a.deletedAt.isNull(),
+              )
+              ..orderBy([(a) => OrderingTerm.desc(a.assessedAt)])
+              ..limit(1))
+            .getSingleOrNull();
+    return row?.assessedAt;
+  }
+
   Stream<List<PhysiquePhotoData>> watchPhotos(int goalId) =>
       (_db.select(_db.physiquePhotos)
             ..where((p) => p.goalId.equals(goalId) & p.deletedAt.isNull())

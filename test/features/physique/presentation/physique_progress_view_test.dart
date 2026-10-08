@@ -8,10 +8,12 @@ import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/router.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/nutrition/domain/phase_eligibility.dart';
+import 'package:herculex/features/nutrition/domain/tdee_trend.dart';
 import 'package:herculex/features/physique/application/physique_capture_providers.dart';
 import 'package:herculex/features/physique/application/physique_chart_providers.dart';
 import 'package:herculex/features/physique/application/physique_check_in_flow.dart';
@@ -88,6 +90,16 @@ PhysiqueAssessmentData _checkIn(
   source: 'ai',
 );
 
+PhysiqueAssessmentData _analysis(DateTime at) => PhysiqueAssessmentData(
+  id: 50,
+  goalId: _id,
+  kind: 'analysis',
+  assessedAt: at,
+  dateIso: '2026-09-01',
+  confidence: 'medium',
+  source: 'ai',
+);
+
 PhysiquePhotoData _photo(int id, String role, {int? assessmentId}) =>
     PhysiquePhotoData(
       id: id,
@@ -158,6 +170,7 @@ class _Data {
     this.now,
     this.hasActiveGoal = true,
     this.resumed,
+    this.analysisAt,
   }) : goal = goal ?? _goal(accepted: !proposal),
        phases = phases ?? _phases,
        photos = photos ?? [_photo(1, 'baseline')];
@@ -174,6 +187,9 @@ class _Data {
   final DateTime? now;
   final bool hasActiveGoal;
   final ResumedCapture? resumed;
+
+  /// When the newest analysis was made; null for none.
+  final DateTime? analysisAt;
   Object? lastExtra;
 
   List<Override> overrides({SharedPreferences? prefs}) {
@@ -181,6 +197,12 @@ class _Data {
     return [
       clockProvider.overrideWithValue(FakeClock(now ?? DateTime(2026, 10, 1))),
       if (prefs != null) sharedPreferencesProvider.overrideWithValue(prefs),
+      weightFormatProvider.overrideWithValue(
+        const WeightFormat(MeasurementUnit.metric),
+      ),
+      physiqueWeightLogsProvider.overrideWith(
+        (ref) => Stream.value(const <WeightLog>[]),
+      ),
       physiqueCheckInFlowProvider.overrideWithValue(_FakeFlow()),
       activePhysiqueGoalProvider.overrideWith(
         (ref) => Stream.value(hasActiveGoal && g.status == 'active' ? g : null),
@@ -211,6 +233,10 @@ class _Data {
       physiqueLastCheckInAtProvider(
         g.id,
       ).overrideWith((ref) => Stream.value(last)),
+      physiqueLatestAnalysisProvider(g.id).overrideWith(
+        (ref) =>
+            Stream.value(analysisAt == null ? null : _analysis(analysisAt!)),
+      ),
       physiqueWeightChartProvider(
         g.id,
       ).overrideWith((ref) => WeightChartData.empty),
@@ -395,6 +421,51 @@ void main() {
       );
       expect(find.text('Edit roadmap'), findsOneWidget);
       expect(find.text('Move to Maintenance'), findsNothing);
+    });
+  });
+
+  group('update roadmap button', () {
+    testWidgets('a running roadmap offers it', (tester) async {
+      await _pump(tester, _host(_Data()));
+      expect(find.text('Update roadmap'), findsOneWidget);
+      final b = tester.widget<OutlinedButton>(
+        find.byKey(const Key('update-roadmap')),
+      );
+      expect(b.onPressed, isNotNull);
+    });
+
+    testWidgets('a proposal that is not accepted does not', (tester) async {
+      await _pump(tester, _host(_Data(proposal: true)));
+      expect(find.text('Update roadmap'), findsNothing);
+    });
+
+    testWidgets('an archived goal does not', (tester) async {
+      final d = _Data(goal: _goal(status: 'archived'));
+      await _pump(tester, _host(d, goalId: _id));
+      expect(find.text('Update roadmap'), findsNothing);
+    });
+
+    testWidgets('waits a week after the last analysis', (tester) async {
+      final d = _Data(
+        analysisAt: DateTime(2026, 10, 5),
+        now: DateTime(2026, 10, 8),
+      );
+      await _pump(tester, _host(d));
+      expect(find.text('Update roadmap'), findsNothing);
+      expect(find.text('Next roadmap update Mon, Oct 12'), findsOneWidget);
+      final b = tester.widget<OutlinedButton>(
+        find.byKey(const Key('update-roadmap-locked')),
+      );
+      expect(b.onPressed, isNull);
+    });
+
+    testWidgets('opens again on the unlock day', (tester) async {
+      final d = _Data(
+        analysisAt: DateTime(2026, 10, 5),
+        now: DateTime(2026, 10, 12),
+      );
+      await _pump(tester, _host(d));
+      expect(find.text('Update roadmap'), findsOneWidget);
     });
   });
 
@@ -709,6 +780,9 @@ void main() {
             7,
           ).overrideWith((ref) => Stream.value(const [])),
           physiqueLastCheckInAtProvider(
+            7,
+          ).overrideWith((ref) => Stream.value(null)),
+          physiqueLatestAnalysisProvider(
             7,
           ).overrideWith((ref) => Stream.value(null)),
           physiqueWeightChartProvider(

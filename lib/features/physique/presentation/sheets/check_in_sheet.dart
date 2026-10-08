@@ -4,28 +4,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/physique/application/goal_target_provider.dart';
 import 'package:herculex/features/physique/application/physique_capture_providers.dart';
 import 'package:herculex/features/physique/application/physique_check_in_flow.dart';
 import 'package:herculex/features/physique/application/physique_providers.dart';
+import 'package:herculex/features/physique/application/physique_replan_flow.dart';
 import 'package:herculex/features/physique/data/physique_assessment_repository.dart';
 import 'package:herculex/features/physique/data/physique_checkin_service.dart';
 import 'package:herculex/features/physique/data/physique_photo_sanitizer.dart';
 import 'package:herculex/features/physique/domain/physique_guardrails.dart';
+import 'package:herculex/features/physique/domain/roadmap_schedule.dart';
 import 'package:herculex/features/physique/presentation/dialogs/no_face_found_dialog.dart';
 import 'package:herculex/features/physique/presentation/physique_text.dart';
+import 'package:herculex/features/physique/presentation/roadmap_format.dart';
 import 'package:herculex/features/physique/presentation/widgets/sheet_snackbar_scope.dart';
 import 'package:herculex/features/physique/presentation/widgets/verdict_block.dart';
+import 'package:herculex/features/profile/data/dream_physique_service.dart';
 import 'package:herculex/services/ai/gemini_backend_service.dart';
 import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+part 'check_in_sheet/_replan.part.dart';
 part 'check_in_sheet/_steps.part.dart';
 
-enum _Step { pose, privacy, consent, working, result }
+enum _Step { pose, privacy, consent, working, result, review }
 
 /// Picks a photo from [source]; replaced in tests so no platform channel runs.
 typedef CheckInCapture = Future<XFile?> Function(ImageSource source);
@@ -41,6 +48,11 @@ Future<XFile?> _defaultCapture(ImageSource source) => ImagePicker().pickImage(
 /// goal with no baseline photo gets a two-step baseline mode instead (no cap,
 /// no AI). The sheet only sequences UI; the work lives in
 /// [PhysiqueCheckInFlow].
+///
+/// With [updateRoadmap] the same steps end in a fresh analysis against the
+/// dream photo and a proposed roadmap instead of a verdict; the work then
+/// lives in [PhysiqueReplanFlow] and nothing is stored until the member
+/// accepts the proposal.
 class CheckInSheet extends ConsumerStatefulWidget {
   const CheckInSheet({
     super.key,
@@ -48,11 +60,13 @@ class CheckInSheet extends ConsumerStatefulWidget {
     required this.outerNotices,
     this.resumed,
     this.capture,
+    this.updateRoadmap = false,
   });
 
   final PhysiqueGoalData goal;
   final ResumedCapture? resumed;
   final CheckInCapture? capture;
+  final bool updateRoadmap;
 
   /// Notices captured outside the sheet, so confirmations outlive it.
   final AppNotices outerNotices;
@@ -63,10 +77,16 @@ class CheckInSheet extends ConsumerStatefulWidget {
       'Your photos stay on this device. Herculex AI looks at them once to '
       "compare your progress, and Herculex doesn't keep a copy.";
 
+  static const _updateConsentBody =
+      'Your photos stay on this device. Herculex AI looks at your new photo '
+      'and your dream physique photo once to update your plan, and Herculex '
+      "doesn't keep a copy.";
+
   static Future<void> show(
     BuildContext context, {
     required PhysiqueGoalData goal,
     ResumedCapture? resumed,
+    bool updateRoadmap = false,
     @visibleForTesting CheckInCapture? capture,
   }) {
     final notices = AppNotice.of(context);
@@ -77,6 +97,7 @@ class CheckInSheet extends ConsumerStatefulWidget {
           goal: goal,
           resumed: resumed,
           capture: capture,
+          updateRoadmap: updateRoadmap,
           outerNotices: notices,
         ),
       ),
@@ -103,6 +124,8 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
       'inconclusive.';
 
   late final PhysiqueCheckInFlow _flow;
+  // Lazy: only the roadmap-update mode ever touches it.
+  late final PhysiqueReplanFlow _replan = ref.read(physiqueReplanFlowProvider);
   late bool _blur;
   _Step _step = _Step.pose;
   String _pose = 'front';
@@ -114,11 +137,19 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
   _AnalysisError? _error;
   CheckInRecorded? _recorded;
 
+  // Update-roadmap mode only.
+  ReplanProposal? _proposal;
+  ReplanBlockedException? _blocked;
+
   @override
   void initState() {
     super.initState();
     _flow = ref.read(physiqueCheckInFlowProvider);
     _blur = ref.read(physiquePrivacyPreferencesProvider).blurFaces;
+    if (widget.updateRoadmap) {
+      // Say why before the member takes a photo, not after.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _preflight());
+    }
     final resumed = widget.resumed;
     if (resumed != null) {
       _pose = resumed.pose;
@@ -138,7 +169,19 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
     super.dispose();
   }
 
+  Future<void> _preflight() async {
+    if (!mounted) return;
+    final ctx = ref.read(physiqueCheckInContextProvider(widget.goal.id));
+    try {
+      await _replan.checkReady(widget.goal, weightKg: ctx.weightKg);
+      if (mounted && _blocked != null) setState(() => _blocked = null);
+    } on ReplanBlockedException catch (e) {
+      if (mounted) setState(() => _blocked = e);
+    }
+  }
+
   bool get _baselineMode {
+    if (widget.updateRoadmap) return false;
     final photos = ref.watch(physiquePhotosProvider(widget.goal.id));
     final rows = photos.asData?.value;
     return rows != null && !rows.any((p) => p.role == 'baseline');
@@ -279,6 +322,7 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
   Future<void> _analyse({required bool analyze}) async {
     final staged = _staged;
     if (staged == null) return;
+    if (widget.updateRoadmap) return _replanAnalyse();
     final ctx = ref.read(physiqueCheckInContextProvider(widget.goal.id));
     final consent = ref
         .read(physiquePrivacyPreferencesProvider)
@@ -348,16 +392,106 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
     }
   }
 
+  /// Update-roadmap mode: analyse against the dream photo and build the
+  /// proposal. Nothing is stored; the member decides in the review step.
+  Future<void> _replanAnalyse() async {
+    final staged = _staged;
+    if (staged == null) return;
+    final ctx = ref.read(physiqueCheckInContextProvider(widget.goal.id));
+    final consent = ref
+        .read(physiquePrivacyPreferencesProvider)
+        .hasAcceptedConsent(dreamPhysiqueImageConsentVersion);
+    setState(() {
+      _busy = true;
+      _error = null;
+      _step = _Step.working;
+      _progress = const [
+        'Comparing with your dream physique...',
+        'Planning your roadmap...',
+      ];
+    });
+    try {
+      final proposal = await _replan.analyse(
+        goal: widget.goal,
+        staged: staged,
+        consentGranted: consent,
+        weightKg: ctx.weightKg,
+        currentPhase: ctx.phase,
+        weeksInPhase: ctx.weeksInPhase,
+      );
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _proposal = proposal;
+        _step = _Step.review;
+      });
+    } on ReplanBlockedException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _blocked = e;
+      });
+    } on Object catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = _AnalysisError(
+          text: describeDreamPhysiqueError(e),
+          canRetry: true,
+        );
+      });
+    }
+  }
+
+  Future<void> _applyReplan() async {
+    final staged = _staged;
+    final proposal = _proposal;
+    if (staged == null || proposal == null || _busy) return;
+    setState(() => _busy = true);
+    final format = ref.read(weightFormatProvider);
+    try {
+      await _replan.apply(
+        goal: widget.goal,
+        proposal: proposal,
+        staged: staged,
+        pose: _pose,
+      );
+      _staged = null; // moved into the goal's folder
+      if (!mounted) return;
+      final notices = widget.outerNotices;
+      Navigator.of(context).pop();
+      final target = proposal.phases.first.targetWeightKg;
+      notices.show(
+        target == null
+            ? 'Roadmap updated.'
+            : 'Roadmap updated. Your target is now ${format.format(target)}.',
+      );
+    } on Object {
+      _staged = null; // the move already happened; nothing left to discard
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = const _AnalysisError(
+          text:
+              "We couldn't save your new roadmap, so your current one is "
+              'unchanged. Close this and start again.',
+          canRetry: false,
+        );
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final baseline = _baselineMode;
+    final update = widget.updateRoadmap;
     final total = baseline ? 2 : 4;
     final index = switch (_step) {
       _Step.pose => 1,
       _Step.privacy => 2,
       _Step.consent => 3,
       _Step.working => baseline ? 2 : 3,
-      _Step.result => 4,
+      _Step.result || _Step.review => 4,
     };
 
     return PopScope(
@@ -366,23 +500,39 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
         if (!didPop && _busy) _snack('Hang on, almost done');
       },
       child: HxSheet(
-        title: baseline ? 'Add baseline photo' : 'Add check-in',
+        title: update
+            ? 'Update roadmap'
+            : baseline
+            ? 'Add baseline photo'
+            : 'Add check-in',
         initialSize: 0.85,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Step $index of $total',
-              style: PhysiqueText.label(context, color: context.hx.secondary),
-            ),
-            const SizedBox(height: HxSpace.x4),
-            if (_error != null)
+            if (_blocked == null) ...[
+              Text(
+                'Step $index of $total',
+                style: PhysiqueText.label(context, color: context.hx.secondary),
+              ),
+              const SizedBox(height: HxSpace.x4),
+            ],
+            if (_blocked != null)
+              _BlockedView(
+                block: _blocked!,
+                goal: widget.goal,
+                onRecheck: _preflight,
+                onClose: () => Navigator.of(context).pop(),
+              )
+            else if (_error != null)
               _ErrorView(
                 text: _error!.text,
-                onSaveWithoutAnalysis: () => _analyse(analyze: false),
+                onSaveWithoutAnalysis: update
+                    ? null
+                    : () => _analyse(analyze: false),
                 onTryAgain: _error!.canRetry
                     ? () => _analyse(analyze: true)
                     : null,
+                onClose: () => Navigator.of(context).pop(),
               )
             else
               switch (_step) {
@@ -403,11 +553,25 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
                   onContinue: () => _continue(baseline: baseline),
                 ),
                 _Step.consent => _ConsentStep(
-                  body: CheckInSheet._consentBody,
+                  body: update
+                      ? CheckInSheet._updateConsentBody
+                      : CheckInSheet._consentBody,
+                  analyseLabel: update
+                      ? 'Update my roadmap'
+                      : 'Analyze my progress',
                   onAnalyse: _acceptAndAnalyse,
-                  onSaveWithoutAnalysis: () => _analyse(analyze: false),
+                  onSaveWithoutAnalysis: update
+                      ? null
+                      : () => _analyse(analyze: false),
                 ),
                 _Step.working => _ProcessingView(labels: _progress),
+                _Step.review => _ReviewStep(
+                  proposal: _proposal!,
+                  goalId: widget.goal.id,
+                  busy: _busy,
+                  onUse: _applyReplan,
+                  onKeep: () => Navigator.of(context).pop(),
+                ),
                 _Step.result => _ResultStep(
                   recorded: _recorded!,
                   fallbackReason: _noAnalysisReason,

@@ -196,6 +196,10 @@ class _Content extends ConsumerWidget {
             hasBaseline: hasBaseline,
             advancePromptVisible: advancePromptVisible,
           ),
+          if (goal.roadmapAcceptedAt != null) ...[
+            const SizedBox(height: HxSpace.x2),
+            _UpdateRoadmapButton(goal: goal),
+          ],
         ],
         if (strip.isNotEmpty) ...[
           const SizedBox(height: HxSpace.x4),
@@ -207,6 +211,51 @@ class _Content extends ConsumerWidget {
             child: const Text('See all check-ins'),
           ),
       ],
+    );
+  }
+}
+
+/// New photo, new analysis, new roadmap. Waits one check-in window after the
+/// last analysis, like the check-in itself; the repository-side flow checks
+/// again, this only decides what the button says.
+class _UpdateRoadmapButton extends ConsumerWidget {
+  const _UpdateRoadmapButton({required this.goal});
+
+  final PhysiqueGoalData goal;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final last = ref
+        .watch(physiqueLatestAnalysisProvider(goal.id))
+        .asData
+        ?.value
+        ?.assessedAt;
+    final now = ref.watch(clockProvider).now();
+    final eligible = CheckInCapPolicy.isEligible(now: now, lastCheckInAt: last);
+    if (!eligible) {
+      final next = CheckInCapPolicy.nextEligibleDate(last)!;
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          key: const Key('update-roadmap-locked'),
+          onPressed: null,
+          icon: const Icon(Icons.schedule_rounded, size: 20),
+          label: Text(
+            'Next roadmap update ${DateFormat('EEE, MMM d').format(next)}',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        key: const Key('update-roadmap'),
+        onPressed: () =>
+            CheckInSheet.show(context, goal: goal, updateRoadmap: true),
+        icon: const Icon(Icons.update_rounded, size: 20),
+        label: const Text('Update roadmap'),
+      ),
     );
   }
 }

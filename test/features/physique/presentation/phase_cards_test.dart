@@ -7,10 +7,12 @@ import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/nutrition/domain/phase_eligibility.dart';
+import 'package:herculex/features/nutrition/domain/tdee_trend.dart';
 import 'package:herculex/features/physique/application/physique_providers.dart';
 import 'package:herculex/features/physique/data/physique_goal_repository.dart';
 import 'package:herculex/features/physique/data/physique_roadmap_repository.dart';
@@ -30,6 +32,8 @@ PhysiqueGoalData _goal({
   String status = 'active',
   String style = 'Lean athletic',
   double? targetBf = 12,
+  double? startWeight,
+  int? estimatedMonths,
 }) => PhysiqueGoalData(
   id: _id,
   status: status,
@@ -37,6 +41,8 @@ PhysiqueGoalData _goal({
   targetAestheticStyle: style,
   timeframeRange: '6 months',
   targetBfPercent: targetBf,
+  startWeightKg: startWeight,
+  estimatedMonths: estimatedMonths,
   startedAt: DateTime(2026, 9, 1),
   roadmapAcceptedAt: accepted ? DateTime(2026, 9, 2) : null,
 );
@@ -183,6 +189,12 @@ class _Harness {
     return ProviderScope(
       overrides: [
         clockProvider.overrideWithValue(FakeClock(DateTime(2026, 10, 1, 9))),
+        weightFormatProvider.overrideWithValue(
+          const WeightFormat(MeasurementUnit.metric),
+        ),
+        physiqueWeightLogsProvider.overrideWith(
+          (ref) => Stream.value(const <WeightLog>[]),
+        ),
         physiqueGoalProvider(_id).overrideWith((ref) => Stream.value(goal)),
         physiqueRoadmapPhasesProvider(
           _id,
@@ -579,6 +591,83 @@ void main() {
       expect(find.text('Current'), findsOneWidget);
       expect(find.text('Up next'), findsOneWidget);
       expect(find.text('16 weeks'), findsOneWidget);
+    });
+
+    testWidgets('timeline names the weight each phase ends at, with dates '
+        'and pace', (tester) async {
+      final phases = [
+        _row(
+          1,
+          DietPhase.cut,
+          12,
+          status: 'current',
+          rate: 0.5,
+          targetWeight: 74,
+          targetBf: 12,
+        ),
+        _row(2, DietPhase.maintain, 2, rate: 0, targetWeight: 74),
+        _row(3, DietPhase.maingain, 38, rate: 0.11, targetWeight: 78.2),
+      ];
+      final h = _Harness(phases: phases, goal: _goal(startWeight: 80));
+      await _pump(tester, h.build(cards: [RoadmapTimelineCard(goalId: _id)]));
+      expect(find.text('80 → 74 kg'), findsOneWidget);
+      expect(find.text('74 → 74 kg'), findsOneWidget);
+      expect(find.text('74 → 78.2 kg'), findsOneWidget);
+      expect(find.text('Dream weight 78.2 kg'), findsOneWidget);
+      expect(find.text('52 weeks · about 12 months'), findsOneWidget);
+      expect(find.text('−0.5 kg/wk'), findsOneWidget);
+      expect(find.text('Sep 2 – Nov 24, 2026'), findsOneWidget);
+      expect(find.text('Target 12% body fat'), findsOneWidget);
+    });
+
+    testWidgets('timeline says when the roadmap stops short of the goal', (
+      tester,
+    ) async {
+      final short = [
+        _row(1, DietPhase.cut, 5, status: 'current', targetWeight: 77.5),
+      ];
+      await _pump(
+        tester,
+        _Harness(
+          phases: short,
+          goal: _goal(startWeight: 80, estimatedMonths: 12),
+        ).build(cards: [RoadmapTimelineCard(goalId: _id)]),
+      );
+      expect(
+        find.text(
+          'This roadmap covers 1 of 12 months. Use Update roadmap below to '
+          'plan the rest.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('no such note when the roadmap covers the goal', (
+      tester,
+    ) async {
+      final full = [
+        _row(1, DietPhase.cut, 12, status: 'current', targetWeight: 74),
+        _row(2, DietPhase.maintain, 2, targetWeight: 74),
+        _row(3, DietPhase.maingain, 38, targetWeight: 78.2),
+      ];
+      await _pump(
+        tester,
+        _Harness(
+          phases: full,
+          goal: _goal(startWeight: 80, estimatedMonths: 12),
+        ).build(cards: [RoadmapTimelineCard(goalId: _id)]),
+      );
+      expect(find.byKey(const Key('timeline-covers-less')), findsNothing);
+    });
+
+    testWidgets('timeline shows only the end weight when the start is '
+        'unknown', (tester) async {
+      final phases = [
+        _row(1, DietPhase.cut, 12, status: 'current', targetWeight: 74),
+      ];
+      final h = _Harness(phases: phases);
+      await _pump(tester, h.build(cards: [RoadmapTimelineCard(goalId: _id)]));
+      expect(find.text('74 kg'), findsOneWidget);
     });
 
     testWidgets('proposal phases all read Up next', (tester) async {

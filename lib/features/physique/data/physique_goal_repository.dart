@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/physique/data/physique_date_keys.dart';
+import 'package:herculex/features/physique/data/physique_roadmap_repository.dart';
 import 'package:herculex/features/physique/domain/physique_guardrails.dart';
 import 'package:herculex/features/physique/domain/physique_roadmap.dart';
 
@@ -241,13 +242,104 @@ class PhysiqueGoalRepository {
     });
   }
 
-  Future<void> _insertPhoto(int goalId, NewPhotoRow p, int? assessmentId) => _db
+  /// Stores a fresh analysis of an active goal together with the roadmap built
+  /// from it, in one transaction: the analysis row, its photo (role
+  /// `checkin`), the goal's new time estimate and target body fat, and the
+  /// replacement roadmap.
+  ///
+  /// The running phase is closed as done when the new roadmap starts with a
+  /// different phase, so its history stays on the timeline. When it starts
+  /// with the same phase the repository carries the start date over.
+  Future<int> applyReanalysis({
+    required int goalId,
+    required AnalysisInput analysis,
+    required int estimatedMonths,
+    required double targetBfPercent,
+    required List<RoadmapPhaseDraft> roadmap,
+    NewPhotoRow? photo,
+  }) {
+    if (roadmap.isEmpty) {
+      throw ArgumentError.value(roadmap, 'roadmap', 'must not be empty');
+    }
+    return _db.transaction(() async {
+      final goal = await getGoal(goalId);
+      if (goal == null || goal.status != 'active') {
+        throw StateError('Physique goal $goalId is not active');
+      }
+      final now = _clock.now();
+
+      final assessmentId = await _db
+          .into(_db.physiqueAssessments)
+          .insert(
+            PhysiqueAssessmentsCompanion.insert(
+              goalId: goalId,
+              kind: 'analysis',
+              dateIso: physiqueDayKey(analysis.analyzedAt),
+              assessedAt: Value(analysis.analyzedAt),
+              weightKg: Value(analysis.weightKg),
+              currentBfPercent: Value(analysis.currentBfPercent),
+              bfRangeMin: Value(analysis.bfRangeMin),
+              bfRangeMax: Value(analysis.bfRangeMax),
+              confidence: Value(analysis.confidence.wireValue),
+              source: Value(analysis.source),
+              modelVersion: Value(analysis.modelVersion),
+              knowledgeVersion: Value(analysis.knowledgeVersion),
+              summaryJson: Value(analysis.summaryJson),
+            ),
+          );
+      if (photo != null) {
+        await _insertPhoto(goalId, photo, assessmentId, role: 'checkin');
+      }
+
+      await (_db.update(
+        _db.physiqueGoals,
+      )..where((g) => g.id.equals(goalId))).write(
+        PhysiqueGoalsCompanion(
+          estimatedMonths: Value(estimatedMonths),
+          targetBfPercent: Value(targetBfPercent),
+          updatedAt: Value(now),
+        ),
+      );
+
+      final current =
+          await (_db.select(_db.physiqueRoadmapPhases)..where(
+                (p) =>
+                    p.goalId.equals(goalId) &
+                    p.status.equals('current') &
+                    p.deletedAt.isNull(),
+              ))
+              .getSingleOrNull();
+      if (current != null && current.phaseType != roadmap.first.phase.name) {
+        await (_db.update(
+          _db.physiqueRoadmapPhases,
+        )..where((p) => p.id.equals(current.id))).write(
+          PhysiqueRoadmapPhasesCompanion(
+            status: const Value('done'),
+            completedAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+      await PhysiqueRoadmapRepository(
+        _db,
+        _clock,
+      ).replaceRoadmap(goalId, roadmap);
+      return assessmentId;
+    });
+  }
+
+  Future<void> _insertPhoto(
+    int goalId,
+    NewPhotoRow p,
+    int? assessmentId, {
+    String role = 'baseline',
+  }) => _db
       .into(_db.physiquePhotos)
       .insert(
         PhysiquePhotosCompanion.insert(
           goalId: goalId,
           assessmentId: Value(assessmentId),
-          role: 'baseline',
+          role: role,
           pose: p.pose,
           dateIso: physiqueDayKey(p.takenAt),
           takenAt: Value(p.takenAt),

@@ -189,11 +189,15 @@ class _ConsentStep extends StatelessWidget {
     required this.body,
     required this.onAnalyse,
     required this.onSaveWithoutAnalysis,
+    this.analyseLabel = 'Analyze my progress',
   });
 
   final String body;
+  final String analyseLabel;
   final VoidCallback onAnalyse;
-  final VoidCallback onSaveWithoutAnalysis;
+
+  /// Null when saving a photo without analysis makes no sense (roadmap update).
+  final VoidCallback? onSaveWithoutAnalysis;
 
   @override
   Widget build(BuildContext context) {
@@ -207,19 +211,18 @@ class _ConsentStep extends StatelessWidget {
         const SizedBox(height: HxSpace.x6),
         SizedBox(
           width: double.infinity,
-          child: FilledButton(
-            onPressed: onAnalyse,
-            child: const Text('Analyze my progress'),
-          ),
+          child: FilledButton(onPressed: onAnalyse, child: Text(analyseLabel)),
         ),
-        const SizedBox(height: HxSpace.x2),
-        SizedBox(
-          width: double.infinity,
-          child: TextButton(
-            onPressed: onSaveWithoutAnalysis,
-            child: const Text('Save photo without analysis'),
+        if (onSaveWithoutAnalysis != null) ...[
+          const SizedBox(height: HxSpace.x2),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: onSaveWithoutAnalysis,
+              child: const Text('Save photo without analysis'),
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -262,11 +265,15 @@ class _ErrorView extends StatelessWidget {
     required this.text,
     required this.onSaveWithoutAnalysis,
     required this.onTryAgain,
+    required this.onClose,
   });
 
   final String text;
-  final VoidCallback onSaveWithoutAnalysis;
+
+  /// Null in roadmap-update mode, where there is no photo-only fallback.
+  final VoidCallback? onSaveWithoutAnalysis;
   final VoidCallback? onTryAgain;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -275,21 +282,38 @@ class _ErrorView extends StatelessWidget {
       children: [
         _Notice(text: text),
         const SizedBox(height: HxSpace.x6),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: onSaveWithoutAnalysis,
-            child: const Text('Save without analysis'),
-          ),
-        ),
-        if (onTryAgain != null) ...[
-          const SizedBox(height: HxSpace.x2),
+        if (onSaveWithoutAnalysis != null) ...[
           SizedBox(
             width: double.infinity,
-            child: TextButton(
-              onPressed: onTryAgain,
-              child: const Text('Try again'),
+            child: FilledButton(
+              onPressed: onSaveWithoutAnalysis,
+              child: const Text('Save without analysis'),
             ),
+          ),
+          if (onTryAgain != null) ...[
+            const SizedBox(height: HxSpace.x2),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: onTryAgain,
+                child: const Text('Try again'),
+              ),
+            ),
+          ],
+        ] else ...[
+          if (onTryAgain != null) ...[
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: onTryAgain,
+                child: const Text('Try again'),
+              ),
+            ),
+            const SizedBox(height: HxSpace.x2),
+          ],
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(onPressed: onClose, child: const Text('Close')),
           ),
         ],
       ],
