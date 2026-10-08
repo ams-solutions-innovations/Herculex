@@ -141,6 +141,22 @@ Never spell a path as a string literal at a call site. Two had already drifted
 out of sync with the route table before the constants existed, and both shipped
 to users as an error screen.
 
+## Target weight
+
+There is one answer to "what is my target weight?": `goalTargetProvider`
+(`features/physique/application/goal_target_provider.dart`). With an active
+physique goal it is the weight the running roadmap phase ends at, so every
+screen, chart and the home-screen widget follow the roadmap when it changes.
+Without one it is the weight the member typed (`Profile.targetWeightKg`, with
+`goalWeightProvider` as its fallback).
+
+Readers watch the provider and never combine those two stores themselves.
+Writers call `GoalTargetController.setTarget` (UI: `saveGoalTarget`). With a
+roadmap that moves the running phase and re-chains the later ones, so a typed
+weight can never contradict the roadmap; a weight that needs a different phase
+is refused with a pointer to the roadmap editor. The profile's own copy of the
+typed weight is left alone while a roadmap runs.
+
 ## Schema changes
 
 Bumping the drift `schemaVersion` is five chores, not one. Missing any of them

@@ -7,6 +7,8 @@ import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/nutrition/application/goals_providers.dart';
+import 'package:herculex/features/physique/application/goal_target_provider.dart';
+import 'package:herculex/features/physique/presentation/save_goal_target.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:intl/intl.dart';
 
@@ -17,7 +19,8 @@ class GoalsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(profileProvider).asData?.value;
     final startingWeight = ref.watch(startingWeightProvider);
-    final goalWeight = ref.watch(goalWeightProvider) ?? profile?.targetWeightKg;
+    final goalTarget = ref.watch(goalTargetProvider);
+    final goalWeight = goalTarget.targetKg;
     final weeklyGoal = ref.watch(weeklyGoalProvider);
     final fitnessGoals = ref.watch(fitnessGoalsProvider);
     final showNetCarbs = ref.watch(showNetCarbsByMealProvider);
@@ -53,7 +56,7 @@ class GoalsView extends ConsumerWidget {
         ),
         const _GoalDivider(),
         _GoalValueRow(
-          label: 'Goal Weight',
+          label: goalTarget.fromRoadmap ? 'Target Weight' : 'Goal Weight',
           value: goalWeightStr,
           onTap: () => _editGoalWeight(context, ref, goalWeight),
         ),
@@ -217,15 +220,7 @@ class GoalsView extends ConsumerWidget {
         hint: 'e.g. 75.0',
         onSave: (v) async {
           final kg = double.tryParse(v);
-          if (kg != null) {
-            ref.read(goalWeightProvider.notifier).set(kg);
-            final profile = ref.read(profileProvider).asData?.value;
-            if (profile != null) {
-              await ref
-                  .read(localProfileRepositoryProvider)
-                  .save(profile.copyWith(targetWeightKg: kg));
-            }
-          }
+          if (kg != null && kg > 0) await saveGoalTarget(context, ref, kg);
         },
       ),
     );

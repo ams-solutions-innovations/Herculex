@@ -24,6 +24,8 @@ import 'package:herculex/features/nutrition/application/nutrition_providers.dart
 import 'package:herculex/features/nutrition/data/speech_to_text_service.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
+import 'package:herculex/features/physique/application/goal_target_provider.dart';
+import 'package:herculex/features/physique/presentation/save_goal_target.dart';
 import 'package:herculex/features/profile/data/local_profile_repository.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/profile/presentation/widgets/activity_level_section.dart';

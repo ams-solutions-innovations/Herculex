@@ -40,6 +40,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   final _ageCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   final _targetWeightCtrl = TextEditingController();
+  final _targetFocus = FocusNode();
+
+  /// The target field was edited and not yet handed to the roadmap. With a
+  /// roadmap running that happens when the field loses focus (or on save),
+  /// not on every pause in typing: each commit re-plans the running phase.
+  bool _targetDirty = false;
   final _heightCtrl = TextEditingController();
   final _inseamCtrl = TextEditingController();
   final _armSpanCtrl = TextEditingController();
@@ -59,12 +65,18 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   /// could take the teardown down with it.
   late final LocalProfileRepository _profileRepository;
   late final MeasurementsRepository _measurementsRepository;
+  late final GoalTargetController _targetController;
+
+  /// Kept current by [build]; [dispose] cannot read providers.
+  late WeightFormat _weightFormat;
 
   @override
   void initState() {
     super.initState();
     _profileRepository = ref.read(localProfileRepositoryProvider);
     _measurementsRepository = ref.read(measurementsRepositoryProvider);
+    _targetController = ref.read(goalTargetControllerProvider);
+    _weightFormat = ref.read(weightFormatProvider);
     final p = widget.profile;
     _goal = p?.goal ?? FitnessGoal.maintenance;
     _activityLevel = p?.activityLevel ?? ActivityLevel.lightlyActive;
@@ -79,11 +91,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _weightCtrl.text = p?.weightKg == null
         ? ''
         : weightFmt.formatValue(p!.weightKg!);
-    final goalWeight = ref.read(goalWeightProvider);
-    final targetKg = p?.targetWeightKg ?? goalWeight;
+    final targetKg = ref.read(goalTargetProvider).targetKg;
     _targetWeightCtrl.text = targetKg == null
         ? ''
         : weightFmt.formatValue(targetKg);
+    _targetFocus.addListener(() {
+      if (!_targetFocus.hasFocus) _commitTarget();
+    });
     _heightCtrl.text = p?.heightCm == null
         ? ''
         : heightFmt.formatValue(p!.heightCm!);
@@ -119,7 +133,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       final weightStr = p?.weightKg == null
           ? ''
           : weightFmt.formatValue(p!.weightKg!);
-      final targetKg = p?.targetWeightKg ?? ref.read(goalWeightProvider);
+      final targetKg = ref.read(goalTargetProvider).targetKg;
       final targetStr = targetKg == null ? '' : weightFmt.formatValue(targetKg);
       final heightStr = p?.heightCm == null
           ? ''
@@ -150,12 +164,50 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       if (mounted) {
         final draft = _draft();
         ref.read(localProfileRepositoryProvider).save(draft);
-        if (draft.targetWeightKg != null) {
-          ref.read(goalWeightProvider.notifier).set(draft.targetWeightKg!);
-        }
+        // Without a roadmap the typed weight is the target, so it is stored
+        // as the member types. With one, it waits for the field to lose focus.
+        if (!ref.read(goalTargetProvider).fromRoadmap) _commitTarget();
         _saveWaist();
       }
     });
+  }
+
+  void _onTargetChanged([String? _]) {
+    _targetDirty = true;
+    _onFieldChanged();
+  }
+
+  /// The typed target in kilograms; null when the field is empty or unusable.
+  double? _typedTargetKg() {
+    final typed = double.tryParse(_targetWeightCtrl.text.trim());
+    if (typed == null || typed <= 0) return null;
+    return _weightFormat.toKg(typed);
+  }
+
+  /// Hands the typed target to the roadmap (or stores it, without one), then
+  /// shows whatever the app now uses as the target.
+  Future<void> _commitTarget() async {
+    if (!_targetDirty || !mounted) return;
+    _targetDirty = false;
+    if (_targetWeightCtrl.text.trim().isEmpty) {
+      await _targetController.clearManual();
+    } else {
+      final kg = _typedTargetKg();
+      if (kg == null) return;
+      await saveGoalTarget(context, ref, kg);
+    }
+    _showAppTarget();
+  }
+
+  /// Puts the number the app actually uses back into the target field, unless
+  /// the member is in the middle of editing it.
+  void _showAppTarget() {
+    if (!mounted || _targetDirty || _targetFocus.hasFocus) return;
+    final kg = ref.read(goalTargetProvider).targetKg;
+    final text = kg == null
+        ? ''
+        : ref.read(weightFormatProvider).formatValue(kg);
+    if (_targetWeightCtrl.text != text) _targetWeightCtrl.text = text;
   }
 
   /// Waist lives in the measurement log (shared with the Measurements screen
@@ -179,8 +231,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final weightFmt = ref.read(weightFormatProvider);
     final heightFmt = ref.read(heightFormatProvider);
     final kg = widget.profile?.weightKg;
-    final targetKg =
-        widget.profile?.targetWeightKg ?? ref.read(goalWeightProvider);
+    final targetKg = ref.read(goalTargetProvider).targetKg;
     final cm = widget.profile?.heightCm;
     final inseam = widget.profile?.inseamCm;
     final armSpan = widget.profile?.armSpanCm;
@@ -202,6 +253,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _autoSaveTimer?.cancel();
     // Flush draft to local profile storage before tearing down
     _profileRepository.save(_draft());
+    if (_targetDirty) {
+      // Leaving the screen with the keyboard up: nothing will blur the field.
+      final kg = _typedTargetKg();
+      if (kg != null) {
+        unawaited(_targetController.setTarget(kg));
+      } else if (_targetWeightCtrl.text.trim().isEmpty) {
+        unawaited(_targetController.clearManual());
+      }
+    }
+    _targetFocus.dispose();
     _nameCtrl.dispose();
     _ageCtrl.dispose();
     _weightCtrl.dispose();
@@ -236,7 +297,11 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       weightKg: weight == null
           ? null
           : ref.read(weightFormatProvider).toKg(weight),
-      targetWeightKg: targetWeight == null
+      // With a roadmap running the target belongs to it; the profile keeps the
+      // weight the member last typed so it is still there if the goal ends.
+      targetWeightKg: ref.read(goalTargetProvider).fromRoadmap
+          ? widget.profile?.targetWeightKg
+          : targetWeight == null
           ? null
           : ref.read(weightFormatProvider).toKg(targetWeight),
       heightCm: height == null
@@ -260,9 +325,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     setState(() => _saving = true);
     final draft = _draft();
     await ref.read(localProfileRepositoryProvider).save(draft);
-    if (draft.targetWeightKg != null) {
-      ref.read(goalWeightProvider.notifier).set(draft.targetWeightKg!);
-    }
+    await _commitTarget();
     await _saveWaist();
     if (!mounted) return;
     setState(() => _saving = false);
@@ -333,6 +396,19 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       if (_waistCtrl.text != text) _waistCtrl.text = text;
     });
 
+    // The roadmap can move the target while this screen is open (a re-plan, a
+    // phase change): follow it, unless the member is editing the field.
+    final target = ref.watch(goalTargetProvider);
+    ref.listen(goalTargetProvider, (prev, next) {
+      if (prev?.targetKg != next.targetKg) _showAppTarget();
+    });
+    final weightFormat = _weightFormat = ref.watch(weightFormatProvider);
+    final dream = target.dreamKg;
+    final targetHelper = !target.fromRoadmap
+        ? null
+        : 'End of ${target.phase!.label.toLowerCase()}'
+              '${dream != null && dream != target.targetKg ? ' · dream ${weightFormat.format(dream)}' : ''}';
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 120),
       children: [
@@ -390,7 +466,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 label: isMetric ? 'Target Weight (kg)' : 'Target Weight (lb)',
                 hint: isMetric ? 'kg' : 'lb',
                 controller: _targetWeightCtrl,
-                onChanged: _onFieldChanged,
+                focusNode: _targetFocus,
+                helper: targetHelper,
+                onChanged: _onTargetChanged,
               ),
             ),
           ],

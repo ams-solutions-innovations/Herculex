@@ -254,6 +254,10 @@ class _StatField extends StatelessWidget {
   final String hint;
   final TextEditingController controller;
   final ValueChanged<String>? onChanged;
+  final FocusNode? focusNode;
+
+  /// One quiet line under the field, e.g. where the number comes from.
+  final String? helper;
 
   /// Every remaining stat field is numeric — the name moved into the avatar
   /// editor, so there is no free-text variant left to configure.
@@ -264,6 +268,8 @@ class _StatField extends StatelessWidget {
     required this.hint,
     required this.controller,
     this.onChanged,
+    this.focusNode,
+    this.helper,
   });
 
   @override
@@ -285,6 +291,7 @@ class _StatField extends StatelessWidget {
         const SizedBox(height: 6),
         TextField(
           controller: controller,
+          focusNode: focusNode,
           onChanged: onChanged,
           keyboardType: keyboardType,
           inputFormatters: [
@@ -317,6 +324,16 @@ class _StatField extends StatelessWidget {
             ),
           ),
         ),
+        if (helper != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            helper!,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: context.hx.onSurfaceVariant,
+            ),
+          ),
+        ],
       ],
     );
   }

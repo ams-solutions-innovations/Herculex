@@ -103,6 +103,7 @@ class Profile {
     double? inseamCm,
     double? armSpanCm,
     double? torsoCm,
+    bool clearTargetWeight = false,
   }) {
     return Profile(
       name: name ?? this.name,
@@ -110,7 +111,10 @@ class Profile {
       activityLevel: activityLevel ?? this.activityLevel,
       ageYears: ageYears ?? this.ageYears,
       weightKg: weightKg ?? this.weightKg,
-      targetWeightKg: targetWeightKg ?? this.targetWeightKg,
+      // `?? this.x` cannot express "remove it", hence the explicit flag.
+      targetWeightKg: clearTargetWeight
+          ? null
+          : (targetWeightKg ?? this.targetWeightKg),
       heightCm: heightCm ?? this.heightCm,
       sex: sex ?? this.sex,
       preferredUnit: preferredUnit ?? this.preferredUnit,

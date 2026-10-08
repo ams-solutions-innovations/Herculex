@@ -8,7 +8,8 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
-import 'package:herculex/features/nutrition/application/goals_providers.dart';
+import 'package:herculex/features/physique/application/goal_target_provider.dart';
+import 'package:herculex/features/physique/presentation/save_goal_target.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:intl/intl.dart';
 
@@ -218,11 +219,7 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
                       _buildChart(
                         rows,
                         widget.metric == 'bodyweight'
-                            ? (ref
-                                      .watch(profileProvider)
-                                      .valueOrNull
-                                      ?.targetWeightKg ??
-                                  ref.watch(goalWeightProvider))
+                            ? ref.watch(goalTargetProvider).targetKg
                             : null,
                       ),
                     ],
@@ -759,9 +756,8 @@ class _TargetWeightSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final profile = ref.watch(profileProvider).valueOrNull;
-    final goalWeight = ref.watch(goalWeightProvider);
-    final targetKg = profile?.targetWeightKg ?? goalWeight;
+    final target = ref.watch(goalTargetProvider);
+    final targetKg = target.targetKg;
 
     final hasTarget = targetKg != null;
     final diff = (hasTarget && latestKg != null) ? latestKg! - targetKg : null;
@@ -805,7 +801,9 @@ class _TargetWeightSection extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Target Bodyweight',
+                  target.fromRoadmap
+                      ? 'Target Bodyweight · end of ${target.phase!.label.toLowerCase()}'
+                      : 'Target Bodyweight',
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: AppColors.secondary,
                     fontWeight: FontWeight.w600,
@@ -912,13 +910,7 @@ class _TargetWeightSection extends ConsumerWidget {
                   onPressed: () async {
                     final val = double.tryParse(ctrl.text.trim());
                     if (val != null && val > 0) {
-                      ref.read(goalWeightProvider.notifier).set(val);
-                      final profile = ref.read(profileProvider).valueOrNull;
-                      if (profile != null) {
-                        await ref
-                            .read(localProfileRepositoryProvider)
-                            .save(profile.copyWith(targetWeightKg: val));
-                      }
+                      await saveGoalTarget(ctx, ref, val);
                     }
                     if (ctx.mounted) Navigator.pop(ctx);
                   },

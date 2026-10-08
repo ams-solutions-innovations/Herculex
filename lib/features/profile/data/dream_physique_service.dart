@@ -288,6 +288,19 @@ class DreamPhysiqueAnalysisException implements Exception {
   String toString() => message;
 }
 
+/// What to tell the member when an analysis fails. Shared by every screen that
+/// runs one, so the server-authorisation case reads the same everywhere.
+String describeDreamPhysiqueError(Object error) {
+  final message = error.toString().replaceAll('Exception: ', '');
+  if (message.contains('Gemini API request failed (401)') ||
+      message.contains('Gemini server authorization failed')) {
+    return 'Herculex AI is not authorised on the server yet. Your photos are '
+        'still selected; ask the administrator to replace the server '
+        'GEMINI_API_KEY with a valid Google AI Studio API key, then try again.';
+  }
+  return message;
+}
+
 class DreamPhysiqueService {
   final GeminiBackend _backend;
 

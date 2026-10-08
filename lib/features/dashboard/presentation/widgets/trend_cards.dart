@@ -2,17 +2,16 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
-import 'package:herculex/features/nutrition/application/goals_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/macro_chart.dart';
+import 'package:herculex/features/physique/application/goal_target_provider.dart';
 import 'package:intl/intl.dart';
 
 /// Standalone preview card for 7-day calorie trends.
@@ -52,9 +51,7 @@ class BodyweightTrendPreviewCard extends ConsumerWidget {
     final hx = context.hx;
     final history = ref.watch(bodyweightHistoryProvider).asData?.value;
     final fmt = ref.watch(weightFormatProvider);
-    final profile = ref.watch(profileProvider).valueOrNull;
-    final goalWeight = ref.watch(goalWeightProvider);
-    final targetKg = profile?.targetWeightKg ?? goalWeight;
+    final targetKg = ref.watch(goalTargetProvider).targetKg;
 
     final spots = history == null
         ? null

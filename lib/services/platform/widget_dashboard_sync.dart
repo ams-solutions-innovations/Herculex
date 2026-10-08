@@ -7,10 +7,10 @@ import 'package:herculex/features/analytics/application/analytics_providers.dart
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/health/application/cycle_providers.dart';
 import 'package:herculex/features/health/domain/cycle_adjuster.dart';
-import 'package:herculex/features/nutrition/application/goals_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/macro_chart.dart';
+import 'package:herculex/features/physique/application/goal_target_provider.dart';
 import 'package:herculex/features/recovery/application/recovery_providers.dart';
 import 'package:herculex/features/recovery/domain/training_suggestion.dart';
 import 'package:herculex/features/supplements/application/supplement_providers.dart';
@@ -139,8 +139,7 @@ final _bodyweightSync = Provider<void>((ref) {
   final history = ref.watch(bodyweightHistoryProvider).valueOrNull;
   if (history == null) return;
   final fmt = ref.watch(weightFormatProvider);
-  final profile = ref.watch(profileProvider).valueOrNull;
-  final targetKg = profile?.targetWeightKg ?? ref.watch(goalWeightProvider);
+  final targetKg = ref.watch(goalTargetProvider).targetKg;
   if (history.isEmpty) {
     ref.read(_widgetSyncProvider).syncWidgetData('bodyweight', null);
     return;

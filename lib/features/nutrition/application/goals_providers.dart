@@ -128,6 +128,13 @@ class GoalWeightNotifier extends Notifier<double?> {
     await ref.read(sharedPreferencesProvider).setDouble(_key, kg);
     state = kg;
   }
+
+  /// Forgets the goal weight. Without this a cleared profile target kept
+  /// reappearing from here, because every reader falls back to this value.
+  Future<void> clear() async {
+    await ref.read(sharedPreferencesProvider).remove(_key);
+    state = null;
+  }
 }
 
 final goalWeightProvider = NotifierProvider<GoalWeightNotifier, double?>(
