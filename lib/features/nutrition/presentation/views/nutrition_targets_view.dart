@@ -12,6 +12,7 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/application/goals_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/application/phase_targets_applier.dart';
 import 'package:herculex/features/nutrition/application/tdee_providers.dart';
 import 'package:herculex/features/nutrition/data/carb_cycle_service.dart';
 import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
@@ -572,22 +573,12 @@ class _QuickPhasePlannerSectionState
                   ? null
                   : () async {
                       setState(() => _saving = true);
-                      final repo = ref.read(nutritionRepositoryProvider);
-                      await repo.upsertTarget(
-                        label: 'General (${_effectivePhase.label})',
-                        appliesTo: 'global',
-                        kcal: targets.kcal,
-                        proteinG: targets.proteinG,
-                        carbsG: targets.carbsG,
-                        fatG: targets.fatG,
-                      );
                       await ref
-                          .read(activeDietPlanProvider.notifier)
-                          .setPlan(
+                          .read(phaseTargetsApplierProvider)
+                          .apply(
                             phase: _effectivePhase,
-                            weeklyRateKg: currentPace.weeklyKg,
-                            kcalDelta: currentPace.kcalDelta,
-                            paceLabel: currentPace.label,
+                            pace: currentPace,
+                            targets: targets,
                           );
                       if (!mounted) return;
                       setState(() => _saving = false);

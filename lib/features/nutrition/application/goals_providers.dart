@@ -11,11 +11,17 @@ class ActiveDietPlan {
   final int kcalDelta;
   final String paceLabel;
 
+  /// False while the member has never applied a plan and these are only the
+  /// defaults (cut at 0.5 kg/week), so a screen does not mistake the default
+  /// for a choice.
+  final bool isSet;
+
   const ActiveDietPlan({
     required this.phase,
     required this.weeklyRateKg,
     required this.kcalDelta,
     required this.paceLabel,
+    this.isSet = true,
   });
 
   ActiveDietPlan copyWith({
@@ -28,6 +34,7 @@ class ActiveDietPlan {
     weeklyRateKg: weeklyRateKg ?? this.weeklyRateKg,
     kcalDelta: kcalDelta ?? this.kcalDelta,
     paceLabel: paceLabel ?? this.paceLabel,
+    isSet: isSet,
   );
 }
 
@@ -54,6 +61,7 @@ class ActiveDietPlanNotifier extends Notifier<ActiveDietPlan> {
       weeklyRateKg: rate,
       kcalDelta: delta,
       paceLabel: label,
+      isSet: p.containsKey(_phaseKey),
     );
   }
 

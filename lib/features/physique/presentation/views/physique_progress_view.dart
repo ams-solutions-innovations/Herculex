@@ -7,6 +7,7 @@ import 'package:herculex/design_system/components/hx_card.dart';
 import 'package:herculex/design_system/components/hx_screen_shell.dart';
 import 'package:herculex/design_system/components/hx_top_tabs.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/physique/application/phase_targets_offer_provider.dart';
 import 'package:herculex/features/physique/application/physique_capture_providers.dart';
 import 'package:herculex/features/physique/application/physique_chart_providers.dart';
 import 'package:herculex/features/physique/application/physique_providers.dart';
@@ -19,6 +20,7 @@ import 'package:herculex/features/physique/presentation/widgets/check_in_card.da
 import 'package:herculex/features/physique/presentation/widgets/goal_header_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/goal_progress_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/load_state_views.dart';
+import 'package:herculex/features/physique/presentation/widgets/phase_targets_offer_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/restriction_notice.dart';
 import 'package:herculex/features/physique/presentation/widgets/roadmap_timeline_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/strength_chart_card.dart';
@@ -97,6 +99,8 @@ class _PhysiqueProgressViewState extends ConsumerState<PhysiqueProgressView> {
     final archivedCount =
         ref.watch(archivedPhysiqueGoalsProvider).asData?.value.length ?? 0;
     final range = ref.watch(physiqueEffectiveRangeProvider(id));
+    final hasTargetsOffer =
+        !archived && ref.watch(phaseTargetsOfferProvider(id)) != null;
 
     const gap = SizedBox(height: HxSpace.x4);
     return HxScreenShell(
@@ -116,6 +120,7 @@ class _PhysiqueProgressViewState extends ConsumerState<PhysiqueProgressView> {
         ],
         gap,
         ActivePhaseCard(goalId: id),
+        if (hasTargetsOffer) ...[gap, PhaseTargetsOfferCard(goalId: id)],
         gap,
         RoadmapTimelineCard(goalId: id),
         gap,

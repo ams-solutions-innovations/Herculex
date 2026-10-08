@@ -14,6 +14,7 @@ import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/nutrition/domain/phase_eligibility.dart';
 import 'package:herculex/features/nutrition/domain/tdee_trend.dart';
+import 'package:herculex/features/physique/application/phase_targets_offer_provider.dart';
 import 'package:herculex/features/physique/application/physique_capture_providers.dart';
 import 'package:herculex/features/physique/application/physique_chart_providers.dart';
 import 'package:herculex/features/physique/application/physique_check_in_flow.dart';
@@ -171,6 +172,7 @@ class _Data {
     this.hasActiveGoal = true,
     this.resumed,
     this.analysisAt,
+    this.targetsOffer,
   }) : goal = goal ?? _goal(accepted: !proposal),
        phases = phases ?? _phases,
        photos = photos ?? [_photo(1, 'baseline')];
@@ -190,6 +192,9 @@ class _Data {
 
   /// When the newest analysis was made; null for none.
   final DateTime? analysisAt;
+
+  /// The calorie offer for the running phase; null for none.
+  final PhaseTargetsOffer? targetsOffer;
   Object? lastExtra;
 
   List<Override> overrides({SharedPreferences? prefs}) {
@@ -233,6 +238,7 @@ class _Data {
       physiqueLastCheckInAtProvider(
         g.id,
       ).overrideWith((ref) => Stream.value(last)),
+      phaseTargetsOfferProvider(g.id).overrideWith((ref) => targetsOffer),
       physiqueLatestAnalysisProvider(g.id).overrideWith(
         (ref) =>
             Stream.value(analysisAt == null ? null : _analysis(analysisAt!)),
@@ -421,6 +427,51 @@ void main() {
       );
       expect(find.text('Edit roadmap'), findsOneWidget);
       expect(find.text('Move to Maintenance'), findsNothing);
+    });
+  });
+
+  group('calorie offer', () {
+    final offer = PhaseTargetsOffer(
+      goalId: _id,
+      phase: DietPhase.cut,
+      pace: DietPhaseCalculator.paceOptionsFor(DietPhase.cut)[1],
+      targets: const PhaseTargets(
+        kcal: 2000,
+        proteinG: 176,
+        carbsG: 200,
+        fatG: 60,
+        deltaKcal: -500,
+      ),
+      currentPlan: DietPhase.maintain,
+    );
+
+    testWidgets('shows between the phase card and the timeline', (
+      tester,
+    ) async {
+      await _pump(tester, _host(_Data(targetsOffer: offer)));
+      expect(find.text('Match your calories to this phase'), findsOneWidget);
+      final offerY = tester
+          .getTopLeft(find.text('Match your calories to this phase'))
+          .dy;
+      expect(
+        offerY,
+        lessThan(tester.getTopLeft(find.text('Roadmap')).dy),
+        reason: 'above the timeline',
+      );
+    });
+
+    testWidgets('is absent without an offer', (tester) async {
+      await _pump(tester, _host(_Data()));
+      expect(find.text('Match your calories to this phase'), findsNothing);
+    });
+
+    testWidgets('is absent on an archived goal', (tester) async {
+      final d = _Data(
+        goal: _goal(status: 'archived'),
+        targetsOffer: offer,
+      );
+      await _pump(tester, _host(d, goalId: _id));
+      expect(find.text('Match your calories to this phase'), findsNothing);
     });
   });
 
@@ -785,6 +836,7 @@ void main() {
           physiqueLatestAnalysisProvider(
             7,
           ).overrideWith((ref) => Stream.value(null)),
+          phaseTargetsOfferProvider(7).overrideWith((ref) => null),
           physiqueWeightChartProvider(
             7,
           ).overrideWith((ref) => WeightChartData.empty),
