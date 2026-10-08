@@ -177,6 +177,8 @@ class PhysiqueGoalStarter {
         prefersWeightLoss: profile.goal == FitnessGoal.weightLoss,
         maintenanceKcal:
             _readMaintenanceKcal() ?? PhysiqueTuning.defaultMaintenanceKcal,
+        fatLossKg: result.fatLossKg,
+        leanGainKg: result.leanMuscleGainKg,
       ),
     ).phases;
   }

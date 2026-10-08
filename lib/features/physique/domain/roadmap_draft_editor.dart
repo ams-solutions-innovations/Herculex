@@ -66,27 +66,47 @@ abstract final class RoadmapDraftEditor {
   }) {
     final out = [...drafts];
     if (!canAdd(eligibility, phase)) return out;
-    out.add(RoadmapPhaseDraft(phase: phase, plannedWeeks: _clampWeeks(weeks)));
+    // Carry the previous end weight so the new phase never shows "no target"
+    // before the next retarget fills in the real one.
+    out.add(
+      RoadmapPhaseDraft(
+        phase: phase,
+        plannedWeeks: _clampWeeks(weeks),
+        targetWeightKg: out.isEmpty ? null : out.last.targetWeightKg,
+      ),
+    );
     return out;
   }
+
+  static double _round1(double v) => (v * 10).round() / 10;
 
   /// Recomputes pace, cap flag and chained target weight for every phase.
   /// Cut subtracts, bulk and maingain add, others carry the weight forward.
   /// The BF target is kept only on cut and recomp.
+  ///
+  /// A phase keeps its recorded pace when that is slower than the safe pace,
+  /// so a generated or pinned end weight survives a re-save. The pace never
+  /// goes above the safe pace.
+  ///
+  /// [firstPhaseElapsedWeeks] is how much of the first draft is already behind
+  /// the member: the first phase then only moves for the weeks that are left,
+  /// starting from [startWeightKg] (today's weight).
   static List<RoadmapPhaseDraft> retarget(
     List<RoadmapPhaseDraft> drafts, {
     required double startWeightKg,
     required double? goalTargetBfPercent,
     required int maintenanceKcal,
     required PhaseEligibility eligibility,
+    int firstPhaseElapsedWeeks = 0,
   }) {
     var weight = startWeightKg;
     final out = <RoadmapPhaseDraft>[];
-    for (final d in drafts) {
+    for (var i = 0; i < drafts.length; i++) {
+      final d = drafts[i];
       final cap = d.phase == DietPhase.maingain
           ? eligibility.maxMaingainDeltaKcal
           : null;
-      final weekly = PhysiqueTempoPolicy.weeklyKg(
+      final safe = PhysiqueTempoPolicy.weeklyKg(
         phase: d.phase,
         bodyweightKg: weight,
         maintenanceKcal: maintenanceKcal,
@@ -98,7 +118,14 @@ abstract final class RoadmapDraftEditor {
         maintenanceKcal: maintenanceKcal,
         maxDeltaKcalCap: cap,
       );
-      final moved = weekly * d.plannedWeeks;
+      final stored = d.weeklyRateKg;
+      final weekly = (stored != null && stored >= 0 && stored < safe - 1e-9)
+          ? stored
+          : safe;
+      final weeksAhead = i == 0
+          ? math.max(0, d.plannedWeeks - firstPhaseElapsedWeeks)
+          : d.plannedWeeks;
+      final moved = weekly * weeksAhead;
       final next = switch (d.phase) {
         DietPhase.cut => weight - moved,
         DietPhase.bulk || DietPhase.maingain => weight + moved,
@@ -119,5 +146,67 @@ abstract final class RoadmapDraftEditor {
       weight = rounded;
     }
     return out;
+  }
+
+  /// Makes phase [index] end at [endWeightKg], moving from [fromWeightKg] at
+  /// no more than the safe pace, and re-chains every later phase from there.
+  /// Phases before [index] are left alone.
+  ///
+  /// Returns null when the end weight cannot be expressed without changing the
+  /// phase itself: a hold phase, a weight on the wrong side of
+  /// [fromWeightKg] for the phase direction, or a move that needs longer than
+  /// one phase can last at the safe pace.
+  ///
+  /// [elapsedWeeks] (first phase only) is time already spent in the phase; the
+  /// planned length covers it plus the weeks still needed.
+  static List<RoadmapPhaseDraft>? pinPhaseEnd(
+    List<RoadmapPhaseDraft> drafts,
+    int index, {
+    required double fromWeightKg,
+    required double endWeightKg,
+    required double? goalTargetBfPercent,
+    required int maintenanceKcal,
+    required PhaseEligibility eligibility,
+    int elapsedWeeks = 0,
+  }) {
+    if (index < 0 || index >= drafts.length) return null;
+    final d = drafts[index];
+    final delta = endWeightKg - fromWeightKg;
+    final rightSide = switch (d.phase) {
+      DietPhase.cut => delta < 0,
+      DietPhase.bulk || DietPhase.maingain => delta > 0,
+      DietPhase.maintain || DietPhase.recomp => false,
+    };
+    if (!rightSide) return null;
+
+    final safe = PhysiqueTempoPolicy.weeklyKg(
+      phase: d.phase,
+      bodyweightKg: fromWeightKg,
+      maintenanceKcal: maintenanceKcal,
+      maxDeltaKcalCap: d.phase == DietPhase.maingain
+          ? eligibility.maxMaingainDeltaKcal
+          : null,
+    );
+    if (safe <= 0) return null;
+    final remaining = math.max(
+      PhysiqueTuning.minPhaseWeeks,
+      PhysiqueTempoPolicy.plannedWeeks(deltaKg: delta, weeklyKg: safe),
+    );
+    if (remaining > PhysiqueTuning.maxPhaseWeeks) return null;
+
+    final end = _round1(endWeightKg);
+    final pinned = d.copyWith(
+      plannedWeeks: _clampWeeks((index == 0 ? elapsedWeeks : 0) + remaining),
+      targetWeightKg: end,
+      weeklyRateKg: delta.abs() / remaining,
+    );
+    final tail = retarget(
+      drafts.sublist(index + 1),
+      startWeightKg: end,
+      goalTargetBfPercent: goalTargetBfPercent,
+      maintenanceKcal: maintenanceKcal,
+      eligibility: eligibility,
+    );
+    return [...drafts.sublist(0, index), pinned, ...tail];
   }
 }

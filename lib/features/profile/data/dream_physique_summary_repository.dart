@@ -20,6 +20,11 @@ class DreamPhysiqueAnalysisSummary {
   final int currentPhotoCount;
   final int targetPhotoCount;
 
+  /// Gross fat and lean mass behind [weightChangeKg]. Null on summaries saved
+  /// before these were kept; the roadmap then falls back to the net change.
+  final double? fatLossKg;
+  final double? leanGainKg;
+
   const DreamPhysiqueAnalysisSummary({
     required this.schemaVersion,
     required this.analyzedAt,
@@ -31,6 +36,8 @@ class DreamPhysiqueAnalysisSummary {
     required this.weightChangeKg,
     required this.currentPhotoCount,
     required this.targetPhotoCount,
+    this.fatLossKg,
+    this.leanGainKg,
   });
 
   factory DreamPhysiqueAnalysisSummary.fromResult({
@@ -50,6 +57,8 @@ class DreamPhysiqueAnalysisSummary {
       weightChangeKg: result.weightChangeKg,
       currentPhotoCount: currentPhotoCount,
       targetPhotoCount: targetPhotoCount,
+      fatLossKg: result.fatLossKg,
+      leanGainKg: result.leanMuscleGainKg,
     );
   }
 
@@ -64,6 +73,8 @@ class DreamPhysiqueAnalysisSummary {
     'weightChangeKg': weightChangeKg,
     'currentPhotoCount': currentPhotoCount,
     'targetPhotoCount': targetPhotoCount,
+    if (fatLossKg != null) 'fatLossKg': fatLossKg,
+    if (leanGainKg != null) 'leanGainKg': leanGainKg,
   };
 
   factory DreamPhysiqueAnalysisSummary.fromJson(Map<String, dynamic> json) {
@@ -110,6 +121,12 @@ class DreamPhysiqueAnalysisSummary {
       weightChangeKg: weightChangeKg.toDouble(),
       currentPhotoCount: currentPhotoCount,
       targetPhotoCount: targetPhotoCount,
+      fatLossKg: json['fatLossKg'] is num
+          ? (json['fatLossKg'] as num).toDouble()
+          : null,
+      leanGainKg: json['leanGainKg'] is num
+          ? (json['leanGainKg'] as num).toDouble()
+          : null,
     );
   }
 }

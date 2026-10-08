@@ -9,14 +9,14 @@ import 'package:herculex/features/physique/domain/physique_roadmap.dart';
 import 'package:herculex/features/physique/domain/physique_tuning.dart';
 import 'package:herculex/features/profile/data/dream_physique_summary_repository.dart';
 
-double _weightChangeOf(String? summaryJson) {
-  if (summaryJson == null) return 0;
+DreamPhysiqueAnalysisSummary? _summaryOf(String? summaryJson) {
+  if (summaryJson == null) return null;
   try {
     final decoded = jsonDecode(summaryJson);
-    if (decoded is! Map<String, dynamic>) return 0;
-    return DreamPhysiqueAnalysisSummary.fromJson(decoded).weightChangeKg;
+    if (decoded is! Map<String, dynamic>) return null;
+    return DreamPhysiqueAnalysisSummary.fromJson(decoded);
   } on Object {
-    return 0;
+    return null;
   }
 }
 
@@ -44,12 +44,15 @@ final physiqueRoadmapSuggestionProvider =
           weight <= 0) {
         return null;
       }
+      final summary = _summaryOf(analysis.summaryJson);
       return PhysiqueRoadmapGenerator.propose(
         PhysiqueRoadmapInput(
           weightKg: weight,
           currentBfPercent: currentBf,
           targetBfPercent: targetBf,
-          plannedWeightChangeKg: _weightChangeOf(analysis.summaryJson),
+          plannedWeightChangeKg: summary?.weightChangeKg ?? 0,
+          fatLossKg: summary?.fatLossKg,
+          leanGainKg: summary?.leanGainKg,
           estimatedMonths: months,
           ageYears: profile?.ageYears,
           confidence: AssessmentConfidence.fromWire(analysis.confidence),

@@ -280,6 +280,8 @@ class PhysiqueLegacyMigrator {
           ageYears: profile?.ageYears,
           confidence: AssessmentConfidence.unknown,
           prefersWeightLoss: profile?.goal == FitnessGoal.weightLoss,
+          fatLossKg: newest.fatLossKg,
+          leanGainKg: newest.leanGainKg,
         ),
       ).phases;
     } else {

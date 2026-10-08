@@ -81,11 +81,15 @@ class PhysiqueRoadmapInput {
     this.bfRangeMax,
     this.prefersWeightLoss = false,
     this.maintenanceKcal = PhysiqueTuning.defaultMaintenanceKcal,
+    this.fatLossKg,
+    this.leanGainKg,
   });
 
   final double weightKg;
   final double currentBfPercent;
   final double targetBfPercent;
+
+  /// Net scale change (lean gain minus fat loss). Steers the direction rule.
   final double plannedWeightChangeKg;
   final int estimatedMonths;
   final int? ageYears;
@@ -94,6 +98,14 @@ class PhysiqueRoadmapInput {
   final double? bfRangeMax;
   final bool prefersWeightLoss;
   final int maintenanceKcal;
+
+  /// Gross fat the analysis expects to lose. Sizes a cut; null falls back to
+  /// the net change and then to the BF gap.
+  final double? fatLossKg;
+
+  /// Lean mass the analysis expects to gain. Decides whether the build phase
+  /// after a cut must be a bulk rather than a maingain.
+  final double? leanGainKg;
 }
 
 class PhysiqueRoadmapProposal {
@@ -102,6 +114,7 @@ class PhysiqueRoadmapProposal {
     required this.eligibility,
     required this.requestedDirection,
     required this.wasCoerced,
+    this.horizonWeeks = 0,
   });
 
   final List<RoadmapPhaseDraft> phases;
@@ -111,6 +124,23 @@ class PhysiqueRoadmapProposal {
   /// was unusable.
   final DietPhase? requestedDirection;
   final bool wasCoerced;
+
+  /// Weeks the analysis asked the roadmap to cover.
+  final int horizonWeeks;
+
+  int get totalWeeks => phases.fold(0, (sum, p) => sum + p.plannedWeeks);
+
+  /// True when the safe pace needs noticeably longer than the analysis said.
+  bool get extendedBeyondEstimate => totalWeeks > horizonWeeks + 1;
+
+  /// Where the last phase ends; null when no phase carries a weight.
+  double? get finalWeightKg {
+    for (final p in phases.reversed) {
+      final kg = p.targetWeightKg;
+      if (kg != null) return kg;
+    }
+    return null;
+  }
 }
 
 /// Deterministic multi-phase roadmap proposal (D-01). The user edits the
@@ -122,6 +152,10 @@ abstract final class PhysiqueRoadmapGenerator {
   static const _cutFollowOnThresholdWeeks = 12;
   static const _bulkFollowOnThresholdWeeks = 16;
   static const _defaultBulkShare = 0.05;
+
+  /// [ASSUMED] Lean gain above this multiple of what maingain can deliver in
+  /// the time left switches the build phase to a bulk.
+  static const _bulkOverMaingainRatio = 1.25;
 
   static double _round1(double v) => (v * 10).round() / 10;
 
@@ -149,16 +183,18 @@ abstract final class PhysiqueRoadmapGenerator {
     );
     if (decision == null) {
       return PhysiqueRoadmapProposal(
-        phases: const [
+        phases: [
           RoadmapPhaseDraft(
             phase: DietPhase.maintain,
             plannedWeeks: _maintainOnlyWeeks,
+            targetWeightKg: input.weightKg > 0 ? _round1(input.weightKg) : null,
             weeklyRateKg: 0,
           ),
         ],
         eligibility: eligibility,
         requestedDirection: null,
         wasCoerced: false,
+        horizonWeeks: _maintainOnlyWeeks,
       );
     }
 
@@ -169,28 +205,147 @@ abstract final class PhysiqueRoadmapGenerator {
     );
     final firstDraft = _firstPhase(first, input, eligibility, horizon);
     final phases = <RoadmapPhaseDraft>[firstDraft];
-
-    if (first == DietPhase.cut &&
-        firstDraft.plannedWeeks >= _cutFollowOnThresholdWeeks) {
-      phases.add(_maintainAfter(firstDraft, input.weightKg));
-      final remaining =
-          horizon - firstDraft.plannedWeeks - _maintainFollowOnWeeks;
-      if (remaining >= _holdPhaseMinWeeks &&
-          eligibility.allows(DietPhase.maingain)) {
-        final start = firstDraft.targetWeightKg ?? input.weightKg;
-        final weeks = _holdWeeks(remaining);
-        phases.add(_maingain(start, weeks, input, eligibility));
-      }
-    } else if (first == DietPhase.bulk &&
-        firstDraft.plannedWeeks >= _bulkFollowOnThresholdWeeks) {
-      phases.add(_maintainAfter(firstDraft, input.weightKg));
-    }
+    _coverHorizon(phases, first, input, eligibility, horizon);
 
     return PhysiqueRoadmapProposal(
       phases: List.unmodifiable(phases),
       eligibility: eligibility,
       requestedDirection: decision.phase,
       wasCoerced: first != decision.phase,
+      horizonWeeks: horizon,
+    );
+  }
+
+  static int _weeksOf(List<RoadmapPhaseDraft> phases) =>
+      phases.fold(0, (sum, p) => sum + p.plannedWeeks);
+
+  /// Appends follow-on phases until the roadmap spans [horizon] weeks.
+  ///
+  /// A cut or bulk is followed by a short maintain, then by a build phase
+  /// (maingain, or a bulk when the lean gain is too big for maingain pace)
+  /// for the rest of the time. Leftovers under a build phase become a
+  /// closing maintain. The pace is never raised to fit: a goal that needs
+  /// longer than the analysis said simply makes the roadmap longer.
+  static void _coverHorizon(
+    List<RoadmapPhaseDraft> phases,
+    DietPhase first,
+    PhysiqueRoadmapInput input,
+    PhaseEligibility eligibility,
+    int horizon,
+  ) {
+    final firstDraft = phases.first;
+    if (first == DietPhase.maintain) return;
+
+    if (first == DietPhase.cut || first == DietPhase.bulk) {
+      final threshold = first == DietPhase.cut
+          ? _cutFollowOnThresholdWeeks
+          : _bulkFollowOnThresholdWeeks;
+      final roomForBuild =
+          horizon - firstDraft.plannedWeeks - _maintainFollowOnWeeks >=
+          _holdPhaseMinWeeks;
+      if (firstDraft.plannedWeeks >= threshold || roomForBuild) {
+        phases.add(_maintainAfter(firstDraft, input.weightKg));
+      }
+    }
+
+    var guard = 0;
+    var remaining = horizon - _weeksOf(phases);
+    while (remaining >= PhysiqueTuning.minPhaseWeeks && guard++ < 3) {
+      final start = phases.last.targetWeightKg ?? _round1(input.weightKg);
+      final RoadmapPhaseDraft next;
+      if (remaining >= _holdPhaseMinWeeks) {
+        next = _buildPhase(start, remaining, first, input, eligibility);
+      } else if (phases.last.phase != DietPhase.maintain) {
+        next = _holdAt(start, remaining);
+      } else {
+        // Too little left for a phase of its own, and a maintain is already
+        // last: two in a row would only be noise.
+        break;
+      }
+      phases.add(next);
+      remaining -= next.plannedWeeks;
+    }
+  }
+
+  static RoadmapPhaseDraft _holdAt(double weightKg, int weeks) =>
+      RoadmapPhaseDraft(
+        phase: DietPhase.maintain,
+        plannedWeeks: _weeks(weeks),
+        targetWeightKg: weightKg,
+        weeklyRateKg: 0,
+      );
+
+  /// The phase that adds muscle after the first one. Maingain by default; a
+  /// bulk when the expected lean gain is well above what maingain can deliver
+  /// in the time left. Falls back to a maintain hold when maingain is not
+  /// allowed.
+  static RoadmapPhaseDraft _buildPhase(
+    double startWeight,
+    int remainingWeeks,
+    DietPhase first,
+    PhysiqueRoadmapInput input,
+    PhaseEligibility eligibility,
+  ) {
+    final lean = input.leanGainKg;
+    if (first == DietPhase.cut &&
+        lean != null &&
+        lean > 0 &&
+        eligibility.allows(DietPhase.bulk)) {
+      final maingainWeekly = PhysiqueTempoPolicy.weeklyKg(
+        phase: DietPhase.maingain,
+        bodyweightKg: startWeight,
+        maintenanceKcal: input.maintenanceKcal,
+        maxDeltaKcalCap: eligibility.maxMaingainDeltaKcal,
+      );
+      if (lean > maingainWeekly * remainingWeeks * _bulkOverMaingainRatio) {
+        return _paced(DietPhase.bulk, startWeight, lean, input);
+      }
+    }
+    if (eligibility.allows(DietPhase.maingain)) {
+      return _maingain(
+        startWeight,
+        _holdWeeks(remainingWeeks),
+        input,
+        eligibility,
+      );
+    }
+    return _holdAt(startWeight, _holdWeeks(remainingWeeks));
+  }
+
+  /// A cut or bulk that moves [deltaKg] at the safe pace. The recorded rate is
+  /// slower than the preset when [deltaKg] does not fill a whole number of
+  /// weeks, so the target lands on [deltaKg] and re-targeting leaves it alone.
+  static RoadmapPhaseDraft _paced(
+    DietPhase phase,
+    double startWeight,
+    double deltaKg,
+    PhysiqueRoadmapInput input, {
+    double? targetBf,
+  }) {
+    final isCut = phase == DietPhase.cut;
+    final weekly = PhysiqueTempoPolicy.weeklyKg(
+      phase: phase,
+      bodyweightKg: startWeight,
+      maintenanceKcal: input.maintenanceKcal,
+    );
+    final weeks = _weeks(
+      PhysiqueTempoPolicy.plannedWeeks(deltaKg: deltaKg, weeklyKg: weekly),
+    );
+    final moved = math.min(deltaKg, weekly * weeks);
+    final fullPace = moved >= weekly * weeks - 1e-9;
+    return RoadmapPhaseDraft(
+      phase: phase,
+      plannedWeeks: weeks,
+      targetWeightKg: _round1(
+        isCut ? startWeight - moved : startWeight + moved,
+      ),
+      targetBfPercent: isCut ? targetBf : null,
+      weeklyRateKg: fullPace ? weekly : moved / weeks,
+      tempoCapped: PhysiqueTempoPolicy.isCapped(
+        phase: phase,
+        bodyweightKg: startWeight,
+        maintenanceKcal: input.maintenanceKcal,
+      ),
     );
   }
 
@@ -200,7 +355,7 @@ abstract final class PhysiqueRoadmapGenerator {
   ) => RoadmapPhaseDraft(
     phase: DietPhase.maintain,
     plannedWeeks: _maintainFollowOnWeeks,
-    targetWeightKg: previous.targetWeightKg ?? fallbackWeight,
+    targetWeightKg: previous.targetWeightKg ?? _round1(fallbackWeight),
     weeklyRateKg: 0,
   );
 
@@ -243,8 +398,11 @@ abstract final class PhysiqueRoadmapGenerator {
       case DietPhase.bulk:
         final isCut = phase == DietPhase.cut;
         final change = input.plannedWeightChangeKg;
+        final fat = input.fatLossKg;
         final deltaKg = isCut
-            ? (change < 0
+            ? (fat != null && fat > 0
+                  ? fat
+                  : change < 0
                   ? -change
                   : math.max(
                       0.0,
@@ -253,26 +411,12 @@ abstract final class PhysiqueRoadmapGenerator {
                           100,
                     ))
             : (change > 0 ? change : w * _defaultBulkShare);
-        final weekly = PhysiqueTempoPolicy.weeklyKg(
-          phase: phase,
-          bodyweightKg: w,
-          maintenanceKcal: input.maintenanceKcal,
-        );
-        final weeks = _weeks(
-          PhysiqueTempoPolicy.plannedWeeks(deltaKg: deltaKg, weeklyKg: weekly),
-        );
-        final moved = math.min(deltaKg, weekly * weeks);
-        return RoadmapPhaseDraft(
-          phase: phase,
-          plannedWeeks: weeks,
-          targetWeightKg: _round1(isCut ? w - moved : w + moved),
-          targetBfPercent: isCut ? input.targetBfPercent : null,
-          weeklyRateKg: weekly,
-          tempoCapped: PhysiqueTempoPolicy.isCapped(
-            phase: phase,
-            bodyweightKg: w,
-            maintenanceKcal: input.maintenanceKcal,
-          ),
+        return _paced(
+          phase,
+          w,
+          deltaKg,
+          input,
+          targetBf: input.targetBfPercent,
         );
       case DietPhase.maingain:
         return _maingain(w, _holdWeeks(horizon), input, eligibility);
@@ -280,13 +424,15 @@ abstract final class PhysiqueRoadmapGenerator {
         return RoadmapPhaseDraft(
           phase: DietPhase.recomp,
           plannedWeeks: _holdWeeks(horizon),
+          targetWeightKg: _round1(w),
           targetBfPercent: input.targetBfPercent,
           weeklyRateKg: 0,
         );
       case DietPhase.maintain:
-        return const RoadmapPhaseDraft(
+        return RoadmapPhaseDraft(
           phase: DietPhase.maintain,
           plannedWeeks: _maintainOnlyWeeks,
+          targetWeightKg: _round1(w),
           weeklyRateKg: 0,
         );
     }

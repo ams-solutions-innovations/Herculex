@@ -62,7 +62,17 @@ class _RoadmapEditorSheetState extends ConsumerState<RoadmapEditorSheet> {
     return DietPhase.maintain;
   }
 
+  /// Whole weeks the running phase has already been going; 0 for a proposal.
+  int _elapsedWeeks = 0;
+  DietPhase? _elapsedPhase;
+
   void _init(List<PhysiqueRoadmapPhaseData> rows) {
+    final open = rows.where((r) => r.status != 'done').firstOrNull;
+    final startedAt = open?.status == 'current' ? open?.startedAt : null;
+    _elapsedPhase = open == null ? null : _phaseOf(open.phaseType);
+    _elapsedWeeks = startedAt == null
+        ? 0
+        : ref.read(clockProvider).now().difference(startedAt).inDays ~/ 7;
     final drafts = [
       for (final r in rows)
         if (r.status != 'done')
@@ -170,6 +180,11 @@ class _RoadmapEditorSheetState extends ConsumerState<RoadmapEditorSheet> {
             ref.read(maintenanceKcalProvider) ??
             PhysiqueTuning.defaultMaintenanceKcal,
         eligibility: ref.read(physiqueRoadmapEligibilityProvider(goal.id)),
+        // The repository keeps the running phase's start only when the first
+        // draft is still that phase, so the elapsed time applies only then.
+        firstPhaseElapsedWeeks: drafts.first.phase == _elapsedPhase
+            ? _elapsedWeeks
+            : 0,
       );
     }
     try {
