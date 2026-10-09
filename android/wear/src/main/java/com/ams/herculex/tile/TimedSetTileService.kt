@@ -109,7 +109,7 @@ class TimedSetTileService : HxTileService("1") {
             )
             .setFontStyle(
                 LayoutElementBuilders.FontStyle.Builder().setSize(DimensionBuilders.sp(44f)).setColor(HxTile.White)
-                    .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD).setSettings(LayoutElementBuilders.FontSetting.tnum()).build()
+                    .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD).setSettings(LayoutElementBuilders.FontSetting.tabularNum()).build()
             ).build()
         // sweep: arc length follows elapsed seconds (verify clamp; the 2nd entry pins it at 360 once reached)
         val sweep = if (reached) HxTile.animDegrees(360f, 360f)

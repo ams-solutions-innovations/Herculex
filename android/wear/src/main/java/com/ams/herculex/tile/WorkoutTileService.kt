@@ -16,11 +16,12 @@ import com.ams.herculex.workout.WorkoutStore
  */
 class WorkoutTileService : HxTileService("4") {
 
-    override val freshnessMs = 30 * 60 * 1000L // "today" rolls over at midnight
+    override val freshnessMs = 30 * 60 * 1000L // keep the resume/start state fresh
 
     override fun layout(params: RequestBuilders.TileRequest): LayoutElement {
         val workouts = WorkoutStore.getWorkouts(this)
-        val today = WorkoutStore.getToday(this)
+        // The watch has no schedule; the first synced template is the primary action (as in v1).
+        val primary = workouts.firstOrNull()
         val resume = WorkoutStore.getActiveSessionJson(this) != null
         val w = params.deviceConfiguration.screenWidthDp.toFloat()
         val bigW = w * 0.78f
@@ -38,12 +39,12 @@ class WorkoutTileService : HxTileService("4") {
             items += HxTile.pill(bigW, 50f, HxTile.Emerald, "ic_hx_play", "Resume Workout", "In progress",
                 clickable = HxTile.launch(this, "tile_resume", "active_workout")).enter(1)
         } else {
-            if (today != null) {
-                items += HxTile.pill(bigW, 50f, HxTile.RoyalBlue, "ic_hx_play", today.title,
-                    "Today \u00B7 ${today.workout.exercises.size} exercises",
-                    clickable = HxTile.launch(this, "tile_today", "start_workout/${today.workout.id}")).enter(1)
+            if (primary != null) {
+                items += HxTile.pill(bigW, 50f, HxTile.RoyalBlue, "ic_hx_play", primary.name,
+                    "${primary.exercises.size} exercises",
+                    clickable = HxTile.launch(this, "tile_primary", "start_workout/${primary.id}")).enter(1)
             }
-            workouts.filter { it.id != today?.workout?.id }.take(if (today != null) 2 else 3)
+            workouts.filter { it.id != primary?.id }.take(if (primary != null) 2 else 3)
                 .forEachIndexed { i, wo ->
                     items += HxTile.spacer(4f)
                     items += HxTile.pill(smallW, 36f, HxTile.SlateNavy, "ic_hx_dumbbell", wo.name,

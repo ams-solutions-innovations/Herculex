@@ -12,7 +12,7 @@ import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
 import androidx.wear.protolayout.ModifiersBuilders
 import androidx.wear.protolayout.expression.AnimationParameterBuilders.AnimationParameters
 import androidx.wear.protolayout.expression.AnimationParameterBuilders.AnimationSpec
-import androidx.wear.protolayout.expression.AnimationParameterBuilders.CubicBezierEasing
+import androidx.wear.protolayout.expression.AnimationParameterBuilders.Easing
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicFloat
 import com.ams.herculex.MainActivity
 
@@ -50,11 +50,11 @@ object HxTile {
     const val RING_DP = 7.5f
 
     // ── Motion ──────────────────────────────────────────────────────
-    private val emphasized = CubicBezierEasing.Builder().setX1(0.215f).setY1(0.61f).setX2(0.355f).setY2(1f).build()
+    private val emphasized = Easing.cubicBezier(0.215f, 0.61f, 0.355f, 1f)
 
     fun spec(ms: Int, delayMs: Int = 0): AnimationSpec =
         AnimationSpec.Builder().setAnimationParameters(
-            AnimationParameters.Builder().setDurationMillis(ms).setDelayMillis(delayMs).setEasing(emphasized).build()
+            AnimationParameters.Builder().setDurationMillis(ms.toLong()).setDelayMillis(delayMs.toLong()).setEasing(emphasized).build()
         ).build()
 
     /** Static value is the END state, so hosts without animation support still draw a correct tile. */
@@ -138,7 +138,7 @@ object HxTile {
             LayoutElementBuilders.FontStyle.Builder()
                 .setSize(DimensionBuilders.sp(sp)).setColor(color)
                 .setWeight(if (bold) LayoutElementBuilders.FONT_WEIGHT_BOLD else LayoutElementBuilders.FONT_WEIGHT_NORMAL)
-                .also { if (tabular) it.setSettings(LayoutElementBuilders.FontSetting.tnum()) }
+                .also { if (tabular) it.setSettings(LayoutElementBuilders.FontSetting.tabularNum()) }
                 .also { if (caps) it.setLetterSpacing(DimensionBuilders.em(0.1f)) }
                 .build()
         ).build()
@@ -176,7 +176,7 @@ object HxTile {
             .setFontStyle(
                 LayoutElementBuilders.FontStyle.Builder().setSize(DimensionBuilders.sp(sp)).setColor(color)
                     .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD)
-                    .setSettings(LayoutElementBuilders.FontSetting.tnum()).build()
+                    .setSettings(LayoutElementBuilders.FontSetting.tabularNum()).build()
             ).build()
 
     // ── Pill (same anatomy as OneUiPill) ────────────────────────────
