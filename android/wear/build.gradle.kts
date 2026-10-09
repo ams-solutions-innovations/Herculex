@@ -98,8 +98,12 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
 
     // Tiles
-    implementation("androidx.wear.tiles:tiles:1.3.0")
-    implementation("androidx.wear.tiles:tiles-material:1.3.0")
+    // Tiles v2 animations (DynamicFloat.animate, dynamic ArcLine) need ProtoLayout 1.2+.
+    implementation("androidx.wear.tiles:tiles:1.4.1")
+    implementation("androidx.wear.tiles:tiles-material:1.4.1")
+    implementation("androidx.wear.protolayout:protolayout:1.2.1")
+    implementation("androidx.wear.protolayout:protolayout-expression:1.2.1")
+    implementation("androidx.wear.protolayout:protolayout-material:1.2.1")
 
     // Horologist for better Wear OS Compose support
     implementation("com.google.android.horologist:horologist-compose-layout:0.5.18")

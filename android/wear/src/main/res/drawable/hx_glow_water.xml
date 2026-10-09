@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Soft domain glow on OLED black: one cool pool at the top, one at the bottom. Verify the host rasterises it; fall back to a pre-rendered PNG if not. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="rectangle"><solid android:color="#FF000000" /></shape></item>
+    <item><shape android:shape="rectangle"><gradient android:type="radial" android:centerX="0.5" android:centerY="0.0" android:gradientRadius="70%p" android:startColor="#2442A5F5" android:endColor="#00000000" /></shape></item>
+    <item><shape android:shape="rectangle"><gradient android:type="radial" android:centerX="0.5" android:centerY="1.0" android:gradientRadius="80%p" android:startColor="#3380DEEA" android:endColor="#00000000" /></shape></item>
+</layer-list>

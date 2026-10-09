@@ -1,244 +1,64 @@
 package com.ams.herculex.tile
 
-import android.content.Context
-import androidx.wear.protolayout.ActionBuilders
-import androidx.wear.protolayout.ColorBuilders
-import androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters
 import androidx.wear.protolayout.DimensionBuilders
 import androidx.wear.protolayout.LayoutElementBuilders
-import androidx.wear.protolayout.ModifiersBuilders
-import androidx.wear.protolayout.ResourceBuilders
-import androidx.wear.protolayout.ResourceBuilders.Resources
-import androidx.wear.protolayout.TimelineBuilders
-import androidx.wear.protolayout.material.Chip
-import androidx.wear.protolayout.material.ChipColors
-import androidx.wear.protolayout.material.CompactChip
-import androidx.wear.protolayout.material.Text
-import androidx.wear.protolayout.material.Typography
-import androidx.wear.protolayout.material.layouts.PrimaryLayout
+import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
 import androidx.wear.tiles.RequestBuilders
-import androidx.wear.tiles.TileBuilders
-import com.ams.herculex.MainActivity
-import com.ams.herculex.R
+import com.ams.herculex.tile.kit.HxTile
+import com.ams.herculex.tile.kit.HxTile.enter
+import com.ams.herculex.tile.kit.HxTileService
 import com.ams.herculex.workout.WorkoutStore
-import com.google.android.horologist.annotations.ExperimentalHorologistApi
-import com.google.android.horologist.tiles.SuspendingTileService
 
-@OptIn(ExperimentalHorologistApi::class)
-class WorkoutTileService : SuspendingTileService() {
+/**
+ * Workout quick-start v2. Same data and routes as before; pills are rebuilt
+ * on the shared kit (HxIcons instead of emoji / "▶" text, OneUiPill
+ * proportions) and enter with a stagger. No bezel: this tile is all actions.
+ */
+class WorkoutTileService : HxTileService("4") {
 
-    companion object {
-        private const val RESOURCES_VERSION = "3"
-        private const val ID_IMAGE_LOGO = "ic_tile_logo"
+    override val freshnessMs = 30 * 60 * 1000L // keep the resume/start state fresh
 
-        // Herculex One UI Color Palette
-        private val COLOR_PRIMARY_BLUE = ColorBuilders.argb(0xFF1E44AA.toInt())    // Royal Blue container
-        private val COLOR_ACCENT_BLUE  = ColorBuilders.argb(0xFF42A5F5.toInt())    // Brand Light Blue
-        private val COLOR_SLATE_NAVY   = ColorBuilders.argb(0xFF202636.toInt())    // Slate Navy container
-        private val COLOR_SLATE_BORDER = ColorBuilders.argb(0xFF323B52.toInt())    // Slate border
-        private val COLOR_TEXT_WHITE   = ColorBuilders.argb(0xFFFFFFFF.toInt())    // White text
-        private val COLOR_TEXT_MUTED   = ColorBuilders.argb(0xFFA0AABF.toInt())    // Muted slate text
-        private val COLOR_TEXT_BLUE    = ColorBuilders.argb(0xFFBBDEFB.toInt())    // Soft blue text
-        private val COLOR_ACTIVE_GREEN = ColorBuilders.argb(0xFF1B4D3E.toInt())    // Emerald Green container
-        private val COLOR_TEXT_GREEN   = ColorBuilders.argb(0xFFA5D6A7.toInt())    // Soft green text
-    }
-
-    override suspend fun resourcesRequest(requestParams: RequestBuilders.ResourcesRequest): Resources {
-        return Resources.Builder()
-            .setVersion(requestParams.version)
-            .addIdToImageMapping(
-                ID_IMAGE_LOGO,
-                ResourceBuilders.ImageResource.Builder()
-                    .setAndroidResourceByResId(
-                        ResourceBuilders.AndroidImageResourceByResId.Builder()
-                            .setResourceId(R.drawable.ic_tile_logo)
-                            .build()
-                    )
-                    .build()
-            )
-            .build()
-    }
-
-    override suspend fun tileRequest(requestParams: RequestBuilders.TileRequest): TileBuilders.Tile {
-        val singleTimelineEntry = TimelineBuilders.TimelineEntry.Builder()
-            .setLayout(
-                LayoutElementBuilders.Layout.Builder()
-                    .setRoot(tileLayout(requestParams.deviceConfiguration))
-                    .build()
-            )
-            .build()
-
-        return TileBuilders.Tile.Builder()
-            .setResourcesVersion(RESOURCES_VERSION)
-            .setTileTimeline(
-                TimelineBuilders.Timeline.Builder()
-                    .addTimelineEntry(singleTimelineEntry)
-                    .build()
-            )
-            .build()
-    }
-
-    private fun buildLaunchClickable(route: String): ModifiersBuilders.Clickable {
-        return ModifiersBuilders.Clickable.Builder()
-            .setOnClick(
-                ActionBuilders.LaunchAction.Builder()
-                    .setAndroidActivity(
-                        ActionBuilders.AndroidActivity.Builder()
-                            .setPackageName(packageName)
-                            .setClassName(MainActivity::class.java.name)
-                            .addKeyToExtraMapping("route", ActionBuilders.stringExtra(route))
-                            .build()
-                    )
-                    .build()
-            )
-            .build()
-    }
-
-    private fun tileLayout(deviceParameters: DeviceParameters): LayoutElementBuilders.LayoutElement {
+    override fun layout(params: RequestBuilders.TileRequest): LayoutElement {
         val workouts = WorkoutStore.getWorkouts(this)
-        val hasActiveSession = WorkoutStore.getActiveSessionJson(this) != null
+        // The watch has no schedule; the first synced template is the primary action (as in v1).
+        val primary = workouts.firstOrNull()
+        val resume = WorkoutStore.getActiveSessionJson(this) != null
+        val w = params.deviceConfiguration.screenWidthDp.toFloat()
+        val bigW = w * 0.78f
+        val smallW = w * 0.74f
 
-        // 1. Top Header: "HERCULEX"
-        val headerTitle = Text.Builder(this, "HERCULEX")
-            .setTypography(Typography.TYPOGRAPHY_CAPTION1)
-            .setColor(COLOR_ACCENT_BLUE)
-            .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD)
-            .build()
+        val items = mutableListOf<LayoutElement>(
+            LayoutElementBuilders.Row.Builder().setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+                .addContent(HxTile.icon("ic_hx_dumbbell", 12f, HxTile.Workout.accent))
+                .addContent(HxTile.hSpacer(4f))
+                .addContent(HxTile.text("Herculex", 10f, HxTile.Workout.accent, bold = true, caps = true)).build().enter(0),
+            HxTile.spacer(4f),
+        )
 
-        val contentColumn = LayoutElementBuilders.Column.Builder()
-            .setWidth(DimensionBuilders.expand())
-            .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-
-        if (hasActiveSession) {
-            // Active workout chip (Emerald green)
-            val resumeClickable = buildLaunchClickable("active_workout")
-            val resumeChip = Chip.Builder(this, resumeClickable, deviceParameters)
-                .setPrimaryLabelContent("Resume Workout")
-                .setSecondaryLabelContent("In Progress")
-                .setChipColors(
-                    ChipColors(
-                        COLOR_ACTIVE_GREEN,
-                        COLOR_TEXT_WHITE,
-                        COLOR_TEXT_WHITE,
-                        COLOR_TEXT_GREEN
-                    )
-                )
-                .setWidth(DimensionBuilders.expand())
-                .build()
-
-            contentColumn.addContent(resumeChip)
-            contentColumn.addContent(
-                LayoutElementBuilders.Spacer.Builder().setHeight(DimensionBuilders.dp(6f)).build()
-            )
-
-            // Quick workout pill
-            val quickClickable = buildLaunchClickable("quick_workout")
-            val quickChip = Chip.Builder(this, quickClickable, deviceParameters)
-                .setPrimaryLabelContent("Quick Workout")
-                .setChipColors(
-                    ChipColors(
-                        COLOR_PRIMARY_BLUE,
-                        COLOR_TEXT_WHITE,
-                        COLOR_TEXT_WHITE,
-                        COLOR_TEXT_BLUE
-                    )
-                )
-                .setWidth(DimensionBuilders.expand())
-                .build()
-
-            contentColumn.addContent(quickChip)
+        if (resume) {
+            items += HxTile.pill(bigW, 50f, HxTile.Emerald, "ic_hx_play", "Resume Workout", "In progress",
+                clickable = HxTile.launch(this, "tile_resume", "active_workout")).enter(1)
         } else {
-            // 1. Primary Action Pill: "Quick Workout"
-            val quickWorkoutClickable = buildLaunchClickable("quick_workout")
-            val quickWorkoutChip = Chip.Builder(this, quickWorkoutClickable, deviceParameters)
-                .setPrimaryLabelContent("Quick Workout")
-                .setSecondaryLabelContent("Start empty session")
-                .setChipColors(
-                    ChipColors(
-                        COLOR_PRIMARY_BLUE,
-                        COLOR_TEXT_WHITE,
-                        COLOR_TEXT_WHITE,
-                        COLOR_TEXT_BLUE
-                    )
-                )
-                .setWidth(DimensionBuilders.expand())
-                .build()
-
-            contentColumn.addContent(quickWorkoutChip)
-            contentColumn.addContent(
-                LayoutElementBuilders.Spacer.Builder().setHeight(DimensionBuilders.dp(6f)).build()
-            )
-
-            // 2. Secondary Action Pill: First Routine / Template or "Open Routines"
-            val primaryTemplate = workouts.firstOrNull()
-            if (primaryTemplate != null) {
-                val templateClickable = buildLaunchClickable("workout_detail/${primaryTemplate.id}")
-                val templateChip = Chip.Builder(this, templateClickable, deviceParameters)
-                    .setPrimaryLabelContent(primaryTemplate.name)
-                    .setSecondaryLabelContent("${primaryTemplate.exercises.size} exercises • Routine")
-                    .setChipColors(
-                        ChipColors(
-                            COLOR_SLATE_NAVY,
-                            COLOR_TEXT_WHITE,
-                            COLOR_TEXT_WHITE,
-                            COLOR_TEXT_MUTED
-                        )
-                    )
-                    .setWidth(DimensionBuilders.expand())
-                    .build()
-
-                contentColumn.addContent(templateChip)
-            } else {
-                val routinesClickable = buildLaunchClickable("workout_list")
-                val routinesChip = Chip.Builder(this, routinesClickable, deviceParameters)
-                    .setPrimaryLabelContent("Open Routines")
-                    .setSecondaryLabelContent("Browse workout plans")
-                    .setChipColors(
-                        ChipColors(
-                            COLOR_SLATE_NAVY,
-                            COLOR_TEXT_WHITE,
-                            COLOR_TEXT_WHITE,
-                            COLOR_TEXT_MUTED
-                        )
-                    )
-                    .setWidth(DimensionBuilders.expand())
-                    .build()
-
-                contentColumn.addContent(routinesChip)
+            if (primary != null) {
+                items += HxTile.pill(bigW, 50f, HxTile.RoyalBlue, "ic_hx_play", primary.name,
+                    "${primary.exercises.size} exercises",
+                    clickable = HxTile.launch(this, "tile_primary", "start_workout/${primary.id}")).enter(1)
             }
+            workouts.filter { it.id != primary?.id }.take(if (primary != null) 2 else 3)
+                .forEachIndexed { i, wo ->
+                    items += HxTile.spacer(4f)
+                    items += HxTile.pill(smallW, 36f, HxTile.SlateNavy, "ic_hx_dumbbell", wo.name,
+                        "${wo.exercises.size} exercises",
+                        clickable = HxTile.launch(this, "tile_w_${wo.id}", "start_workout/${wo.id}")).enter(2 + i)
+                }
         }
+        items += HxTile.spacer(6f)
+        items += LayoutElementBuilders.Row.Builder().setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+            .setModifiers(androidx.wear.protolayout.ModifiersBuilders.Modifiers.Builder()
+                .setClickable(HxTile.launch(this, "tile_all", "workout_list")).build())
+            .addContent(HxTile.text("All Workouts (${workouts.size})", 10.5f, HxTile.Muted, bold = true))
+            .addContent(HxTile.icon("ic_hx_chevron", 11f, HxTile.Muted)).build().enter(4)
 
-        val centeredContent = LayoutElementBuilders.Box.Builder()
-            .setWidth(DimensionBuilders.expand())
-            .setHeight(DimensionBuilders.expand())
-            .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-            .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
-            .addContent(contentColumn.build())
-            .build()
-
-        // Bottom chip for "All Routines" if multiple workouts exist
-        val layoutBuilder = PrimaryLayout.Builder(deviceParameters)
-            .setPrimaryLabelTextContent(headerTitle)
-            .setContent(centeredContent)
-
-        if (workouts.size > 1 && !hasActiveSession) {
-            val allRoutinesClickable = buildLaunchClickable("workout_list")
-            val allRoutinesChip = CompactChip.Builder(
-                this,
-                "All Routines (${workouts.size})",
-                allRoutinesClickable,
-                deviceParameters
-            ).setChipColors(
-                ChipColors(
-                    COLOR_SLATE_NAVY,
-                    COLOR_TEXT_WHITE,
-                    COLOR_TEXT_WHITE,
-                    COLOR_TEXT_MUTED
-                )
-            ).build()
-            layoutBuilder.setPrimaryChipContent(allRoutinesChip)
-        }
-
-        return layoutBuilder.build()
+        return HxTile.face(HxTile.Workout.glowRes, emptyList(), HxTile.column(*items.toTypedArray()))
     }
 }

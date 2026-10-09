@@ -229,6 +229,7 @@ fun SetLoggerScreen(
 
     var isTimerRunning by remember(exerciseIndex, plannedOrCurrentSet?.wireId) { mutableStateOf(false) }
     var timerElapsedSeconds by remember(exerciseIndex, plannedOrCurrentSet?.wireId) { mutableIntStateOf(0) }
+    var rowedMeters by remember(exerciseIndex, plannedOrCurrentSet?.wireId) { mutableIntStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
 
@@ -237,10 +238,6 @@ fun SetLoggerScreen(
             while (isTimerRunning) {
                 delay(1000L)
                 timerElapsedSeconds += 1
-                val optIdx = durationOptions.indexOfFirst { it >= timerElapsedSeconds }
-                if (optIdx >= 0 && optIdx != durationState.selectedOption) {
-                    durationState.scrollToOption(optIdx)
-                }
             }
         }
     }
@@ -442,13 +439,12 @@ fun SetLoggerScreen(
                             val isExtraRepsMode = (setType.id == "myo_reps" || setType.id == "forced" || setType.id == "cheat") && activeExtraSet != null && !isEditingActivation
 
                             if (activeExtraSet != null && isExtraRepsMode) {
-                                ExtraRepsLogger(
+                                ExtraRepsScreen(
                                     exercise = exercise,
                                     exerciseIndex = exerciseIndex,
                                     setIndex = currentSetIdx,
                                     loggedSet = activeExtraSet,
                                     viewModel = viewModel,
-                                    isPageFocused = horizontalPagerState.currentPage == 0 && verticalPagerState.currentPage == 1,
                                     onEditActivation = { isEditingActivation = true },
                                     onFinishSet = {
                                         viewModel.finishExtraSet(exerciseIndex, currentSetIdx)
@@ -464,9 +460,55 @@ fun SetLoggerScreen(
                                 )
                             } else {
                                 // Page 0: Set Logger Screen
-                                Column(
+                                val accent = if (isTimeBased) (if (showsDistanceInWeightSlot) HxBlue else HxTeal) else HxBlue
+                                val sGroup = exercise.supersetGroup ?: exercise.template.supersetGroup
+                                val groupMembers = if (sGroup != null) {
+                                    s.exercises.withIndex().filter { (it.value.supersetGroup ?: it.value.template.supersetGroup) == sGroup }
+                                } else emptyList()
+                                val groupPos = groupMembers.indexOfFirst { it.index == exerciseIndex } + 1
+                                val thenName = if (groupMembers.size > 1 && groupPos > 0) {
+                                    groupMembers[groupPos % groupMembers.size].value.template.name.substringBefore("(").trim()
+                                } else null
+                                val hasNext = exerciseIndex < s.exercises.size - 1
+                                val warmDone = exercise.sets.count { it.completed && it.isWarmup }
+                                val workDone = exercise.sets.count { it.completed && !it.isWarmup }
+                                val nextIsWarmup = setType.id == "warmup"
+                                val prevDistanceText = exercise.template.plannedSets
+                                    .firstOrNull { (it.targetDistanceMeters ?: 0.0) > 0 }
+                                    ?.targetDistanceMeters
+                                    ?.let { "%.0f".format(it) } ?: "0"
+                                val hintText = exercise.template.performanceHint
+                                    ?: when {
+                                        isTimeBased && isBodyweight -> "prev. ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
+                                        showsDistanceInWeightSlot -> "prev. ${prevDistanceText}m x ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
+                                        isTimeBased -> "prev. $prevWeight kg x ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
+                                        isBodyweight -> if (exercise.template.prevReps > 0) "prev. BW x ${exercise.template.prevReps}" else null
+                                        showsDistanceInValueSlot && exercise.template.hasRealWeightSlot() -> "prev. $prevWeight kg x ${prevDistanceText}m"
+                                        showsDistanceInValueSlot -> "prev. ${prevDistanceText}m"
+                                        exercise.template.prevWeight > 0 || exercise.template.prevReps > 0 -> "prev. $prevWeight kg x ${exercise.template.prevReps}"
+                                        else -> null
+                                    }
+                                val goPrev = {
+                                    if (exerciseIndex > 0) {
+                                        exerciseIndex -= 1
+                                        viewModel.selectExerciseInSession(exerciseIndex)
+                                    } else {
+                                        navController.popBackStack()
+                                    }
+                                }
+                                val goNext = {
+                                    if (hasNext) {
+                                        exerciseIndex += 1
+                                        viewModel.selectExerciseInSession(exerciseIndex)
+                                    }
+                                }
+                                Box(
                                     modifier = Modifier
                                         .fillMaxSize()
+                                        .domainGlow(
+                                            accent.copy(alpha = if (isTimeBased) 0.24f else 0.22f),
+                                            (if (groupMembers.isNotEmpty()) HxCyan else Color(0xFF1E44AA)).copy(alpha = 0.16f),
+                                        )
                                         .attachWorkoutSetPickerRotary(
                                             weightState = weightState,
                                             weightOptionsCount = weightOptions.size,
@@ -487,8 +529,67 @@ fun SetLoggerScreen(
                                                     RotaryTarget.DISTANCE -> userInteractedDistance = true
                                                 }
                                             },
-                                        )
-                                        .padding(top = 18.dp, bottom = 4.dp, start = 10.dp, end = 10.dp),
+                                        ),
+                                ) {
+                                if (isTimeBased) {
+                                    val numberIdx = exercise.sets.indexOfFirst { !it.completed }
+                                        .let { if (it >= 0) it else exercise.sets.size }
+                                    val timerRunning = isTimerRunning
+                                    TimedSetBody(
+                                        name = exercise.template.name.substringBefore("(").trim(),
+                                        setLabel = exercise.setNumberLabel(numberIdx, asWarmup = nextIsWarmup).substringBefore("/"),
+                                        dotsTotal = exercise.workingSetTotal,
+                                        dotsDone = workDone,
+                                        isBodyweight = isBodyweight,
+                                        isRow = showsDistanceInWeightSlot,
+                                        targetSeconds = selectedDuration,
+                                        elapsedSeconds = timerElapsedSeconds,
+                                        running = timerRunning,
+                                        targetMeters = selectedDistance,
+                                        rowedMeters = rowedMeters,
+                                        hint = hintText,
+                                        hasNext = hasNext,
+                                        onTargetStep = { d ->
+                                            val idx = (durationState.selectedOption + d).coerceIn(0, durationOptions.size - 1)
+                                            userInteractedDuration = true
+                                            coroutineScope.launch { durationState.scrollToOption(idx) }
+                                        },
+                                        onMetersStep = { d ->
+                                            if (timerRunning || timerElapsedSeconds > 0) {
+                                                rowedMeters = (rowedMeters + d * 100).coerceAtLeast(0)
+                                            } else {
+                                                val target = (selectedDistance + d * 100).coerceAtLeast(0)
+                                                val idx = distanceOptions.indexOfFirst { it >= target }
+                                                    .let { if (it >= 0) it else distanceOptions.lastIndex }
+                                                userInteractedDistance = true
+                                                coroutineScope.launch { distanceState.scrollToOption(idx) }
+                                            }
+                                        },
+                                        onPrimary = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            when {
+                                                timerRunning -> isTimerRunning = false
+                                                timerElapsedSeconds > 0 -> showRpeDialog = true
+                                                else -> {
+                                                    rowedMeters = 0
+                                                    isTimerRunning = true
+                                                }
+                                            }
+                                        },
+                                        onPrev = { goPrev() },
+                                        onNext = { goNext() },
+                                    )
+                                } else {
+                                SetBezel(
+                                    warmupTotal = exercise.warmupSetTotal,
+                                    workingTotal = exercise.workingSetTotal,
+                                    completed = if (nextIsWarmup) warmDone else exercise.warmupSetTotal + workDone,
+                                    accent = accent,
+                                )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(top = 30.dp, bottom = 4.dp, start = 16.dp, end = 16.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                 ) {
                                     // Header: Main exercise name and equipment variant on second line.
@@ -516,7 +617,7 @@ fun SetLoggerScreen(
                                             color = Color.White,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = mainNameFontSize,
-                                            maxLines = 2,
+                                            maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                             textAlign = TextAlign.Center,
                                         )
@@ -620,27 +721,8 @@ fun SetLoggerScreen(
                                                 )
                                                 Spacer(Modifier.height(1.dp))
                                             }
-                                            val indicatorChar = when (setType.id) {
-                                                "warmup" -> "W"
-                                                "drop" -> "D"
-                                                "forced" -> "F"
-                                                "cheat" -> "CR"
-                                                "rest_pause" -> "RP"
-                                                "myo_reps" -> "MY"
-                                                else -> if (setType.id != "standard") setType.label.take(1).uppercase() else ""
-                                            }
-                                            if (indicatorChar.isNotEmpty()) {
-                                                Text(
-                                                    indicatorChar,
-                                                    color = when (setType.id) {
-                                                        "myo_reps" -> Color(0xFF81C784)
-                                                        "forced" -> Color(0xFFE53935)
-                                                        "cheat" -> Color(0xFFFF7043)
-                                                        else -> Color(0xFFFFA726)
-                                                    },
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                )
+                                            if (setType.id != "standard") {
+                                                SetTypeBadge(setType.id, size = 26)
                                                 Spacer(Modifier.height(2.dp))
                                             }
                                             // Next set to log: the first open one, or a new
@@ -756,133 +838,64 @@ fun SetLoggerScreen(
                                         }
                                     }
                                     
-                                    // Start / Stop Timer button for time-based exercises
-                                    if (isTimeBased) {
-                                        val buttonBg = if (isTimerRunning) Color(0xFFC62828) else Color(0xFF00695C)
-                                        val buttonIcon = if (isTimerRunning) "⏹" else "▶"
-                                        val buttonLabel = if (isTimerRunning) "STOP (${formatDuration(timerElapsedSeconds)})" else "START TIMER"
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth(0.85f)
-                                                .background(buttonBg, shape = RoundedCornerShape(14.dp))
-                                                .clickable {
-                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                    if (!isTimerRunning) {
-                                                        timerElapsedSeconds = 0
-                                                        isTimerRunning = true
-                                                    } else {
-                                                        isTimerRunning = false
-                                                        val optIdx = durationOptions.indexOfFirst { it >= timerElapsedSeconds }
-                                                        if (optIdx >= 0) {
-                                                            coroutineScope.launch { durationState.scrollToOption(optIdx) }
-                                                        }
-                                                    }
-                                                }
-                                                .padding(vertical = 5.dp, horizontal = 8.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                            ) {
-                                                Text(buttonIcon, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                                Text(buttonLabel, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                            }
-                                        }
-                                    }
-
                                     Spacer(Modifier.height(4.dp))
 
-                                    // Set Type & Accessory Indicator & Prev Perf
+                                    // Chips (superset position, set type, accessory) + previous result
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        val tags = mutableListOf<String>()
-                                        val isSuperset = exercise.supersetGroup != null || exercise.template.supersetGroup != null
-                                        if (isSuperset) {
-                                            val sGroup = exercise.supersetGroup ?: exercise.template.supersetGroup
-                                            val gCount = s.exercises.count { (it.supersetGroup ?: it.template.supersetGroup) == sGroup }
-                                            tags.add(if (gCount == 2) "SUPERSET" else if (gCount == 3) "TRI-SET" else "GIANT SET")
+                                        if (groupMembers.size > 1) {
+                                            HxChip(
+                                                (if (groupMembers.size == 2) "SUPERSET" else if (groupMembers.size == 3) "TRI-SET" else "GIANT SET") +
+                                                    " $groupPos/${groupMembers.size}",
+                                                HxCyan,
+                                            )
                                         }
-                                        if (isBodyweight) tags.add("BW")
-                                        if (setType.id != "standard") {
-                                            tags.add(if (setType.id == "myo_reps") "Myo (Activation)" else setType.label)
+                                        if (setType.id != "standard" && setType.id != "warmup") {
+                                            HxChip(
+                                                (if (setType.id == "myo_reps") "Myo (Activation)" else setType.label).uppercase(),
+                                                setTypeStyle(setType.id).color,
+                                            )
                                         }
-                                        if (!selectedAccessory.isNullOrEmpty() && selectedAccessory != "None") tags.add(selectedAccessory!!)
-                                        
-                                        if (tags.isNotEmpty()) {
-                                            Text("[${tags.joinToString(" / ")}] ", color = Color(0xFF26C6DA), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                        val prevDistanceText = exercise.template.plannedSets
-                                            .firstOrNull { (it.targetDistanceMeters ?: 0.0) > 0 }
-                                            ?.targetDistanceMeters
-                                            ?.let { "%.0f".format(it) } ?: "0"
-                                        val hintText = exercise.template.performanceHint
-                                            ?: when {
-                                                isTimeBased && isBodyweight -> "prev. ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
-                                                showsDistanceInWeightSlot -> "prev. ${prevDistanceText}m x ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
-                                                isTimeBased -> "prev. $prevWeight kg x ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
-                                                isBodyweight -> if (exercise.template.prevReps > 0) "prev. BW x ${exercise.template.prevReps}" else null
-                                                showsDistanceInValueSlot && exercise.template.hasRealWeightSlot() -> "prev. $prevWeight kg x ${prevDistanceText}m"
-                                                showsDistanceInValueSlot -> "prev. ${prevDistanceText}m"
-                                                exercise.template.prevWeight > 0 || exercise.template.prevReps > 0 -> "prev. $prevWeight kg x ${exercise.template.prevReps}"
-                                                else -> null
-                                            }
-                                        if (hintText != null) {
-                                            Text(hintText, color = Color(0xFF757575), fontSize = 10.sp)
+                                        if (!selectedAccessory.isNullOrEmpty() && selectedAccessory != "None") {
+                                            HxChip(selectedAccessory!!.uppercase(), HxCyan)
                                         }
                                     }
-                                    
+                                    if (hintText != null) {
+                                        Text(hintText, color = HxMuted, fontSize = 9.sp, maxLines = 1)
+                                    }
+                                    if (thenName != null) {
+                                        Text("› Then · $thenName", color = HxCyan, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 24.dp))
+                                    }
                                     Spacer(Modifier.height(4.dp))
                                     
-                                    // Bottom Nav Buttons: Arced arrangement
+                                    // Bottom nav: ‹ prev exercise · OK · › next exercise
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(bottom = 4.dp),
+                                            .padding(bottom = 6.dp),
                                         horizontalArrangement = Arrangement.Center,
                                         verticalAlignment = Alignment.Bottom,
                                     ) {
                                         Box(modifier = Modifier.offset(y = (-10).dp)) {
-                                            NavCircleButton(
-                                                label = "‹",
-                                                bg = Color(0xFF2C2C2E),
-                                                size = 36,
-                                            ) {
-                                                if (exerciseIndex > 0) {
-                                                    exerciseIndex -= 1
-                                                    viewModel.selectExerciseInSession(exerciseIndex)
-                                                } else {
-                                                    navController.popBackStack()
-                                                }
-                                            }
+                                            NavCircleButton(label = "‹", bg = Color(0xFF2C2C2E), size = 34) { goPrev() }
                                         }
-                                        Spacer(Modifier.width(12.dp))
+                                        Spacer(Modifier.width(10.dp))
                                         NavCircleButton(
                                             label = "OK",
                                             bg = OneUiPillStyle.RoyalBlue.containerColor,
-                                            size = 44,
+                                            size = 40,
                                         ) {
                                             showRpeDialog = true
                                         }
-                                        Spacer(Modifier.width(12.dp))
-                                        val hasNext = exerciseIndex < s.exercises.size - 1
+                                        Spacer(Modifier.width(10.dp))
                                         Box(modifier = Modifier.offset(y = (-10).dp)) {
-                                            NavCircleButton(
-                                                label = "›",
-                                                bg = Color(0xFF2C2C2E),
-                                                size = 36,
-                                                enabled = hasNext,
-                                            ) {
-                                                if (hasNext) {
-                                                    exerciseIndex += 1
-                                                    viewModel.selectExerciseInSession(exerciseIndex)
-                                                }
-                                            }
+                                            NavCircleButton(label = "›", bg = Color(0xFF2C2C2E), size = 34, enabled = hasNext) { goNext() }
                                         }
                                     }
+                                }
+                                }
                                 }
                             }
                         }
@@ -927,7 +940,10 @@ fun SetLoggerScreen(
                         val isSel = setType.id == type.id
                         OneUiPill(
                             title = type.label,
-                            icon = if (isSel) "✓" else "•",
+                            iconComposable = { SetTypeBadge(type.id, selected = isSel, size = 38) },
+                            rightContent = if (isSel) {
+                                { OneUiPillTrailingIcon(HxIcons.Check, OneUiPillStyle.RoyalBlue) }
+                            } else null,
                             style = if (isSel) OneUiPillStyle.RoyalBlue else OneUiPillStyle.SlateNavy,
                             onClick = {
                                 if (setType.id != type.id) {
@@ -1034,10 +1050,14 @@ fun SetLoggerScreen(
             val rpeState = rememberPickerState(initialNumberOfOptions = rpeOptions.size, initiallySelectedOption = 14)
             val rpeFocus = remember { FocusRequester() }
             
+            val rpeNow = rpeOptions.getOrNull(rpeState.selectedOption) ?: 8.0
+            val rpeHeat = Math.pow(((rpeNow - 2.0) / 8.0).coerceIn(0.0, 1.0), 1.2).toFloat()
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
+                    .background(Color(0xFFC81414).copy(alpha = 0.22f * rpeHeat))
+                    .domainGlow(Color(0xFFFF3B30).copy(alpha = 0.85f * rpeHeat), Color(0xFFFF5A3C).copy(alpha = 0.4f * rpeHeat))
                     .padding(horizontal = 20.dp, vertical = 20.dp)
                     .attachPickerRotary(
                         pickerState = rpeState,
@@ -1088,7 +1108,11 @@ fun SetLoggerScreen(
                             weight = if (isBodyweight || showsDistanceInWeightSlot) 0.0 else selectedWeight,
                             reps = if (isTimeBased || showsDistanceInValueSlot) 0 else selectedReps,
                             durationSeconds = chosenDuration,
-                            distanceMeters = if (showsDistanceInWeightSlot || showsDistanceInValueSlot) selectedDistance.toDouble() else null,
+                            distanceMeters = when {
+                                showsDistanceInWeightSlot && rowedMeters > 0 -> rowedMeters.toDouble()
+                                showsDistanceInWeightSlot || showsDistanceInValueSlot -> selectedDistance.toDouble()
+                                else -> null
+                            },
                             rpe = rpeOptions[rpeState.selectedOption],
                             setType = setType.id,
                             accessory = selectedAccessory,
@@ -1111,251 +1135,7 @@ fun SetLoggerScreen(
 }
 
 @Composable
-private fun ExtraRepsLogger(
-    exercise: ActiveExercise,
-    exerciseIndex: Int,
-    setIndex: Int,
-    loggedSet: LoggedSet,
-    viewModel: WorkoutViewModel,
-    isPageFocused: Boolean,
-    onEditActivation: () -> Unit,
-    onFinishSet: () -> Unit,
-) {
-    val haptic = LocalHapticFeedback.current
-    val setType = loggedSet.setType
-    val isMyo = setType == "myo_reps"
-    val isForced = setType == "forced"
-    val isCheat = setType == "cheat"
-
-    val extraList = remember(loggedSet.setTypeMetaJson) {
-        if (isMyo) loggedSet.getMiniSets() else loggedSet.getExtraReps()
-    }
-    var repCount by remember { mutableIntStateOf(extraList.lastOrNull() ?: if (isMyo) 3 else 2) }
-    var restSecondsRemaining by remember { mutableIntStateOf(if (isMyo) 15 else 45) }
-    var isRestRunning by remember { mutableStateOf(false) }
-
-    LaunchedEffect(isRestRunning, restSecondsRemaining) {
-        if (isRestRunning && restSecondsRemaining > 0) {
-            delay(1_000)
-            restSecondsRemaining -= 1
-            if (restSecondsRemaining == 0) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            }
-        }
-    }
-
-    val listState = rememberScalingLazyListState()
-
-    val badgeTitle = when {
-        isMyo -> "MYO REPS"
-        isForced -> "FORCED REPS"
-        isCheat -> "CHEAT REPS"
-        else -> "EXTRA REPS"
-    }
-    val badgeColor = when {
-        isMyo -> Color(0xFF81C784)
-        isForced -> Color(0xFFE53935)
-        isCheat -> Color(0xFFFF7043)
-        else -> Color(0xFF26C6DA)
-    }
-    val chipLabel = when {
-        isMyo -> "mini"
-        isForced -> "forced"
-        isCheat -> "cheat"
-        else -> "extra"
-    }
-
-    ScalingLazyColumn(
-        state = listState,
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .attachRotaryScroll(
-                state = listState,
-                isFocused = isPageFocused,
-            ),
-        autoCentering = null,
-        contentPadding = PaddingValues(top = 16.dp, bottom = 28.dp, start = 12.dp, end = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        item {
-            val rawName = exercise.template.name
-            val mainName = if (rawName.contains("(")) rawName.substringBefore("(").trim() else rawName
-            val mainNameFontSize = when {
-                mainName.length > 28 -> 11.sp
-                mainName.length > 20 -> 12.sp
-                mainName.length > 14 -> 13.sp
-                else -> 14.sp
-            }
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            ) {
-                Text(
-                    text = mainName,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = mainNameFontSize,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = badgeTitle,
-                    color = badgeColor,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 11.sp,
-                    letterSpacing = 0.5.sp,
-                )
-            }
-        }
-
-        item {
-            OneUiPill(
-                title = "Clean: %.1f kg × %d".format(loggedSet.weight, loggedSet.reps),
-                subtitle = "Tap to edit full ROM set",
-                icon = "⚡",
-                style = OneUiPillStyle.SlateNavy,
-                onClick = onEditActivation,
-            )
-        }
-
-        if (extraList.isNotEmpty()) {
-            item {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                ) {
-                    val totalReps = loggedSet.reps + extraList.sum()
-                    Text(
-                        text = "Total: ${loggedSet.reps} + ${extraList.sum()} = $totalReps reps",
-                        color = badgeColor,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        extraList.forEach { count ->
-                            Box(
-                                modifier = Modifier
-                                    .background(badgeColor.copy(alpha = 0.8f), shape = RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 8.dp, vertical = 3.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = "+$count $chipLabel",
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        item {
-            val timerText = if (restSecondsRemaining > 0) "Rest: ${restSecondsRemaining}s" else "⚡ GO!"
-            val timerColor = if (restSecondsRemaining > 0) Color(0xFFFFA726) else Color(0xFF81C784)
-            
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF1E222D), shape = RoundedCornerShape(14.dp))
-                    .clickable {
-                        restSecondsRemaining = if (isMyo) 15 else 45
-                        isRestRunning = true
-                    }
-                    .padding(vertical = 6.dp, horizontal = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("⏱", fontSize = 13.sp)
-                    Text(text = timerText, color = timerColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
-            }
-        }
-
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                NavCircleButton(label = "-", bg = Color(0xFF2C2C2E), size = 32) {
-                    if (repCount > 1) repCount -= 1
-                }
-                Spacer(Modifier.width(10.dp))
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "$repCount", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    Text(text = chipLabel, color = Color(0xFF90A4AE), fontSize = 9.sp)
-                }
-                Spacer(Modifier.width(10.dp))
-                NavCircleButton(label = "+", bg = Color(0xFF2C2C2E), size = 32) {
-                    if (repCount < 20) repCount += 1
-                }
-            }
-        }
-
-        item {
-            OneUiPill(
-                title = when {
-                    isMyo -> "+ Mini Set ($repCount reps)"
-                    isForced -> "+ Forced ($repCount reps)"
-                    isCheat -> "+ Cheat ($repCount reps)"
-                    else -> "+ Extra ($repCount reps)"
-                },
-                icon = "➕",
-                style = OneUiPillStyle.AccentBlue,
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    if (isMyo) {
-                        viewModel.addMiniSet(exerciseIndex, setIndex, repCount)
-                    } else {
-                        viewModel.addExtraReps(exerciseIndex, setIndex, repCount)
-                    }
-                    restSecondsRemaining = if (isMyo) 15 else 45
-                    isRestRunning = true
-                },
-            )
-        }
-
-        item {
-            OneUiPill(
-                title = "Finish Set",
-                icon = "✓",
-                style = OneUiPillStyle.EmeraldGreen,
-                onClick = onFinishSet,
-            )
-        }
-
-        if (extraList.isNotEmpty()) {
-            item {
-                OneUiPill(
-                    title = "Undo Last (${extraList.last()} reps)",
-                    icon = "✕",
-                    style = OneUiPillStyle.DangerTransparent,
-                    onClick = {
-                        if (isMyo) {
-                            viewModel.removeLastMiniSet(exerciseIndex, setIndex)
-                        } else {
-                            viewModel.removeLastExtraReps(exerciseIndex, setIndex)
-                        }
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun NavCircleButton(
+internal fun NavCircleButton(
     label: String,
     bg: Color,
     size: Int = 40,
