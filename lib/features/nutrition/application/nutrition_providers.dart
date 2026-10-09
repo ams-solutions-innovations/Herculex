@@ -25,6 +25,7 @@ import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:herculex/features/nutrition/domain/target_resolver.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
+import 'package:herculex/features/physique/application/effective_goal_provider.dart';
 import 'package:herculex/services/platform/widget_sync_service.dart';
 import 'package:intl/intl.dart';
 
@@ -71,8 +72,13 @@ final dailyTotalsProvider = StreamProvider.autoDispose
 /// once inside [MacroTargets.fromMaintenance]. Cold start is exactly the
 /// legacy profile seed (D-08).
 final baselineTargetsProvider = Provider<MacroTargets?>((ref) {
-  final profile = ref.watch(profileProvider).asData?.value;
-  if (profile == null) return null;
+  final stored = ref.watch(profileProvider).asData?.value;
+  if (stored == null) return null;
+  // The running roadmap phase decides the direction; the stored goal is
+  // only the fallback (and is left as the member set it).
+  final profile = stored.copyWith(
+    goal: ref.watch(effectiveFitnessGoalProvider),
+  );
   final est = ref.watch(tdeeEstimateProvider);
   if (est == null || est.method == TdeeMethod.coldStart) {
     return MacroTargets.fromProfile(profile);

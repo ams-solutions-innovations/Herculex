@@ -16,6 +16,7 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/gamification/application/gamification_providers.dart';
+import 'package:herculex/features/physique/application/effective_goal_provider.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
@@ -695,8 +696,7 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
       );
     }
     final fitnessGoal =
-        ref.watch(profileProvider).asData?.value?.goal ??
-        FitnessGoal.maintenance;
+        ref.watch(effectiveFitnessGoalProvider) ?? FitnessGoal.maintenance;
     final goal = switch (fitnessGoal) {
       FitnessGoal.weightLoss => ProgressionGoal.fatLoss,
       FitnessGoal.muscleGain ||

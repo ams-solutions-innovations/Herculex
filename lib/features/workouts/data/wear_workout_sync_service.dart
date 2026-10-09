@@ -8,6 +8,7 @@ import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
+import 'package:herculex/features/physique/application/effective_goal_provider.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
@@ -162,8 +163,8 @@ class WearWorkoutSyncService {
         );
         return (goal: goal, weeklyPctOverride: override.weeklyIncreasePct);
       }
-      final profile = _ref.read(profileProvider).valueOrNull;
-      final fitnessGoal = profile?.goal ?? FitnessGoal.maintenance;
+      final fitnessGoal =
+          _ref.read(effectiveFitnessGoalProvider) ?? FitnessGoal.maintenance;
       final goal = switch (fitnessGoal) {
         FitnessGoal.weightLoss => ProgressionGoal.fatLoss,
         FitnessGoal.muscleGain ||

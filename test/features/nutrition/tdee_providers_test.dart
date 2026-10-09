@@ -9,6 +9,7 @@ import 'package:herculex/features/nutrition/application/nutrition_providers.dart
 import 'package:herculex/features/nutrition/application/tdee_providers.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
+import 'package:herculex/features/physique/application/effective_goal_provider.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 
 import '../../support/test_database.dart';
@@ -64,6 +65,11 @@ void main() {
           (ref) => profile ?? Stream.value(_profile),
         ),
         latestTdeeEstimateProvider.overrideWith((ref) => estimate),
+        // No roadmap here: the stored goal decides, as it did before the
+        // effective goal existed (and no physique database is opened).
+        effectiveFitnessGoalProvider.overrideWith(
+          (ref) => ref.watch(profileProvider).asData?.value?.goal,
+        ),
         ...extra,
       ],
     );

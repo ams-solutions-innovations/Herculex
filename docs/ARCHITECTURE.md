@@ -157,6 +157,24 @@ weight can never contradict the roadmap; a weight that needs a different phase
 is refused with a pointer to the roadmap editor. The profile's own copy of the
 typed weight is left alone while a roadmap runs.
 
+## Fitness goal
+
+`Profile.goal` is the goal chosen in onboarding. While an accepted roadmap has a
+running phase, the direction the app works towards is that phase's, through
+`effectiveFitnessGoalProvider`
+(`features/physique/application/effective_goal_provider.dart`): cut is weight
+loss, bulk and lean bulk are muscle gain, maintain and recomp are maintenance,
+after the guardrails (a member under 18 never reads as cutting). The stored goal
+is never rewritten, so it is back in force once the roadmap ends.
+
+Baseline calories (`baselineTargetsProvider`), Hercul's `profile.goal` signal
+and workout progression (`active_exercise_card`, `wear_workout_sync_service`)
+read the effective goal. Anything that feeds the roadmap generator
+(`prefersWeightLoss` in the starter, re-plan flow, legacy migrator and the dream
+physique recommendation) keeps reading `Profile.goal`, or the roadmap would
+read its own output. Saved nutrition targets still override the baseline, and
+the roadmap still never writes them: the phase offer is how they change.
+
 ## Schema changes
 
 Bumping the drift `schemaVersion` is five chores, not one. Missing any of them
