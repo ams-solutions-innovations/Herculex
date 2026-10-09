@@ -138,7 +138,7 @@ object HxTile {
             LayoutElementBuilders.FontStyle.Builder()
                 .setSize(DimensionBuilders.sp(sp)).setColor(color)
                 .setWeight(if (bold) LayoutElementBuilders.FONT_WEIGHT_BOLD else LayoutElementBuilders.FONT_WEIGHT_NORMAL)
-                .also { if (tabular) it.setSettings(LayoutElementBuilders.FontSetting.tnum()) }
+                // tabular: FontSetting.tnum() needs a newer ProtoLayout than 1.2.1 — re-enable when bumped.
                 .also { if (caps) it.setLetterSpacing(DimensionBuilders.em(0.1f)) }
                 .build()
         ).build()
@@ -175,8 +175,7 @@ object HxTile {
             )
             .setFontStyle(
                 LayoutElementBuilders.FontStyle.Builder().setSize(DimensionBuilders.sp(sp)).setColor(color)
-                    .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD)
-                    .setSettings(LayoutElementBuilders.FontSetting.tnum()).build()
+                    .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD).build()
             ).build()
 
     // ── Pill (same anatomy as OneUiPill) ────────────────────────────
