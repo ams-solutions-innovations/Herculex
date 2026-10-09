@@ -1,116 +1,79 @@
 package com.ams.herculex.tile
 
-import android.graphics.Color
-import androidx.wear.protolayout.ActionBuilders
-import androidx.wear.protolayout.ColorBuilders
-import androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters
 import androidx.wear.protolayout.LayoutElementBuilders
+import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
+import androidx.wear.protolayout.DimensionBuilders
 import androidx.wear.protolayout.ModifiersBuilders
-import androidx.wear.protolayout.ResourceBuilders.Resources
-import androidx.wear.protolayout.TimelineBuilders
-import androidx.wear.protolayout.material.ChipColors
-import androidx.wear.protolayout.material.CompactChip
-import androidx.wear.protolayout.material.Text
-import androidx.wear.protolayout.material.Typography
-import androidx.wear.protolayout.material.layouts.PrimaryLayout
 import androidx.wear.tiles.RequestBuilders
-import androidx.wear.tiles.TileBuilders
-import com.ams.herculex.MainActivity
 import com.ams.herculex.sync.MacroStore
-import com.google.android.horologist.annotations.ExperimentalHorologistApi
-import com.google.android.horologist.tiles.SuspendingTileService
+import com.ams.herculex.tile.kit.HxTile
+import com.ams.herculex.tile.kit.HxTile.enter
+import com.ams.herculex.tile.kit.HxTileService
 
-@OptIn(ExperimentalHorologistApi::class)
-class MacrosTileService : SuspendingTileService() {
+/**
+ * Macros tile v2: calories on the bezel (vs. goal), P / C / F as three
+ * mini bars, "Log food" pill = the same SlateNavy + utensils pill as the
+ * watch's Nutrition menu. All values + goals already live in MacroStore.
+ */
+class MacrosTileService : HxTileService("6") {
 
-    companion object {
-        private const val RESOURCES_VERSION = "5"
+    override fun layout(params: RequestBuilders.TileRequest): LayoutElement {
+        val kcal = MacroStore.calories(this)
+        val kcalGoal = MacroStore.calorieGoal(this).coerceAtLeast(1)
+        val frac = (kcal.toFloat() / kcalGoal).coerceIn(0f, 1f)
 
-        // Material 3 / Google Calendar pill button colors
-        private val COLOR_PRIMARY_CONTAINER = ColorBuilders.argb(0xFFD3E3FD.toInt()) // Soft light blue
-        private val COLOR_ON_PRIMARY_CONTAINER = ColorBuilders.argb(0xFF041E49.toInt()) // Deep navy text
-        private val COLOR_HEADER_TEXT = ColorBuilders.argb(0xFFBBDEFB.toInt()) // Soft blue header
-    }
-
-    override suspend fun resourcesRequest(requestParams: RequestBuilders.ResourcesRequest): Resources {
-        return Resources.Builder()
-            .setVersion(requestParams.version)
-            .build()
-    }
-
-    override suspend fun tileRequest(requestParams: RequestBuilders.TileRequest): TileBuilders.Tile {
-        val singleTimelineEntry = TimelineBuilders.TimelineEntry.Builder()
-            .setLayout(
-                LayoutElementBuilders.Layout.Builder()
-                    .setRoot(tileLayout(requestParams.deviceConfiguration))
-                    .build()
-            )
-            .build()
-
-        return TileBuilders.Tile.Builder()
-            .setResourcesVersion(RESOURCES_VERSION)
-            .setTileTimeline(
-                TimelineBuilders.Timeline.Builder()
-                    .addTimelineEntry(singleTimelineEntry)
-                    .build()
-            )
-            .setFreshnessIntervalMillis(0)
-            .build()
-    }
-
-    private fun buildLaunchClickable(route: String): ModifiersBuilders.Clickable {
-        return ModifiersBuilders.Clickable.Builder()
-            .setOnClick(
-                ActionBuilders.LaunchAction.Builder()
-                    .setAndroidActivity(
-                        ActionBuilders.AndroidActivity.Builder()
-                            .setPackageName(packageName)
-                            .setClassName(MainActivity::class.java.name)
-                            .addKeyToExtraMapping("route", ActionBuilders.stringExtra(route))
-                            .build()
-                    )
-                    .build()
-            )
-            .build()
-    }
-
-    private fun tileLayout(deviceParameters: DeviceParameters): LayoutElementBuilders.LayoutElement {
-        val calories = MacroStore.calories(this)
-        val protein = MacroStore.protein(this)
-
-        // Google Calendar style "Log food" pill button
-        val logFoodClickable = buildLaunchClickable("log_food")
-        val chipColors = ChipColors(
-            COLOR_PRIMARY_CONTAINER,
-            COLOR_ON_PRIMARY_CONTAINER,
-            COLOR_ON_PRIMARY_CONTAINER,
-            COLOR_ON_PRIMARY_CONTAINER
+        val bezel = listOf(
+            HxTile.track(HxTile.Macros.track),
+            HxTile.arc(HxTile.Macros.accent, HxTile.animDegrees(0f, 360f * frac)),
         )
 
-        val logFoodChip = CompactChip.Builder(this, "Log food", logFoodClickable, deviceParameters)
-            .setChipColors(chipColors)
-            .build()
+        val cols = listOf(
+            Triple("Protein", MacroStore.protein(this) to MacroStore.proteinGoal(this), HxTile.c(0xFFFFA726)),
+            Triple("Carbs", MacroStore.carbs(this) to MacroStore.carbsGoal(this), HxTile.c(0xFF34C759)),
+            Triple("Fat", MacroStore.fats(this) to MacroStore.fatGoal(this), HxTile.c(0xFFFFD60A)),
+        ).map { (name, vg, color) -> macroColumn(name, vg.first, vg.second, color) }
 
-        return PrimaryLayout.Builder(deviceParameters)
-            .setPrimaryLabelTextContent(
-                Text.Builder(this, "Today's Macros")
-                    .setTypography(Typography.TYPOGRAPHY_CAPTION1)
-                    .setColor(COLOR_HEADER_TEXT)
+        val row = LayoutElementBuilders.Row.Builder()
+            .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_TOP)
+        cols.forEachIndexed { i, c -> if (i > 0) row.addContent(HxTile.hSpacer(8f)); row.addContent(c) }
+
+        val cta = HxTile.pill(126f, 34f, HxTile.SlateNavy, "ic_hx_utensils", "Log food",
+            clickable = HxTile.launch(this, "tile_log_food", "log_food"))
+
+        return HxTile.face(
+            HxTile.Macros.glowRes, bezel,
+            HxTile.column(
+                HxTile.label("ic_hx_flame", "Today", HxTile.Macros.label).enter(0),
+                HxTile.countUp(kcal, 42f, HxTile.White).enter(1),
+                HxTile.text("of ${"%,d".format(kcalGoal)} kcal", 11f, HxTile.Muted).enter(2),
+                HxTile.spacer(6f),
+                row.build().enter(3),
+                HxTile.spacer(6f),
+                cta.enter(4),
+            )
+        )
+    }
+
+    private fun macroColumn(name: String, value: Int, goal: Int, color: androidx.wear.protolayout.ColorBuilders.ColorProp): LayoutElement {
+        val barW = 38f
+        val fill = (value.toFloat() / goal.coerceAtLeast(1)).coerceIn(0f, 1f)
+        fun bar(w: Float, c: androidx.wear.protolayout.ColorBuilders.ColorProp) = LayoutElementBuilders.Box.Builder()
+            .setWidth(DimensionBuilders.dp(w)).setHeight(DimensionBuilders.dp(3.5f))
+            .setModifiers(ModifiersBuilders.Modifiers.Builder().setBackground(
+                ModifiersBuilders.Background.Builder().setColor(c)
+                    .setCorner(ModifiersBuilders.Corner.Builder().setRadius(DimensionBuilders.dp(2f)).build()).build()).build())
+            .build()
+        return LayoutElementBuilders.Column.Builder()
+            .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+            .addContent(HxTile.text("${value}g", 13f, HxTile.White, bold = true, tabular = true))
+            .addContent(
+                LayoutElementBuilders.Box.Builder()
+                    .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_START)
+                    .addContent(bar(barW, HxTile.c(0xFF1F2638)))
+                    .addContent(bar((barW * fill).coerceAtLeast(2f), color))
                     .build()
             )
-            .setContent(
-                Text.Builder(this, "$calories kcal")
-                    .setTypography(Typography.TYPOGRAPHY_DISPLAY1)
-                    .setColor(ColorBuilders.argb(Color.WHITE))
-                    .build()
-            )
-            .setSecondaryLabelTextContent(
-                Text.Builder(this, "${protein}g protein")
-                    .setTypography(Typography.TYPOGRAPHY_BODY1)
-                    .setColor(ColorBuilders.argb(Color.LTGRAY))
-                    .build()
-            )
-            .setPrimaryChipContent(logFoodChip)
+            .addContent(HxTile.text(name, 10f, HxTile.Muted))
             .build()
     }
 }

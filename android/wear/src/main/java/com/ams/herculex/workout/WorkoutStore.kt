@@ -207,6 +207,44 @@ object WorkoutStore {
         }
     }
 
+    /** What the next set to log looks like — for tiles that cannot see the view model. */
+    data class ActiveSetSummary(
+        val exerciseIndex: Int,
+        val exerciseName: String,
+        val setNumber: Int,
+        val setTotal: Int,
+        val targetSeconds: Int?,
+        val targetMeters: Int?,
+    )
+
+    fun activeSetSummary(context: Context): ActiveSetSummary? {
+        val json = getActiveSessionJson(context) ?: return null
+        return try {
+            val obj = sessionPayloadObject(json)
+            val exArr = obj.optJSONArray("exercises") ?: return null
+            val idx = obj.optInt("currentExerciseIndex", 0)
+            val exObj = exArr.optJSONObject(idx) ?: return null
+            val template = exObj.optJSONObject("template")?.let { parseTemplateItem(it) } ?: return null
+            val sets = exObj.optJSONArray("sets") ?: JSONArray()
+            var done = 0
+            for (j in 0 until sets.length()) {
+                val sObj = sets.getJSONObject(j)
+                if (sObj.optBoolean("completed", true) && !sObj.optBoolean("isWarmup", false)) done++
+            }
+            val planned = template.plannedSets.getOrNull(done) ?: template.plannedSets.firstOrNull()
+            ActiveSetSummary(
+                exerciseIndex = idx,
+                exerciseName = template.name.substringBefore("(").trim(),
+                setNumber = done + 1,
+                setTotal = maxOf(template.targetSets, done + 1),
+                targetSeconds = planned?.durationSeconds?.takeIf { it > 0 },
+                targetMeters = planned?.targetDistanceMeters?.takeIf { it > 0 }?.toInt(),
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     fun sessionToJson(context: Context, session: WorkoutSession): String {
         val obj = JSONObject()
         obj.put("template", templateToJson(session.template))

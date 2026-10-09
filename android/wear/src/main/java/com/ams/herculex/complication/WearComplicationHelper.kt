@@ -7,6 +7,8 @@ import androidx.wear.tiles.TileService
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
 import com.ams.herculex.tile.FastingTileService
 import com.ams.herculex.tile.MacrosTileService
+import com.ams.herculex.tile.WaterTileService
+import com.ams.herculex.tile.WeeklyVolumeTileService
 import com.ams.herculex.tile.WorkoutTileService
 
 object WearComplicationHelper {
@@ -39,6 +41,7 @@ object WearComplicationHelper {
                     .requestUpdateAll()
             }
             TileService.getUpdater(appCtx).requestUpdate(MacrosTileService::class.java)
+            TileService.getUpdater(appCtx).requestUpdate(WaterTileService::class.java)
             Log.d(TAG, "Requested nutrition complications & tile update")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to update nutrition complications", e)
@@ -69,6 +72,8 @@ object WearComplicationHelper {
             TileService.getUpdater(appCtx).requestUpdate(MacrosTileService::class.java)
             TileService.getUpdater(appCtx).requestUpdate(FastingTileService::class.java)
             TileService.getUpdater(appCtx).requestUpdate(WorkoutTileService::class.java)
+            TileService.getUpdater(appCtx).requestUpdate(WaterTileService::class.java)
+            TileService.getUpdater(appCtx).requestUpdate(WeeklyVolumeTileService::class.java)
             Log.d(TAG, "Requested all complications & tiles update")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to update all complications", e)
