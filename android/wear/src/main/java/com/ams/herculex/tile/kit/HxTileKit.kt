@@ -88,7 +88,11 @@ object HxTile {
     // ── Structure ───────────────────────────────────────────────────
 
     /** Black face: glow image, bezel layers, then centred content. */
-    fun face(glowId: String, bezel: List<LayoutElement>, content: LayoutElement): LayoutElement {
+    fun face(
+        glowId: String, bezel: List<LayoutElement>, content: LayoutElement,
+        /** Non-null pins [content] to the top of the face with this much padding (dp). */
+        topInset: Float? = null,
+    ): LayoutElement {
         val box = LayoutElementBuilders.Box.Builder()
             .setWidth(DimensionBuilders.expand()).setHeight(DimensionBuilders.expand())
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
@@ -99,20 +103,43 @@ object HxTile {
                     .setContentScaleMode(LayoutElementBuilders.CONTENT_SCALE_MODE_FILL_BOUNDS).build()
             )
         bezel.forEach { box.addContent(it) }
-        return box.addContent(content).build()
+        if (topInset == null) return box.addContent(content).build()
+        return box.addContent(
+            LayoutElementBuilders.Box.Builder()
+                .setWidth(DimensionBuilders.expand()).setHeight(DimensionBuilders.expand())
+                .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+                .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_TOP)
+                .setModifiers(
+                    ModifiersBuilders.Modifiers.Builder().setPadding(
+                        ModifiersBuilders.Padding.Builder().setTop(DimensionBuilders.dp(topInset)).build()
+                    ).build()
+                )
+                .addContent(content).build()
+        ).build()
     }
+
+    /**
+     * One ArcLine. An animated [sweep] is a *dynamic* length, and ProtoLayout refuses to
+     * build one without layout constraints ("length with dynamic value requires
+     * layoutConstraintsForDynamicLength") — which made every animated tile throw and
+     * show nothing. The constraint is the widest the line can ever get: a full circle.
+     */
+    fun arcLine(color: ColorProp, sweep: DegreesProp): LayoutElementBuilders.ArcLine =
+        LayoutElementBuilders.ArcLine.Builder()
+            .setLength(sweep).setColor(color).setThickness(DimensionBuilders.dp(RING_DP))
+            .setLayoutConstraintsForDynamicLength(
+                DimensionBuilders.AngularLayoutConstraint.Builder(360f)
+                    .setAngularAlignment(LayoutElementBuilders.ANGULAR_ALIGNMENT_START).build()
+            )
+            // protolayout 1.3: .setStrokeCap(LayoutElementBuilders.STROKE_CAP_ROUND)
+            .build()
 
     /** One bezel arc from 12 o'clock, clockwise. [sweep] may be animated. */
     fun arc(color: ColorProp, sweep: DegreesProp, startAngle: Float = 0f): LayoutElement =
         LayoutElementBuilders.Arc.Builder()
             .setAnchorAngle(DimensionBuilders.degrees(startAngle))
             .setAnchorType(LayoutElementBuilders.ARC_ANCHOR_START)
-            .addContent(
-                LayoutElementBuilders.ArcLine.Builder()
-                    .setLength(sweep).setColor(color).setThickness(DimensionBuilders.dp(RING_DP))
-                    // protolayout 1.3: .setStrokeCap(LayoutElementBuilders.STROKE_CAP_ROUND)
-                    .build()
-            ).build()
+            .addContent(arcLine(color, sweep)).build()
 
     fun track(color: ColorProp) = arc(color, DimensionBuilders.degrees(360f))
 
@@ -142,6 +169,22 @@ object HxTile {
                 .also { if (caps) it.setLetterSpacing(DimensionBuilders.em(0.1f)) }
                 .build()
         ).build()
+
+    /** "98" in [color] followed by a smaller muted [unit], e.g. 98g, in one text node. */
+    fun valueWithUnit(
+        value: String, unit: String, valueSp: Float, unitSp: Float,
+        valueColor: ColorProp, unitColor: ColorProp,
+    ): LayoutElement {
+        fun style(sp: Float, color: ColorProp, bold: Boolean) = LayoutElementBuilders.FontStyle.Builder()
+            .setSize(DimensionBuilders.sp(sp)).setColor(color)
+            .setWeight(if (bold) LayoutElementBuilders.FONT_WEIGHT_BOLD else LayoutElementBuilders.FONT_WEIGHT_NORMAL)
+            .build()
+        return LayoutElementBuilders.Spannable.Builder()
+            .addSpan(LayoutElementBuilders.SpanText.Builder().setText(value).setFontStyle(style(valueSp, valueColor, true)).build())
+            .addSpan(LayoutElementBuilders.SpanText.Builder().setText(unit).setFontStyle(style(unitSp, unitColor, true)).build())
+            .setMaxLines(1)
+            .build()
+    }
 
     fun icon(id: String, size: Float, tint: ColorProp): LayoutElement =
         LayoutElementBuilders.Image.Builder().setResourceId(id)
@@ -184,8 +227,9 @@ object HxTile {
         width: Float, height: Float, style: PillStyle, iconId: String, title: String,
         subtitle: String? = null, trailing: Boolean = false, clickable: ModifiersBuilders.Clickable,
     ): LayoutElement {
-        val badge = height - 12f
-        val textW = width - 5f - badge - 8f - (if (trailing) 26f else 12f)
+        // Design: 52px pill → 40px badge, i.e. 6px (≈4dp) ring all round.
+        val badge = height - 8f
+        val textW = width - 4f - badge - 7f - (if (trailing) 26f else 12f)
         val badgeBox = LayoutElementBuilders.Box.Builder()
             .setWidth(DimensionBuilders.dp(badge)).setHeight(DimensionBuilders.dp(badge))
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
@@ -202,14 +246,14 @@ object HxTile {
             .also { if (subtitle != null) it.addContent(text(subtitle, 10f, style.secondary)) }.build()
         val row = LayoutElementBuilders.Row.Builder()
             .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
-            .addContent(badgeBox).addContent(hSpacer(8f)).addContent(texts)
+            .addContent(badgeBox).addContent(hSpacer(7f)).addContent(texts)
             .also { if (trailing) it.addContent(icon("ic_hx_chevron", 14f, style.secondary)) }.build()
         val mods = ModifiersBuilders.Modifiers.Builder()
             .setBackground(
                 ModifiersBuilders.Background.Builder().setColor(style.container)
                     .setCorner(ModifiersBuilders.Corner.Builder().setRadius(DimensionBuilders.dp(height / 2)).build()).build()
             )
-            .setPadding(ModifiersBuilders.Padding.Builder().setStart(DimensionBuilders.dp(5f)).setEnd(DimensionBuilders.dp(8f)).build())
+            .setPadding(ModifiersBuilders.Padding.Builder().setStart(DimensionBuilders.dp(4f)).setEnd(DimensionBuilders.dp(8f)).build())
             .setClickable(clickable)
         style.border?.let {
             mods.setBorder(ModifiersBuilders.Border.Builder().setWidth(DimensionBuilders.dp(1f)).setColor(it).build())

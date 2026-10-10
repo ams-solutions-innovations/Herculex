@@ -214,6 +214,18 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                             weightKg: nextTarget.weightKg,
                             reps: nextTarget.reps,
                             rationale: nextTarget.rationale,
+                            perRowTarget: (i) {
+                              final t = _planTargetFor(
+                                ref,
+                                i,
+                                currentRows,
+                                allLastSets,
+                                metric,
+                              );
+                              return t == null
+                                  ? null
+                                  : (weightKg: t.weightKg, reps: t.reps);
+                            },
                           ),
                           child: const Text('Use'),
                         ),
@@ -313,6 +325,13 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                       metric: metric,
                       downSetOrdinal: downSetOrdinals[i],
                       priorSet: _findPriorSet(rows[i], i, rows, allLastSets),
+                      planTarget: _planTargetFor(
+                        ref,
+                        i,
+                        rows,
+                        allLastSets,
+                        metric,
+                      ),
                       microLabelText: _microLabelFor(
                         ref,
                         rows,
@@ -770,6 +789,73 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     return 'Next';
   }
 
+  /// Whether [set] came out of a program/template, i.e. carries a frozen plan.
+  static bool _isPlanned(SetEntryData set) =>
+      set.plannedRepsMin != null || set.plannedWeightKg != null;
+
+  /// The progressive-overload suggestion for one set, from the matching set of
+  /// this exercise's own last session. Null when there is nothing to base it on.
+  SuggestedTarget? _suggestFor(
+    WidgetRef ref,
+    SetEntryData? prior,
+    List<SetEntryData> allLastSets,
+  ) {
+    if (prior == null || prior.isWarmup) return null;
+    final settings = _progressionGoal(ref);
+    return ProgressionEngine.suggestNext(
+      lastWeightKg: prior.weightKg,
+      lastReps: prior.reps,
+      goal: settings.goal,
+      equipmentVariant:
+          widget.workoutExercise.equipmentVariant ?? widget.exercise.modality,
+      weeklyIncreasePctOverride: settings.weeklyPctOverride,
+      allLastSets: [
+        for (final s in allLastSets)
+          if (!s.isWarmup) (weightKg: s.weightKg, reps: s.reps),
+      ],
+      progressionModel: settings.progressionModel,
+      targetSets: settings.targetSets,
+      targetRepsMin: settings.targetRepsMin,
+      targetRepsMax: settings.targetRepsMax,
+    );
+  }
+
+  /// The target for one set of a program/template workout — the single source
+  /// for the grey hints in the row AND the "Next" line on top of the card, so
+  /// the two can never disagree.
+  ///
+  /// The prescription owns reps and RPE. The load is the plan's own when it
+  /// names one, otherwise the progressive-overload step from this exercise's
+  /// last session, otherwise simply what was lifted last time. Null for sets
+  /// without a plan, which keep the plain "previous set" hint.
+  ({double? weightKg, int? reps, int? rpeX10})? _planTargetFor(
+    WidgetRef ref,
+    int index,
+    List<SetEntryData> rows,
+    List<SetEntryData> allLastSets,
+    LoggingMetric metric,
+  ) {
+    final set = rows[index];
+    if (!_isPlanned(set) || !metric.isRepBased) return null;
+    final prior = _findPriorSet(set, index, rows, allLastSets);
+    final method = widget.workoutExercise.plannedTrainingMethod;
+    final progressable =
+        !set.isWarmup && method != 'max_effort' && method != 'dynamic_effort';
+    final suggested = progressable ? _suggestFor(ref, prior, allLastSets) : null;
+    final suggestedWeight = suggested != null && suggested.weightKg > 0
+        ? suggested.weightKg
+        : null;
+    final priorWeight = prior != null && prior.weightKg > 0
+        ? prior.weightKg
+        : null;
+    final priorReps = prior != null && prior.reps > 0 ? prior.reps : null;
+    return (
+      weightKg: set.plannedWeightKg ?? suggestedWeight ?? priorWeight,
+      reps: set.plannedRepsMin ?? suggested?.reps ?? priorReps,
+      rpeX10: set.plannedRpeX10,
+    );
+  }
+
   ({String text, String? rationale, double weightKg, int reps})?
   _formatNextTarget(
     WidgetRef ref,
@@ -780,6 +866,40 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
   ) {
     if (allLastSets.isEmpty) return null;
     if (!metric.isRepBased) return null;
+
+    // Following a program: show exactly what the row's grey hint shows.
+    if (currentRows.isNotEmpty) {
+      var activeIndex = currentRows.indexWhere((r) => !r.isCompleted);
+      if (activeIndex == -1) activeIndex = currentRows.length - 1;
+      final plan = _planTargetFor(
+        ref,
+        activeIndex,
+        currentRows,
+        allLastSets,
+        metric,
+      );
+      if (plan != null) {
+        final weight = plan.weightKg ?? 0;
+        final reps = plan.reps ?? 0;
+        if (weight <= 0 && reps <= 0) return null;
+        final isWeightedBw =
+            (widget.workoutExercise.equipmentVariant ??
+                widget.exercise.modality) ==
+            'weighted';
+        final prefix = isWeightedBw && weight > 0 ? '+' : '';
+        final loadText = weight > 0 ? '$prefix${fmt.format(weight)} × ' : '';
+        final rpeText = plan.rpeX10 == null
+            ? ''
+            : ' @ RPE ${(plan.rpeX10! / 10).toStringAsFixed(1)}';
+        return (
+          text: '$loadText$reps$rpeText',
+          rationale: widget.workoutExercise.plannedPrescriptionWhy,
+          weightKg: weight,
+          reps: reps,
+        );
+      }
+    }
+
     if (widget.workoutExercise.plannedTrainingMethod == 'max_effort' ||
         widget.workoutExercise.plannedTrainingMethod == 'dynamic_effort') {
       return null;
@@ -809,27 +929,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
       }
     }
 
-    if (prior == null || prior.isWarmup) return null;
-
-    final settings = _progressionGoal(ref);
-    final allPastSets = allLastSets
-        .where((s) => !s.isWarmup)
-        .map((s) => (weightKg: s.weightKg, reps: s.reps))
-        .toList();
-
-    final target = ProgressionEngine.suggestNext(
-      lastWeightKg: prior.weightKg,
-      lastReps: prior.reps,
-      goal: settings.goal,
-      equipmentVariant:
-          widget.workoutExercise.equipmentVariant ?? widget.exercise.modality,
-      weeklyIncreasePctOverride: settings.weeklyPctOverride,
-      allLastSets: allPastSets,
-      progressionModel: settings.progressionModel,
-      targetSets: settings.targetSets,
-      targetRepsMin: settings.targetRepsMin,
-      targetRepsMax: settings.targetRepsMax,
-    );
+    final target = _suggestFor(ref, prior, allLastSets);
+    if (target == null || prior == null) return null;
 
     if (target.weightKg <= 0 && prior.weightKg <= 0) return null;
     final isWeightedBw =
@@ -852,17 +953,26 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     required double weightKg,
     required int reps,
     String? rationale,
+    ({double? weightKg, int? reps})? Function(int rowIndex)? perRowTarget,
   }) async {
-    final targets = rows
-        .where((row) => !row.isCompleted && !row.isWarmup)
-        .toList(growable: false);
+    final targets = [
+      for (var i = 0; i < rows.length; i++)
+        if (!rows[i].isCompleted && !rows[i].isWarmup) i,
+    ];
     if (targets.isEmpty) return;
     final before = [
-      for (final row in targets)
-        (id: row.id, weightKg: row.weightKg, reps: row.reps),
+      for (final i in targets)
+        (id: rows[i].id, weightKg: rows[i].weightKg, reps: rows[i].reps),
     ];
-    for (final row in targets) {
-      await repo.updateSet(setId: row.id, weightKg: weightKg, reps: reps);
+    for (final i in targets) {
+      // A program gives every set its own target; fall back to the single
+      // card-level one for sets without a plan.
+      final own = perRowTarget?.call(i);
+      await repo.updateSet(
+        setId: rows[i].id,
+        weightKg: own?.weightKg ?? weightKg,
+        reps: own?.reps ?? reps,
+      );
     }
     if (!context.mounted) return;
     ref
@@ -1393,6 +1503,10 @@ class _SetRow extends ConsumerStatefulWidget {
   final LoggingMetric metric;
   final int downSetOrdinal;
   final SetEntryData? priorSet;
+
+  /// Resolved target when this set came from a program/template; drives the
+  /// grey hints so they match the card's "Next" line.
+  final ({double? weightKg, int? reps, int? rpeX10})? planTarget;
   final String? microLabelText;
   final FocusNode? weightFocusNode;
   final GlobalKey? cardKey;
@@ -1409,6 +1523,7 @@ class _SetRow extends ConsumerStatefulWidget {
     required this.metric,
     this.downSetOrdinal = 0,
     this.priorSet,
+    this.planTarget,
     this.microLabelText,
     this.weightFocusNode,
     this.cardKey,
@@ -1624,15 +1739,22 @@ class _SetRowState extends ConsumerState<_SetRow> {
   /// in when the user completes a set without typing anything.
   String _hintFor(SetField field) {
     final prior = widget.priorSet;
+    final plan = widget.planTarget;
     return switch (field) {
       SetField.weight =>
-        widget.set.plannedWeightKg != null
+        plan != null
+            ? _fmtWeight(plan.weightKg ?? 0)
+            : widget.set.plannedWeightKg != null
             ? _fmtWeight(widget.set.plannedWeightKg!)
             : prior == null
             ? ''
             : _fmtWeight(prior.weightKg),
       SetField.reps =>
-        widget.set.plannedRepsMin != null
+        plan != null
+            ? (plan.reps ?? 0) == 0
+                  ? ''
+                  : plan.reps.toString()
+            : widget.set.plannedRepsMin != null
             ? widget.set.plannedRepsMin.toString()
             : prior == null || prior.reps == 0
             ? ''

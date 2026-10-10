@@ -508,61 +508,82 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
     }
   }, fireImmediately: true);
 
-  // Watch templates and sync to watch
-  // We sync all templates across all folders
+  // Push every template (all folders) plus today's scheduled workout to the
+  // watch. Runs when templates change and again when the schedule changes.
+  Future<void> pushTemplatesToWatch(List<WorkoutFolderData> folders) async {
+    final List<WorkoutTemplateData> allTemplates = [];
+    final Map<int, List<TemplateExerciseData>> templateExercises = {};
+    final Map<int, List<TemplateSetData>> templateSets = {};
+
+    // Capture the repository/db instances before any `await` — this
+    // provider watches fast-changing streams (active session sets), which
+    // can flag its own dependency as changed mid-await and make any
+    // further ref.read/watch here throw ("Cannot use ref functions after
+    // the dependency of a provider changed but before the provider
+    // rebuilt"). Plain values captured up front sidestep that entirely.
+    final templatesRepository = ref.read(templatesRepositoryProvider);
+    final db = ref.read(appDatabaseProvider);
+    final scheduledService = ref.read(scheduledWorkoutServiceProvider);
+
+    // Include un-foldered templates
+    final rootTemplates = await templatesRepository
+        .watchTemplates(folderId: null)
+        .first;
+    allTemplates.addAll(rootTemplates);
+
+    for (final folder in folders) {
+      final templates = await templatesRepository
+          .watchTemplates(folderId: folder.id)
+          .first;
+      allTemplates.addAll(templates);
+    }
+
+    for (final t in allTemplates) {
+      final exercises = await templatesRepository
+          .watchTemplateExercises(t.id)
+          .first;
+      templateExercises[t.id] = exercises;
+      for (final exercise in exercises) {
+        templateSets[exercise.id] = await templatesRepository
+            .watchTemplateSets(exercise.id)
+            .first;
+      }
+    }
+
+    final catalog = await db.select(db.exerciseCatalog).get();
+    final scheduledToday = await scheduledService.todaysWorkouts();
+    syncService.syncTemplatesToWatch(
+      allTemplates,
+      templateExercises,
+      templateSets,
+      catalog,
+      scheduledToday: scheduledToday,
+    );
+  }
+
   ref.listen<AsyncValue<List<WorkoutFolderData>>>(workoutFoldersProvider, (
     previous,
     next,
-  ) async {
-    if (next.hasValue) {
-      final folders = next.value ?? [];
-      final List<WorkoutTemplateData> allTemplates = [];
-      final Map<int, List<TemplateExerciseData>> templateExercises = {};
-      final Map<int, List<TemplateSetData>> templateSets = {};
-
-      // Capture the repository/db instances before any `await` — this
-      // provider watches fast-changing streams (active session sets), which
-      // can flag its own dependency as changed mid-await and make any
-      // further ref.read/watch here throw ("Cannot use ref functions after
-      // the dependency of a provider changed but before the provider
-      // rebuilt"). Plain values captured up front sidestep that entirely.
-      final templatesRepository = ref.read(templatesRepositoryProvider);
-      final db = ref.read(appDatabaseProvider);
-
-      // Include un-foldered templates
-      final rootTemplates = await templatesRepository
-          .watchTemplates(folderId: null)
-          .first;
-      allTemplates.addAll(rootTemplates);
-
-      for (final folder in folders) {
-        final templates = await templatesRepository
-            .watchTemplates(folderId: folder.id)
-            .first;
-        allTemplates.addAll(templates);
-      }
-
-      for (final t in allTemplates) {
-        final exercises = await templatesRepository
-            .watchTemplateExercises(t.id)
-            .first;
-        templateExercises[t.id] = exercises;
-        for (final exercise in exercises) {
-          templateSets[exercise.id] = await templatesRepository
-              .watchTemplateSets(exercise.id)
-              .first;
-        }
-      }
-
-      final catalog = await db.select(db.exerciseCatalog).get();
-      syncService.syncTemplatesToWatch(
-        allTemplates,
-        templateExercises,
-        templateSets,
-        catalog,
-      );
-    }
+  ) {
+    if (next.hasValue) pushTemplatesToWatch(next.value ?? []);
   }, fireImmediately: true);
+
+  ref.listen<AsyncValue<List<ScheduledWorkoutData>>>(scheduleChangesProvider, (
+    previous,
+    next,
+  ) {
+    final folders = ref.read(workoutFoldersProvider).valueOrNull;
+    if (next.hasValue && folders != null) pushTemplatesToWatch(folders);
+  });
+});
+
+/// Emits whenever a scheduled workout is added, moved, started or finished, so
+/// the watch hears about today's workout without waiting for a template edit.
+final scheduleChangesProvider = StreamProvider<List<ScheduledWorkoutData>>((
+  ref,
+) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.select(db.scheduledWorkouts).watch();
 });
 
 /// True when any numeric or text input field in an active workout has focus.

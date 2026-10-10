@@ -92,7 +92,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun loadWorkouts() {
-        _workouts.value = WorkoutStore.getWorkouts(getApplication())
+        _workouts.value = WorkoutStore.getWorkoutsScheduledFirst(getApplication())
     }
 
     fun startWorkout(

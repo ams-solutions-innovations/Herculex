@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/services/platform/workout_notification_service.dart';
 
 /// Whether the rest timer should auto-start after a completed set.
@@ -84,16 +85,7 @@ class RestTimerController extends Notifier<RestTimerState> {
       exerciseName: exerciseName,
     );
 
-    if (seconds > 0) {
-      final notifEnabled = ref
-          .read(notificationSettingsProvider)
-          .restTimerAlertsEnabled;
-      WorkoutNotificationService.instance.scheduleRestTimer(
-        seconds,
-        exerciseName ?? 'Time for your next set!',
-        enabled: notifEnabled,
-      );
-    }
+    if (seconds > 0) _scheduleAlert(seconds, exerciseName);
 
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       final remaining = state.remainingSecondsFrom(clock.now());
@@ -121,16 +113,25 @@ class RestTimerController extends Notifier<RestTimerState> {
     // Reschedule the notification with the new remaining time.
     final clock = ref.read(clockProvider);
     final remaining = state.remainingSecondsFrom(clock.now());
-    if (remaining > 0) {
-      final notifEnabled = ref
-          .read(notificationSettingsProvider)
-          .restTimerAlertsEnabled;
-      WorkoutNotificationService.instance.scheduleRestTimer(
-        remaining,
-        state.exerciseName ?? 'Time for your next set!',
-        enabled: notifEnabled,
-      );
+    if (remaining > 0) _scheduleAlert(remaining, state.exerciseName);
+  }
+
+  /// Schedules the phone's "rest over" notification — unless a watch is
+  /// following this workout. That watch announces the end itself (see
+  /// restTimerWearBridgeProvider); a phone notification on top of it was
+  /// mirrored back onto the wrist late, or twice. If the watch turns out to
+  /// be unreachable the bridge schedules this alert as a fallback.
+  void _scheduleAlert(int seconds, String? exerciseName) {
+    final service = WorkoutNotificationService.instance;
+    if (ref.read(wearWorkoutSyncServiceProvider).hasActiveSyncedSession) {
+      service.cancelRestTimer();
+      return;
     }
+    service.scheduleRestTimer(
+      seconds,
+      exerciseName ?? 'Time for your next set!',
+      enabled: ref.read(notificationSettingsProvider).restTimerAlertsEnabled,
+    );
   }
 
   /// The user skipped the rest: stop counting and withdraw the scheduled

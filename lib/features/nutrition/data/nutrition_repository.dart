@@ -458,6 +458,14 @@ class NutritionRepository {
         );
   }
 
+  /// Water logged on [date] (0 when the day has no summary row yet).
+  Future<int> waterMlFor(DateTime date) async {
+    final row = await (_db.select(
+      _db.dailySummaries,
+    )..where((t) => t.dateIso.equals(dateIso(date)))).getSingleOrNull();
+    return row?.waterMl ?? 0;
+  }
+
   /// Adds [deltaMl] to the day's logged water intake, creating the
   /// [DailySummaries] row if today doesn't have one yet. This is the phone
   /// side of the watch's "+500ml water" quick add (Phase 5 of

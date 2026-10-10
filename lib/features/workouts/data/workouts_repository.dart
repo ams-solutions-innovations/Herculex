@@ -1026,9 +1026,39 @@ class WorkoutsRepository {
     )..where((t) => t.id.equals(workoutExerciseId))).getSingle();
     final oldExerciseId = we.exerciseId;
 
-    await (_db.update(_db.workoutExercises)
-          ..where((t) => t.id.equals(workoutExerciseId)))
-        .write(WorkoutExercisesCompanion(exerciseId: Value(newExerciseId)));
+    await _db.transaction(() async {
+      await (_db.update(_db.workoutExercises)
+            ..where((t) => t.id.equals(workoutExerciseId)))
+          .write(
+            WorkoutExercisesCompanion(
+              exerciseId: Value(newExerciseId),
+              // The old lift's equipment variant says nothing about the new
+              // one; null falls back to the new exercise's own modality.
+              equipmentVariant: const Value(null),
+            ),
+          );
+
+      // Everything still to be done was loaded or typed for the OLD lift: the
+      // absolute load (plan and entered) and the entered RPE. Clearing it lets
+      // the card derive the target from the new exercise's own history, so
+      // progressive overload starts from what the user last did on it. The
+      // prescribed rep range / RPE belong to the slot and stay. Completed sets
+      // are history and are never touched.
+      await (_db.update(_db.setEntries)..where(
+            (t) =>
+                t.workoutExerciseId.equals(workoutExerciseId) &
+                t.isCompleted.equals(false),
+          ))
+          .write(
+            const SetEntriesCompanion(
+              weightKg: Value(0),
+              reps: Value(0),
+              rpeX10: Value(null),
+              plannedWeightKg: Value(null),
+              plannedPercentOf1Rm: Value(null),
+            ),
+          );
+    });
 
     if (permanently) {
       final schedule =

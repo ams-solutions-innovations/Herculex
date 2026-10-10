@@ -53,7 +53,8 @@ class MainActivity : FlutterFragmentActivity() {
                     val carbsGoal   = call.argument<Int>("carbs_goal") ?: 200
                     val fatGoal     = call.argument<Int>("fat_goal") ?: 65
                     val waterGoal   = call.argument<Int>("water_goal") ?: 2000
-                    syncMacrosToWear(calories, protein, carbs, fats, fasting, weeklyTonnage, weeklySets, weeklyVolumeJson, nutrientTrendsJson, calorieGoal, proteinGoal, carbsGoal, fatGoal, waterGoal)
+                    val waterMl     = call.argument<Int>("water_ml") ?: 0
+                    syncMacrosToWear(calories, protein, carbs, fats, fasting, weeklyTonnage, weeklySets, weeklyVolumeJson, nutrientTrendsJson, calorieGoal, proteinGoal, carbsGoal, fatGoal, waterGoal, waterMl)
                     result.success(null)
                 }
                 "syncFastingSnapshot" -> {
@@ -484,6 +485,22 @@ class MainActivity : FlutterFragmentActivity() {
         handleWorkoutsIntent(intent)
     }
 
+    override fun onStart() {
+        super.onStart()
+        // While any part of the app is on screen the bubble is refused outright
+        // (see WorkoutBubbleController.show), so a show() that was already in
+        // flight from Dart when the app came back cannot land on top of it.
+        WorkoutBubbleController.appInForeground = true
+        WorkoutBubbleController.hide(applicationContext)
+    }
+
+    override fun onStop() {
+        // Cleared before super, so it is already false when Flutter reports the
+        // app as hidden and Dart asks for the bubble.
+        WorkoutBubbleController.appInForeground = false
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
         // Native guard: the bubble must never float on top of the app itself.
@@ -647,6 +664,7 @@ class MainActivity : FlutterFragmentActivity() {
         carbsGoal: Int = 200,
         fatGoal: Int = 65,
         waterGoal: Int = 2000,
+        waterMl: Int = 0,
     ) {
         val putDataMapReq = PutDataMapRequest.create("/herculex_sync_data")
         putDataMapReq.dataMap.putInt("calories", calories)
@@ -663,6 +681,7 @@ class MainActivity : FlutterFragmentActivity() {
         putDataMapReq.dataMap.putInt("carbs_goal", carbsGoal)
         putDataMapReq.dataMap.putInt("fat_goal", fatGoal)
         putDataMapReq.dataMap.putInt("water_goal", waterGoal)
+        putDataMapReq.dataMap.putInt("water_ml", waterMl)
         putDataMapReq.dataMap.putLong("timestamp", System.currentTimeMillis())
         val putDataReq = putDataMapReq.asPutDataRequest().setUrgent()
         Wearable.getDataClient(this).putDataItem(putDataReq)

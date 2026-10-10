@@ -344,7 +344,9 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
 
           // The app's floating nav bar overlays this screen; keep the
           // Complete Set button, rest countdown and RPE strip clear of it.
-          const SizedBox(height: HxNavBar.clearance - HxSpace.x2),
+          // The exercise strip sits one step lower than the bare clearance so
+          // the gap above it and the gap to the nav bar read as even.
+          const SizedBox(height: HxNavBar.clearance - HxSpace.x2 - HxSpace.x3),
         ],
       ),
     );

@@ -54,6 +54,15 @@ object MacroStore {
             .apply()
     }
 
+    /// Today's water total as the phone has it (the phone is the source of truth,
+    /// watch-side adds are only a stop-gap until the next push).
+    fun saveWater(context: Context, waterMl: Int) {
+        prefs(context).edit()
+            .putInt(KEY_WATER, waterMl.coerceAtLeast(0))
+            .putString(KEY_DAY, todayKey())
+            .apply()
+    }
+
     fun saveGoals(
         context: Context,
         calorieGoal: Int,

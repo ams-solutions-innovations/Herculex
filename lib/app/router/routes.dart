@@ -62,6 +62,12 @@ abstract final class AppRoutes {
   static const profile = '/profile';
   static const trainingLevel = '/training-level';
   static const notifications = '/notifications';
+  static const settings = '/settings';
+  static const settingsAppearance = '/settings/appearance';
+  static const settingsPermissions = '/settings/permissions';
+  static const settingsPreferences = '/settings/preferences';
+  static const settingsData = '/settings/data';
+  static const settingsAccount = '/settings/account';
   static const dreamPhysique = '/dream-physique';
   static const dreamPhysiquePriorities = '/dream-physique/priorities';
   static const dreamPhysiqueHistory = '/dream-physique/history';

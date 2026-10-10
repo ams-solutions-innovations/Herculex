@@ -302,9 +302,11 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     });
 
     _lifecycleListener = AppLifecycleListener(
+      // No onInactive: it fires on any focus loss while the app is still on
+      // screen (notification shade, a system dialog, a permission prompt) and
+      // would raise the bubble on top of the app. Only a hidden app counts.
       onHide: _onBackground,
       onPause: _onBackground,
-      onInactive: _onBackground,
       onResume: _onForeground,
       onShow: _onForeground,
     );
@@ -372,6 +374,12 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     if (!mounted) return;
     // An awaited query above can outlive the session it was started for.
     if (ref.read(activeSessionProvider).valueOrNull?.id != session.id) return;
+    // ...and so can the app coming back to the foreground: the visibility
+    // check at the top ran before that await.
+    if (!_appBackgrounded) {
+      await WorkoutBubbleService.instance.hide();
+      return;
+    }
 
     final stats =
         ref.read(activeSessionStatsProvider(session.id)).valueOrNull ??

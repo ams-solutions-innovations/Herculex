@@ -8,6 +8,7 @@ export 'hx_glass.dart';
 export 'hx_picker.dart';
 export 'hx_pill.dart';
 export 'hx_screen_shell.dart';
+export 'hx_settings.dart';
 export 'hx_sheet.dart';
 export 'hx_stat_tile.dart';
 export 'hx_sticky_dismissible.dart';

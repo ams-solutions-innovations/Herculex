@@ -125,6 +125,10 @@ dependencies {
     // Unit tests (JVM). Robolectric provides a Context for the
     // SharedPreferences-backed AppliedRevisionStore without an emulator.
     testImplementation("junit:junit:4.13.2")
+    // TilesRenderTest serialises tiles to proto; the proto classes are not on the compile classpath otherwise.
+    testImplementation("androidx.wear.tiles:tiles-proto:1.4.1")
+    testImplementation("androidx.wear.protolayout:protolayout-proto:1.2.1")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("androidx.test:core:1.5.0")
     testImplementation("org.robolectric:robolectric:4.11.1")
 }

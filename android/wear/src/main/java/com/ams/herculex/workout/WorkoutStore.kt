@@ -119,6 +119,10 @@ object WorkoutStore {
         prefs(context).edit().putString(KEY_WORKOUTS, json).apply()
     }
 
+    /// Today's scheduled workouts first, then the rest in the phone's order.
+    fun getWorkoutsScheduledFirst(context: Context): List<WorkoutTemplate> =
+        getWorkouts(context).sortedByDescending { it.scheduledToday }
+
     fun getById(context: Context, id: String): WorkoutTemplate? =
         getWorkouts(context).firstOrNull { it.id == id }
 
@@ -207,44 +211,6 @@ object WorkoutStore {
         }
     }
 
-    /** What the next set to log looks like — for tiles that cannot see the view model. */
-    data class ActiveSetSummary(
-        val exerciseIndex: Int,
-        val exerciseName: String,
-        val setNumber: Int,
-        val setTotal: Int,
-        val targetSeconds: Int?,
-        val targetMeters: Int?,
-    )
-
-    fun activeSetSummary(context: Context): ActiveSetSummary? {
-        val json = getActiveSessionJson(context) ?: return null
-        return try {
-            val obj = sessionPayloadObject(json)
-            val exArr = obj.optJSONArray("exercises") ?: return null
-            val idx = obj.optInt("currentExerciseIndex", 0)
-            val exObj = exArr.optJSONObject(idx) ?: return null
-            val template = exObj.optJSONObject("template")?.let { parseTemplateItem(it) } ?: return null
-            val sets = exObj.optJSONArray("sets") ?: JSONArray()
-            var done = 0
-            for (j in 0 until sets.length()) {
-                val sObj = sets.getJSONObject(j)
-                if (sObj.optBoolean("completed", true) && !sObj.optBoolean("isWarmup", false)) done++
-            }
-            val planned = template.plannedSets.getOrNull(done) ?: template.plannedSets.firstOrNull()
-            ActiveSetSummary(
-                exerciseIndex = idx,
-                exerciseName = template.name.substringBefore("(").trim(),
-                setNumber = done + 1,
-                setTotal = maxOf(template.targetSets, done + 1),
-                targetSeconds = planned?.durationSeconds?.takeIf { it > 0 },
-                targetMeters = planned?.targetDistanceMeters?.takeIf { it > 0 }?.toInt(),
-            )
-        } catch (e: Exception) {
-            null
-        }
-    }
-
     fun sessionToJson(context: Context, session: WorkoutSession): String {
         val obj = JSONObject()
         obj.put("template", templateToJson(session.template))
@@ -320,12 +286,20 @@ object WorkoutStore {
     private fun templateItemToJson(item: ExerciseTemplate): JSONObject =
         ExerciseCatalog.toJson(item)
 
+    private fun localDateIso(): String = java.util.Calendar.getInstance().let {
+        "%04d-%02d-%02d".format(it.get(java.util.Calendar.YEAR), it.get(java.util.Calendar.MONTH) + 1, it.get(java.util.Calendar.DAY_OF_MONTH))
+    }
+
     private fun parseTemplate(obj: JSONObject): WorkoutTemplate {
         val exArr = obj.getJSONArray("exercises")
         return WorkoutTemplate(
             id = obj.getString("id"),
             name = obj.getString("name"),
-            exercises = (0 until exArr.length()).map { parseTemplateItem(exArr.getJSONObject(it)) }
+            exercises = (0 until exArr.length()).map { parseTemplateItem(exArr.getJSONObject(it)) },
+            // The phone stamps the day it resolved; a stale stamp is not "today".
+            scheduledToday = obj.optBoolean("scheduledToday", false) &&
+                obj.optString("scheduledDate").let { it.isBlank() || it == localDateIso() },
+            scheduleTitle = obj.optString("scheduleTitle").takeIf { it.isNotBlank() },
         )
     }
 

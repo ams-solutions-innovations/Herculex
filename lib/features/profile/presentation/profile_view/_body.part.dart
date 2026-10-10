@@ -33,8 +33,6 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   late FitnessGoal _goal;
   late ActivityLevel _activityLevel;
   late BiologicalSex? _sex;
-  late bool _countBurnedCalories;
-  late String _herculTone;
 
   final _nameCtrl = TextEditingController();
   final _ageCtrl = TextEditingController();
@@ -81,8 +79,6 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _goal = p?.goal ?? FitnessGoal.maintenance;
     _activityLevel = p?.activityLevel ?? ActivityLevel.lightlyActive;
     _sex = p?.sex;
-    _countBurnedCalories = p?.countBurnedCalories ?? false;
-    _herculTone = p?.herculTone ?? 'normal';
     _nameCtrl.text = p?.name ?? '';
     _ageCtrl.text = p?.ageYears?.toString() ?? '';
     // Body stats are stored in metric; the fields show the user's own system.
@@ -120,8 +116,6 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       _goal = p?.goal ?? FitnessGoal.maintenance;
       _activityLevel = p?.activityLevel ?? ActivityLevel.lightlyActive;
       _sex = p?.sex;
-      _countBurnedCalories = p?.countBurnedCalories ?? false;
-      _herculTone = p?.herculTone ?? 'normal';
       if (_nameCtrl.text != (p?.name ?? '')) {
         _nameCtrl.text = p?.name ?? '';
       }
@@ -290,8 +284,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       goal: _goal,
       activityLevel: _activityLevel,
       sex: _sex,
-      countBurnedCalories: _countBurnedCalories,
-      herculTone: _herculTone,
+      // Owned by the Preferences screen; carried over so a draft save never
+      // overwrites what was changed there.
+      countBurnedCalories: widget.profile?.countBurnedCalories ?? false,
+      herculTone: widget.profile?.herculTone ?? 'normal',
       ageYears: int.tryParse(_ageCtrl.text.trim()),
       // Fields hold display units; storage is always metric.
       weightKg: weight == null
@@ -336,37 +332,6 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     );
   }
 
-  Future<void> _clearData(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Clear all data?'),
-        content: const Text(
-          'This will permanently delete your profile, workouts, nutrition logs, and all other local data. This cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-              shape: const StadiumBorder(),
-            ),
-            child: const Text('Delete everything'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    // Clearing the profile drops the user back to onboarding via the router
-    // redirect (which watches profileProvider).
-    await ref.read(localProfileRepositoryProvider).clear();
-  }
-
   /// Opens the identity editor — tapping the avatar is the only entry point
   /// for changing the name or picture (§5).
   Future<void> _editIdentity() async {
@@ -383,8 +348,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isMetric = ref.watch(unitsProvider) == MeasurementUnit.metric;
+    // Units are switched on the Appearance screen; re-render the fields here
+    // so the stored value is preserved, not reinterpreted.
+    ref.listen(unitsProvider, (_, _) => setState(_rewriteBodyStatFields));
     final latest =
         ref.watch(_latestMeasurementsProvider).valueOrNull ?? const {};
     // Fill the waist field once the measurement log has loaded, but never
@@ -616,352 +583,20 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 
         const SizedBox(height: 28),
 
-        // ── App settings ──────────────────────────────────────────────────
-        _SectionHeader('App Settings'),
-        const SizedBox(height: 12),
-        _SettingsCard(
-          children: [
-            _SettingsTile(
-              icon: Icons.straighten_rounded,
-              label: 'Units',
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    isMetric ? 'Metric' : 'Freedom',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: context.hx.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Switch(
-                    value: isMetric,
-                    onChanged: (_) async {
-                      await ref.read(unitsProvider.notifier).toggle();
-                      // Re-render the weight/height fields in the new system
-                      // so the stored value is preserved, not reinterpreted.
-                      if (mounted) setState(_rewriteBodyStatFields);
-                    },
-                  ),
-                ],
-              ),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.music_note_rounded,
-              label: 'Media Controls Permission',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => WearSyncService().openMediaControlsPermission(),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.local_fire_department,
-              label: 'Include Burned Calories',
-              trailing: Switch(
-                value: _countBurnedCalories,
-                onChanged: (val) {
-                  setState(() => _countBurnedCalories = val);
-                  _onFieldChanged();
-                },
-              ),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.psychology_outlined,
-              label: 'Honest Hercul (18+)',
-              trailing: Switch(
-                value: _herculTone == 'honest',
-                onChanged: (val) async {
-                  if (val) {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (c) => AlertDialog(
-                        title: const Text('Enable Honest Hercul?'),
-                        content: const Text(
-                          'Honest Hercul uses blunt, unfiltered language about '
-                          'training and consistency. It may contain profanity. '
-                          'Are you 18 or older?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(c, false),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(c, true),
-                            child: const Text('Yes, I am 18+'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirm != true) return;
-                  }
-                  setState(() => _herculTone = val ? 'honest' : 'normal');
-                  _onFieldChanged();
-                },
-              ),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.dark_mode_rounded,
-              label: 'Theme',
-              trailing: _ThemeToggle(),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.palette_outlined,
-              label: 'App Colors',
-              trailing: _AppColorToggle(),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.mic_rounded,
-              label: 'Voice / Rambler Language',
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '${ref.watch(speechToTextServiceProvider).selectedLanguageOption.flag} ${ref.watch(speechToTextServiceProvider).selectedLanguageOption.name}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: context.hx.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right,
-                    color: context.hx.onSurfaceVariant,
-                    size: 18,
-                  ),
-                ],
-              ),
-              onTap: () => _showSttLanguagePicker(context),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.track_changes_rounded,
-              label: 'Goals & Targets',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => context.push(AppRoutes.goals),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.health_and_safety_rounded,
-              label: 'Health Integrations',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => context.push(AppRoutes.health),
-            ),
-            _SettingsDivider(),
-            // Android-only: iOS has no system overlay windows, so the row is
-            // hidden rather than shown disabled — a permanently dead switch
-            // reads as a bug.
-            if (WorkoutBubbleService.instance.isSupported) ...[
-              _SettingsTile(
-                icon: Icons.bubble_chart_rounded,
-                label: 'Workout Bubble',
-                trailing: Switch(
-                  value: ref.watch(workoutBubbleEnabledProvider),
-                  onChanged: _onWorkoutBubbleToggled,
-                ),
-              ),
-              _SettingsDivider(),
-            ],
-            // Its own row: this reports cloud sync, and hanging it off the
-            // Samsung Health tile read as that integration's status.
-            _SettingsTile(
-              icon: Icons.cloud_outlined,
-              label: 'Cloud sync',
-              trailing: const SyncStatusBadge(),
-              onTap: ref.watch(authSessionProvider).valueOrNull == null
-                  ? () => _showAuthSheet(context)
-                  : () => _showSyncDetailSheet(context),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.analytics_rounded,
-              label: 'Insights',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => context.push(AppRoutes.insights),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.straighten,
-              label: 'Body Measurements',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => context.push(AppRoutes.measurements),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.location_on_outlined,
-              label: 'My Gyms',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => context.push(AppRoutes.gyms),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.task_alt,
-              label: 'Micro Workouts',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => context.push(AppRoutes.microWorkouts),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.fitness_center_rounded,
-              label: 'Exercise Library',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => context.push(AppRoutes.exercises),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.restaurant_menu_rounded,
-              label: 'Custom Foods',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => context.push(AppRoutes.customFoods),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.menu_book_rounded,
-              label: 'Custom Recipes',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => context.push(AppRoutes.customRecipes),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.notifications_rounded,
-              label: 'Notifications',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => context.push(AppRoutes.notifications),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.download_rounded,
-              label: 'Export Data (JSON)',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => _exportData(context),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.info_outline_rounded,
-              label: 'About & Attribution',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => _showAttribution(context),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 28),
-
         // ── Save stats button ─────────────────────────────────────────────
         _SaveButton(saving: _saving, onTap: _save),
 
         const SizedBox(height: 28),
 
-        // ── Account ───────────────────────────────────────────────────────
-        _SectionHeader('Account'),
-        const SizedBox(height: 12),
-        _SettingsCard(
+        // ── Settings ──────────────────────────────────────────────────────
+        HxSettingsCard(
           children: [
-            if (ref.watch(authSessionProvider).valueOrNull == null) ...[
-              _SettingsTile(
-                icon: Icons.cloud_sync_rounded,
-                label: 'Sign in to Supabase',
-                trailing: Icon(Icons.chevron_right, color: context.hx.primary),
-                onTap: () => _showAuthSheet(context),
-              ),
-              _SettingsDivider(),
-            ] else ...[
-              _SettingsTile(
-                icon: Icons.person_outline_rounded,
-                label:
-                    ref.watch(authSessionProvider).valueOrNull?.email ??
-                    'Signed in',
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.hx.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'Online',
-                    style: TextStyle(
-                      color: context.hx.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              _SettingsDivider(),
-              _SettingsTile(
-                icon: Icons.logout_rounded,
-                label: 'Sign Out',
-                trailing: Icon(
-                  Icons.chevron_right,
-                  color: context.hx.onSurfaceVariant,
-                ),
-                onTap: () => _signOut(context),
-              ),
-              _SettingsDivider(),
-              // App Store Guideline 5.1.1(v) and GDPR Article 17: an account
-              // created in the app must be deletable from inside the app.
-              // Distinct from "Clear All Data" below, which never touches the
-              // cloud — this deletes the account itself.
-              _SettingsTile(
-                icon: Icons.person_remove_rounded,
-                label: 'Delete Account',
-                iconColor: Colors.red.shade900,
-                labelColor: Colors.red.shade900,
-                onTap: () => _deleteAccount(context),
-              ),
-              _SettingsDivider(),
-            ],
-            _SettingsTile(
-              icon: Icons.delete_forever_rounded,
-              label: 'Clear All Data',
-              iconColor: Colors.red.shade900,
-              labelColor: Colors.red.shade900,
-              onTap: () => _clearData(context),
+            HxSettingsTile(
+              icon: Icons.settings_rounded,
+              label: 'Settings',
+              subtitle: 'Appearance, permissions, notifications, account',
+              chevron: true,
+              onTap: () => context.push(AppRoutes.settings),
             ),
           ],
         ),
@@ -1026,266 +661,6 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           ),
         ],
       ),
-    );
-  }
-
-  Future<void> _deleteAccount(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete account?'),
-        content: const Text(
-          'Your Herculex account and everything stored in the cloud for it — '
-          'workouts, nutrition logs, measurements, cycle records — are deleted '
-          'permanently, and this device is wiped too.\n\n'
-          'This cannot be undone and the data cannot be recovered.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-              shape: const StadiumBorder(),
-            ),
-            child: const Text('Delete account'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !context.mounted) return;
-
-    // The remote call is a network round trip that ends in an irreversible
-    // deletion, so the screen is blocked rather than left tappable — a second
-    // tap would hit an account that is already gone.
-    unawaited(
-      showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
-      ),
-    );
-
-    String? error;
-    try {
-      await ref
-          .read(accountDeletionServiceProvider)
-          .deleteAccountAndWipeDevice();
-    } catch (e) {
-      error = e is Exception
-          ? e.toString().replaceFirst('Exception: ', '')
-          : '$e';
-    }
-
-    if (!context.mounted) return;
-    Navigator.of(context, rootNavigator: true).pop(); // the spinner
-
-    if (error != null) {
-      // Nothing was deleted — `AccountDeletionService` only wipes the device
-      // after the backend confirms — so this is safe to retry.
-      AppNotice.showWith(
-        ref,
-        error.trim().isEmpty ? 'Check your connection and retry' : error,
-        title: 'Could not save',
-        kind: AppNoticeKind.error,
-      );
-    }
-    // On success the cleared profile drops the router back to onboarding,
-    // exactly as `_clearData` does.
-  }
-
-  Future<void> _showAuthSheet(BuildContext context) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const _AuthSheet(),
-    );
-  }
-
-  Future<void> _showSyncDetailSheet(BuildContext context) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const _SyncDetailSheet(),
-    );
-  }
-
-  Future<void> _signOut(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Sign out'),
-        content: const Text(
-          'Signing out will pause cloud sync. Your local workout and nutrition data will remain on this device.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sign out'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && mounted) {
-      await ref.read(authRepositoryProvider).signOut();
-    }
-  }
-
-  void _showSttLanguagePicker(BuildContext context) {
-    Haptics.selection();
-    final stt = ref.read(speechToTextServiceProvider);
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: context.hx.surfaceContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Govor v besedilo / STT Jezik',
-                      style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: kSupportedSttLanguages.length,
-                  itemBuilder: (ctx, i) {
-                    final lang = kSupportedSttLanguages[i];
-                    final isSelected =
-                        lang.localeId.toLowerCase() ==
-                        stt.selectedLocaleId.toLowerCase();
-                    return ListTile(
-                      leading: Text(
-                        lang.flag,
-                        style: const TextStyle(fontSize: 22),
-                      ),
-                      title: Text(
-                        lang.name,
-                        style: TextStyle(
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: isSelected ? AppColors.primary : null,
-                        ),
-                      ),
-                      trailing: isSelected
-                          ? Icon(Icons.check, color: AppColors.primary)
-                          : null,
-                      onTap: () async {
-                        Haptics.selection();
-                        await ref
-                            .read(speechToTextServiceProvider)
-                            .setLocale(lang.localeId);
-                        if (ctx.mounted) Navigator.pop(ctx);
-                      },
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  /// Turning the Workout Bubble on needs "Display over other apps", which is a
-  /// settings-screen grant rather than a dialog: `request()` opens the system
-  /// page and returns when the user comes back, so the real answer has to be
-  /// re-read afterwards. The switch only goes on if the permission actually
-  /// landed — otherwise the setting would claim a bubble the OS will never draw.
-  Future<void> _onWorkoutBubbleToggled(bool enabled) async {
-    final notifier = ref.read(workoutBubbleEnabledProvider.notifier);
-    if (!enabled) {
-      await notifier.set(false);
-      return;
-    }
-
-    if (await WorkoutBubbleService.instance.hasPermission()) {
-      await notifier.set(true);
-      return;
-    }
-
-    await Permission.systemAlertWindow.request();
-    final granted = await WorkoutBubbleService.instance.hasPermission();
-    await notifier.set(granted);
-    if (granted || !mounted) return;
-
-    AppNotice.show(
-      context,
-      'Herculex needs "Display over other apps" to float the workout '
-      'bubble. You can grant it any time in system settings.',
-      kind: AppNoticeKind.info,
-    );
-  }
-
-  void _exportData(BuildContext context) {
-    // Tell the user the export has started
-    AppNotice.show(
-      context,
-      'Exporting data as JSON...',
-      kind: AppNoticeKind.info,
-    );
-    final notices = AppNotice.of(context);
-    // In a real implementation this would fetch from Drift and use path_provider to save a file.
-    Future.delayed(const Duration(seconds: 1), () {
-      if (!mounted) return;
-      notices.show('Data export saved to Downloads folder.');
-    });
-  }
-
-  void _showAttribution(BuildContext context) {
-    showAboutDialog(
-      context: context,
-      applicationName: 'Herculex',
-      applicationVersion: '1.0.0',
-      applicationIcon: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: context.hx.primary.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(Icons.fitness_center_rounded, color: context.hx.primary),
-      ),
-      children: [
-        const SizedBox(height: 16),
-        const Text(
-          'Herculex is a comprehensive fitness, nutrition, and recovery tracker.\n\n'
-          'Designed to provide full offline capabilities and advanced analytics.',
-        ),
-      ],
     );
   }
 }

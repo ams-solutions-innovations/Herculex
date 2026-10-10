@@ -133,6 +133,14 @@ object WorkoutBubbleController {
     val isShowing: Boolean
         get() = bubbleView != null
 
+    /**
+     * True between the app's Activity starting and stopping. The bubble exists
+     * to stand in for the app while it is NOT on screen, so [show] refuses
+     * while this is set — whatever Dart's lifecycle bookkeeping thinks.
+     */
+    @Volatile
+    var appInForeground = false
+
     fun canDrawOverlays(context: Context): Boolean =
         Settings.canDrawOverlays(context.applicationContext)
 
@@ -148,6 +156,7 @@ object WorkoutBubbleController {
     @Suppress("ClickableViewAccessibility")
     fun show(context: Context, newSnapshot: BubbleSnapshot) {
         val appContext = context.applicationContext
+        if (appInForeground) return
         if (!canDrawOverlays(appContext)) return
         if (dismissedSessionId == newSnapshot.sessionId) return
 

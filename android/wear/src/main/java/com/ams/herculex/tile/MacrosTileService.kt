@@ -15,7 +15,7 @@ import com.ams.herculex.tile.kit.HxTileService
  * mini bars, "Log food" pill = the same SlateNavy + utensils pill as the
  * watch's Nutrition menu. All values + goals already live in MacroStore.
  */
-class MacrosTileService : HxTileService("6") {
+class MacrosTileService : HxTileService("7") {
 
     override fun layout(params: RequestBuilders.TileRequest): LayoutElement {
         val kcal = MacroStore.calories(this)
@@ -35,7 +35,7 @@ class MacrosTileService : HxTileService("6") {
 
         val row = LayoutElementBuilders.Row.Builder()
             .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_TOP)
-        cols.forEachIndexed { i, c -> if (i > 0) row.addContent(HxTile.hSpacer(8f)); row.addContent(c) }
+        cols.forEachIndexed { i, c -> if (i > 0) row.addContent(HxTile.hSpacer(10f)); row.addContent(c) }
 
         val cta = HxTile.pill(126f, 34f, HxTile.SlateNavy, "ic_hx_utensils", "Log food",
             clickable = HxTile.launch(this, "tile_log_food", "log_food"))
@@ -65,7 +65,7 @@ class MacrosTileService : HxTileService("6") {
             .build()
         return LayoutElementBuilders.Column.Builder()
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-            .addContent(HxTile.text("${value}g", 13f, HxTile.White, bold = true, tabular = true))
+            .addContent(HxTile.valueWithUnit("$value", "g", 13f, 9.6f, HxTile.White, HxTile.Muted))
             .addContent(
                 LayoutElementBuilders.Box.Builder()
                     .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_START)

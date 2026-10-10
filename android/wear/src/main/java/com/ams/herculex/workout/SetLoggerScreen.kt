@@ -52,6 +52,7 @@ import androidx.navigation.NavController
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Picker
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.dialog.Dialog
@@ -1068,11 +1069,24 @@ fun SetLoggerScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+                // What is being logged, so the effort is rated against a concrete set.
+                val rpeSummary = when {
+                    isTimeBased -> formatClock(if (timerElapsedSeconds > 0) timerElapsedSeconds else selectedDuration) +
+                        if (showsDistanceInWeightSlot) " · %,d m".format(if (rowedMeters > 0) rowedMeters else selectedDistance) else ""
+                    showsDistanceInValueSlot ->
+                        (if (exercise.template.hasRealWeightSlot()) "%.1f kg · ".format(selectedWeight) else "") + "$selectedDistance m"
+                    isBodyweight -> "BW × $selectedReps"
+                    else -> "%.1f kg × %d".format(selectedWeight, selectedReps)
+                }
                 Text("RPE (Effort)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Spacer(Modifier.height(6.dp))
+                Text(rpeSummary, color = HxMuted, fontSize = 10.sp, maxLines = 1)
+                Spacer(Modifier.height(2.dp))
+                // gradientRatio = 0: the Picker's default edge fade paints the theme
+                // background (black) over the red heat glow around the numbers.
                 Picker(
                     state = rpeState,
                     contentDescription = "RPE",
+                    gradientRatio = 0f,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
@@ -1084,20 +1098,30 @@ fun SetLoggerScreen(
                         } else {
                             "%.1f".format(rpeOptions[index])
                         },
-                        color = Color.White,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = if (isSelected) 24.sp else 16.sp,
+                        color = if (isSelected) Color.White else Color(0xFF9AA3B5).copy(alpha = 0.6f),
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = if (isSelected) 36.sp else 15.sp,
                     )
                 }
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(4.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    NavCircleButton(label = "X", bg = Color(0xFF2C2C2E), size = 44) { showRpeDialog = false }
+                    Box(
+                        Modifier
+                            .size(44.dp)
+                            .background(Color(0xFF2C2C2E), CircleShape)
+                            .clickable { showRpeDialog = false },
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(HxIcons.Close, null, tint = Color.White, modifier = Modifier.size(22.dp)) }
                     Spacer(Modifier.width(14.dp))
-                    NavCircleButton(label = "OK", bg = Color(0xFF4CAF50), size = 44) {
+                    Box(
+                        Modifier
+                            .size(44.dp)
+                            .background(Color(0xFF4CAF50), CircleShape)
+                            .clickable {
                         showRpeDialog = false
                         isEditingActivation = false
                         val chosenDuration = if (isTimeBased) {
@@ -1127,7 +1151,9 @@ fun SetLoggerScreen(
                                 }
                             }
                         }
-                    }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(HxIcons.Check, null, tint = Color.White, modifier = Modifier.size(26.dp)) }
                 }
             }
         }

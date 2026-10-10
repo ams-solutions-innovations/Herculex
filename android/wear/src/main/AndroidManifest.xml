@@ -213,7 +213,7 @@
             </intent-filter>
             <meta-data
                 android:name="androidx.wear.tiles.PREVIEW"
-                android:resource="@mipmap/ic_launcher" />
+                android:resource="@drawable/tile_preview_workout" />
         </service>
 
         <service
@@ -227,7 +227,7 @@
             </intent-filter>
             <meta-data
                 android:name="androidx.wear.tiles.PREVIEW"
-                android:resource="@mipmap/ic_launcher" />
+                android:resource="@drawable/tile_preview_macros" />
         </service>
 
         <service
@@ -241,7 +241,7 @@
             </intent-filter>
             <meta-data
                 android:name="androidx.wear.tiles.PREVIEW"
-                android:resource="@mipmap/ic_launcher" />
+                android:resource="@drawable/tile_preview_fasting" />
         </service>
 
         <service
@@ -255,7 +255,7 @@
             </intent-filter>
             <meta-data
                 android:name="androidx.wear.tiles.PREVIEW"
-                android:resource="@mipmap/ic_launcher" />
+                android:resource="@drawable/tile_preview_water" />
         </service>
 
         <service
@@ -269,35 +269,7 @@
             </intent-filter>
             <meta-data
                 android:name="androidx.wear.tiles.PREVIEW"
-                android:resource="@mipmap/ic_launcher" />
-        </service>
-
-        <service
-            android:name=".tile.TimedSetTileService"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="Herculex Timed Set Tile"
-            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
-            <intent-filter>
-                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
-            </intent-filter>
-            <meta-data
-                android:name="androidx.wear.tiles.PREVIEW"
-                android:resource="@mipmap/ic_launcher" />
-        </service>
-
-        <service
-            android:name=".tile.RowingTileService"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="Herculex Rowing Tile"
-            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
-            <intent-filter>
-                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
-            </intent-filter>
-            <meta-data
-                android:name="androidx.wear.tiles.PREVIEW"
-                android:resource="@mipmap/ic_launcher" />
+                android:resource="@drawable/tile_preview_volume" />
         </service>
 
         <receiver

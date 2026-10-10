@@ -15,7 +15,7 @@ import org.json.JSONArray
  * same `weeklyVolumeJson` WeeklyVolumeScreen reads. No goal exists for volume,
  * so the ring shows composition, not progress.
  */
-class WeeklyVolumeTileService : HxTileService("1") {
+class WeeklyVolumeTileService : HxTileService("2") {
 
     private val palette = listOf(0xFF4F7BEA, 0xFF42A5F5, 0xFF80CBF5, 0xFF9FB0D4, 0xFFC0CCEC).map { HxTile.c(it) }
 
@@ -34,7 +34,7 @@ class WeeklyVolumeTileService : HxTileService("1") {
         val total = MacroStore.weeklyTonnage(this)
         val sets = MacroStore.weeklySets(this)
         val sum = list.sumOf { it.tonnage }.takeIf { it > 0 } ?: 1.0
-        val gap = 4f
+        val gap = 5.7f // 15 px between segments on the 330 px design ring
 
         val ring = LayoutElementBuilders.Arc.Builder()
             .setAnchorAngle(DimensionBuilders.degrees(0f))
@@ -42,12 +42,7 @@ class WeeklyVolumeTileService : HxTileService("1") {
         list.forEachIndexed { i, m ->
             val deg = (360f * (m.tonnage / sum).toFloat() - gap).coerceAtLeast(1f)
             // all segments unfold together; later ones slide along as earlier ones grow
-            ring.addContent(
-                LayoutElementBuilders.ArcLine.Builder()
-                    .setLength(HxTile.animDegrees(0f, deg))
-                    .setColor(palette[i % palette.size])
-                    .setThickness(DimensionBuilders.dp(HxTile.RING_DP)).build()
-            )
+            ring.addContent(HxTile.arcLine(palette[i % palette.size], HxTile.animDegrees(0f, deg)))
             ring.addContent(LayoutElementBuilders.ArcSpacer.Builder().setLength(DimensionBuilders.degrees(gap)).build())
         }
 
@@ -57,6 +52,10 @@ class WeeklyVolumeTileService : HxTileService("1") {
             legend.addContent(HxTile.text("\u25CF", 8f, palette[i])).addContent(HxTile.hSpacer(3f))
                 .addContent(HxTile.text(m.name, 10f, HxTile.c(0xFFD5DBE8)))
         }
+
+        // Nothing synced yet / no sets this week: say so instead of a bare "0".
+        val legendOrHint = if (list.isEmpty()) HxTile.text("Log a workout to see volume", 10f, HxTile.Muted)
+        else legend.build()
 
         val tonnageText = if (total >= 1000f) "%.1f".format(total / 1000f) else "%d".format(total.toInt())
         val unit = if (total >= 1000f) "t" else "kg"
@@ -72,7 +71,7 @@ class WeeklyVolumeTileService : HxTileService("1") {
                     .addContent(HxTile.text(unit, 20f, HxTile.Muted, bold = true)).build().enter(1),
                 HxTile.text("$sets sets \u00B7 this week", 11f, HxTile.Muted).enter(2),
                 HxTile.spacer(6f),
-                legend.build().enter(3),
+                legendOrHint.enter(3),
                 HxTile.spacer(6f),
                 HxTile.pill(126f, 34f, HxTile.SlateNavy, "ic_hx_barbell", "Breakdown", trailing = true,
                     clickable = HxTile.launch(this, "tile_volume", "weekly_volume")).enter(4),

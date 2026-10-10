@@ -45,6 +45,12 @@ import 'package:herculex/features/profile/presentation/dream_physique_view.dart'
 import 'package:herculex/features/profile/presentation/profile_view.dart';
 import 'package:herculex/features/programs/presentation/views/rotation_pools_view.dart';
 import 'package:herculex/features/recovery/presentation/recovery_view.dart';
+import 'package:herculex/features/settings/presentation/account_settings_view.dart';
+import 'package:herculex/features/settings/presentation/appearance_settings_view.dart';
+import 'package:herculex/features/settings/presentation/data_library_settings_view.dart';
+import 'package:herculex/features/settings/presentation/permissions_settings_view.dart';
+import 'package:herculex/features/settings/presentation/preferences_settings_view.dart';
+import 'package:herculex/features/settings/presentation/settings_view.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/shell/splash_view.dart';
 import 'package:herculex/features/supplements/presentation/supplements_view.dart';
@@ -250,6 +256,30 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.notifications,
         builder: (_, _) => const NotificationSettingsView(),
+      ),
+      GoRoute(
+        path: AppRoutes.settings,
+        builder: (_, _) => const SettingsView(),
+      ),
+      GoRoute(
+        path: AppRoutes.settingsAppearance,
+        builder: (_, _) => const AppearanceSettingsView(),
+      ),
+      GoRoute(
+        path: AppRoutes.settingsPermissions,
+        builder: (_, _) => const PermissionsSettingsView(),
+      ),
+      GoRoute(
+        path: AppRoutes.settingsPreferences,
+        builder: (_, _) => const PreferencesSettingsView(),
+      ),
+      GoRoute(
+        path: AppRoutes.settingsData,
+        builder: (_, _) => const DataLibrarySettingsView(),
+      ),
+      GoRoute(
+        path: AppRoutes.settingsAccount,
+        builder: (_, _) => const AccountSettingsView(),
       ),
       GoRoute(
         path: AppRoutes.dreamPhysique,

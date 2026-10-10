@@ -225,6 +225,11 @@ data class WorkoutTemplate(
     val id: String,
     val name: String,
     val exercises: List<ExerciseTemplate>,
+    /// The phone's program schedule has this workout down for today. Only
+    /// present in the template list the phone pushes, never in a session.
+    val scheduledToday: Boolean = false,
+    /// Program-day label for [scheduledToday] workouts (e.g. "Push A").
+    val scheduleTitle: String? = null,
 )
 
 // ── Live session state ────────────────────────────────────────────────────────

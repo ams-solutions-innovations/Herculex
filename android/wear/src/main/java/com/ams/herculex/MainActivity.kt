@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -73,6 +74,7 @@ class MainActivity : ComponentActivity() {
         if (missing.isNotEmpty()) requestPermissions(missing.toTypedArray(), 102)
 
         consumeIntentExtras(intent)
+        com.ams.herculex.workout.WorkoutSettings.init(applicationContext)
 
         setContent {
             MaterialTheme {
@@ -85,10 +87,25 @@ class MainActivity : ComponentActivity() {
                 val openWorkoutRequest by openActiveWorkoutRequests.collectAsState()
                 val targetRoute by pendingRoute.collectAsState()
 
+                // "Keep awake while workout": hold the screen on only while a
+                // session is running and the user opted in.
+                val keepAwake by com.ams.herculex.workout.WorkoutSettings.keepAwake.collectAsState()
+                val holdScreen = keepAwake && activeSession != null
+                DisposableEffect(holdScreen) {
+                    if (holdScreen) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    onDispose { window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+                }
+
                 LaunchedEffect(targetRoute) {
                     targetRoute?.let { route ->
                         if (route == "quick_workout") {
                             workoutViewModel.startEmptyWorkout()
+                            navController.navigate("active_workout")
+                        } else if (route.startsWith("start_workout/")) {
+                            // Tile quick-start: never start a second session over a running one.
+                            val template = com.ams.herculex.workout.WorkoutStore
+                                .getById(applicationContext, route.removePrefix("start_workout/"))
+                            if (activeSession == null && template != null) workoutViewModel.startWorkout(template)
                             navController.navigate("active_workout")
                         } else {
                             navController.navigate(route)

@@ -55,12 +55,16 @@ fun WorkoutListScreen(navController: NavController, viewModel: WorkoutViewModel)
         }
 
         // Routine Templates
+        // Today's scheduled workout comes first (WorkoutStore sorts it up) and is
+        // highlighted so it can be started without hunting through the list.
         items(workouts) { workout ->
+            val today = workout.scheduledToday
             OneUiPill(
-                title = workout.name,
-                subtitle = "${workout.exercises.size} exercises",
+                title = if (today) workout.scheduleTitle ?: workout.name else workout.name,
+                subtitle = if (today) "Today · ${workout.exercises.size} exercises"
+                else "${workout.exercises.size} exercises",
                 icon = "🏋️",
-                style = OneUiPillStyle.SlateNavy,
+                style = if (today) OneUiPillStyle.RoyalBlue else OneUiPillStyle.SlateNavy,
                 onClick = { navController.navigate("workout_detail/${workout.id}") },
             )
         }

@@ -14,7 +14,7 @@ import com.ams.herculex.tile.kit.HxTileService
  * new anatomy: bezel arc with 25/50/75 % notches → label → hero → caption →
  * stage chip → pill. Hero is white; the ring carries the colour.
  */
-class FastingTileService : HxTileService("3") {
+class FastingTileService : HxTileService("4") {
 
     override val freshnessMs = 60_000L // active fast: keep H:MM current
 
@@ -44,27 +44,36 @@ class FastingTileService : HxTileService("3") {
             else -> snap.lastFastDurationSeconds?.let { "Last: ${it / 3600}h ${(it % 3600) / 60}m" } ?: "Ready to fast"
         }
         val captionColor = if (scheduled) HxTile.Fasting.accent else HxTile.Muted
+        // Design: the "next fast" caption is the semibold cyan line.
 
         val cta = if (active) {
-            HxTile.pill(98f, 36f, HxTile.Violet, "ic_hx_clock", "Open timer",
+            HxTile.pill(PILL_W, PILL_H, HxTile.Violet, "ic_hx_clock", "Open timer",
                 clickable = HxTile.launch(this, "tile_fasting", "fasting"))
         } else {
-            HxTile.pill(98f, 36f, HxTile.StartFast, "ic_hx_play", "Start fast",
+            HxTile.pill(PILL_W, PILL_H, HxTile.StartFast, "ic_hx_play", "Start fast",
                 clickable = HxTile.launch(this, "tile_fasting", "fasting"))
         }
 
         val items = mutableListOf<LayoutElement>(
             HxTile.label("ic_hx_fasting", if (scheduled) "Next fast" else "Fasting", HxTile.Fasting.label).enter(0),
             HxTile.text(hero, if (scheduled) 37f else 42f, HxTile.White, bold = true, tabular = true).enter(1),
-            HxTile.text(caption, 11f, captionColor).enter(2),
+            HxTile.text(caption, 11f, captionColor, bold = scheduled).enter(2),
         )
         if (active) snap.currentStageMessage?.let { stage ->
+            items += HxTile.spacer(5f)
             items += stageChip(stage).enter(3)
         }
-        items += HxTile.spacer(6f)
+        // Design: 9px above the pill while a fast runs, 16px otherwise.
+        items += HxTile.spacer(if (active) 6f else 11f)
         items += cta.enter(4)
 
         return HxTile.face(HxTile.Fasting.glowRes, bezel, HxTile.column(*items.toTypedArray()))
+    }
+
+    private companion object {
+        // 196 x 52 px on the 330 px design face, scaled to the 227 dp tile face.
+        const val PILL_W = 135f
+        const val PILL_H = 36f
     }
 
     private fun stageChip(stage: String): LayoutElement =

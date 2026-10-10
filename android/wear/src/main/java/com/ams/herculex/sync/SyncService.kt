@@ -85,6 +85,9 @@ class SyncService : WearableListenerService() {
                     val nutrientTrendsJson = dataMap.getString("nutrient_trends_json", "[]") ?: "[]"
 
                     MacroStore.save(this, calories, protein, carbs, fats, fasting)
+                    if (dataMap.containsKey("water_ml")) {
+                        MacroStore.saveWater(this, dataMap.getInt("water_ml", 0))
+                    }
                     MacroStore.saveWeeklyVolume(this, weeklyTonnage, weeklySets, weeklyVolumeJson)
                     MacroStore.saveNutrientTrends(this, nutrientTrendsJson)
 
@@ -111,6 +114,13 @@ class SyncService : WearableListenerService() {
                     if (!workoutsJson.isNullOrBlank()) {
                         WorkoutStore.saveJson(this, workoutsJson)
                         activeViewModel?.loadWorkouts()
+                        // The workout tile shows today's scheduled workout; redraw it.
+                        try {
+                            TileService.getUpdater(this)
+                                .requestUpdate(com.ams.herculex.tile.WorkoutTileService::class.java)
+                        } catch (e: Exception) {
+                            Log.w("SyncService", "Workout tile refresh failed", e)
+                        }
                         Log.d("SyncService", "Workouts synced from phone")
                     }
                 }

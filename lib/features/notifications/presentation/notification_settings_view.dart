@@ -105,9 +105,9 @@ class NotificationSettingsView extends ConsumerWidget {
         const SizedBox(height: 24),
 
         // ── Meals Section ──────────────────────────────────────────────────
-        _SectionHeader('Meals'),
+        HxSectionHeader('Meals'),
         const SizedBox(height: 10),
-        _SettingsCard(
+        HxSettingsCard(
           children: [
             _SettingsSwitchTile(
               icon: Icons.restaurant_menu_rounded,
@@ -117,7 +117,7 @@ class NotificationSettingsView extends ConsumerWidget {
               onChanged: notifier.setMealRemindersEnabled,
             ),
             if (settings.mealRemindersEnabled) ...[
-              _SettingsDivider(),
+              const HxSettingsDivider(),
               for (final slot in mealSlots) ...[
                 _MealSlotRow(
                   icon: slot.icon,
@@ -132,7 +132,7 @@ class NotificationSettingsView extends ConsumerWidget {
                     settings.mealTimeFor(slot.key),
                   ),
                 ),
-                if (slot != mealSlots.last) _SettingsDivider(),
+                if (slot != mealSlots.last) const HxSettingsDivider(),
               ],
             ],
           ],
@@ -140,9 +140,9 @@ class NotificationSettingsView extends ConsumerWidget {
         const SizedBox(height: 24),
 
         // ── Fasting Section ────────────────────────────────────────────────
-        _SectionHeader('Fasting'),
+        HxSectionHeader('Fasting'),
         const SizedBox(height: 10),
-        _SettingsCard(
+        HxSettingsCard(
           children: [
             _SettingsSwitchTile(
               icon: Icons.timer_outlined,
@@ -151,7 +151,7 @@ class NotificationSettingsView extends ConsumerWidget {
               value: settings.fastingGoalReachedEnabled,
               onChanged: notifier.setFastingGoalReachedEnabled,
             ),
-            _SettingsDivider(),
+            const HxSettingsDivider(),
             _SettingsSwitchTile(
               icon: Icons.calendar_month_outlined,
               title: 'Fasting Schedule Reminders',
@@ -164,9 +164,9 @@ class NotificationSettingsView extends ConsumerWidget {
         const SizedBox(height: 24),
 
         // ── Supplements Section ────────────────────────────────────────────
-        _SectionHeader('Supplements'),
+        HxSectionHeader('Supplements'),
         const SizedBox(height: 10),
-        _SettingsCard(
+        HxSettingsCard(
           children: [
             _SettingsSwitchTile(
               icon: Icons.medication_outlined,
@@ -175,7 +175,7 @@ class NotificationSettingsView extends ConsumerWidget {
               value: settings.supplementRemindersEnabled,
               onChanged: notifier.setSupplementRemindersEnabled,
             ),
-            _SettingsDivider(),
+            const HxSettingsDivider(),
             _SettingsSwitchTile(
               icon: Icons.fitness_center_rounded,
               title: 'Post-Workout Supplements',
@@ -188,9 +188,9 @@ class NotificationSettingsView extends ConsumerWidget {
         const SizedBox(height: 24),
 
         // ── Workouts Section ───────────────────────────────────────────────
-        _SectionHeader('Workouts'),
+        HxSectionHeader('Workouts'),
         const SizedBox(height: 10),
-        _SettingsCard(
+        HxSettingsCard(
           children: [
             _SettingsSwitchTile(
               icon: Icons.play_circle_outline_rounded,
@@ -200,7 +200,7 @@ class NotificationSettingsView extends ConsumerWidget {
               value: settings.activeWorkoutBannerEnabled,
               onChanged: notifier.setActiveWorkoutBannerEnabled,
             ),
-            _SettingsDivider(),
+            const HxSettingsDivider(),
             _SettingsSwitchTile(
               icon: Icons.hourglass_bottom_rounded,
               title: 'Rest Timer Alerts',
@@ -213,9 +213,9 @@ class NotificationSettingsView extends ConsumerWidget {
         const SizedBox(height: 24),
 
         // ── Daily Habits Section ───────────────────────────────────────────
-        _SectionHeader('Daily Habits & Log'),
+        HxSectionHeader('Daily Habits & Log'),
         const SizedBox(height: 10),
-        _SettingsCard(
+        HxSettingsCard(
           children: [
             _SettingsSwitchTile(
               icon: Icons.fact_check_outlined,
@@ -225,7 +225,7 @@ class NotificationSettingsView extends ConsumerWidget {
               onChanged: notifier.setDailyLogReminderEnabled,
             ),
             if (settings.dailyLogReminderEnabled) ...[
-              _SettingsDivider(),
+              const HxSettingsDivider(),
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -297,7 +297,7 @@ class NotificationSettingsView extends ConsumerWidget {
 
         // ── Weekly Report (opt-in for the Sunday notification and the AI
         // summary; D-07/D-08) ─────────────────────────────────────────────
-        _SettingsCard(
+        HxSettingsCard(
           children: [
             _SettingsSwitchTile(
               icon: Icons.insights_outlined,
@@ -308,7 +308,7 @@ class NotificationSettingsView extends ConsumerWidget {
               onChanged: notifier.setWeeklyReportEnabled,
             ),
             if (settings.weeklyReportEnabled) ...[
-              _SettingsDivider(),
+              const HxSettingsDivider(),
               _TimePillRow(
                 label: 'Report Time',
                 caption: 'When to send the weekly report notification',
@@ -328,53 +328,6 @@ class NotificationSettingsView extends ConsumerWidget {
 }
 
 // ── Helper Widgets ────────────────────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader(this.title);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title.toUpperCase(),
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: context.hx.onSurfaceVariant,
-        letterSpacing: 1.2,
-        fontWeight: FontWeight.bold,
-      ),
-    );
-  }
-}
-
-class _SettingsCard extends StatelessWidget {
-  final List<Widget> children;
-  const _SettingsCard({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.hx.surfaceContainer,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: context.hx.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Column(children: children),
-    );
-  }
-}
-
-class _SettingsDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Divider(
-      height: 1,
-      indent: 54,
-      color: context.hx.outlineVariant.withValues(alpha: 0.3),
-    );
-  }
-}
 
 class _SettingsSwitchTile extends StatelessWidget {
   final IconData icon;

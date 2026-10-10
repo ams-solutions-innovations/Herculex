@@ -441,6 +441,9 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     final carbsGoal = targets?.carbsG ?? baseline?.carbsG ?? 200;
     final fatGoal = targets?.fatG ?? baseline?.fatG ?? 65;
     final waterGoal = 2000;
+    final waterMl = await ref
+        .read(nutritionRepositoryProvider)
+        .waterMlFor(DateTime.now());
 
     await ref
         .read(wearSyncServiceProvider)
@@ -459,6 +462,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
           carbsGoal: carbsGoal,
           fatGoal: fatGoal,
           waterGoal: waterGoal,
+          waterMl: waterMl,
         );
   }
 

@@ -21,10 +21,13 @@ object ExerciseCatalog {
         "kettlebell" to "Kettlebell",
         "band" to "Band",
         "bodyweight" to "Bodyweight",
+        "weighted" to "Weighted",
         "other" to "Other",
     )
 
-    fun equipmentLabel(variant: String): String = equipmentLabels[variant] ?: variant
+    /// Unknown ids (a variant the phone added later) still read as a label.
+    fun equipmentLabel(variant: String): String =
+        equipmentLabels[variant] ?: variant.replace('_', ' ').replaceFirstChar { it.uppercase() }
 
     /// Cold-start fallback shown before the phone has ever pushed its catalog.
     ///

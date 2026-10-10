@@ -12,6 +12,8 @@ import 'package:herculex/features/physique/application/effective_goal_provider.d
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
+import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/progression_engine.dart';
@@ -177,124 +179,120 @@ class WearWorkoutSyncService {
     }
   }
 
+  /// [scheduledToday] are resolved from their program day (rotation,
+  /// periodisation and prescription applied, exactly what the phone would
+  /// start) and sent as extra entries flagged `scheduledToday`. A scheduled
+  /// workout that is a saved template replaces that template's plain entry, so
+  /// the watch lists it once.
   Future<void> syncTemplatesToWatch(
     List<WorkoutTemplateData> templates,
     Map<int, List<TemplateExerciseData>> templateExercises,
     Map<int, List<TemplateSetData>> templateSets,
-    List<ExerciseCatalogData> catalog,
-  ) async {
+    List<ExerciseCatalogData> catalog, {
+    List<TodaysScheduledWorkout> scheduledToday = const [],
+  }) async {
     final List<Map<String, dynamic>> jsonList = [];
     final prefs = _ref.read(sharedPreferencesProvider);
     final hintModeRaw = prefs.getString('performance_hint_mode');
     final isNextMode = hintModeRaw == 'next';
     final weightFmt = _ref.read(weightFormatProvider);
+    final catalogById = {for (final c in catalog) c.id: c};
+
+    final scheduledJson = <Map<String, dynamic>>[];
+    // Stamped on every entry so the watch can stop calling a workout "today"
+    // after midnight, before the phone has had a chance to push again.
+    final now = _ref.read(clockProvider).now();
+    final scheduledDate =
+        '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+    final coveredTemplateIds = <int>{};
+    for (final today in scheduledToday) {
+      if (today.isDone) continue;
+      try {
+        final plan = await PlannedSessionResolver(_db).resolveProgramDay(
+          today.programDay.id,
+          templateOverride: today.schedule.templateIdOverride,
+        );
+        final exJsonList = <Map<String, dynamic>>[];
+        for (final ex in plan.exercises) {
+          final catalogItem = catalogById[ex.exerciseId];
+          if (catalogItem == null) continue;
+          final working = ex.sets.where((s) => !s.isWarmup).toList();
+          exJsonList.add(
+            await _exerciseJson(
+              catalogItem: catalogItem,
+              targetSets: working.isEmpty ? ex.sets.length : working.length,
+              supersetGroup: ex.supersetGroup,
+              targetRepsMin: working.firstOrNull?.repsMin,
+              sets: [
+                for (final s in ex.sets)
+                  _WearSetTarget(
+                    order: s.index + 1,
+                    wireId:
+                        'scheduled_set_${today.schedule.id}_${ex.orderIndex}_${s.index}',
+                    setType: s.setType,
+                    setTypeMetaJson: s.setTypeMetaJson,
+                    targetRepsMin: s.repsMin,
+                    targetRepsMax: s.repsMax,
+                    targetWeightKg: s.weightKg,
+                    isWarmup: s.isWarmup,
+                  ),
+              ],
+              isNextMode: isNextMode,
+              weightFmt: weightFmt,
+            ),
+          );
+        }
+        if (exJsonList.isEmpty) continue;
+        scheduledJson.add({
+          'id': 'scheduled_${today.schedule.id}',
+          'name': plan.name,
+          'scheduledToday': true,
+          'scheduledDate': scheduledDate,
+          'scheduleTitle': today.title,
+          'exercises': exJsonList,
+        });
+        final templateId = today.template?.id;
+        if (templateId != null) coveredTemplateIds.add(templateId);
+      } catch (e) {
+        // A broken schedule must not stop the rest of the library syncing.
+        debugPrint('Scheduled workout skipped for watch sync: $e');
+      }
+    }
 
     for (final template in templates) {
+      if (coveredTemplateIds.contains(template.id)) continue;
       final exercises = templateExercises[template.id] ?? [];
       final List<Map<String, dynamic>> exJsonList = [];
 
       for (final ex in exercises) {
-        final catalogItem = catalog
-            .where((c) => c.id == ex.exerciseId)
-            .firstOrNull;
+        final catalogItem = catalogById[ex.exerciseId];
         if (catalogItem == null) continue;
-
-        final lastSnapshot = await _workoutsRepository
-            .lastPerformanceSnapshotFor(catalogItem.id);
-        final lastSets = lastSnapshot?.sets ?? const <SetEntryData>[];
-        final progression = await _resolveProgressionGoal(catalogItem.id);
-
-        double defaultPriorWeight = 0.0;
-        int defaultPriorReps = 0;
-        if (lastSets.isNotEmpty) {
-          final firstWorkingSet = lastSets.firstWhere(
-            (s) => !s.isWarmup,
-            orElse: () => lastSets.first,
-          );
-          defaultPriorWeight = firstWorkingSet.weightKg;
-          defaultPriorReps = firstWorkingSet.reps;
-        }
-
-        double defaultHintWeight = defaultPriorWeight;
-        int defaultHintReps = defaultPriorReps;
-        if (isNextMode && (defaultPriorWeight > 0 || defaultPriorReps > 0)) {
-          final target = ProgressionEngine.suggestNext(
-            lastWeightKg: defaultPriorWeight,
-            lastReps: defaultPriorReps > 0 ? defaultPriorReps : 1,
-            goal: progression.goal,
-            equipmentVariant: catalogItem.modality,
-            weeklyIncreasePctOverride: progression.weeklyPctOverride,
-          );
-          if (target.weightKg > 0) defaultHintWeight = target.weightKg;
-          if (target.reps > 0) defaultHintReps = target.reps;
-        }
-
-        String? performanceHint;
-        if (isNextMode && (defaultHintWeight > 0 || defaultHintReps > 0)) {
-          performanceHint =
-              'Next: ${weightFmt.format(defaultHintWeight)} × $defaultHintReps';
-        } else if (defaultPriorWeight > 0 || defaultPriorReps > 0) {
-          performanceHint =
-              'Last: ${weightFmt.format(defaultPriorWeight)} × $defaultPriorReps';
-        }
-
-        final tSets = templateSets[ex.id] ?? [];
-        final plannedSetsJson = tSets.map((ts) {
-          final prior =
-              (ts.setOrder - 1) < lastSets.length && (ts.setOrder - 1) >= 0
-              ? lastSets[ts.setOrder - 1]
-              : lastSets.lastOrNull;
-          double pWeight = prior?.weightKg ?? defaultPriorWeight;
-          int pReps = prior?.reps ?? defaultPriorReps;
-          double hWeight = pWeight;
-          int hReps = pReps;
-          if (isNextMode && prior != null && !prior.isWarmup) {
-            final target = ProgressionEngine.suggestNext(
-              lastWeightKg: pWeight,
-              lastReps: pReps > 0 ? pReps : 1,
-              goal: progression.goal,
-              equipmentVariant: catalogItem.modality,
-              weeklyIncreasePctOverride: progression.weeklyPctOverride,
-            );
-            if (target.weightKg > 0) hWeight = target.weightKg;
-            if (target.reps > 0) hReps = target.reps;
-          }
-          final finalWeight =
-              (ts.targetWeightKg != null && ts.targetWeightKg! > 0)
-              ? ts.targetWeightKg!
-              : (hWeight > 0 ? hWeight : defaultHintWeight);
-          final finalReps = (ts.targetReps != null && ts.targetReps! > 0)
-              ? ts.targetReps!
-              : (hReps > 0
-                    ? hReps
-                    : (defaultHintReps > 0
-                          ? defaultHintReps
-                          : (ex.targetRepsMin ?? 10)));
-
-          return {
-            'wireId': 'template_set_${ts.id}',
-            'setIndex': ts.setOrder,
-            'setType': normalizeWearSetType(ts.setType),
-            'isWarmup': ts.isWarmup,
-            'targetReps': finalReps,
-            'targetRepsMin': ts.targetRepsMin,
-            'targetRepsMax': ts.targetRepsMax,
-            'targetWeightKg': finalWeight,
-            'setTypeMetaJson': ts.setTypeMetaJson,
-          };
-        }).toList();
-
-        exJsonList.add({
-          ..._templateJson(catalogItem),
-          'targetSets': ex.targetSets,
-          'supersetGroup': ex.supersetGroup,
-          'prevWeight': defaultHintWeight > 0
-              ? defaultHintWeight
-              : defaultPriorWeight,
-          'prevReps': defaultHintReps > 0 ? defaultHintReps : defaultPriorReps,
-          if (performanceHint != null) 'performanceHint': performanceHint,
-          'plannedSets': plannedSetsJson,
-        });
+        exJsonList.add(
+          await _exerciseJson(
+            catalogItem: catalogItem,
+            targetSets: ex.targetSets,
+            supersetGroup: ex.supersetGroup,
+            targetRepsMin: ex.targetRepsMin,
+            sets: [
+              for (final ts in templateSets[ex.id] ?? const <TemplateSetData>[])
+                _WearSetTarget(
+                  order: ts.setOrder,
+                  wireId: 'template_set_${ts.id}',
+                  setType: ts.setType,
+                  setTypeMetaJson: ts.setTypeMetaJson,
+                  targetReps: ts.targetReps,
+                  targetRepsMin: ts.targetRepsMin,
+                  targetRepsMax: ts.targetRepsMax,
+                  targetWeightKg: ts.targetWeightKg,
+                  isWarmup: ts.isWarmup,
+                ),
+            ],
+            isNextMode: isNextMode,
+            weightFmt: weightFmt,
+          ),
+        );
       }
 
       jsonList.add({
@@ -304,8 +302,116 @@ class WearWorkoutSyncService {
       });
     }
 
-    final jsonString = jsonEncode(jsonList);
+    final jsonString = jsonEncode([...scheduledJson, ...jsonList]);
     await _wearSyncService.syncWorkouts(jsonString);
+  }
+
+  /// One exercise's watch JSON: last-performance hints, "next" progression
+  /// targets and per-set targets. Shared by saved templates and by today's
+  /// scheduled workout.
+  Future<Map<String, dynamic>> _exerciseJson({
+    required ExerciseCatalogData catalogItem,
+    required int targetSets,
+    required int? supersetGroup,
+    required int? targetRepsMin,
+    required List<_WearSetTarget> sets,
+    required bool isNextMode,
+    required WeightFormat weightFmt,
+  }) async {
+    final lastSnapshot = await _workoutsRepository.lastPerformanceSnapshotFor(
+      catalogItem.id,
+    );
+    final lastSets = lastSnapshot?.sets ?? const <SetEntryData>[];
+    final progression = await _resolveProgressionGoal(catalogItem.id);
+
+    double defaultPriorWeight = 0.0;
+    int defaultPriorReps = 0;
+    if (lastSets.isNotEmpty) {
+      final firstWorkingSet = lastSets.firstWhere(
+        (s) => !s.isWarmup,
+        orElse: () => lastSets.first,
+      );
+      defaultPriorWeight = firstWorkingSet.weightKg;
+      defaultPriorReps = firstWorkingSet.reps;
+    }
+
+    double defaultHintWeight = defaultPriorWeight;
+    int defaultHintReps = defaultPriorReps;
+    if (isNextMode && (defaultPriorWeight > 0 || defaultPriorReps > 0)) {
+      final target = ProgressionEngine.suggestNext(
+        lastWeightKg: defaultPriorWeight,
+        lastReps: defaultPriorReps > 0 ? defaultPriorReps : 1,
+        goal: progression.goal,
+        equipmentVariant: catalogItem.modality,
+        weeklyIncreasePctOverride: progression.weeklyPctOverride,
+      );
+      if (target.weightKg > 0) defaultHintWeight = target.weightKg;
+      if (target.reps > 0) defaultHintReps = target.reps;
+    }
+
+    String? performanceHint;
+    if (isNextMode && (defaultHintWeight > 0 || defaultHintReps > 0)) {
+      performanceHint =
+          'Next: ${weightFmt.format(defaultHintWeight)} × $defaultHintReps';
+    } else if (defaultPriorWeight > 0 || defaultPriorReps > 0) {
+      performanceHint =
+          'Last: ${weightFmt.format(defaultPriorWeight)} × $defaultPriorReps';
+    }
+
+    final plannedSetsJson = sets.map((ts) {
+      final prior = (ts.order - 1) < lastSets.length && (ts.order - 1) >= 0
+          ? lastSets[ts.order - 1]
+          : lastSets.lastOrNull;
+      double pWeight = prior?.weightKg ?? defaultPriorWeight;
+      int pReps = prior?.reps ?? defaultPriorReps;
+      double hWeight = pWeight;
+      int hReps = pReps;
+      if (isNextMode && prior != null && !prior.isWarmup) {
+        final target = ProgressionEngine.suggestNext(
+          lastWeightKg: pWeight,
+          lastReps: pReps > 0 ? pReps : 1,
+          goal: progression.goal,
+          equipmentVariant: catalogItem.modality,
+          weeklyIncreasePctOverride: progression.weeklyPctOverride,
+        );
+        if (target.weightKg > 0) hWeight = target.weightKg;
+        if (target.reps > 0) hReps = target.reps;
+      }
+      final finalWeight = (ts.targetWeightKg != null && ts.targetWeightKg! > 0)
+          ? ts.targetWeightKg!
+          : (hWeight > 0 ? hWeight : defaultHintWeight);
+      final finalReps = (ts.targetReps != null && ts.targetReps! > 0)
+          ? ts.targetReps!
+          : (hReps > 0
+                ? hReps
+                : (defaultHintReps > 0
+                      ? defaultHintReps
+                      : (targetRepsMin ?? 10)));
+
+      return {
+        'wireId': ts.wireId,
+        'setIndex': ts.order,
+        'setType': normalizeWearSetType(ts.setType),
+        'isWarmup': ts.isWarmup,
+        'targetReps': finalReps,
+        'targetRepsMin': ts.targetRepsMin,
+        'targetRepsMax': ts.targetRepsMax,
+        'targetWeightKg': finalWeight,
+        'setTypeMetaJson': ts.setTypeMetaJson,
+      };
+    }).toList();
+
+    return {
+      ..._templateJson(catalogItem),
+      'targetSets': targetSets,
+      'supersetGroup': supersetGroup,
+      'prevWeight': defaultHintWeight > 0
+          ? defaultHintWeight
+          : defaultPriorWeight,
+      'prevReps': defaultHintReps > 0 ? defaultHintReps : defaultPriorReps,
+      if (performanceHint != null) 'performanceHint': performanceHint,
+      'plannedSets': plannedSetsJson,
+    };
   }
 
   Future<void> _handleWatchWorkoutStarted(
@@ -1531,4 +1637,30 @@ class _PhoneSetSyncState {
       ),
     );
   }
+}
+
+/// A set target as the watch wants it, independent of whether it came from a
+/// saved template row or a resolved program day.
+class _WearSetTarget {
+  const _WearSetTarget({
+    required this.order,
+    required this.wireId,
+    required this.setType,
+    required this.isWarmup,
+    this.setTypeMetaJson,
+    this.targetReps,
+    this.targetRepsMin,
+    this.targetRepsMax,
+    this.targetWeightKg,
+  });
+
+  final int order;
+  final String wireId;
+  final String setType;
+  final String? setTypeMetaJson;
+  final int? targetReps;
+  final int? targetRepsMin;
+  final int? targetRepsMax;
+  final double? targetWeightKg;
+  final bool isWarmup;
 }

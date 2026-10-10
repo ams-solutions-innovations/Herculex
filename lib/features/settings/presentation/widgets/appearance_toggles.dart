@@ -1,87 +1,11 @@
-part of '../profile_view.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/design_system/theme/theme_provider.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 
-class _SettingsCard extends StatelessWidget {
-  final List<Widget> children;
-  const _SettingsCard({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.hx.surfaceContainer,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: context.hx.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Column(children: children),
-    );
-  }
-}
-
-class _SettingsDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Divider(
-      height: 1,
-      indent: 56,
-      color: context.hx.outlineVariant.withValues(alpha: 0.4),
-    );
-  }
-}
-
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Widget? trailing;
-  final Color? iconColor;
-  final Color? labelColor;
-  final VoidCallback? onTap;
-
-  const _SettingsTile({
-    required this.icon,
-    required this.label,
-    this.trailing,
-    this.iconColor,
-    this.labelColor,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 22,
-              color: iconColor ?? context.hx.onSurfaceVariant,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                label,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: labelColor,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            ?trailing,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ThemeToggle extends ConsumerWidget {
-  const _ThemeToggle();
+/// Light / System / Dark dropdown.
+class ThemeModeToggle extends ConsumerWidget {
+  const ThemeModeToggle({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -170,8 +94,9 @@ class _ThemeToggle extends ConsumerWidget {
   }
 }
 
-class _AppColorToggle extends ConsumerWidget {
-  const _AppColorToggle();
+/// Accent colour dropdown with a preview dot per option.
+class AppColorThemeToggle extends ConsumerWidget {
+  const AppColorThemeToggle({super.key});
 
   static Color _previewColor(AppColorTheme theme) => switch (theme) {
     AppColorTheme.classicBlue => const Color(0xFF0A84FF),

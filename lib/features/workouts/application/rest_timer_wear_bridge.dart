@@ -14,9 +14,10 @@ import 'package:herculex/services/platform/workout_notification_service.dart';
 ///
 /// The watch shows the countdown under the set number. When the user wants a
 /// "rest over" alert and a watch that is following this workout received the
-/// timer, the watch buzzes "IT'S GO TIME" and the phone withdraws its own
-/// notification — one short tap on the wrist instead of two devices going
-/// off. With no watch in reach the phone notification stays as it was.
+/// timer, the watch buzzes "IT'S GO TIME" and the phone stays silent — the
+/// controller does not even schedule its notification while a watch follows
+/// the workout. Only when the timer could not be delivered does the phone
+/// notify, as a fallback.
 ///
 /// Watched once from the app root.
 final restTimerWearBridgeProvider = Provider<void>((ref) {
@@ -49,8 +50,23 @@ final restTimerWearBridgeProvider = Provider<void>((ref) {
     });
 
     wear.syncRestTimer(payload).then((delivered) {
-      if (delivered && watchFollowsWorkout && alert && endsAtMs != null) {
-        WorkoutNotificationService.instance.cancelRestTimer();
+      if (!watchFollowsWorkout || !alert || endsAtMs == null) return;
+      final service = WorkoutNotificationService.instance;
+      if (delivered) {
+        // The watch owns the alert; make sure the phone stays silent.
+        service.cancelRestTimer();
+        return;
+      }
+      // The watch did not get the timer (out of range, asleep): the phone
+      // notification that the controller held back is the only alert left.
+      final remaining = DateTime.fromMillisecondsSinceEpoch(
+        endsAtMs,
+      ).difference(ref.read(clockProvider).now()).inSeconds;
+      if (remaining > 0 && ref.read(restTimerProvider).endsAt != null) {
+        service.scheduleRestTimer(
+          remaining,
+          next.exerciseName ?? 'Time for your next set!',
+        );
       }
     });
   });

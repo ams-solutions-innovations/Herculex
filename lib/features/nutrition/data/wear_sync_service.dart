@@ -309,6 +309,7 @@ class WearSyncService {
     int carbsGoal = 200,
     int fatGoal = 65,
     int waterGoal = 2000,
+    int waterMl = 0,
   }) async {
     try {
       await _channel.invokeMethod('syncMacros', {
@@ -326,6 +327,7 @@ class WearSyncService {
         'carbs_goal': carbsGoal,
         'fat_goal': fatGoal,
         'water_goal': waterGoal,
+        'water_ml': waterMl,
       });
       debugPrint('Synced macros & goals to wear');
     } on PlatformException catch (e) {
