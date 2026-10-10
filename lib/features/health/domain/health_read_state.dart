@@ -1,3 +1,5 @@
+import 'package:herculex/features/health/domain/sleep_summary.dart';
+
 enum HealthReadStatus { available, denied, unavailable, error, empty }
 
 class HealthRead<T> {
@@ -117,13 +119,21 @@ class DailyHealthRead {
     required this.foodKcal,
     required this.weightKg,
     required this.readAt,
+    this.sleepDetail,
   });
 
   final String dateIso;
   final HealthRead<double> steps;
   final HealthRead<double> activeKcal;
   final HealthRead<double> restingHr;
+
+  /// Actual hours asleep — [sleepDetail]'s `asleepHours`, kept as its own read
+  /// because the rest of the app tracks every metric as a `HealthRead<double>`.
   final HealthRead<double> sleepHours;
+
+  /// The full night behind [sleepHours] (stages, time in bed, awakenings).
+  /// Null when nothing was read or the caller only had the hours.
+  final SleepSummary? sleepDetail;
   final HealthRead<double> waterMl;
   final HealthRead<double> foodKcal;
   final HealthRead<double> weightKg;

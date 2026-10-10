@@ -43,10 +43,12 @@ import androidx.navigation.NavController
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Picker
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.rememberPickerState
 import com.ams.herculex.sync.QuickAddFoodItem
+import com.ams.herculex.ui.HxIcons
 import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
 import com.ams.herculex.workout.attachPickerRotary
@@ -94,7 +96,7 @@ fun LogFoodScreen(navController: NavController, viewModel: NutritionViewModel) {
             com.ams.herculex.ui.OneUiPill(
                 title = "Rambler Voice AI",
                 subtitle = "Speak to log meal",
-                icon = "🎙️",
+                iconVector = HxIcons.Mic,
                 style = OneUiPillStyle.VioletIndigo,
                 onClick = { navController.navigate("rambler_voice") },
             )
@@ -241,7 +243,7 @@ private fun QuickAddFoodRow(
                     maxLines = 1,
                 )
                 Text(
-                    text = if (isAdded) "✓ Added" else "${food.portionLabel} · ${food.kcal} kcal",
+                    text = if (isAdded) "✓ Added" else "${food.portionLabel} · ${food.kcal} Calories",
                     color = if (isAdded) Color(0xFFA5D6A7) else OneUiPillStyle.RoyalBlue.secondaryColor,
                     fontSize = 10.sp,
                     fontWeight = if (isAdded) FontWeight.SemiBold else FontWeight.Normal,
@@ -259,11 +261,11 @@ private fun QuickAddFoodRow(
                     .clickable { handleQuickAdd() },
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = if (isAdded) "✓" else "+",
-                    color = Color.White,
-                    fontSize = if (isAdded) 14.sp else 16.sp,
-                    fontWeight = FontWeight.Bold,
+                Icon(
+                    imageVector = if (isAdded) HxIcons.Check else HxIcons.Plus,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }
@@ -318,7 +320,7 @@ fun LogFoodAmountScreen(navController: NavController, viewModel: NutritionViewMo
             fontSize = 14.sp,
         )
         Text(
-            text = "%.0f %s · $scaledKcal kcal".format(scaledAmount, item.portionUnit),
+            text = "%.0f %s · $scaledKcal Calories".format(scaledAmount, item.portionUnit),
             color = Color(0xFF9E9E9E),
             fontSize = 11.sp,
             modifier = Modifier.padding(bottom = 4.dp),
@@ -395,9 +397,9 @@ fun LogFoodMealPickerScreen(navController: NavController, viewModel: NutritionVi
                 )
                 Text(
                     text = if (multiplier == 1.0) {
-                        "${item.portionLabel} · ${item.kcal} kcal"
+                        "${item.portionLabel} · ${item.kcal} Calories"
                     } else {
-                        "%.2fx portion · $scaledKcal kcal".format(multiplier).replace(".00x", "x")
+                        "%.2fx portion · $scaledKcal Calories".format(multiplier).replace(".00x", "x")
                     },
                     color = Color(0xFF9E9E9E),
                     fontSize = 11.sp,

@@ -19,6 +19,7 @@ import 'package:herculex/features/fasting/presentation/widgets/fasting_stage_ico
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/profile/presentation/widgets/greek_avatar_badge.dart';
 import 'package:herculex/features/supplements/presentation/supplement_tracker_widget.dart';
 import 'package:herculex/features/weekly_report/presentation/widgets/weekly_report_ready_card.dart';
 import 'package:intl/intl.dart';
@@ -96,7 +97,10 @@ class DashboardView extends ConsumerWidget {
                       onPressed: () => _showCustomizeSheet(context, ref),
                     ),
                     const SizedBox(width: 4),
-                    _ProfileAvatarButton(name: name),
+                    _ProfileAvatarButton(
+                      name: name,
+                      avatarId: profile?.avatarId,
+                    ),
                   ],
                 ],
               ),
@@ -848,38 +852,21 @@ class FastingTimerWidget extends ConsumerWidget {
   }
 }
 
-/// Circular gradient avatar in the dashboard header. Replaces the Profile nav
-/// tab as the entry point into `/profile`.
+/// Circular gradient or Greek mythological avatar in the dashboard header.
+/// Replaces the Profile nav tab as the entry point into `/profile`.
 class _ProfileAvatarButton extends StatelessWidget {
   final String name;
-  const _ProfileAvatarButton({required this.name});
+  final String? avatarId;
+
+  const _ProfileAvatarButton({required this.name, this.avatarId});
 
   @override
   Widget build(BuildContext context) {
-    final initial = name.trim().isEmpty ? 'A' : name.trim()[0].toUpperCase();
-    return GestureDetector(
+    return GreekAvatarBadge(
+      avatarId: avatarId,
+      fallbackName: name,
+      size: 40,
       onTap: () => context.push(AppRoutes.profile),
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.primary, Color(0xFF30D158)],
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          initial,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
     );
   }
 }

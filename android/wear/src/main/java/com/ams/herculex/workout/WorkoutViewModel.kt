@@ -3,6 +3,7 @@ package com.ams.herculex.workout
 import android.app.Application
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ams.herculex.sync.WearDataLayerSyncManager
@@ -15,6 +16,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class WorkoutViewModel(application: Application) : AndroidViewModel(application) {
@@ -148,52 +150,74 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         origin: String = WearSyncContract.ORIGIN_PHONE,
         sessionId: String = java.util.UUID.randomUUID().toString(),
     ) {
+        // Anything the user edits on the watch after this point must outrank
+        // every stamp the phone just sent, whatever the two clocks say.
+        observeRemoteStamps(exercises)
         val effectiveStartEpochMs = startedAtEpochMs ?: sessionStartEpochMs
-        val current = _session.value
-        if (current != null) {
-            val mergedExercises = mergeRemoteExercises(current.exercises, exercises)
-            // `origin` is deliberately NOT taken from the incoming envelope
-            // here: it records who *started* the session, and an update from
-            // the other device never changes that. Letting a phone-sent update
-            // rewrite a watch-started session to phone-origin would suppress
-            // the phone's legitimate "started on watch" alert on reconnect.
-            // Same reasoning applies to `sessionId` — apply-time gating
-            // against a mismatched id happens one layer up (SyncService), so
-            // by the time we're here the id is already confirmed to match.
-            sessionStartEpochMs = effectiveStartEpochMs
-            _elapsedSeconds.value = ((System.currentTimeMillis() - effectiveStartEpochMs) / 1000).coerceAtLeast(0)
-            _session.value = current.copy(
-                template = current.template.copy(
-                    name = templateName,
-                    exercises = mergedExercises.map { it.template }
-                ),
-                exercises = mergedExercises,
-                startTimeMs = effectiveStartEpochMs,
-                currentExerciseIndex = currentExIndex,
-                currentSetIndex = currentSetIndex,
-            )
+        sessionStartEpochMs = effectiveStartEpochMs
+        _elapsedSeconds.value = ((System.currentTimeMillis() - effectiveStartEpochMs) / 1000).coerceAtLeast(0)
+        // A remote snapshot lands on a binder thread while edits come from the
+        // main thread. Reading `_session.value` and writing it back later let
+        // either side silently overwrite the other's change, so the merge is
+        // one atomic update that is simply retried if the state moved.
+        var mergedIntoExisting = false
+        _session.update { current ->
+            mergedIntoExisting = current != null
+            if (current != null) {
+                val mergedExercises = mergeRemoteExercises(current.exercises, exercises)
+                // `origin` is deliberately NOT taken from the incoming envelope
+                // here: it records who *started* the session, and an update from
+                // the other device never changes that. Letting a phone-sent update
+                // rewrite a watch-started session to phone-origin would suppress
+                // the phone's legitimate "started on watch" alert on reconnect.
+                // Same reasoning applies to `sessionId` — apply-time gating
+                // against a mismatched id happens one layer up (SyncService), so
+                // by the time we're here the id is already confirmed to match.
+                current.copy(
+                    template = current.template.copy(
+                        name = templateName,
+                        exercises = mergedExercises.map { it.template }
+                    ),
+                    exercises = mergedExercises,
+                    startTimeMs = effectiveStartEpochMs,
+                    currentExerciseIndex = currentExIndex,
+                    currentSetIndex = currentSetIndex,
+                )
+            } else {
+                WorkoutSession(
+                    template = WorkoutTemplate(
+                        id = "remote_session",
+                        name = templateName,
+                        exercises = exercises.map { it.template },
+                    ),
+                    exercises = exercises,
+                    startTimeMs = effectiveStartEpochMs,
+                    currentExerciseIndex = currentExIndex,
+                    currentSetIndex = currentSetIndex,
+                    origin = origin,
+                    sessionId = sessionId,
+                )
+            }
+        }
+        if (mergedIntoExisting) {
             startServiceIfNeeded(sessionStartEpochMs, isUpdate = true)
         } else {
-            val template = WorkoutTemplate(
-                id = "remote_session",
-                name = templateName,
-                exercises = exercises.map { it.template },
-            )
-            val newSession = WorkoutSession(
-                template = template,
-                exercises = exercises,
-                startTimeMs = effectiveStartEpochMs,
-                currentExerciseIndex = currentExIndex,
-                currentSetIndex = currentSetIndex,
-                origin = origin,
-                sessionId = sessionId,
-            )
-            _session.value = newSession
-            sessionStartEpochMs = effectiveStartEpochMs
-            _elapsedSeconds.value = ((System.currentTimeMillis() - effectiveStartEpochMs) / 1000).coerceAtLeast(0)
             startTimer()
             startServiceIfNeeded(sessionStartEpochMs)
         }
+    }
+
+    /// Raises the local revision counter to the newest per-field stamp in a
+    /// remote snapshot. Raising a counter sends nothing, so this cannot start
+    /// an echo; it only makes the next local edit strictly later.
+    private fun observeRemoteStamps(exercises: List<ActiveExercise>) {
+        exercises
+            .asSequence()
+            .flatMap { it.sets.asSequence() }
+            .mapNotNull { it.syncVersions }
+            .flatMap { sequenceOf(it.weight.revision, it.reps.revision, it.completion.revision) }
+            .maxOrNull()
+            ?.let(setRevisionAllocator::observe)
     }
 
     /// Merge only the independently versioned set fields.  A delayed snapshot
@@ -218,39 +242,16 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     ?.let { wireId -> localExercise.sets.firstOrNull { it.wireId == wireId } }
                     ?: localExercise.sets.getOrNull(setIndex)
                     ?: return@mapIndexed remoteSet
-                mergeRemoteSet(localSet, remoteSet)
+                mergeRemoteSet(localSet, remoteSet) { field, remoteStamp, localStamp, keptRemote ->
+                    Log.d(
+                        "WearSync",
+                        "set=${remoteSet.wireId} field=$field " +
+                            "remote=${remoteStamp.revision}/${remoteStamp.origin} " +
+                            "local=${localStamp.revision}/${localStamp.origin} " +
+                            "kept=${if (keptRemote) "remote" else "local"}",
+                    )
+                }
             },
-        )
-    }
-
-    private fun mergeRemoteSet(local: LoggedSet, remote: LoggedSet): LoggedSet {
-        // Legacy sessions have no field metadata. The remote session is the
-        // best available truth in that case; all current protocol peers send
-        // versions so later messages use the safe path below.
-        val localVersions = local.syncVersions ?: return remote
-        val remoteVersions = remote.syncVersions ?: return remote
-
-        val useRemoteWeight = remoteVersions.weight > localVersions.weight
-        val useRemoteReps = remoteVersions.reps > localVersions.reps
-        val useRemoteCompletion = remoteVersions.completion > localVersions.completion
-        return remote.copy(
-            weight = if (useRemoteWeight) remote.weight else local.weight,
-            reps = if (useRemoteReps) remote.reps else local.reps,
-            completed = if (useRemoteCompletion) remote.completed else local.completed,
-            completedAtEpochMs = if (useRemoteCompletion) {
-                remote.completedAtEpochMs
-            } else {
-                local.completedAtEpochMs
-            },
-            syncVersions = SetSyncVersions(
-                weight = if (useRemoteWeight) remoteVersions.weight else localVersions.weight,
-                reps = if (useRemoteReps) remoteVersions.reps else localVersions.reps,
-                completion = if (useRemoteCompletion) {
-                    remoteVersions.completion
-                } else {
-                    localVersions.completion
-                },
-            ),
         )
     }
 
@@ -379,47 +380,54 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         setType: String? = null,
         isWarmup: Boolean? = null,
     ) {
-        val current = _session.value ?: return
-        if (exerciseIndex !in current.exercises.indices) return
-        val exercise = current.exercises[exerciseIndex]
-        if (setIndex !in exercise.sets.indices) return
+        // One atomic read-modify-write: a phone snapshot merged on another
+        // thread between our read and write must not be lost, nor may this
+        // edit be lost to it. The lambda can be re-run, so it has no side
+        // effects beyond handing back the new state; the broadcast happens
+        // once, after the state has actually been swapped in.
+        var updated: WorkoutSession? = null
+        _session.update { current ->
+            updated = null
+            if (current == null || exerciseIndex !in current.exercises.indices) return@update current
+            val exercise = current.exercises[exerciseIndex]
+            if (setIndex !in exercise.sets.indices) return@update current
 
-        val currentSet = exercise.sets[setIndex]
-        val weightChanged = currentSet.weight != weight
-        val repsChanged = currentSet.reps != reps
-        val durationChanged = durationSeconds != null && currentSet.durationSeconds != durationSeconds
-        val distanceChanged = distanceMeters != null && currentSet.distanceMeters != distanceMeters
-        val setTypeChanged = setType != null && currentSet.setType != setType
-        val isWarmupChanged = isWarmup != null && currentSet.isWarmup != isWarmup
+            val currentSet = exercise.sets[setIndex]
+            val weightChanged = currentSet.weight != weight
+            val repsChanged = currentSet.reps != reps
+            val durationChanged = durationSeconds != null && currentSet.durationSeconds != durationSeconds
+            val distanceChanged = distanceMeters != null && currentSet.distanceMeters != distanceMeters
+            val setTypeChanged = setType != null && currentSet.setType != setType
+            val isWarmupChanged = isWarmup != null && currentSet.isWarmup != isWarmup
 
-        if (!weightChanged && !repsChanged && !durationChanged && !distanceChanged && !setTypeChanged && !isWarmupChanged) {
-            return
-        }
-
-        val updatedSets = exercise.sets.mapIndexed { idx, set ->
-            if (idx == setIndex) {
-                stampLocalSet(
-                    set.copy(
-                        weight = weight,
-                        reps = reps,
-                        durationSeconds = durationSeconds ?: set.durationSeconds,
-                        distanceMeters = distanceMeters ?: set.distanceMeters,
-                        setType = setType ?: set.setType,
-                        isWarmup = isWarmup ?: set.isWarmup,
-                    ),
-                    weight = weightChanged,
-                    reps = repsChanged,
-                )
-            } else {
-                set
+            if (!weightChanged && !repsChanged && !durationChanged && !distanceChanged && !setTypeChanged && !isWarmupChanged) {
+                return@update current
             }
-        }
 
-        val exercises = current.exercises.toMutableList()
-        exercises[exerciseIndex] = exercise.copy(sets = updatedSets)
-        val updated = current.copy(exercises = exercises)
-        _session.value = updated
-        broadcastSessionToPhone("/herculex_watch_session_update", updated)
+            val updatedSets = exercise.sets.mapIndexed { idx, set ->
+                if (idx == setIndex) {
+                    stampLocalSet(
+                        set.copy(
+                            weight = weight,
+                            reps = reps,
+                            durationSeconds = durationSeconds ?: set.durationSeconds,
+                            distanceMeters = distanceMeters ?: set.distanceMeters,
+                            setType = setType ?: set.setType,
+                            isWarmup = isWarmup ?: set.isWarmup,
+                        ),
+                        weight = weightChanged,
+                        reps = repsChanged,
+                    )
+                } else {
+                    set
+                }
+            }
+
+            val exercises = current.exercises.toMutableList()
+            exercises[exerciseIndex] = exercise.copy(sets = updatedSets)
+            current.copy(exercises = exercises).also { updated = it }
+        }
+        updated?.let { broadcastSessionToPhone("/herculex_watch_session_update", it) }
     }
 
     fun logSet(
@@ -442,7 +450,12 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         val isMyo = normalizedType == "myo_reps"
 
         val completedSet = if (openIndex >= 0) {
-            stampLocalSet(exercise.sets[openIndex].copy(
+            val openSet = exercise.sets[openIndex]
+            // Logging a set is a new "completion", but weight and reps only
+            // get a fresh stamp when the user really changed them. Re-stamping
+            // an unchanged weight would make this log outrank a weight the
+            // phone changed a moment earlier and silently undo it.
+            stampLocalSet(openSet.copy(
                 weight = weight,
                 reps = reps,
                 durationSeconds = durationSeconds,
@@ -453,7 +466,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 accessory = accessory,
                 completed = true,
                 completedAtEpochMs = System.currentTimeMillis(),
-            ), weight = true, reps = true, completion = true)
+            ), weight = openSet.weight != weight, reps = openSet.reps != reps, completion = true)
         } else {
             stampLocalSet(LoggedSet(
                 wireId = "watch_set_${System.currentTimeMillis()}",

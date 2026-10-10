@@ -68,6 +68,7 @@
         android:largeHeap="true"
         android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:enableOnBackInvokedCallback="true"
         tools:replace="android:allowBackup">
         <activity
             android:name=".MainActivity"
@@ -103,6 +104,21 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="io.supabase.herculex" android:host="login-callback"/>
             </intent-filter>
+            <!-- Gym Buddy friend invites (herculex://friend/invite?t=…),
+                 handled by lib/app/deep_links.dart through app_links. -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="herculex" android:host="friend"/>
+            </intent-filter>
+            <!-- Links reach Dart through app_links (ours and supabase_flutter's
+                 auth callback). Flutter's own deep linking would also hand
+                 them to GoRouter as an unknown path like /invite. -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false"
+              />
         </activity>
 
         <!-- Health Connect permission launcher activity-alias.

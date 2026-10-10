@@ -5,9 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/deep_links.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/router.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/app/router/shell_context.dart';
 import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
@@ -21,6 +23,7 @@ import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/fasting/data/fasting_schedule_action_queue.dart';
 import 'package:herculex/features/fasting/domain/fasting_plan.dart';
 import 'package:herculex/features/fasting/domain/fasting_schedule_occurrence.dart';
+import 'package:herculex/features/friends/application/friends_providers.dart';
 import 'package:herculex/features/gyms/presentation/gym_picker_sheet.dart';
 import 'package:herculex/features/measurements/presentation/quick_log_weight.dart';
 import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
@@ -162,7 +165,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
           WidgetsBinding.instance.addPostFrameCallback((_) async {
             final activeSession = ref.read(activeSessionProvider).valueOrNull;
             if (activeSession != null && mounted) {
-              final results = await ExercisePickerSheet.show(context);
+              final shell = await awaitShellContext(ref.read(routerProvider));
+              if (shell == null || !shell.mounted) return;
+              final results = await ExercisePickerSheet.show(shell);
               if (results == null || results.isEmpty || !mounted) return;
               final repo = ref.read(workoutsRepositoryProvider);
               final circuitIds = <int>{};
@@ -231,9 +236,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       }
       if (call.method == 'openFoodSearch' && mounted) {
         ref.read(mainTabIndexProvider.notifier).state = 1;
-        ref.read(routerProvider).go(AppRoutes.app);
-        final ctx = context;
-        if (ctx.mounted) {
+        final router = ref.read(routerProvider)..go(AppRoutes.app);
+        final ctx = await awaitShellContext(router);
+        if (ctx != null && ctx.mounted) {
           final now = DateTime.now();
           final date = DateTime(now.year, now.month, now.day);
           await FoodPickerSheet.show(ctx, date: date, mealKey: 'lunch');
@@ -242,9 +247,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       }
       if (call.method == 'openScanner' && mounted) {
         ref.read(mainTabIndexProvider.notifier).state = 1;
-        ref.read(routerProvider).go(AppRoutes.app);
-        final ctx = context;
-        if (ctx.mounted) {
+        final router = ref.read(routerProvider)..go(AppRoutes.app);
+        final ctx = await awaitShellContext(router);
+        if (ctx != null && ctx.mounted) {
           await scanAndLogFood(ctx, ref);
         }
         return;
@@ -275,8 +280,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
           imageQuality: 85,
         );
         await ref.read(pendingAiScanServiceProvider).clearPendingContext();
-        final ctx = context;
-        if (picked != null && ctx.mounted) {
+        if (picked == null) return;
+        final ctx = await awaitShellContext(ref.read(routerProvider));
+        if (ctx != null && ctx.mounted) {
           await GeminiPhotoAnalysisDialog.show(
             ctx,
             imageFile: File(picked.path),
@@ -748,7 +754,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         showTab(2);
         final workout = await ref.read(todaysScheduledWorkoutProvider.future);
         if (workout == null || workout.isStarted || !mounted) return;
-        final gym = await GymPickerSheet.resolve(context, ref);
+        final shell = await awaitShellContext(router);
+        if (shell == null || !shell.mounted) return;
+        final gym = await GymPickerSheet.resolve(shell, ref);
         if (gym.cancelled) return;
         await ref
             .read(scheduledWorkoutServiceProvider)
@@ -756,7 +764,14 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         ref.invalidate(todaysScheduledWorkoutProvider);
       case 'logWeight':
         showTab(0);
-        if (mounted) await quickLogWeight(context, ref);
+        final shell = await awaitShellContext(router);
+        if (shell != null && shell.mounted) await quickLogWeight(shell, ref);
+      case 'toggleSupplement':
+        // Ticks from the widget's checklist; stays on whatever screen is open.
+        final id = arg;
+        if (id == null) return;
+        final repo = ref.read(supplementRepositoryProvider);
+        await repo.markTaken(id, !repo.loadTakenToday().contains(id));
       case 'logMiniWorkout':
         showTab(0);
         final id = int.tryParse(arg ?? '');
@@ -900,6 +915,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     // Starts/stops Phase 10 cloud sync off the auth session — see
     // syncServiceProvider in app/providers.dart.
     ref.watch(syncServiceProvider);
+    // Gym Buddy: friend invite links, and republishing the shared summary.
+    ref.watch(deepLinkListenerProvider);
+    ref.watch(friendSnapshotAutoPublishProvider);
 
     // Initialize local notification syncing across meals, supplements, fasting, daily log.
     ref.watch(notificationSyncServiceProvider);

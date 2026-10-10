@@ -22,6 +22,7 @@ import 'package:herculex/features/nutrition/presentation/dialogs/label_capture_d
 import 'package:herculex/features/nutrition/presentation/dialogs/rambler_food_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/custom_food_form_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/log_entry_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/product_photos_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/views/barcode_scanner_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/recipe_builder_view.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/barcode_resolution_flow.dart';
@@ -116,8 +117,12 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
   }
 
   Future<void> _scan() async {
-    final scanned = await BarcodeScannerView.show(context);
+    final scanned = await BarcodeScannerView.show(context, allowPhoto: true);
     if (scanned == null || !mounted) return;
+    if (scanned == BarcodeScannerView.photoRequested) {
+      await _takePhotoAndAnalyze();
+      return;
+    }
     var normalized = normalizeBarcode(scanned);
     if (normalized == null) {
       final corrected = await _manualBarcodeDialog(initial: scanned);
@@ -229,9 +234,9 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                 Icons.document_scanner_outlined,
                 color: AppColors.primary,
               ),
-              title: const Text('Take a photo of nutrition label'),
+              title: const Text('Scan product and nutrition label'),
               subtitle: const Text(
-                'OCR reads the label; Herculex AI resolves low-confidence scans',
+                'Up to two photos: the product and its nutrition table',
               ),
               onTap: () => Navigator.pop(
                 ctx,
@@ -245,38 +250,44 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
 
     if (choice == null || !mounted) return;
 
-    await ref
-        .read(pendingAiScanServiceProvider)
-        .setPendingContext(
-          PendingAiScanContext(
-            type: choice.mode == _PhotoMode.label
-                ? AiScanContextType.nutritionLabel
-                : AiScanContextType.food,
-            mealKey: _activeMealKey,
-            dateIso: widget.date.toIso8601String(),
-          ),
-        );
-
-    final picked = await picker.pickImage(
-      source: choice.source,
-      maxWidth: 1024,
-      maxHeight: 1024,
-      imageQuality: 85,
-    );
-    await ref.read(pendingAiScanServiceProvider).clearPendingContext();
-    if (picked == null || !mounted) return;
     final bool? logged;
     if (choice.mode == _PhotoMode.label) {
-      if (!mounted) return;
+      final imageFiles = await ProductPhotosSheet.show(
+        context,
+        confirmLabel: 'Read nutrition table',
+        pendingContext: () => PendingAiScanContext(
+          type: AiScanContextType.nutritionLabel,
+          mealKey: _activeMealKey,
+          dateIso: widget.date.toIso8601String(),
+        ),
+      );
+      if (imageFiles == null || imageFiles.isEmpty || !mounted) return;
       logged = await LabelCaptureDialog.show(
         context,
-        imageFile: File(picked.path),
+        imageFiles: imageFiles,
         meal: Meal.fromName(_activeMealKey),
         mealKey: _activeMealKey,
         date: widget.date,
       );
     } else {
-      if (!mounted) return;
+      await ref
+          .read(pendingAiScanServiceProvider)
+          .setPendingContext(
+            PendingAiScanContext(
+              type: AiScanContextType.food,
+              mealKey: _activeMealKey,
+              dateIso: widget.date.toIso8601String(),
+            ),
+          );
+
+      final picked = await picker.pickImage(
+        source: choice.source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      await ref.read(pendingAiScanServiceProvider).clearPendingContext();
+      if (picked == null || !mounted) return;
       logged = await GeminiPhotoAnalysisDialog.show(
         context,
         imageFile: File(picked.path),
@@ -438,7 +449,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
               ),
               const SizedBox(height: 8),
 
-              // ── Quick Action Cards: Rambler AI & Skeniraj kodo ─────────────
+              // ── Quick Action Cards: Rambler AI & Scan code ─────────────
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -456,8 +467,8 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                     Expanded(
                       child: _QuickActionCard(
                         icon: Icons.qr_code_scanner_rounded,
-                        title: 'Skeniraj kodo',
-                        subtitle: 'Črtna koda & kamera',
+                        title: 'Scan code',
+                        subtitle: 'Barcode & camera',
                         color: AppColors.primary,
                         onTap: _scan,
                       ),
@@ -610,8 +621,8 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                       color: hx.primary,
                     ),
                   ),
-                  onPressed: _takePhotoAndAnalyze,
-                  tooltip: 'Photo food with AI',
+                  onPressed: _scan,
+                  tooltip: 'Scan barcode',
                 ),
               ),
             ],
@@ -721,6 +732,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
             itemCount: sortedList.length,
             itemBuilder: (_, i) => _FoodTile(
+              key: ValueKey('food-${sortedList[i].id}'),
               food: sortedList[i],
               onTap: () => _logFood(sortedList[i]),
               onQuickAdd: () => _quickLogFood(sortedList[i]),
@@ -808,6 +820,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
           ),
           for (final food in allFoods)
             _FoodTile(
+              key: ValueKey('food-${food.id}'),
               food: food,
               onTap: () => _logFood(food),
               onQuickAdd: () => _quickLogFood(food),
@@ -835,6 +848,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
           ),
           for (final food in suggestedFoods)
             _FoodTile(
+              key: ValueKey('food-${food.id}'),
               food: food,
               onTap: () => _logFood(food),
               onQuickAdd: () => _quickLogFood(food),
@@ -852,6 +866,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
           ),
           for (final food in remainingRecent)
             _FoodTile(
+              key: ValueKey('food-${food.id}'),
               food: food,
               onTap: () => _logFood(food),
               onQuickAdd: () => _quickLogFood(food),
@@ -1069,6 +1084,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
               children: [
                 for (final r in list)
                   _RecipeTile(
+                    key: ValueKey('recipe-${r.id}'),
                     recipe: r,
                     onTap: () => _logRecipe(r),
                     onQuickAdd: () => _quickLogRecipe(r),
@@ -1131,6 +1147,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
               children: [
                 for (final f in customs)
                   _FoodTile(
+                    key: ValueKey('food-${f.id}'),
                     food: f,
                     onTap: () => _logFood(f),
                     onQuickAdd: () => _quickLogFood(f),
@@ -1210,6 +1227,7 @@ class _FoodTile extends StatelessWidget {
   final VoidCallback onQuickAdd;
 
   const _FoodTile({
+    super.key,
     required this.food,
     required this.onTap,
     required this.onQuickAdd,
@@ -1272,6 +1290,7 @@ class _RecipeTile extends StatelessWidget {
   final VoidCallback onQuickAdd;
 
   const _RecipeTile({
+    super.key,
     required this.recipe,
     required this.onTap,
     required this.onQuickAdd,

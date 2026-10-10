@@ -707,6 +707,35 @@ class ProgramsRepository {
     );
   }
 
+  /// The block's exercise waves, taken from the same anchor `main` slot as
+  /// [getWaveLabelInfo]. Empty when there is no anchor slot, or when the
+  /// exercise never changes (a single wave is not worth a picker).
+  Future<List<WaveRange>> getProgramWaves({
+    required int programId,
+    required int firstWeekId,
+    required int totalWeeks,
+  }) async {
+    final days = await getProgramDaysForWeek(firstWeekId);
+    final allSlots = await (_db.select(
+      _db.programExerciseSlots,
+    )..where((t) => t.programId.equals(programId))).get();
+    final anchor = WaveLabel.selectAnchorSlot(
+      daysInOrder: days,
+      allSlots: allSlots,
+    );
+    if (anchor == null) return const [];
+    final assignments = await (_db.select(
+      _db.rotationAssignments,
+    )..where((t) => t.slotId.equals(anchor.id))).get();
+    final waves = WaveLabel.ranges(
+      totalWeeks: totalWeeks,
+      exerciseIdByWeek: {
+        for (final a in assignments) a.weekIndex: a.exerciseId,
+      },
+    );
+    return waves.length > 1 ? waves : const [];
+  }
+
   Stream<List<ProgramDayData>> watchProgramDaysForWeek(int weekId) {
     return (_db.select(_db.programDays)
           ..where((t) => t.programWeekId.equals(weekId))

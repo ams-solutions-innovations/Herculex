@@ -77,12 +77,14 @@ final recoveryV3Provider = FutureProvider<List<MuscleGroupRecovery>>((
   final snapshot = await ref.watch(trainingSnapshotProvider.future);
   final externalWorkouts = await ref.watch(externalWorkoutsProvider.future);
   final historyDays = await ref.watch(daysOfStepHistoryProvider.future);
+  final sleep = ref.watch(sleepRecoveryProvider);
 
   return MuscleRecoveryV3.compute(
     snapshot: snapshot,
     externalWorkouts: externalWorkouts,
     asOf: DateTime.now(),
     daysOfHealthHistory: historyDays,
+    recoveryRateMultiplier: sleep?.rateMultiplier ?? 1.0,
   );
 });
 

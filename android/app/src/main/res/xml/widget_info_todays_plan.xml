@@ -10,4 +10,5 @@
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:updatePeriodMillis="0"
+    android:previewImage="@drawable/widget_preview_todays_plan"
     android:description="@string/widget_todays_plan_description" />

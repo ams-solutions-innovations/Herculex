@@ -4,12 +4,22 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// Returns the first detected barcode string (or null if user cancels).
+///
+/// With `allowPhoto` the screen also offers "Take a photo instead", which
+/// returns [photoRequested] so the caller can start its photo flow.
 class BarcodeScannerView extends StatefulWidget {
-  const BarcodeScannerView({super.key});
+  const BarcodeScannerView({super.key, this.allowPhoto = false});
 
-  static Future<String?> show(BuildContext context) {
+  final bool allowPhoto;
+
+  /// Sentinel result: the user chose to photograph the food instead.
+  static const photoRequested = '__photo__';
+
+  static Future<String?> show(BuildContext context, {bool allowPhoto = false}) {
     return Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const BarcodeScannerView()),
+      MaterialPageRoute(
+        builder: (_) => BarcodeScannerView(allowPhoto: allowPhoto),
+      ),
     );
   }
 
@@ -283,7 +293,7 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView>
         Positioned(
           left: 0,
           right: 0,
-          bottom: 72,
+          bottom: widget.allowPhoto ? 112 : 72,
           child: Center(
             child: TextButton.icon(
               onPressed: _enterManually,
@@ -295,6 +305,27 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView>
             ),
           ),
         ),
+        if (widget.allowPhoto)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 72,
+            child: Center(
+              child: TextButton.icon(
+                onPressed: () => Navigator.of(
+                  context,
+                ).pop(BarcodeScannerView.photoRequested),
+                icon: const Icon(
+                  Icons.camera_alt_outlined,
+                  color: Colors.white,
+                ),
+                label: const Text(
+                  'Take a photo instead',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

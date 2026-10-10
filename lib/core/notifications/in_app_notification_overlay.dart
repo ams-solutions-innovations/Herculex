@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/notifications/in_app_notification_controller.dart';
 import 'package:herculex/core/notifications/in_app_notification_model.dart';
+import 'package:herculex/core/notifications/in_app_notification_style.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 
 /// Wraps any widget tree (e.g. root [MaterialApp] builder) to host floating
 /// top-dropping in-app notifications.
@@ -17,6 +19,10 @@ class InAppNotificationHost extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(inAppNotificationControllerProvider);
+    final palette = NotificationPalette.resolve(
+      ref.watch(notificationStyleProvider),
+      context.hx,
+    );
 
     return Stack(
       children: [
@@ -31,6 +37,7 @@ class InAppNotificationHost extends ConsumerWidget {
               child: _InAppNotificationBanner(
                 key: ValueKey(state.current!.id),
                 item: state.current!,
+                palette: palette,
                 isDismissing: state.isDismissing,
                 onDismiss: () => ref
                     .read(inAppNotificationControllerProvider.notifier)
@@ -51,14 +58,14 @@ const _kMinWidth =
     _kCircleSize + _kPillPadding * 2; // == 56.0, collapsed circle
 // height:1.0 keeps the two text lines within the pill's fixed 38px content
 // area (56px pill height minus 9px top/bottom padding) despite these
-// variable fonts' generous default line-height metrics.
+// variable fonts' generous default line-height metrics. Colours come from the
+// [NotificationPalette] at build time.
 const _kLabelStyle = TextStyle(
   fontFamily: AppTheme.fontBody,
   fontWeight: FontWeight.w600,
   fontSize: 11.5,
   letterSpacing: 0.1,
   height: 1.0,
-  color: Color(0xFF94A3B8),
   decoration: TextDecoration.none,
 );
 const _kValueStyle = TextStyle(
@@ -67,7 +74,6 @@ const _kValueStyle = TextStyle(
   fontSize: 17,
   letterSpacing: -0.3,
   height: 1.0,
-  color: Colors.white,
   decoration: TextDecoration.none,
 );
 const _kDeltaBaseStyle = TextStyle(
@@ -80,12 +86,14 @@ const _kDeltaBaseStyle = TextStyle(
 
 class _InAppNotificationBanner extends StatefulWidget {
   final InAppNotificationItem item;
+  final NotificationPalette palette;
   final bool isDismissing;
   final VoidCallback onDismiss;
 
   const _InAppNotificationBanner({
     super.key,
     required this.item,
+    required this.palette,
     required this.isDismissing,
     required this.onDismiss,
   });
@@ -113,7 +121,14 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
   late final Animation<double> _exitY;
   late final Animation<double> _exitOpacity;
 
+  // Swipe-away: drag up, left or right. A left/right fling slides the pill off
+  // the screen edge instead of replaying the collapse-and-rise exit.
+  late final AnimationController _swipeCtrl;
+  double _dragOffsetX = 0.0;
   double _dragOffsetY = 0.0;
+  double _swipeFromX = 0.0;
+  double _swipeToX = 0.0;
+  bool _swipedAway = false;
   double? _targetWidth;
 
   @override
@@ -178,7 +193,31 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
       curve: const Interval(240 / 560, 1.0, curve: Curves.easeInCubic),
     );
 
+    _swipeCtrl =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 180),
+        )..addListener(() {
+          setState(() {
+            _dragOffsetX = _lerp(
+              _swipeFromX,
+              _swipeToX,
+              Curves.easeIn.transform(_swipeCtrl.value),
+            );
+          });
+        });
+
     _enterCtrl.forward();
+  }
+
+  void _swipeAway(double direction, double screenWidth) {
+    if (_swipedAway) return;
+    _swipedAway = true;
+    _swipeFromX = _dragOffsetX;
+    _swipeToX = direction * screenWidth;
+    Haptics.selection();
+    widget.onDismiss();
+    _swipeCtrl.forward();
   }
 
   @override
@@ -193,6 +232,7 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
   void dispose() {
     _enterCtrl.dispose();
     _exitCtrl.dispose();
+    _swipeCtrl.dispose();
     super.dispose();
   }
 
@@ -267,31 +307,53 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
     final exitEndY = restY - 174.0; // 54 -> -120 is a 174px travel
 
     final primaryColor = widget.item.primaryColor;
+    final palette = widget.palette;
+    final labelStyle = _kLabelStyle.copyWith(color: palette.label);
+    final valueStyle = _kValueStyle.copyWith(color: palette.value);
 
     return AnimatedBuilder(
       animation: Listenable.merge([_enterCtrl, _exitCtrl]),
       builder: (context, _) {
-        final exiting = widget.isDismissing;
+        // A swiped-away pill keeps its full shape and just slides off the
+        // side; the collapse-and-rise exit only plays for timeout / tap /
+        // swipe-up.
+        final exiting = widget.isDismissing && !_swipedAway;
 
-        final width = exiting
+        final width = _swipedAway
+            ? targetWidth
+            : exiting
             ? _lerp(targetWidth, _kMinWidth, _widthCollapse.value)
             : _lerp(_kMinWidth, targetWidth, _widthExpand.value);
 
-        final contentOpacity = exiting
+        final contentOpacity = _swipedAway
+            ? 1.0
+            : exiting
             ? _lerp(1.0, 0.0, _contentOpacityOut.value)
             : _contentOpacityIn.value;
 
-        final circleScale = exiting ? 1.0 : _lerp(0.6, 1.0, _circleScale.value);
+        final circleScale = exiting || _swipedAway
+            ? 1.0
+            : _lerp(0.6, 1.0, _circleScale.value);
 
-        final y = exiting
+        final y = _swipedAway
+            ? restY
+            : exiting
             ? _lerp(restY, exitEndY, _exitY.value)
             : _lerp(dropStartY, restY, _dropY.value);
 
-        final wrapOpacity = exiting
+        var wrapOpacity = exiting
             ? _lerp(1.0, 0.0, _exitOpacity.value)
+            : _swipedAway
+            ? 1.0
             : _dropOpacity.value;
+        if (_dragOffsetX != 0) {
+          wrapOpacity *= (1 - (_dragOffsetX.abs() / screenWidth)).clamp(
+            0.0,
+            1.0,
+          );
+        }
 
-        final contentDx = exiting
+        final contentDx = exiting || _swipedAway
             ? 0.0
             : _lerp(-12.0, 0.0, _contentSlideIn.value);
 
@@ -302,30 +364,47 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
         final showContent = contentOpacity > 0.01;
 
         return Transform.translate(
-          offset: Offset(0, y + _dragOffsetY),
+          offset: Offset(_dragOffsetX, y + _dragOffsetY),
           child: Opacity(
             opacity: wrapOpacity.clamp(0.0, 1.0),
             child: Align(
               alignment: Alignment.topCenter,
               child: GestureDetector(
-                onVerticalDragUpdate: (details) {
-                  if (details.primaryDelta != null &&
-                      details.primaryDelta! < 0) {
-                    setState(() {
-                      _dragOffsetY += details.primaryDelta!;
-                    });
-                  }
+                onPanUpdate: (details) {
+                  if (_swipedAway) return;
+                  setState(() {
+                    _dragOffsetX += details.delta.dx;
+                    // Up dismisses; never let the pill be dragged down.
+                    _dragOffsetY = math.min(
+                      0.0,
+                      _dragOffsetY + details.delta.dy,
+                    );
+                  });
                 },
-                onVerticalDragEnd: (details) {
-                  if (_dragOffsetY < -18 ||
-                      (details.primaryVelocity ?? 0) < -200) {
+                onPanEnd: (details) {
+                  if (_swipedAway) return;
+                  final vx = details.velocity.pixelsPerSecond.dx;
+                  final vy = details.velocity.pixelsPerSecond.dy;
+                  final sideways = _dragOffsetX.abs() > 60 || vx.abs() > 600;
+                  if (sideways && _dragOffsetX.abs() >= _dragOffsetY.abs()) {
+                    final dir = _dragOffsetX != 0 ? _dragOffsetX.sign : vx.sign;
+                    _swipeAway(dir, screenWidth);
+                  } else if (_dragOffsetY < -18 || vy < -200) {
                     Haptics.selection();
                     widget.onDismiss();
                   } else {
                     setState(() {
+                      _dragOffsetX = 0;
                       _dragOffsetY = 0;
                     });
                   }
+                },
+                onPanCancel: () {
+                  if (_swipedAway) return;
+                  setState(() {
+                    _dragOffsetX = 0;
+                    _dragOffsetY = 0;
+                  });
                 },
                 onTap: () {
                   Haptics.light();
@@ -341,17 +420,14 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
                   // which shrank the content box below the circle's size.
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF161E2E),
+                      color: palette.surface,
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: const Color(0xFF2B374E),
-                        width: 1,
-                      ),
-                      boxShadow: const [
+                      border: Border.all(color: palette.border, width: 1),
+                      boxShadow: [
                         BoxShadow(
-                          color: Color.fromRGBO(4, 9, 19, 0.55),
+                          color: palette.shadow,
                           blurRadius: 24,
-                          offset: Offset(0, 10),
+                          offset: const Offset(0, 10),
                         ),
                       ],
                     ),
@@ -365,6 +441,7 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
                             child: _TrophyCircle(
                               icon: widget.item.icon,
                               color: primaryColor,
+                              iconColor: palette.onBadge,
                             ),
                           ),
                           if (showContent) ...[
@@ -384,7 +461,7 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
                                       children: [
                                         Text(
                                           widget.item.label,
-                                          style: _kLabelStyle,
+                                          style: labelStyle,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -397,7 +474,7 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
                                             Flexible(
                                               child: Text(
                                                 widget.item.value,
-                                                style: _kValueStyle,
+                                                style: valueStyle,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                               ),
@@ -486,8 +563,13 @@ double _lerp(double a, double b, double t) => a + (b - a) * t;
 class _TrophyCircle extends StatelessWidget {
   final IconData icon;
   final Color color;
+  final Color iconColor;
 
-  const _TrophyCircle({required this.icon, required this.color});
+  const _TrophyCircle({
+    required this.icon,
+    required this.color,
+    required this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -495,9 +577,7 @@ class _TrophyCircle extends StatelessWidget {
       width: _kCircleSize,
       height: _kCircleSize,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      child: Center(
-        child: Icon(icon, color: const Color(0xFF091322), size: 21),
-      ),
+      child: Center(child: Icon(icon, color: iconColor, size: 21)),
     );
   }
 }

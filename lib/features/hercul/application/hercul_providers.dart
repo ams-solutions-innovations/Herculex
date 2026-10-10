@@ -12,6 +12,7 @@ import 'package:herculex/features/hercul/domain/hercul_context.dart';
 import 'package:herculex/features/hercul/domain/hercul_engine.dart';
 import 'package:herculex/features/hercul/domain/hercul_rule.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/physique/application/effective_goal_provider.dart';
 import 'package:herculex/features/profile/domain/anthropometry.dart';
 import 'package:herculex/features/workouts/domain/one_rep_max.dart';
@@ -103,11 +104,32 @@ final herculContextProvider = FutureProvider<HerculContext>((ref) async {
     };
   }
 
+  scalars[HerculSignals.weekday] = now.weekday.toDouble();
+
   if (weeklyVolume != null) {
-    series[HerculSignals.weeklySets] = {
-      for (final v in weeklyVolume.byMuscle)
-        v.muscle.toLowerCase().replaceAll(' ', '-'): v.sets,
-    };
+    // Keyed by the display name ("Rear Delts"), which is what the rules and
+    // their copy ask for. A lowercased key made every volume rule a no-op.
+    final byMuscle = {for (final v in weeklyVolume.byMuscle) v.muscle: v.sets};
+
+    // Once the user has trained this week, an untouched muscle is a real zero
+    // ("no hamstring sets"), not a missing signal. Before any training the
+    // series stays absent so a fresh week does not announce every gap.
+    if (weeklyVolume.totalSets > 0) {
+      series[HerculSignals.weeklySets] = {
+        for (final g in MuscleRecoveryV3.groups) g: byMuscle[g] ?? 0,
+      };
+    }
+
+    double sumOf(Iterable<String> muscles) =>
+        muscles.fold(0.0, (sum, m) => sum + (byMuscle[m] ?? 0));
+    final push = sumOf(const ['Chest', 'Front Delts', 'Side Delts', 'Triceps']);
+    final pull = sumOf(const ['Back', 'Lats', 'Traps', 'Rear Delts', 'Biceps']);
+    // Below ten sets a ratio is noise: one chest day early in the week reads
+    // as "100% push".
+    if (push + pull >= 10) {
+      scalars[HerculSignals.pushPct] = push / (push + pull) * 100;
+      scalars[HerculSignals.pullPct] = pull / (push + pull) * 100;
+    }
   }
 
   if (trainingSnapshot != null && trainingSnapshot.sets.isNotEmpty) {
@@ -117,9 +139,25 @@ final herculContextProvider = FutureProvider<HerculContext>((ref) async {
         .inDays
         .toDouble();
 
+    // Session cadence, counted in distinct sessions rather than sets.
+    final weekStart = WeeklyMuscleVolume.weekStartOf(now);
+    final fourWeeksAgo = now.subtract(const Duration(days: 28));
+    final sessionStarts = <int, DateTime>{
+      for (final rs in trainingSnapshot.sets)
+        rs.session.id: rs.session.startedAt,
+    };
+    scalars[HerculSignals.sessionsThisWeek] = sessionStarts.values
+        .where((t) => !t.isBefore(weekStart))
+        .length
+        .toDouble();
+    scalars[HerculSignals.sessionsPerWeek4w] =
+        sessionStarts.values.where((t) => t.isAfter(fourWeeksAgo)).length / 4;
+
     // Calculate e1rmDeltaKg14d and e1rmRatioBelted
     final e1rmDelta14 = <String, double>{};
     final e1rmRatioBelted = <String, double>{};
+    final lastPerformed = <String, double>{};
+    final performed30d = <String, double>{};
 
     final setsByExercise = <int, List<ResolvedSet>>{};
     for (final rs in trainingSnapshot.sets) {
@@ -129,6 +167,18 @@ final herculContextProvider = FutureProvider<HerculContext>((ref) async {
     for (final entry in setsByExercise.entries) {
       final slug = entry.value.first.exercise.slug;
       if (slug == null) continue;
+
+      // Recency and frequency per lift.
+      final thirtyDaysAgo = now.subtract(const Duration(days: 30));
+      final sessionDates = <int, DateTime>{
+        for (final rs in entry.value) rs.session.id: rs.session.startedAt,
+      };
+      final latest = sessionDates.values.reduce((a, b) => a.isAfter(b) ? a : b);
+      lastPerformed[slug] = now.difference(latest).inDays.toDouble();
+      performed30d[slug] = sessionDates.values
+          .where((t) => t.isAfter(thirtyDaysAgo))
+          .length
+          .toDouble();
 
       // Belt ratio
       final byCombo = VariantPerformance.byAccessoryCombo(
@@ -164,11 +214,17 @@ final herculContextProvider = FutureProvider<HerculContext>((ref) async {
           if (est > maxOld) maxOld = est;
         }
       }
-      if (maxOld > 0) {
+      // A lift not touched for two weeks has no recent best, which would read
+      // as a 100% strength loss rather than as "not trained".
+      if (maxOld > 0 && maxRecent > 0) {
         e1rmDelta14[slug] = maxRecent - maxOld;
       }
     }
 
+    if (lastPerformed.isNotEmpty) {
+      series[HerculSignals.lastPerformedDays] = lastPerformed;
+      series[HerculSignals.performedLast30d] = performed30d;
+    }
     if (e1rmRatioBelted.isNotEmpty) {
       series[HerculSignals.e1rmRatioBelted] = e1rmRatioBelted;
     }
@@ -192,18 +248,19 @@ final herculContextProvider = FutureProvider<HerculContext>((ref) async {
     final weights = await measurementsRepo.watchMetric('bodyweight').first;
     if (weights.isNotEmpty) {
       final latest = weights.last.value;
-      final twoWeeksAgoIso = DateFormat(
-        'yyyy-MM-dd',
-      ).format(now.subtract(const Duration(days: 14)));
-      final old = weights
-          .lastWhere(
-            (w) => w.dateIso.compareTo(twoWeeksAgoIso) <= 0,
-            orElse: () => weights.first,
-          )
-          .value;
-      if (old > 0) {
-        series[HerculSignals.weightDeltaKg] = {'14': latest - old};
+      final deltas = <String, double>{};
+      for (final days in const [14, 21]) {
+        final cutoffIso = DateFormat(
+          'yyyy-MM-dd',
+        ).format(now.subtract(Duration(days: days)));
+        // Only compare against a weigh-in at least that old; falling back to
+        // the first entry would call a one-week-old history a three-week trend.
+        final older = weights.where((w) => w.dateIso.compareTo(cutoffIso) <= 0);
+        if (older.isEmpty) continue;
+        final old = older.last.value;
+        if (old > 0) deltas['$days'] = latest - old;
       }
+      if (deltas.isNotEmpty) series[HerculSignals.weightDeltaKg] = deltas;
     }
 
     // Nutrition 14d history
@@ -223,6 +280,52 @@ final herculContextProvider = FutureProvider<HerculContext>((ref) async {
           count++;
         }
         scalars[HerculSignals.kcalPct14d] = sumPct / count;
+      }
+
+      // Last seven completed days. Today is left out: it is still being eaten,
+      // and a half-logged Tuesday would read as an under-eating week.
+      final fmt = DateFormat('yyyy-MM-dd');
+      final todayIso = fmt.format(endDate);
+      final weekAgoIso = fmt.format(
+        DateTime(endDate.year, endDate.month, endDate.day - 7),
+      );
+      final week = [
+        for (final e in history.entries)
+          if (e.key.compareTo(weekAgoIso) >= 0 &&
+              e.key.compareTo(todayIso) < 0 &&
+              e.value.kcal > 0)
+            e.value,
+      ];
+      scalars[HerculSignals.daysLogged7d] = week.length.toDouble();
+      if (week.isNotEmpty) {
+        double avg(double Function(DailyTotals t) pick) =>
+            week.fold(0.0, (sum, t) => sum + pick(t)) / week.length;
+        final avgKcal = avg((t) => t.kcal);
+        final avgProtein = avg((t) => t.proteinG);
+        final avgFiber = avg((t) => t.fiberG);
+
+        if (baseline.kcal > 0) {
+          scalars[HerculSignals.kcalTarget] = baseline.kcal.toDouble();
+          scalars[HerculSignals.kcalAvg7d] = avgKcal;
+          scalars[HerculSignals.kcalPct7d] = avgKcal / baseline.kcal;
+          scalars[HerculSignals.kcalShortfall7d] = (baseline.kcal - avgKcal)
+              .clamp(0, double.infinity)
+              .toDouble();
+          scalars[HerculSignals.kcalOver7d] = (avgKcal - baseline.kcal)
+              .clamp(0, double.infinity)
+              .toDouble();
+        }
+        if (baseline.proteinG > 0) {
+          scalars[HerculSignals.proteinTargetG] = baseline.proteinG.toDouble();
+          scalars[HerculSignals.proteinAvg7dG] = avgProtein;
+          scalars[HerculSignals.proteinPct7d] = avgProtein / baseline.proteinG;
+          scalars[HerculSignals.proteinGap7dG] =
+              (baseline.proteinG - avgProtein)
+                  .clamp(0, double.infinity)
+                  .toDouble();
+        }
+        // Foods logged without fibre data would read as a zero-fibre diet.
+        if (avgFiber > 0) scalars[HerculSignals.fiberAvg7dG] = avgFiber;
       }
     }
   } catch (_) {

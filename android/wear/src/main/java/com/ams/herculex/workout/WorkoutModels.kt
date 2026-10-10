@@ -49,8 +49,26 @@ data class ExerciseTemplate(
     val waveLabel: String? = null,
     val prescriptionReason: String? = null,
 ) {
+    /// The metric this log entry is actually scored with: the catalog
+    /// [loggingMetric], adjusted by the chosen [equipmentVariant]. Mirrors the
+    /// phone's `effectiveLoggingMetric` (lib/features/workouts/domain/
+    /// equipment_variants.dart) so both devices show the same fields.
+    ///
+    /// Dips, pull-ups and the like are catalogued as `reps` (pure bodyweight).
+    /// Switching one to `weighted` on the phone adds the external-load field
+    /// there, but the watch read the catalog metric alone and kept showing
+    /// bodyweight no matter which variant arrived.
+    private fun effectiveMetric(): String? {
+        val base = loggingMetric?.lowercase()?.trim()
+        return when (equipmentVariant?.lowercase()?.trim()) {
+            "weighted" -> "weight_reps"
+            "bodyweight", "band" -> if (base == "weight_reps") "reps" else base
+            else -> base
+        }
+    }
+
     fun isBodyweightOnly(): Boolean {
-        val metric = loggingMetric?.lowercase()?.trim()
+        val metric = effectiveMetric()
         if (metric == "reps") return true
         if (metric == "weight_reps" || metric == "weight_time" || metric == "weight_distance") return false
 
@@ -60,7 +78,7 @@ data class ExerciseTemplate(
     }
 
     fun isTimeBased(): Boolean {
-        val metric = loggingMetric?.lowercase()?.trim()
+        val metric = effectiveMetric()
         // 1. Explicit rep-based / non-timed metrics are NEVER time-based
         if (metric == "weight_reps" || metric == "reps" || metric == "weight_distance" || metric == "distance" || metric == "calories") {
             return false
@@ -180,7 +198,7 @@ data class ExerciseTemplate(
     /// no name-based fallback: distance logging is new watch-side behavior,
     /// so an unset/legacy loggingMetric simply isn't distance-based.
     fun isDistanceBased(): Boolean {
-        val metric = loggingMetric?.lowercase()?.trim()
+        val metric = effectiveMetric()
         return metric == "distance" || metric == "time_distance" || metric == "weight_distance"
     }
 
@@ -193,7 +211,7 @@ data class ExerciseTemplate(
     /// `weight_distance` (e.g. Sled Push) keeps its real weight here — see
     /// [showsDistanceInValueSlot].
     fun showsDistanceInWeightSlot(): Boolean {
-        val metric = loggingMetric?.lowercase()?.trim()
+        val metric = effectiveMetric()
         return metric == "time_distance"
     }
 
@@ -206,7 +224,7 @@ data class ExerciseTemplate(
     /// distance (`time_distance`) instead of leaving every non-`weight_*`
     /// metric's Kg picker in place unexamined.
     fun hasRealWeightSlot(): Boolean {
-        val metric = loggingMetric?.lowercase()?.trim()
+        val metric = effectiveMetric()
         return metric != "distance" && metric != "time_distance"
     }
 
@@ -216,7 +234,7 @@ data class ExerciseTemplate(
     /// distance already goes in the weight slot via [showsDistanceInWeightSlot],
     /// leaving the value slot free for [isTimeBased]'s Time picker.
     fun showsDistanceInValueSlot(): Boolean {
-        val metric = loggingMetric?.lowercase()?.trim()
+        val metric = effectiveMetric()
         return metric == "distance" || metric == "weight_distance"
     }
 }

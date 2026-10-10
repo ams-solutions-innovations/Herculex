@@ -9,6 +9,7 @@ import 'package:herculex/features/nutrition/application/tdee_display_providers.d
 import 'package:herculex/features/nutrition/application/tdee_providers.dart';
 import 'package:herculex/features/nutrition/domain/target_resolver.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
+import 'package:herculex/features/nutrition/domain/tdee_estimate_copy.dart';
 import 'package:intl/intl.dart';
 
 /// Accent colour and icon for a badge state (28-UI-SPEC "Badge state colours").
@@ -94,7 +95,7 @@ class TdeeEstimateSheet extends ConsumerWidget {
         icon: visuals.icon,
         accent: visuals.accent,
         label: state.label(estimate.confidence),
-        methodLine: _methodLine(estimate, asOf),
+        methodLine: tdeeMethodLine(estimate, asOf),
       ),
       const SizedBox(height: HxSpace.x6),
       _Comparison(
@@ -142,44 +143,14 @@ class TdeeEstimateSheet extends ConsumerWidget {
     ];
   }
 
-  String _methodLine(TdeeEstimateResult e, DateTime asOf) {
-    switch (e.method) {
-      case TdeeMethod.observed:
-        if (e.isHeld) {
-          final when = _relativeDay(_measuredAt(e), asOf);
-          return 'Measured from your logs $when. Log again to refresh it.';
-        }
-        return 'Worked out from what you ate and how your weight trended.';
-      case TdeeMethod.classifier:
-        return 'Worked out from your daily activity and training.';
-      case TdeeMethod.coldStart:
-        return 'Using the activity level you chose at setup until there is '
-            'enough data to measure.';
-    }
-  }
-
-  DateTime _measuredAt(TdeeEstimateResult e) {
-    final raw = e.inputs['measured_at'];
-    final parsed = raw is String ? DateTime.tryParse(raw) : null;
-    return parsed?.toLocal() ?? e.estimatedAt;
-  }
-
-  /// Days the observed data actually covers: the persisted measured span plus
-  /// one (both ends inclusive). Null when the span is missing or malformed;
-  /// the winning candidate window is a selection detail and is never shown.
-  int? _observedDays(TdeeEstimateResult e) {
-    final span = e.inputs['span_days'];
-    return span is num ? span.round() + 1 : null;
-  }
-
   List<Widget> _windowLines(TdeeEstimateResult e, DateTime asOf) {
     if (e.method == TdeeMethod.coldStart) return const [];
     final days = e.method == TdeeMethod.observed
-        ? _observedDays(e)
+        ? tdeeObservedDays(e)
         : e.windowDays;
     return [
       if (days != null) _BodyLine('Based on the last $days days'),
-      _BodyLine('Updated ${_relativeDay(e.estimatedAt, asOf)}', muted: true),
+      _BodyLine('Updated ${tdeeRelativeDay(e.estimatedAt, asOf)}', muted: true),
     ];
   }
 
@@ -198,7 +169,7 @@ class TdeeEstimateSheet extends ConsumerWidget {
     final rows = <String, String?>{};
     switch (e.method) {
       case TdeeMethod.observed:
-        final days = _observedDays(e);
+        final days = tdeeObservedDays(e);
         final logged = i['logged_days'];
         final trend = i['weight_trend_delta_kg'];
         rows['Average intake'] = whole(
@@ -213,7 +184,7 @@ class TdeeEstimateSheet extends ConsumerWidget {
             : null;
         rows['Weigh-ins'] = whole('weigh_ins', (s) => s);
         if (e.isHeld) {
-          rows['Last measured'] = _relativeDay(_measuredAt(e), asOf);
+          rows['Last measured'] = tdeeRelativeDay(tdeeMeasuredAt(e), asOf);
         }
       case TdeeMethod.classifier:
         final workouts = i['workouts_per_week'];
@@ -256,18 +227,6 @@ class TdeeEstimateSheet extends ConsumerWidget {
     for (final entry in rows.entries)
       if (entry.value != null) _Row(entry.key, entry.value!),
   ];
-}
-
-/// "today", "yesterday" or "N days ago", by calendar day against [asOf].
-String _relativeDay(DateTime at, DateTime asOf) {
-  final days = DateTime(
-    asOf.year,
-    asOf.month,
-    asOf.day,
-  ).difference(DateTime(at.year, at.month, at.day)).inDays;
-  if (days <= 0) return 'today';
-  if (days == 1) return 'yesterday';
-  return '$days days ago';
 }
 
 class _Row {

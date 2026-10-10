@@ -82,7 +82,7 @@ class _TestHealthAdapter implements HealthAdapter {
     required String title,
     required DateTime start,
     required DateTime end,
-    required int totalEnergyBurned,
+    required int? totalEnergyBurned,
     required HealthDataUnit totalEnergyBurnedUnit,
   }) async {
     return true;

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/buddy/application/buddy_providers.dart';
 import 'package:herculex/features/buddy/domain/buddy_join_payload.dart';
+import 'package:herculex/features/profile/presentation/widgets/greek_avatar_badge.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 /// Bottom sheet displaying the host's live join QR code.
@@ -156,13 +157,11 @@ class _BuddyShareSheetState extends ConsumerState<BuddyShareSheet> {
                   ),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: AppColors.primaryContainer,
-                        child: Icon(
-                          Icons.person_rounded,
-                          color: AppColors.primary,
-                        ),
+                      GreekAvatarBadge(
+                        avatarId: buddyState.partner!.avatarUrl,
+                        fallbackName: buddyState.partner!.displayName,
+                        size: 48,
+                        showEditBadge: false,
                       ),
                       const SizedBox(width: 14),
                       Expanded(

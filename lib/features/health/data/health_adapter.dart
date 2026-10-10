@@ -33,7 +33,7 @@ abstract class HealthAdapter {
     required String title,
     required DateTime start,
     required DateTime end,
-    required int totalEnergyBurned,
+    required int? totalEnergyBurned,
     required HealthDataUnit totalEnergyBurnedUnit,
   });
 }
@@ -107,7 +107,7 @@ class PluginHealthAdapter implements HealthAdapter {
     required String title,
     required DateTime start,
     required DateTime end,
-    required int totalEnergyBurned,
+    required int? totalEnergyBurned,
     required HealthDataUnit totalEnergyBurnedUnit,
   }) {
     return _health.writeWorkoutData(

@@ -1,8 +1,56 @@
 package com.ams.herculex
 
 import android.content.Context
-import android.content.res.Configuration
 import org.json.JSONObject
+
+/** Corner shape of a widget card. [PILL] only ever reaches the one-row 2x1 widgets. */
+enum class HxCornerShape {
+    SQUIRCLE,
+    PILL;
+
+    companion object {
+        fun parse(value: String?): HxCornerShape = if (value == "pill") PILL else SQUIRCLE
+    }
+}
+
+/**
+ * The user's Widgets settings as the renderer sees them: how transparent the
+ * glass card is, and its corner shape.
+ */
+data class HxWidgetLook(
+    /** 1 (light glass) to 3 (most transparent). */
+    val transparency: Int = DEFAULT_TRANSPARENCY,
+    val shape: HxCornerShape = HxCornerShape.SQUIRCLE,
+) {
+    /** Share of the card surface that is opaque; the rest lets the wallpaper through. */
+    val opacity: Float
+        get() = when (transparency.coerceIn(MIN_TRANSPARENCY, MAX_TRANSPARENCY)) {
+            1 -> 0.85f
+            2 -> 0.65f
+            else -> 0.45f
+        }
+
+    /**
+     * Corner radius of a card [h] dp tall. A pill is half the height, capped so
+     * a one-row widget that the launcher stretched taller doesn't go round.
+     */
+    fun cornerRadius(h: Float): Float =
+        if (shape == HxCornerShape.PILL) minOf(h / 2f, PILL_MAX_RADIUS) else HxCanvas.CARD_RADIUS
+
+    companion object {
+        const val MIN_TRANSPARENCY = 1
+        const val MAX_TRANSPARENCY = 3
+        const val DEFAULT_TRANSPARENCY = 1
+        const val PILL_MAX_RADIUS = 40f
+    }
+}
+
+/** What a widget draws: [light] and [dark] are the same palette unless it [followsSystem]. */
+data class HxWidgetThemes(
+    val light: HxWidgetPalette,
+    val dark: HxWidgetPalette,
+    val followsSystem: Boolean,
+)
 
 /**
  * The slice of `HxColors` the home-screen widgets draw with.
@@ -37,7 +85,17 @@ data class HxWidgetPalette(
     val fasting: Int,
     /** domainNutrition. */
     val nutrition: Int,
+    /** The user's glass and shape settings; the same for every palette. */
+    val look: HxWidgetLook = HxWidgetLook(),
 ) {
+    /**
+     * This palette for a widget that may [pillEligible] take the pill shape;
+     * every other widget stays a squircle whatever the setting says.
+     */
+    fun forWidget(pillEligible: Boolean): HxWidgetPalette =
+        if (pillEligible || look.shape == HxCornerShape.SQUIRCLE) this
+        else copy(look = look.copy(shape = HxCornerShape.SQUIRCLE))
+
     /** Strength of the domain tint at the gradient's start, as in `HxCard`. */
     val gradientAmount: Float get() = if (isDark) 0.16f else 0.12f
 
@@ -52,6 +110,8 @@ data class HxWidgetPalette(
         const val KEY_THEME_MODE = "widget_theme_mode"
         const val KEY_THEME_DARK = "widget_theme_dark"
         const val KEY_THEME_LIGHT = "widget_theme_light"
+        const val KEY_TRANSPARENCY = "widget_transparency"
+        const val KEY_SHAPE = "widget_shape"
 
         val CLASSIC_BLUE_DARK = HxWidgetPalette(
             isDark = true,
@@ -95,19 +155,28 @@ data class HxWidgetPalette(
             nutrition = 0xFF1E7A34.toInt(),
         )
 
-        /** Resolves the palette for the app's theme mode and the system night mode. */
-        fun load(context: Context): HxWidgetPalette {
+        /**
+         * Resolves the palettes for the app's theme mode. A widget is a bitmap,
+         * and the system sends providers nothing when the phone flips between
+         * light and dark, so with `system` both palettes are returned and the
+         * layout picks one by night mode (see `widget_canvas_dark`).
+         */
+        fun loadThemes(context: Context): HxWidgetThemes {
             val prefs = CnsWidgetProvider.getPrefs(context)
-            val systemDark = (context.resources.configuration.uiMode and
-                Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-            val dark = when (prefs.getString(KEY_THEME_MODE, "system")) {
-                "dark" -> true
-                "light" -> false
-                else -> systemDark
+            val look = HxWidgetLook(
+                transparency = prefs.getInt(KEY_TRANSPARENCY, HxWidgetLook.DEFAULT_TRANSPARENCY),
+                shape = HxCornerShape.parse(prefs.getString(KEY_SHAPE, null)),
+            )
+            fun palette(dark: Boolean): HxWidgetPalette {
+                val json = prefs.getString(if (dark) KEY_THEME_DARK else KEY_THEME_LIGHT, null)
+                val fallback = if (dark) CLASSIC_BLUE_DARK else CLASSIC_BLUE_LIGHT
+                return (json?.let { fromJson(it, dark, fallback) } ?: fallback).copy(look = look)
             }
-            val json = prefs.getString(if (dark) KEY_THEME_DARK else KEY_THEME_LIGHT, null)
-            val fallback = if (dark) CLASSIC_BLUE_DARK else CLASSIC_BLUE_LIGHT
-            return json?.let { fromJson(it, dark, fallback) } ?: fallback
+            return when (prefs.getString(KEY_THEME_MODE, "system")) {
+                "dark" -> palette(true).let { HxWidgetThemes(it, it, followsSystem = false) }
+                "light" -> palette(false).let { HxWidgetThemes(it, it, followsSystem = false) }
+                else -> HxWidgetThemes(palette(false), palette(true), followsSystem = true)
+            }
         }
 
         private fun fromJson(json: String, dark: Boolean, fallback: HxWidgetPalette): HxWidgetPalette? =

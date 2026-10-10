@@ -48,34 +48,52 @@ Return only a JSON object:
 `;
 }
 
-export function nutritionLabelPrompt(ocrText: string): string {
+export function nutritionLabelPrompt(imageCount = 1): string {
+  const photos = imageCount > 1
+    ? `You receive ${imageCount} photos: first the product itself (use it for
+name and brand), then its nutrition table.`
+    : `You receive one photo, normally of the nutrition table. Take the product
+name and brand from whatever is visible on it.`;
   return `
 You are extracting a packaged-food nutrition label. Return only valid JSON.
+${photos}
 Use nutrition values as printed per serving, never invent missing values.
-The OCR text below may contain errors; use the image to correct it.
 Extract the exact labelled serving measure into portionAmount and portionUnit
 (for example 1 scoop, 2 nuggets, 1 bar, or 30 g), plus its physical mass in
-servingGrams. Do not use ml for solid foods.
+servingGrams. Do not use ml for solid foods. If the table is printed only per
+100 g, use servingGrams 100, portionAmount 100 and portionUnit "g" and copy the
+printed values.
 
-OCR evidence:
-${ocrText}
+Variants: a label sometimes prints more than one nutrition table or column set
+for different states of the same product, for example "drained" and "not
+drained" (or "with liquid"), "as sold" and "prepared", with and without sauce.
+Return one entry in "variants" per state, with a short "label" for it (such as
+"Drained"). Per-100 g and per-serving columns of the same state are NOT
+separate variants: use the per-serving column, or the per-100 g column when
+that is all there is. If the label has a single state, return exactly one
+variant and set its "label" to null.
 
 JSON schema:
 {
   "name": "product name",
   "brand": "brand or null",
-  "servingGrams": 100.0,
-  "portionAmount": 1.0,
-  "portionUnit": "scoop",
-  "kcalPerServing": 0.0,
-  "proteinPerServing": 0.0,
-  "carbsPerServing": 0.0,
-  "fatPerServing": 0.0,
-  "fiberPerServing": 0.0,
-  "sodiumMgPerServing": 0.0,
-  "microsPerServing": {"vitamin_c": 0.0},
   "confidence": 0.0,
-  "notes": "short uncertainty note"
+  "notes": "short uncertainty note",
+  "variants": [
+    {
+      "label": "Drained or null",
+      "servingGrams": 100.0,
+      "portionAmount": 1.0,
+      "portionUnit": "scoop",
+      "kcalPerServing": 0.0,
+      "proteinPerServing": 0.0,
+      "carbsPerServing": 0.0,
+      "fatPerServing": 0.0,
+      "fiberPerServing": 0.0,
+      "sodiumMgPerServing": 0.0,
+      "microsPerServing": {"vitamin_c": 0.0}
+    }
+  ]
 }
 `;
 }
@@ -83,14 +101,22 @@ JSON schema:
 export function barcodeProductPrompt(
   barcode: string,
   userNote?: string | null,
+  imageCount = 1,
 ): string {
   const note = userNote?.trim() ? `User note: "${userNote.trim()}"` : "";
+  const photos = imageCount > 1
+    ? `You receive ${imageCount} photos: the product, then its nutrition table.
+Values printed in the nutrition table photo take priority over anything found
+online; use search to identify the product and to fill what the table does not
+show.`
+    : "";
   return `
 You are identifying a packaged retail product from a photo for a Slovenian-
 language food diary. Its barcode is ${barcode}. Use Google Search to find the
 real product (by barcode and/or the branding visible in the photo) and its
 official nutrition facts. Never invent values — only report what you can
 verify from search results or the image itself.
+${photos}
 Also report the package's real default measure as portionAmount + portionUnit
 and its mass in servingGrams. Use ml only where the product is a liquid; use
 named measures such as scoop, bar, slice or nugget when that is what the
@@ -118,6 +144,14 @@ Otherwise, return only a fenced JSON code block with this exact shape:
   "confidence": 0.0
 }
 \`\`\`
+
+If the package prints more than one nutrition table for different states of the
+product (for example drained and not drained, or as sold and prepared), keep
+the fields above for the first state and add a "variants" array with one entry
+per state, each with a short "label" and the same fields as above
+(servingGrams, portionAmount, portionUnit, kcalPer100g, proteinPer100g,
+carbsPer100g, fatPer100g, fiberPer100g, sodiumMgPer100g). Omit "variants" when
+there is a single state.
 `;
 }
 

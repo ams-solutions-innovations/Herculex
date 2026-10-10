@@ -161,7 +161,7 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    HomeMacroChip("${data.calories}", "kcal", Color(0xFF42A5F5))
+                    HomeMacroChip("${data.calories}", "Calories", Color(0xFF42A5F5))
                     Text("|", color = Color(0x40FFFFFF), fontSize = 12.sp)
                     HomeMacroChip("${data.protein}g", "protein", Color(0xFFFFA726))
                     Text("|", color = Color(0x40FFFFFF), fontSize = 12.sp)

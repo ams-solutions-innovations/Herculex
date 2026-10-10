@@ -35,8 +35,12 @@ import kotlinx.coroutines.delay
 @Composable
 fun GoTimeOverlay(trigger: Int) {
     var visible by remember { mutableStateOf(false) }
+    // [RestTimerStore.goTimeEvents] is process-wide and only ever counts up, so
+    // a recreated activity composes with an old, non-zero value. Only a value
+    // that differs from the one present at first composition is a new event.
+    val initialTrigger = remember { trigger }
     LaunchedEffect(trigger) {
-        if (trigger == 0) return@LaunchedEffect
+        if (trigger == initialTrigger) return@LaunchedEffect
         visible = true
         delay(2_000)
         visible = false

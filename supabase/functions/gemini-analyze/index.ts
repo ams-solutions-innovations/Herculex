@@ -78,7 +78,6 @@ type GeminiRequest = {
   profileInputs?: Record<string, unknown>;
   facts?: Record<string, unknown>;
   userNote?: string | null;
-  ocrText?: string;
   barcode?: string;
   privacyConsent?: {
     version?: string;
@@ -350,11 +349,11 @@ Deno.serve(async (req) => {
       }
 
       case "nutrition_label": {
-        const image = validateImage(payload.image);
-        if ("error" in image) return json({ error: image.error }, 400);
+        const scan = validateScanImages(payload);
+        if ("error" in scan) return json({ error: scan.error }, 400);
         const { result, modelVersion } = await generateJson({
-          images: [image],
-          promptText: nutritionLabelPrompt(payload.ocrText ?? ""),
+          images: scan.images,
+          promptText: nutritionLabelPrompt(scan.images.length),
           temperature: 0.1,
         });
         return json({ result, provenance: { modelVersion } });
@@ -390,15 +389,19 @@ Deno.serve(async (req) => {
       }
 
       case "barcode_product": {
-        const image = validateImage(payload.image);
-        if ("error" in image) return json({ error: image.error }, 400);
+        const scan = validateScanImages(payload);
+        if ("error" in scan) return json({ error: scan.error }, 400);
         const barcode = payload.barcode?.trim();
         if (!barcode) return json({ error: "Barcode is required." }, 400);
 
         const { result, groundingSources, modelVersion } =
           await generateGroundedJson({
-            image,
-            promptText: barcodeProductPrompt(barcode, payload.userNote),
+            images: scan.images,
+            promptText: barcodeProductPrompt(
+              barcode,
+              payload.userNote,
+              scan.images.length,
+            ),
           });
         // `groundingSources` je edini dokaz, ki ga ta pot proizvede. Klient
         // ga nese naprej v `product_catalogue_submissions`; brez njega je
@@ -1141,6 +1144,21 @@ function validateImages(
   return { images };
 }
 
+/// Slike za `nutrition_label` in `barcode_product`: 1 ali 2 fotografiji
+/// (izdelek in/ali tabela hranilnih vrednosti). Odjemalec pošlje `images`
+/// (vrstni red: izdelek, tabela) in zaradi starejših izdaj še `image`.
+const maxScanImages = 2;
+
+function validateScanImages(
+  payload: GeminiRequest,
+): { images: ValidImage[] } | { error: string } {
+  const raw = payload.images && payload.images.length > 0
+    ? payload.images
+    : (payload.image ? [payload.image] : []);
+  if (raw.length === 0) return { error: "Image is required." };
+  return validateImages(raw, maxScanImages);
+}
+
 // ── Gemini ─────────────────────────────────────────────────────────────
 
 async function generateJson({
@@ -1327,17 +1345,17 @@ function extractGroundingSources(candidate: unknown): string[] {
 /// ali besedilo ne vsebuje parsljivega JSON-a, pade nazaj na ungrounded
 /// strukturiran klic, ki raje vrne `{"found": false}` kot ugiba.
 async function generateGroundedJson({
-  image,
+  images,
   promptText,
 }: {
-  image: ValidImage;
+  images: ValidImage[];
   promptText: string;
 }): Promise<
   { result: Record<string, unknown>; groundingSources: string[]; modelVersion: string }
 > {
   try {
     const { text, groundingSources, modelVersion } = await generate({
-      images: [image],
+      images,
       promptText,
       temperature: 0.1,
       tools: [{ google_search: {} }],
@@ -1351,7 +1369,7 @@ async function generateGroundedJson({
       String(error),
     );
     const { result, modelVersion } = await generateJson({
-      images: [image],
+      images,
       promptText:
         `${promptText}\n\nIf you cannot identify this product, return exactly {"found": false} instead of guessing.`,
       temperature: 0.1,

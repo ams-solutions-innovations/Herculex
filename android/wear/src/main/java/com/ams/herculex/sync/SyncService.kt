@@ -111,8 +111,17 @@ class SyncService : WearableListenerService() {
                     if (!workoutsJson.isNullOrBlank()) {
                         WorkoutStore.saveJson(this, workoutsJson)
                         activeViewModel?.loadWorkouts()
+                        requestTileUpdate()
                         Log.d("SyncService", "Workouts synced from phone")
                     }
+                }
+
+                // ── Today's program workout from phone ──────────────────────
+                path == "/herculex_workout_today" -> {
+                    WorkoutStore.saveToday(this, dataMap.getString("today_json").orEmpty())
+                    activeViewModel?.loadWorkouts()
+                    requestTileUpdate()
+                    Log.d("SyncService", "Today workout synced from phone")
                 }
 
                 // ── Exercise catalog from phone ─────────────────────────────
@@ -164,6 +173,18 @@ class SyncService : WearableListenerService() {
                     }
                 }
 
+                // Durable copy of the phone's rest timer. The same payload
+                // normally arrives first as a message; the revision check in
+                // RestTimerStore makes the second delivery a no-op. It is what
+                // arms the alarm when the message was missed (watch out of
+                // range, app killed) or when the watch reconnects mid-rest.
+                path == WearSyncPaths.STATE_REST_TIMER -> {
+                    val restJson = dataMap.getString("rest_json").orEmpty()
+                    if (restJson.isNotBlank()) {
+                        applyRestTimer(restJson, "data")
+                    }
+                }
+
                 path == WearSyncPaths.STATE_MACRO_TARGETS -> {
                     getSharedPreferences("wear_persistent_state", Context.MODE_PRIVATE)
                         .edit()
@@ -203,10 +224,7 @@ class SyncService : WearableListenerService() {
             WearSyncPaths.MESSAGE_START_REST_TIMER -> {
                 // The phone started, extended or skipped a rest: mirror it
                 // under the set number and buzz "IT'S GO TIME" at the end.
-                com.ams.herculex.workout.RestTimerStore.applyFromPhone(
-                    applicationContext,
-                    String(messageEvent.data),
-                )
+                applyRestTimer(String(messageEvent.data), "message")
             }
             WearSyncPaths.MESSAGE_UPDATE_WEIGHT -> {
                 Log.d("SyncService", "Received weight update event: ${String(messageEvent.data)}")
@@ -218,6 +236,7 @@ class SyncService : WearableListenerService() {
                 // needed even though endSessionFromPhone() also stops it
                 // when a ViewModel happens to be alive.
                 stopOngoingServiceDirect()
+                com.ams.herculex.workout.RestTimerStore.clear(applicationContext)
             }
             WearSyncPaths.MESSAGE_ACHIEVEMENT -> {
                 try {
@@ -281,6 +300,27 @@ class SyncService : WearableListenerService() {
                     Log.d("SyncService", "Media state received via MessageClient: $mediaJson")
                 }
             }
+        }
+    }
+
+    /// Applies a rest timer payload and tells the phone whether this watch
+    /// really armed its "go time" alert. The phone keeps its own notification
+    /// until it hears `armed=true`, so a failure anywhere on this side (no
+    /// exact alarm, notifications off, an old build) still ends in one alert.
+    private fun applyRestTimer(json: String, delivery: String) {
+        val result = com.ams.herculex.workout.RestTimerStore.applyFromPhone(applicationContext, json)
+        Log.d(
+            "SyncService",
+            "rest timer via $delivery: reason=${result.reason} armed=${result.armed} rev=${result.rev}",
+        )
+        if (!result.shouldAck) return
+        serviceScope.launch {
+            runCatching {
+                WearDataLayerSyncManager(applicationContext).sendMessageToAllNodes(
+                    WearSyncPaths.MESSAGE_REST_TIMER_ACK,
+                    result.toAckJson(),
+                )
+            }.onFailure { Log.w("SyncService", "Failed to send rest timer ack", it) }
         }
     }
 
@@ -397,7 +437,14 @@ class SyncService : WearableListenerService() {
             // is no activeViewModel to update, and without this the session
             // would be lost entirely rather than restored on next launch.
             persistSession(sessionJson)
-            WorkoutStore.parseAndUpdateSession(sessionJson, activeViewModel)
+            if (!WorkoutStore.parseAndUpdateSession(sessionJson, activeViewModel)) {
+                // parseAndUpdateSession swallows its own exceptions, so a
+                // failure used to fall through to commit() below and mark the
+                // envelope applied — the re-delivery over the other channel
+                // was then ignored as a duplicate and the update was lost.
+                logWearSync(envelope, path, delivery, "failed")
+                return false
+            }
             // Commit only now that the writes above have actually run
             // (Phase 4) — a failed write must not poison the dedupe state.
             appliedRevisions.commit(envelope)
@@ -443,6 +490,9 @@ class SyncService : WearableListenerService() {
         // Direct stop, not gated on a live ViewModel (ENG-14) — see the
         // comment on stopOngoingServiceDirect() for why this is needed.
         stopOngoingServiceDirect()
+        // Same reason: a rest alarm armed for a workout that just ended must
+        // not buzz later, and WorkoutViewModel only clears it when it is alive.
+        com.ams.herculex.workout.RestTimerStore.clear(applicationContext)
         // Also retire the watch -> phone durable state. Without this it keeps
         // claiming has_active_session=true, and replayPersistentState() on the
         // next onPeerConnected re-pushes the finished session to the phone —

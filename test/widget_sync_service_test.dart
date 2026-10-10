@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/design_system/tokens/hx_colors.dart';
+import 'package:herculex/services/platform/widget_appearance.dart';
 import 'package:herculex/services/platform/widget_sync_service.dart';
 
 class _FixedClock implements Clock {
@@ -91,10 +92,14 @@ void main() {
       mode: ThemeMode.system,
       dark: HxColors.of(Brightness.dark, AppColorTheme.pinky),
       light: HxColors.of(Brightness.light, AppColorTheme.pinky),
+      transparency: 3,
+      shape: WidgetCornerShape.pill,
     );
 
     final args = (calls.single.arguments as Map).cast<String, dynamic>();
     expect(args['mode'], 'system');
+    expect(args['transparency'], 3);
+    expect(args['shape'], 'pill');
     final dark = (args['dark'] as Map).cast<String, int>();
     final light = (args['light'] as Map).cast<String, int>();
     expect(dark['primary'], HxColors.pinkyDark.primary.toARGB32());

@@ -10,8 +10,10 @@ import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
 import 'package:herculex/features/physique/application/effective_goal_provider.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/progression_engine.dart';
@@ -306,6 +308,114 @@ class WearWorkoutSyncService {
 
     final jsonString = jsonEncode(jsonList);
     await _wearSyncService.syncWorkouts(jsonString);
+  }
+
+  /// Tells the watch which workout the program has planned for today, so its
+  /// tile can offer it as the first, one-tap start.
+  ///
+  /// A template-backed day sends only the template id: the watch already holds
+  /// that template with its last-performance hints. A day with inline
+  /// exercises has no template to point at, so the resolved session travels
+  /// with it. [rows] are today's schedule rows; an empty list (or nothing
+  /// startable left) clears the watch's copy.
+  Future<void> syncTodayWorkoutToWatch(List<ScheduledWorkoutRow> rows) async {
+    final open =
+        rows
+            .where(
+              (r) =>
+                  !r.isRestDay &&
+                  !r.isDone &&
+                  !r.isSkipped &&
+                  !r.isMoved &&
+                  r.exerciseCount > 0,
+            )
+            .toList()
+          ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+    if (open.isEmpty) {
+      await _wearSyncService.syncTodayWorkout('');
+      return;
+    }
+
+    final row = open.first;
+    final slot = row.day.slotLabel?.trim();
+    final title = (slot != null && slot.isNotEmpty) ? slot : row.day.name;
+    final payload = <String, dynamic>{
+      'dateIso': row.dateIso,
+      'scheduleId': row.id,
+      'title': title,
+    };
+
+    if (row.isTemplateBacked) {
+      payload['templateId'] = row.template!.id.toString();
+    } else {
+      final plan = await PlannedSessionResolver(_db).resolveProgramDay(
+        row.day.id,
+        templateOverride: row.schedule.templateIdOverride,
+      );
+      final ids = plan.exercises.map((e) => e.exerciseId).toSet();
+      final catalog = await (_db.select(
+        _db.exerciseCatalog,
+      )..where((c) => c.id.isIn(ids))).get();
+      final byId = {for (final c in catalog) c.id: c};
+      final weightFmt = _ref.read(weightFormatProvider);
+
+      final exercises = <Map<String, dynamic>>[];
+      for (final ex in plan.exercises) {
+        final item = byId[ex.exerciseId];
+        if (item == null) continue;
+        final last = await _workoutsRepository.lastPerformanceSnapshotFor(
+          item.id,
+        );
+        final lastSets = last?.sets ?? const <SetEntryData>[];
+        final prior = lastSets.isEmpty
+            ? null
+            : lastSets.firstWhere(
+                (s) => !s.isWarmup,
+                orElse: () => lastSets.first,
+              );
+        exercises.add({
+          ..._templateJson(item, equipmentVariant: ex.equipmentVariant),
+          'targetSets': ex.sets.length,
+          'supersetGroup': ex.supersetGroup,
+          'prevWeight': prior?.weightKg ?? 0.0,
+          'prevReps': prior?.reps ?? 0,
+          if (prior != null)
+            'performanceHint':
+                'Last: ${weightFmt.format(prior.weightKg)} × ${prior.reps}',
+          'trainingMethod': ex.trainingMethod,
+          'prescriptionReason': ex.why,
+          'plannedSets': [
+            for (final s in ex.sets)
+              {
+                'wireId': 'today_set_${row.id}_${ex.orderIndex}_${s.index}',
+                'setIndex': s.index,
+                'setType': normalizeWearSetType(s.setType),
+                'isWarmup': s.isWarmup,
+                'targetReps': s.repsMin ?? s.repsMax,
+                'targetRepsMin': s.repsMin,
+                'targetRepsMax': s.repsMax,
+                'targetWeightKg': s.weightKg,
+                'targetRpe': s.rpeX10 == null ? null : s.rpeX10! / 10,
+                'targetRir': s.rir,
+                'targetPercentOf1Rm': s.percentOf1Rm,
+                'plannedIntent': s.intent,
+                'setTypeMetaJson': s.setTypeMetaJson,
+              },
+          ],
+        });
+      }
+      if (exercises.isEmpty) {
+        await _wearSyncService.syncTodayWorkout('');
+        return;
+      }
+      payload['workout'] = {
+        'id': 'today_${row.id}',
+        'name': title,
+        'exercises': exercises,
+      };
+    }
+
+    await _wearSyncService.syncTodayWorkout(jsonEncode(payload));
   }
 
   Future<void> _handleWatchWorkoutStarted(
@@ -662,6 +772,15 @@ class WearWorkoutSyncService {
     origin: wearSyncOriginPhone,
   );
 
+  /// Raises the local counter to every stamp just received, so the next local
+  /// edit is stamped strictly later than anything the watch has told us.
+  void _observeRemoteVersions(WearSetSyncVersions versions) {
+    _revisionAllocator
+      ..observe(versions.weight.revision)
+      ..observe(versions.reps.revision)
+      ..observe(versions.completion.revision);
+  }
+
   _PhoneSetSyncState _stateForLocalSet(
     String sessionEntityId,
     SetEntryData set, {
@@ -732,7 +851,15 @@ class WearWorkoutSyncService {
     required WearSetSyncVersions incomingVersions,
   }) {
     final key = _setSyncStateKey(sessionEntityId, setId);
-    final existingState = _setSyncStates[key];
+    // A phone edit is only stamped when the next outbound snapshot is built.
+    // If a remote snapshot is merged first, the code below would copy the
+    // unstamped value into the remembered state without ever minting a stamp,
+    // and the edit would later reach the watch carrying its old, losing stamp.
+    // Stamp it now so it competes with the incoming versions on equal terms.
+    final existingState = _setSyncStates[key] == null
+        ? null
+        : _stateForLocalSet(sessionEntityId, existing, persist: false);
+    _observeRemoteVersions(incomingVersions);
 
     final _PhoneSetSyncState state;
     if (existingState == null) {
@@ -1050,6 +1177,7 @@ class WearWorkoutSyncService {
             } else {
               // No wireId, or one the phone doesn't recognize — insert new
               // regardless of completed flag so planned/uncompleted sets sync.
+              _observeRemoteVersions(incomingVersions);
               final newSetId = await _workoutsRepository.addSet(
                 workoutExerciseId: workoutExerciseId,
                 weightKg: weight,

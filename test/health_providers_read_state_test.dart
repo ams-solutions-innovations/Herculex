@@ -73,7 +73,7 @@ class _EmptyHealthAdapter implements HealthAdapter {
     required String title,
     required DateTime start,
     required DateTime end,
-    required int totalEnergyBurned,
+    required int? totalEnergyBurned,
     required HealthDataUnit totalEnergyBurnedUnit,
   }) async {
     return true;
@@ -141,4 +141,46 @@ void main() {
       expect(result, ActivityAdjustmentResult.unavailable);
     },
   );
+
+  group('sleep recovery', () {
+    test('has no effect when no recent night is stored', () async {
+      await container.read(latestSleepProvider.future);
+
+      expect(container.read(sleepRecoveryProvider), isNull);
+    });
+
+    test('a short recent night slows recovery', () async {
+      await db
+          .into(db.healthSamples)
+          .insert(
+            HealthSamplesCompanion.insert(
+              dateIso: '2026-08-13',
+              kind: 'sleep_hours',
+              value: 4,
+            ),
+          );
+
+      await container.read(latestSleepProvider.future);
+      final assessment = container.read(sleepRecoveryProvider);
+
+      expect(assessment, isNotNull);
+      expect(assessment!.rateMultiplier, lessThan(1.0));
+    });
+
+    test('a full night leaves recovery at baseline', () async {
+      await db
+          .into(db.healthSamples)
+          .insert(
+            HealthSamplesCompanion.insert(
+              dateIso: '2026-08-13',
+              kind: 'sleep_hours',
+              value: 8,
+            ),
+          );
+
+      await container.read(latestSleepProvider.future);
+
+      expect(container.read(sleepRecoveryProvider)!.rateMultiplier, 1.0);
+    });
+  });
 }

@@ -224,7 +224,12 @@ final _supplementsSync = Provider<void>((ref) {
     'total': state.totalCount,
     'items': [
       for (final s in state.supplements.take(6))
-        {'name': s.name, 'detail': detail(s), 'taken': state.isTaken(s.id)},
+        {
+          'id': s.id,
+          'name': s.name,
+          'detail': detail(s),
+          'taken': state.isTaken(s.id),
+        },
     ],
   });
 });

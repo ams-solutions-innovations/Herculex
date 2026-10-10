@@ -45,27 +45,125 @@ void main() {
   );
 
   test(
-    'nutrition label fallback maps backend JSON into an editable draft',
+    'a single-table label maps backend JSON into one editable variant',
     () async {
       final backend = _FakeGeminiBackend();
       final service = GeminiFoodAnalyzerService(backend);
       final image = await _tempImage('.webp');
 
-      final draft = await service.analyzeNutritionLabel(
-        imageFile: image,
-        ocrText: 'Serving 50 g Calories 200 Protein 10 g',
-      );
+      final draft = await service.analyzeNutritionLabel(imageFiles: [image]);
 
       expect(backend.lastKind, 'nutrition_label');
       expect(backend.lastMimeType, 'image/webp');
-      expect(backend.lastOcrText, contains('Serving 50 g'));
-      expect(draft.source, LabelExtractionSource.gemini);
-      expect(draft.kcalPer100g, 400);
-      expect(draft.proteinPer100g, 20);
-      expect(draft.portionAmount, 1);
-      expect(draft.servingUnit, 'scoop');
+      expect(backend.lastImageCount, 1);
+      expect(draft.hasMultipleVariants, isFalse);
+      final variant = draft.variants.single;
+      expect(variant.label, isNull);
+      expect(variant.kcalPer100g, 400);
+      expect(variant.proteinPer100g, 20);
+      expect(variant.portionAmount, 1);
+      expect(variant.servingUnit, 'scoop');
+      expect(variant.microsPer100g['calcium'], 80);
     },
   );
+
+  test(
+    'both photos are sent, product first and nutrition table last',
+    () async {
+      final backend = _FakeGeminiBackend();
+      final service = GeminiFoodAnalyzerService(backend);
+      final product = await _tempImage('.png');
+      final table = await _tempImage('.webp');
+
+      await service.analyzeNutritionLabel(imageFiles: [product, table]);
+
+      expect(backend.lastImageCount, 2);
+      expect(backend.lastMimeType, 'image/webp');
+    },
+  );
+
+  test('a label with several tables becomes one variant per table', () async {
+    final backend = _FakeGeminiBackend()..labelResponse = _drainedLabel;
+    final service = GeminiFoodAnalyzerService(backend);
+    final image = await _tempImage('.jpg');
+
+    final draft = await service.analyzeNutritionLabel(imageFiles: [image]);
+
+    expect(draft.name, 'Tuna in water');
+    expect(draft.hasMultipleVariants, isTrue);
+    expect(draft.variants.map((v) => v.label), ['Not drained', 'Drained']);
+    // 100 g serving of the full can: 80 kcal; 50 g of drained fish: 60 kcal.
+    expect(draft.variants[0].kcalPer100g, 80);
+    expect(draft.variants[1].kcalPer100g, 120);
+    expect(draft.variants[1].proteinPer100g, 24);
+  });
+
+  test('variant names only carry the label when there are several', () {
+    expect(
+      variantFoodName('Tuna', 'Drained', multiple: true),
+      'Tuna (Drained)',
+    );
+    expect(variantFoodName('Tuna', 'Drained', multiple: false), 'Tuna');
+    expect(variantFoodName('Tuna', null, multiple: true), 'Tuna');
+    expect(variantFoodName('Tuna', '  ', multiple: true), 'Tuna');
+  });
+
+  test('a barcode lookup without variants exposes one variant', () async {
+    final backend = _FakeGeminiBackend();
+    final service = GeminiFoodAnalyzerService(backend);
+    final image = await _tempImage('.png');
+
+    final result = await service.analyzeBarcodeProduct(
+      imageFiles: [image],
+      barcode: '3830000000000',
+    );
+
+    expect(backend.lastImageCount, 1);
+    expect(result.allVariants, hasLength(1));
+    expect(result.allVariants.single.kcalPer100g, 250);
+  });
+
+  test('a barcode lookup keeps every table the package prints', () async {
+    final backend = _FakeGeminiBackend()
+      ..barcodeResponse = {
+        'found': true,
+        'name': 'Tuna',
+        'servingGrams': 100,
+        'kcalPer100g': 80,
+        'proteinPer100g': 18,
+        'carbsPer100g': 0,
+        'fatPer100g': 1,
+        'variants': [
+          {
+            'label': 'Not drained',
+            'servingGrams': 100,
+            'kcalPer100g': 80,
+            'proteinPer100g': 18,
+            'carbsPer100g': 0,
+            'fatPer100g': 1,
+          },
+          {
+            'label': 'Drained',
+            'servingGrams': 100,
+            'kcalPer100g': 120,
+            'proteinPer100g': 24,
+            'carbsPer100g': 0,
+            'fatPer100g': 2,
+          },
+        ],
+      };
+    final service = GeminiFoodAnalyzerService(backend);
+    final image = await _tempImage('.png');
+
+    final result = await service.analyzeBarcodeProduct(
+      imageFiles: [image, image],
+      barcode: '3830000000000',
+    );
+
+    expect(backend.lastImageCount, 2);
+    expect(result.allVariants.map((v) => v.label), ['Not drained', 'Drained']);
+    expect(result.allVariants[1].kcalPer100g, 120);
+  });
 
   test(
     'rambler voice and text food analysis parses structured food items and macros',
@@ -101,7 +199,9 @@ class _FakeGeminiBackend implements GeminiBackend {
   String? lastKind;
   String? lastMimeType;
   String? lastUserNote;
-  String? lastOcrText;
+  int? lastImageCount;
+  Map<String, dynamic>? labelResponse;
+  Map<String, dynamic>? barcodeResponse;
 
   @override
   Future<Map<String, dynamic>> analyzeFoodPhoto({
@@ -130,29 +230,28 @@ class _FakeGeminiBackend implements GeminiBackend {
 
   @override
   Future<Map<String, dynamic>> analyzeNutritionLabel({
-    required List<int> imageBytes,
-    required String mimeType,
-    required String ocrText,
+    required List<GeminiImage> images,
   }) async {
     lastKind = 'nutrition_label';
-    lastMimeType = mimeType;
-    lastOcrText = ocrText;
-    return {
-      'name': 'Protein bar',
-      'brand': 'Test',
-      'servingGrams': 50,
-      'portionAmount': 1,
-      'portionUnit': 'scoop',
-      'kcalPerServing': 200,
-      'proteinPerServing': 10,
-      'carbsPerServing': 18,
-      'fatPerServing': 7,
-      'fiberPerServing': 3,
-      'sodiumMgPerServing': 120,
-      'microsPerServing': {'calcium': 40},
-      'confidence': 0.8,
-      'notes': 'Checked against image.',
-    };
+    lastMimeType = images.last.mimeType;
+    lastImageCount = images.length;
+    return labelResponse ??
+        {
+          'name': 'Protein bar',
+          'brand': 'Test',
+          'servingGrams': 50,
+          'portionAmount': 1,
+          'portionUnit': 'scoop',
+          'kcalPerServing': 200,
+          'proteinPerServing': 10,
+          'carbsPerServing': 18,
+          'fatPerServing': 7,
+          'fiberPerServing': 3,
+          'sodiumMgPerServing': 120,
+          'microsPerServing': {'calcium': 40},
+          'confidence': 0.8,
+          'notes': 'Checked against image.',
+        };
   }
 
   @override
@@ -197,24 +296,25 @@ class _FakeGeminiBackend implements GeminiBackend {
 
   @override
   Future<Map<String, dynamic>> analyzeBarcodeProduct({
-    required List<int> imageBytes,
-    required String mimeType,
+    required List<GeminiImage> images,
     required String barcode,
     String? userNote,
   }) async {
     lastKind = 'barcode_product';
-    lastMimeType = mimeType;
+    lastMimeType = images.last.mimeType;
+    lastImageCount = images.length;
     lastUserNote = userNote;
-    return {
-      'name': 'Test Barcode Product',
-      'brand': 'Test Brand',
-      'servingGrams': 100,
-      'kcalPer100g': 250,
-      'proteinPer100g': 15,
-      'carbsPer100g': 30,
-      'fatPer100g': 8,
-      'fiberPer100g': 4,
-    };
+    return barcodeResponse ??
+        {
+          'name': 'Test Barcode Product',
+          'brand': 'Test Brand',
+          'servingGrams': 100,
+          'kcalPer100g': 250,
+          'proteinPer100g': 15,
+          'carbsPer100g': 30,
+          'fatPer100g': 8,
+          'fiberPer100g': 4,
+        };
   }
 
   @override
@@ -341,3 +441,32 @@ class _FakeGeminiBackendNoBrand extends _FakeGeminiBackend {
     };
   }
 }
+
+/// A tin of tuna printing both a "not drained" and a "drained" table.
+const _drainedLabel = <String, dynamic>{
+  'name': 'Tuna in water',
+  'brand': 'Test',
+  'confidence': 0.9,
+  'variants': [
+    {
+      'label': 'Not drained',
+      'servingGrams': 100,
+      'portionAmount': 100,
+      'portionUnit': 'g',
+      'kcalPerServing': 80,
+      'proteinPerServing': 18,
+      'carbsPerServing': 0,
+      'fatPerServing': 1,
+    },
+    {
+      'label': 'Drained',
+      'servingGrams': 50,
+      'portionAmount': 50,
+      'portionUnit': 'g',
+      'kcalPerServing': 60,
+      'proteinPerServing': 12,
+      'carbsPerServing': 0,
+      'fatPerServing': 1,
+    },
+  ],
+};

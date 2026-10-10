@@ -1,8 +1,10 @@
-enum LabelExtractionSource { ocr, gemini }
-
-class NutritionLabelDraft {
-  final String name;
-  final String? brand;
+/// One set of nutrition values read from a package.
+///
+/// Most products have exactly one. Some print several tables for different
+/// states of the same product — "drained" and "not drained", "as sold" and
+/// "prepared" — and each of those is a variant with its own [label].
+class NutritionVariant {
+  final String? label;
   final double? servingGrams;
   final double? portionAmount;
   final String servingUnit;
@@ -13,14 +15,9 @@ class NutritionLabelDraft {
   final double? fiberPer100g;
   final double? sodiumMgPer100g;
   final Map<String, double> microsPer100g;
-  final double confidence;
-  final LabelExtractionSource source;
-  final String evidence;
-  final String? warning;
 
-  const NutritionLabelDraft({
-    required this.name,
-    this.brand,
+  const NutritionVariant({
+    this.label,
     this.servingGrams,
     this.portionAmount,
     this.servingUnit = 'g',
@@ -31,10 +28,6 @@ class NutritionLabelDraft {
     this.fiberPer100g,
     this.sodiumMgPer100g,
     this.microsPer100g = const {},
-    required this.confidence,
-    required this.source,
-    required this.evidence,
-    this.warning,
   });
 
   bool get hasCoreNutrition =>
@@ -43,28 +36,39 @@ class NutritionLabelDraft {
       carbsPer100g != null &&
       fatPer100g != null;
 
-  NutritionLabelDraft withWarning(String message) => NutritionLabelDraft(
-    name: name,
-    brand: brand,
-    servingGrams: servingGrams,
-    portionAmount: portionAmount,
-    servingUnit: servingUnit,
-    kcalPer100g: kcalPer100g,
-    proteinPer100g: proteinPer100g,
-    carbsPer100g: carbsPer100g,
-    fatPer100g: fatPer100g,
-    fiberPer100g: fiberPer100g,
-    sodiumMgPer100g: sodiumMgPer100g,
-    microsPer100g: microsPer100g,
-    confidence: confidence,
-    source: source,
-    evidence: evidence,
-    warning: message,
-  );
-
   static double? per100(double? value, double? servingGrams) {
     if (value == null) return null;
     if (servingGrams == null || servingGrams <= 0) return value;
     return value * 100 / servingGrams;
   }
+}
+
+/// A product read from its nutrition label photo(s). It is only a draft: the
+/// user reviews and edits it before anything is saved.
+class NutritionLabelDraft {
+  final String name;
+  final String? brand;
+  final List<NutritionVariant> variants;
+  final double confidence;
+  final String evidence;
+  final String? warning;
+
+  const NutritionLabelDraft({
+    required this.name,
+    this.brand,
+    required this.variants,
+    required this.confidence,
+    required this.evidence,
+    this.warning,
+  });
+
+  bool get hasMultipleVariants => variants.length > 1;
+}
+
+/// The name a variant is saved under: the product name, plus the variant label
+/// when the product has more than one variant to tell apart.
+String variantFoodName(String name, String? label, {required bool multiple}) {
+  final suffix = label?.trim();
+  if (!multiple || suffix == null || suffix.isEmpty) return name;
+  return '$name ($suffix)';
 }

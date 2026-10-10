@@ -105,7 +105,7 @@ Declared permissions and their justification (needed for store privacy forms):
 
 | Permission | Used for |
 | --- | --- |
-| Camera | Barcode scanning and food packaging OCR |
+| Camera | Barcode scanning and product / nutrition-label photos |
 | Internet | Supabase sync/auth, OpenFoodFacts product lookup, Gemini label analysis |
 | Notifications | Active-workout lock-screen status and timers |
 | Foreground service (health) | Keeping the active-workout notification alive |
@@ -125,7 +125,7 @@ the ongoing notification already offers — which closes on any touch outside it
 Data collection:
 - **Local-first by default**: unauthenticated usage stores all workouts, nutrition logs, and profile data solely on-device.
 - **When signed in**: user-created workout history, nutrition logs, and custom entries sync securely to Supabase PostgreSQL protected by Row Level Security (`user_id = auth.uid()`).
-- **AI features**: food photos/labels sent for OCR are routed via secure Supabase Edge Function to Google Gemini; no user credentials or personal history leave the device.
+- **AI features**: food and nutrition-label photos (up to two per product) are routed via secure Supabase Edge Function to Google Gemini; no user credentials or personal history leave the device.
 
 ## 6. Store assets still required
 

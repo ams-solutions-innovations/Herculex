@@ -128,6 +128,24 @@ abstract final class HerculSignals {
   /// Days in the last 7 with any food logged — the honesty check on the above.
   static const daysLogged7d = 'nutrition.daysLogged7d';
 
+  /// Absolute figures behind the percentages, so copy can say "112 g against
+  /// your 160 g" instead of only "70%". Averages are over logged days of the
+  /// last seven completed days; today is excluded because it is still partial.
+  static const proteinTargetG = 'nutrition.proteinTargetG';
+  static const proteinAvg7dG = 'nutrition.proteinAvg7dG';
+
+  /// Grams the average falls short of the target; 0 when at or above it.
+  static const proteinGap7dG = 'nutrition.proteinGap7dG';
+  static const kcalTarget = 'nutrition.kcalTarget';
+  static const kcalAvg7d = 'nutrition.kcalAvg7d';
+
+  /// Calories the average falls short of / runs over the target; the other is 0.
+  /// Two non-negative signals rather than one signed one, so copy never has to
+  /// phrase a negative number.
+  static const kcalShortfall7d = 'nutrition.kcalShortfall7d';
+  static const kcalOver7d = 'nutrition.kcalOver7d';
+  static const fiberAvg7dG = 'nutrition.fiberAvg7dG';
+
   // ── bodyweight ───────────────────────────────────────────────────────────
   /// Signed change over the window. Negative = lost. Argument: day count.
   static const weightDeltaKg = 'body.weightDeltaKg';
@@ -164,6 +182,11 @@ abstract final class HerculSignals {
   static const daysSinceLastWorkout = 'session.daysSinceLastWorkout';
   static const sessionsThisWeek = 'session.sessionsThisWeek';
   static const sessionsPerWeek4w = 'session.sessionsPerWeek4w';
+
+  // ── calendar ─────────────────────────────────────────────────────────────
+  /// 1 = Monday … 7 = Sunday. Lets a weekly-volume rule wait until the week is
+  /// far enough along that "no hamstring sets yet" is a gap, not a Tuesday.
+  static const weekday = 'calendar.weekday';
 
   /// Signals addressed by an argument rather than standing alone.
   static const argumentSignals = {
@@ -213,6 +236,14 @@ abstract final class HerculSignals {
     kcalPct7d,
     kcalPct14d,
     daysLogged7d,
+    proteinTargetG,
+    proteinAvg7dG,
+    proteinGap7dG,
+    kcalTarget,
+    kcalAvg7d,
+    kcalShortfall7d,
+    kcalOver7d,
+    fiberAvg7dG,
     weightDeltaKg,
     sleepVsRpeR2,
     performedLast30d,
@@ -224,5 +255,6 @@ abstract final class HerculSignals {
     daysSinceLastWorkout,
     sessionsThisWeek,
     sessionsPerWeek4w,
+    weekday,
   };
 }

@@ -85,8 +85,22 @@ class _ThemeToggle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mode = ref.watch(themeModeProvider);
+    return _ThemeModeDropdown(
+      value: ref.watch(themeModeProvider),
+      onChanged: ref.read(themeModeProvider.notifier).set,
+    );
+  }
+}
 
+/// Light / System / Dark picker, shared by the app theme and the widget theme.
+class _ThemeModeDropdown extends StatelessWidget {
+  const _ThemeModeDropdown({required this.value, required this.onChanged});
+
+  final ThemeMode value;
+  final ValueChanged<ThemeMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       decoration: BoxDecoration(
@@ -98,7 +112,7 @@ class _ThemeToggle extends ConsumerWidget {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<ThemeMode>(
-          value: mode,
+          value: value,
           isDense: true,
           icon: Icon(
             Icons.arrow_drop_down_rounded,
@@ -160,8 +174,72 @@ class _ThemeToggle extends ConsumerWidget {
             ),
           ],
           onChanged: (newMode) {
-            if (newMode != null) {
-              ref.read(themeModeProvider.notifier).set(newMode);
+            if (newMode != null) onChanged(newMode);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// Dark / Light / App theme picker for the top-dropping notification pill.
+class _NotificationStyleToggle extends ConsumerWidget {
+  const _NotificationStyleToggle();
+
+  static IconData _icon(NotificationStyle s) => switch (s) {
+    NotificationStyle.dark => Icons.dark_mode_rounded,
+    NotificationStyle.light => Icons.light_mode_rounded,
+    NotificationStyle.app => Icons.palette_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      decoration: BoxDecoration(
+        color: context.hx.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: context.hx.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<NotificationStyle>(
+          value: ref.watch(notificationStyleProvider),
+          isDense: true,
+          icon: Icon(
+            Icons.arrow_drop_down_rounded,
+            color: context.hx.onSurfaceVariant,
+            size: 20,
+          ),
+          dropdownColor: context.hx.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: context.hx.onSurface,
+          ),
+          items: [
+            for (final style in NotificationStyle.values)
+              DropdownMenuItem(
+                value: style,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _icon(style),
+                      size: 14,
+                      color: context.hx.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(style.label),
+                  ],
+                ),
+              ),
+          ],
+          onChanged: (style) {
+            if (style != null) {
+              ref.read(notificationStyleProvider.notifier).set(style);
             }
           },
         ),

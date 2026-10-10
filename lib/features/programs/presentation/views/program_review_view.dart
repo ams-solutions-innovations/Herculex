@@ -16,10 +16,12 @@ import 'package:herculex/features/programs/domain/program_brief.dart';
 import 'package:herculex/features/programs/domain/session_segment.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
+import 'package:herculex/features/programs/domain/wave_label.dart';
 import 'package:herculex/features/programs/presentation/sheets/exercise_replacement_sheet.dart';
 import 'package:herculex/features/programs/presentation/views/block_detail_view.dart';
 import 'package:herculex/features/programs/presentation/widgets/ai_day_rationale_card.dart';
 import 'package:herculex/features/programs/presentation/widgets/empty_slot_notice.dart';
+import 'package:herculex/features/programs/presentation/widgets/week_wave_picker_field.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 
@@ -46,6 +48,7 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
   List<_RotationLine> _rotations = const [];
   int _totalWeeks = 0;
   List<int> _weekIndices = const [];
+  List<WaveRange> _waves = const [];
   int _selectedWeekIndex = 0;
 
   @override
@@ -109,10 +112,18 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
         );
       }
       final rotations = await _loadRotations(db, weeks);
+      final waves = await ref
+          .read(programsRepositoryProvider)
+          .getProgramWaves(
+            programId: widget.programId,
+            firstWeekId: weeks.first.id,
+            totalWeeks: weeks.length,
+          );
       if (!mounted) return;
       setState(() {
         _days = rows;
         _rotations = rotations;
+        _waves = waves;
         _totalWeeks = weeks.length;
         _weekIndices = weeks.map((week) => week.weekIndex).toList();
         _selectedWeekIndex = selectedWeek.weekIndex;
@@ -280,8 +291,8 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
     await _load();
   }
 
-  void _selectWeek(int? weekIndex) {
-    if (weekIndex == null || weekIndex == _selectedWeekIndex) return;
+  void _selectWeek(int weekIndex) {
+    if (weekIndex == _selectedWeekIndex) return;
     setState(() {
       _selectedWeekIndex = weekIndex;
       _loading = true;
@@ -386,9 +397,10 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
             _Notice(text: _error!)
           else ...[
             if (_weekIndices.length > 1) ...[
-              _WeekPicker(
+              WeekWavePickerField(
                 weekIndices: _weekIndices,
                 selectedWeekIndex: _selectedWeekIndex,
+                waves: _waves,
                 onChanged: _selectWeek,
               ),
               const SizedBox(height: 16),
@@ -464,50 +476,6 @@ class _PlannedChangesButton extends StatelessWidget {
     ),
     icon: const Icon(Icons.sync_rounded),
     label: const Text('See planned exercise changes'),
-  );
-}
-
-class _WeekPicker extends StatelessWidget {
-  const _WeekPicker({
-    required this.weekIndices,
-    required this.selectedWeekIndex,
-    required this.onChanged,
-  });
-
-  final List<int> weekIndices;
-  final int selectedWeekIndex;
-  final ValueChanged<int?> onChanged;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14),
-    decoration: BoxDecoration(
-      color: AppColors.surfaceContainer,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(
-        color: AppColors.outlineVariant.withValues(alpha: .35),
-      ),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<int>(
-        value: selectedWeekIndex,
-        isExpanded: true,
-        dropdownColor: AppColors.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
-        style: Theme.of(
-          context,
-        ).textTheme.bodyMedium?.copyWith(color: AppColors.onSurface),
-        icon: const Icon(Icons.keyboard_arrow_down_rounded),
-        onChanged: onChanged,
-        items: [
-          for (final weekIndex in weekIndices)
-            DropdownMenuItem(
-              value: weekIndex,
-              child: Text('Week ${weekIndex + 1}'),
-            ),
-        ],
-      ),
-    ),
   );
 }
 

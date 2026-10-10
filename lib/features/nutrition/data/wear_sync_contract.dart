@@ -212,6 +212,28 @@ class WearRevisionAllocator {
     unawaited(_prefs.setInt(_key, next));
     return next;
   }
+
+  /// How far ahead of this device's own clock a peer's revision may be and
+  /// still raise the counter. Beyond it the peer's clock is considered broken
+  /// and its stamps are clamped, so one bad clock cannot push every later
+  /// revision on this device into the future.
+  static const maxObservedSkew = Duration(minutes: 10);
+
+  /// Records a revision seen from the other device so that every revision
+  /// issued afterwards is strictly greater. Without this, "last change wins"
+  /// compares two unsynchronised wall clocks: an edit made *after* seeing the
+  /// peer's newer-stamped value could still lose just because this device's
+  /// clock runs a little behind. Only ever raises the counter, and sends
+  /// nothing, so it cannot start a ping-pong.
+  void observe(int revision) {
+    final ceiling =
+        DateTime.now().millisecondsSinceEpoch + maxObservedSkew.inMilliseconds;
+    final observed = revision > ceiling ? ceiling : revision;
+    final persistedLast = _prefs.getInt(_key) ?? 0;
+    if (observed > persistedLast) {
+      unawaited(_prefs.setInt(_key, observed));
+    }
+  }
 }
 
 class WearDedupeState {

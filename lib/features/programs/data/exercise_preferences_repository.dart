@@ -19,6 +19,14 @@ class ExercisePreferencesRepository {
         );
   }
 
+  /// Ids of every exercise whose global (non-program) affinity is [affinity].
+  Stream<Set<int>> watchGlobalAffinityIds(ExerciseAffinity affinity) {
+    return (_db.select(_db.exercisePreferences)
+          ..where((t) => t.programId.isNull() & t.affinity.equals(affinity.id)))
+        .watch()
+        .map((rows) => {for (final r in rows) r.exerciseId});
+  }
+
   Future<void> setAffinity({
     required int exerciseId,
     required ExerciseAffinity affinity,

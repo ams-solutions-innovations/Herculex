@@ -12,12 +12,13 @@ import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/programs/presentation/sheets/exercise_replacement_sheet.dart';
 import 'package:herculex/features/programs/presentation/sheets/template_picker_sheet.dart';
 import 'package:herculex/features/programs/presentation/widgets/program_muscle_volume_card.dart';
+import 'package:herculex/features/programs/presentation/widgets/week_wave_picker_field.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 
 part 'block_detail_view/_week_card.part.dart';
 part 'block_detail_view/_day_row.part.dart';
 
-/// Edit a block: the Week/Wave editor. A Week dropdown selects one active
+/// Edit a block: the Week/Wave editor. A Week/Wave bottom-sheet picker selects one active
 /// week at a time (D-01); directly beneath it, a wave-strip label explains
 /// which rotation wave the viewed week belongs to (D-05). Per-exercise and
 /// day-level replacement/link triggers reach a scoped rotation write plus
@@ -90,11 +91,22 @@ class _BlockDetailViewState extends ConsumerState<BlockDetailView> {
                       title: 'Weekly Volume per Muscle Group',
                     ),
                   const SizedBox(height: 4),
-                  _WeekDropdown(
-                    weekCount: list.length,
+                  WeekWavePickerField(
+                    weekIndices: [for (final w in list) w.weekIndex],
                     selectedWeekIndex: selectedWeek.weekIndex,
+                    waves:
+                        ref
+                            .watch(
+                              programWavesProvider((
+                                programId: program.id,
+                                firstWeekId: list.first.id,
+                                totalWeeks: list.length,
+                              )),
+                            )
+                            .value ??
+                        const [],
                     onChanged: (value) =>
-                        setState(() => _selectedWeekIndex = value ?? 0),
+                        setState(() => _selectedWeekIndex = value),
                   ),
                   const SizedBox(height: 8),
                   _WaveStrip(
@@ -370,56 +382,8 @@ class _Summary extends StatelessWidget {
   }
 }
 
-/// The Week dropdown (D-01): "Week N of M" — never a scrollable stack of
-/// every week's card. Selecting a value drives which single active week
-/// [_WeekCard] and [_WaveStrip] render.
-class _WeekDropdown extends StatelessWidget {
-  const _WeekDropdown({
-    required this.weekCount,
-    required this.selectedWeekIndex,
-    required this.onChanged,
-  });
-
-  final int weekCount;
-  final int selectedWeekIndex;
-  final ValueChanged<int?> onChanged;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14),
-    decoration: BoxDecoration(
-      color: AppColors.surfaceContainer,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(
-        color: AppColors.outlineVariant.withValues(alpha: .35),
-      ),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<int>(
-        value: selectedWeekIndex,
-        isExpanded: true,
-        dropdownColor: AppColors.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: AppColors.onSurface,
-          fontWeight: FontWeight.w600,
-        ),
-        icon: const Icon(Icons.keyboard_arrow_down_rounded),
-        onChanged: onChanged,
-        items: [
-          for (var i = 0; i < weekCount; i++)
-            DropdownMenuItem(
-              value: i,
-              child: Text('Week ${i + 1} of $weekCount'),
-            ),
-        ],
-      ),
-    ),
-  );
-}
-
 /// D-05's "Exercise wave X of Y · Weeks A–B" indicator, always a distinct
-/// [Text] widget from [_WeekDropdown]'s own label — never string-concatenated
+/// [Text] widget from the week picker's own label — never string-concatenated
 /// into one line. Renders nothing while loading or when the viewed week has
 /// no anchor `main` slot.
 class _WaveStrip extends ConsumerWidget {

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/services/platform/widget_appearance.dart';
 import 'package:herculex/services/platform/widget_sync_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -75,14 +76,18 @@ class AppColorThemeNotifier extends StateNotifier<AppColorTheme> {
   }
 }
 
-/// Keeps the Android home-screen widgets on the app's colour theme and
-/// light/dark setting.
+/// Keeps the Android home-screen widgets on the app's colour theme and on the
+/// user's Widgets settings (light/dark, transparency, shape). Until the user
+/// picks a widget theme mode, the widgets follow the app's own.
 final widgetThemeSyncControllerProvider = Provider<void>((ref) {
-  final mode = ref.watch(themeModeProvider);
+  final appMode = ref.watch(themeModeProvider);
   final theme = ref.watch(appColorThemeProvider);
+  final appearance = ref.watch(widgetAppearanceProvider);
   WidgetSyncService().syncTheme(
-    mode: mode,
+    mode: appearance.resolvedMode(appMode),
     dark: HxColors.of(Brightness.dark, theme),
     light: HxColors.of(Brightness.light, theme),
+    transparency: appearance.transparency,
+    shape: appearance.shape,
   );
 });

@@ -29,6 +29,14 @@ final exerciseAffinityProvider = StreamProvider.family<ExerciseAffinity, int>((
       .watchGlobalAffinity(exerciseId);
 });
 
+/// Ids of exercises with the given global affinity (e.g. every core lift).
+final exerciseIdsWithAffinityProvider =
+    StreamProvider.family<Set<int>, ExerciseAffinity>((ref, affinity) {
+      return ref
+          .watch(exercisePreferencesRepositoryProvider)
+          .watchGlobalAffinityIds(affinity);
+    });
+
 /// Every non-archived block, active one first.
 final programsListProvider = StreamProvider<List<ProgramData>>((ref) {
   return ref.watch(programsRepositoryProvider).watchPrograms();
@@ -86,6 +94,21 @@ final waveLabelProvider = FutureProvider.family<WaveLabelInfo?, WaveLabelArgs>((
         totalWeeks: args.totalWeeks,
       );
 });
+
+typedef ProgramWavesArgs = ({int programId, int firstWeekId, int totalWeeks});
+
+/// The block's exercise waves for the week/wave picker; empty when the block
+/// has no rotation to speak of.
+final programWavesProvider =
+    FutureProvider.family<List<WaveRange>, ProgramWavesArgs>((ref, args) {
+      return ref
+          .watch(programsRepositoryProvider)
+          .getProgramWaves(
+            programId: args.programId,
+            firstWeekId: args.firstWeekId,
+            totalWeeks: args.totalWeeks,
+          );
+    });
 
 /// A date window to load the schedule for. A value type, so the family does not
 /// mint (and leak) a fresh provider on every rebuild the way a raw `DateTime`

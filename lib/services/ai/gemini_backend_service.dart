@@ -48,6 +48,14 @@ abstract interface class WeeklyReportBackend {
   generateWeeklyReportNarrative({required Map<String, dynamic> facts});
 }
 
+/// One photo sent to the Edge Function.
+class GeminiImage {
+  const GeminiImage({required this.bytes, required this.mimeType});
+
+  final List<int> bytes;
+  final String mimeType;
+}
+
 abstract interface class GeminiBackend {
   Future<Map<String, dynamic>> analyzeFoodPhoto({
     required List<int> imageBytes,
@@ -55,10 +63,9 @@ abstract interface class GeminiBackend {
     String? userNote,
   });
 
+  /// Reads a nutrition table from one or two photos (product and/or table).
   Future<Map<String, dynamic>> analyzeNutritionLabel({
-    required List<int> imageBytes,
-    required String mimeType,
-    required String ocrText,
+    required List<GeminiImage> images,
   });
 
   Future<String> identifyExercise({
@@ -78,8 +85,7 @@ abstract interface class GeminiBackend {
   });
 
   Future<Map<String, dynamic>> analyzeBarcodeProduct({
-    required List<int> imageBytes,
-    required String mimeType,
+    required List<GeminiImage> images,
     required String barcode,
     String? userNote,
   });
@@ -124,9 +130,7 @@ class UnconfiguredGeminiBackend
 
   @override
   Future<Map<String, dynamic>> analyzeNutritionLabel({
-    required List<int> imageBytes,
-    required String mimeType,
-    required String ocrText,
+    required List<GeminiImage> images,
   }) async {
     throw _notConfigured();
   }
@@ -158,8 +162,7 @@ class UnconfiguredGeminiBackend
 
   @override
   Future<Map<String, dynamic>> analyzeBarcodeProduct({
-    required List<int> imageBytes,
-    required String mimeType,
+    required List<GeminiImage> images,
     required String barcode,
     String? userNote,
   }) async {
@@ -247,14 +250,11 @@ class SupabaseGeminiBackend
 
   @override
   Future<Map<String, dynamic>> analyzeNutritionLabel({
-    required List<int> imageBytes,
-    required String mimeType,
-    required String ocrText,
+    required List<GeminiImage> images,
   }) async {
     final data = await _invoke({
       'kind': 'nutrition_label',
-      'image': _imagePayload(imageBytes, mimeType),
-      'ocrText': ocrText,
+      ..._imagesPayload(images),
     });
     return _resultMap(data);
   }
@@ -312,14 +312,13 @@ class SupabaseGeminiBackend
 
   @override
   Future<Map<String, dynamic>> analyzeBarcodeProduct({
-    required List<int> imageBytes,
-    required String mimeType,
+    required List<GeminiImage> images,
     required String barcode,
     String? userNote,
   }) async {
     final data = await _invoke({
       'kind': 'barcode_product',
-      'image': _imagePayload(imageBytes, mimeType),
+      ..._imagesPayload(images),
       'barcode': barcode,
       'userNote': userNote,
     });
@@ -496,6 +495,14 @@ class SupabaseGeminiBackend
           : <String, dynamic>{},
     );
   }
+
+  /// `images` for the current Edge Function; `image` (the table photo, which
+  /// is sent last) so a function deployed before multi-photo support still
+  /// answers from a single photo.
+  Map<String, Object> _imagesPayload(List<GeminiImage> images) => {
+    'images': [for (final i in images) _imagePayload(i.bytes, i.mimeType)],
+    'image': _imagePayload(images.last.bytes, images.last.mimeType),
+  };
 
   Map<String, String> _imagePayload(List<int> imageBytes, String mimeType) => {
     'mimeType': mimeType,

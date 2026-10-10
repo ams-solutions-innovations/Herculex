@@ -427,36 +427,65 @@ class HxCanvas(val canvas: Canvas, val fonts: HxFonts) {
     }
 
     /**
-     * The `HxCard` surface: [accent]-tinted 135° gradient into the surface,
-     * 30 % accent hairline, radius 28. A null accent draws the neutral card.
+     * The `HxCard` surface as frosted glass: an [accent]-tinted 135° gradient
+     * into the surface, both only [HxWidgetLook.opacity] opaque so the wallpaper
+     * shows through, then a diagonal sheen and a hairline that is brightest along
+     * the top edge. A widget is a bitmap and can't blur what is behind it, so
+     * the sheen and edge light stand in for the blur. A null accent draws the
+     * neutral card. The corner radius follows [HxWidgetLook.shape].
      */
     fun card(w: Float, h: Float, palette: HxWidgetPalette, accent: Int?) {
+        val look = palette.look
+        val radius = look.cornerRadius(h)
+        val opacity = look.opacity
+        // CSS gradient-line geometry: corners land exactly on 0 % and 100 %.
+        val a = Math.toRadians(135.0)
+        val dx = sin(a).toFloat()
+        val dy = -cos(a).toFloat()
+        val half = (abs(w * dx) + abs(h * dy)) / 2f
+        val x0 = w / 2f - dx * half
+        val y0 = h / 2f - dy * half
+        val x1 = w / 2f + dx * half
+        val y1 = h / 2f + dy * half
+
         rect.set(0f, 0f, w, h)
         fill.style = Paint.Style.FILL
         if (accent == null) {
             fill.shader = null
-            fill.color = palette.surface
+            fill.color = alpha(palette.surface, opacity)
         } else {
-            // CSS gradient-line geometry: corners land exactly on 0 % and 100 %.
-            val a = Math.toRadians(135.0)
-            val dx = sin(a).toFloat()
-            val dy = -cos(a).toFloat()
-            val half = (abs(w * dx) + abs(h * dy)) / 2f
+            // Mix first and fade after: mix() blends the alpha channel too.
             fill.shader = LinearGradient(
-                w / 2f - dx * half, h / 2f - dy * half,
-                w / 2f + dx * half, h / 2f + dy * half,
-                mix(accent, palette.surface, palette.gradientAmount), palette.surface,
+                x0, y0, x1, y1,
+                alpha(mix(accent, palette.surface, palette.gradientAmount), opacity),
+                alpha(palette.surface, opacity),
                 Shader.TileMode.CLAMP,
             )
         }
-        canvas.drawRoundRect(rect, CARD_RADIUS, CARD_RADIUS, fill)
-        fill.shader = null
+        canvas.drawRoundRect(rect, radius, radius, fill)
 
+        // Sheen: light from the top-left that clears by the middle.
+        val sheen = if (palette.isDark) 0.10f else 0.40f
+        fill.shader = LinearGradient(
+            x0, y0, x1, y1,
+            intArrayOf(alpha(Color.WHITE, sheen), alpha(Color.WHITE, 0f), alpha(Color.WHITE, sheen * 0.3f)),
+            floatArrayOf(0f, 0.55f, 1f),
+            Shader.TileMode.CLAMP,
+        )
+        canvas.drawRoundRect(rect, radius, radius, fill)
+
+        // Edge: lit along the top, settling to the card's own hairline below.
+        val edgeTop = if (palette.isDark) 0.28f else 0.75f
         fill.style = Paint.Style.STROKE
         fill.strokeWidth = 1f
-        fill.color = alpha(accent ?: palette.outlineVariant, 0.30f)
+        fill.shader = LinearGradient(
+            0f, 0f, 0f, h,
+            alpha(Color.WHITE, edgeTop), alpha(accent ?: palette.outlineVariant, 0.30f),
+            Shader.TileMode.CLAMP,
+        )
         rect.set(0.5f, 0.5f, w - 0.5f, h - 0.5f)
-        canvas.drawRoundRect(rect, CARD_RADIUS - 0.5f, CARD_RADIUS - 0.5f, fill)
+        canvas.drawRoundRect(rect, radius - 0.5f, radius - 0.5f, fill)
+        fill.shader = null
         fill.style = Paint.Style.FILL
     }
 

@@ -90,6 +90,21 @@ class MainActivity : ComponentActivity() {
                         if (route == "quick_workout") {
                             workoutViewModel.startEmptyWorkout()
                             navController.navigate("active_workout")
+                        } else if (route.startsWith("start_workout/")) {
+                            // One-tap start from the tile. Fall back to the
+                            // detail screen if the routine vanished meanwhile.
+                            val workoutId = route.removePrefix("start_workout/")
+                            val template = com.ams.herculex.workout.WorkoutStore
+                                .getById(applicationContext, workoutId)
+                            if (activeSession != null) {
+                                // A stale tile must never replace a running workout.
+                                navController.navigate("active_workout")
+                            } else if (template != null) {
+                                workoutViewModel.startWorkout(template)
+                                navController.navigate("active_workout")
+                            } else {
+                                navController.navigate("workout_list")
+                            }
                         } else {
                             navController.navigate(route)
                         }

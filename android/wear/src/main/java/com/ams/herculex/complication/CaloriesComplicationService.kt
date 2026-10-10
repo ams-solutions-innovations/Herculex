@@ -15,7 +15,7 @@ class CaloriesComplicationService : SuspendingComplicationDataSourceService() {
 
     override fun getPreviewData(type: ComplicationType): ComplicationData? {
         if (type != ComplicationType.SHORT_TEXT) return null
-        return createComplicationData("2400", "kcal")
+        return createComplicationData("2400", "Calories")
     }
 
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
@@ -23,7 +23,7 @@ class CaloriesComplicationService : SuspendingComplicationDataSourceService() {
 
         val calories = MacroStore.calories(this).toString()
 
-        return createComplicationData(calories, "kcal")
+        return createComplicationData(calories, "Calories")
     }
 
     private fun createComplicationData(text: String, title: String): ComplicationData {

@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.wear.compose.material.Text
+import com.ams.herculex.ui.HxIcons
 import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
 
@@ -47,11 +48,11 @@ fun AddCaloriesScreen(navController: NavController, viewModel: NutritionViewMode
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Text("Add kcal", color = Color(0xFF9E9E9E), fontSize = 12.sp)
+            Text("Add calories", color = Color(0xFF9E9E9E), fontSize = 12.sp)
             Spacer(Modifier.height(4.dp))
             // Current total
             Text(
-                text = "${data.calories} kcal today",
+                text = "${data.calories} Calories today",
                 color = Color(0xFF42A5F5),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
@@ -64,7 +65,7 @@ fun AddCaloriesScreen(navController: NavController, viewModel: NutritionViewMode
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
             )
-            Text("kcal", color = Color(0xFF757575), fontSize = 11.sp)
+            Text("Calories", color = Color(0xFF757575), fontSize = 11.sp)
             Spacer(Modifier.height(10.dp))
             // Step buttons row 1
             Row(
@@ -96,7 +97,7 @@ fun AddCaloriesScreen(navController: NavController, viewModel: NutritionViewMode
                 Box(modifier = Modifier.weight(1f)) {
                     OneUiPill(
                         title = "Add",
-                        icon = "✓",
+                        iconVector = HxIcons.Check,
                         style = OneUiPillStyle.Terracotta,
                         onClick = {
                             if (amount > 0) {

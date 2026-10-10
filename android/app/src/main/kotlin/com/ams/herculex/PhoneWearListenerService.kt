@@ -78,6 +78,7 @@ class PhoneWearListenerService : WearableListenerService() {
         var onWatchQuickAddCommandListener: ((String?) -> Unit)? = null
         var onWatchMacroCommandListener: ((String?) -> Unit)? = null
         var onWatchRamblerCommandListener: ((String?) -> Unit)? = null
+        var onWatchRestTimerAckListener: ((String?) -> Unit)? = null
 
         fun pendingWatchWorkout(context: Context): String? {
             return context.applicationContext
@@ -309,6 +310,13 @@ class PhoneWearListenerService : WearableListenerService() {
             "/request_sync" -> {
                 Log.d("PhoneWearListener", "Received /request_sync message from watch")
                 onSyncRequestedListener?.invoke()
+            }
+            WearSyncPaths.MESSAGE_REST_TIMER_ACK -> {
+                // Deliberately not persisted: an acknowledgement is only
+                // useful while the rest it refers to is still running.
+                val ackJson = String(messageEvent.data)
+                Log.d("PhoneWearListener", "Received rest timer ack: $ackJson")
+                onWatchRestTimerAckListener?.invoke(ackJson)
             }
             WearSyncPaths.MESSAGE_START_REST_TIMER,
             WearSyncPaths.MESSAGE_UPDATE_WEIGHT,
@@ -550,7 +558,7 @@ class PhoneWearListenerService : WearableListenerService() {
         val notif = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Workout Started on Watch ⌚")
             .setContentText("Tap to open and view workout on phone")
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_stat_herculex)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_WORKOUT)
             .setContentIntent(pendingIntent)

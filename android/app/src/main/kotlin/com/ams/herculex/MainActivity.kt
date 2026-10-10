@@ -66,6 +66,11 @@ class MainActivity : FlutterFragmentActivity() {
                     syncWorkoutsToWear(workoutsJson)
                     result.success(null)
                 }
+                "syncTodayWorkout" -> {
+                    val todayJson = call.argument<String>("today_json") ?: ""
+                    syncTodayWorkoutToWear(todayJson)
+                    result.success(null)
+                }
                 "syncCatalog" -> {
                     val catalogJson = call.argument<String>("catalog_json") ?: ""
                     syncCatalogToWear(catalogJson)
@@ -207,6 +212,12 @@ class MainActivity : FlutterFragmentActivity() {
         PhoneWearListenerService.onWatchRamblerCommandListener = { commandJson ->
             runOnUiThread {
                 methodChannel?.invokeMethod("onWatchRamblerCommand", mapOf("command_json" to commandJson))
+            }
+        }
+
+        PhoneWearListenerService.onWatchRestTimerAckListener = { ackJson ->
+            runOnUiThread {
+                methodChannel?.invokeMethod("onWatchRestTimerAck", mapOf("ack_json" to ackJson))
             }
         }
 
@@ -358,6 +369,12 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                         call.argument<Map<String, Number>>("light")?.let {
                             editor.putString(HxWidgetPalette.KEY_THEME_LIGHT, JSONObject(it).toString())
+                        }
+                        call.argument<Int>("transparency")?.let {
+                            editor.putInt(HxWidgetPalette.KEY_TRANSPARENCY, it)
+                        }
+                        call.argument<String>("shape")?.let {
+                            editor.putString(HxWidgetPalette.KEY_SHAPE, it)
                         }
                         editor.apply()
                         refreshWidgets(*HxWidgetProvider.ALL_PROVIDERS)
@@ -679,6 +696,16 @@ class MainActivity : FlutterFragmentActivity() {
                 Log.e("WearSync", "Failed to sync fasting snapshot", e)
             }
         }
+    }
+
+    private fun syncTodayWorkoutToWear(todayJson: String) {
+        val putDataMapReq = PutDataMapRequest.create("/herculex_workout_today")
+        putDataMapReq.dataMap.putString("today_json", todayJson)
+        putDataMapReq.dataMap.putLong("timestamp", System.currentTimeMillis())
+        val putDataReq = putDataMapReq.asPutDataRequest().setUrgent()
+        Wearable.getDataClient(this).putDataItem(putDataReq)
+            .addOnSuccessListener { Log.d("WearSync", "Synced today workout to wear") }
+            .addOnFailureListener { e -> Log.e("WearSync", "Failed to sync today workout", e) }
     }
 
     private fun syncWorkoutsToWear(workoutsJson: String) {

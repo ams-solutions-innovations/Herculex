@@ -11,11 +11,17 @@ object WearSyncPaths {
     const val STATE_FASTING = "/herculex/state/fasting"
     const val STATE_USER_TOKEN = "/herculex/state/user_token"
     const val STATE_MEDIA_STATE = "/herculex/state/media_state"
+    // Phone -> watch only: the latest rest timer, so a watch that reconnects
+    // mid-rest (or missed the message) still arms its alarm. The watch answers
+    // on MESSAGE_REST_TIMER_ACK, never by writing this path back.
+    const val STATE_REST_TIMER = "/herculex/state/rest_timer"
 
     // These must stay under the "/herculex" prefix — the watch manifest's
     // MESSAGE_RECEIVED intent-filter only matches that prefix, so anything
     // outside it is silently undeliverable (see LESSONS.md).
     const val MESSAGE_START_REST_TIMER = "/herculex/workout/start_rest_timer"
+    // Watch -> phone: whether the watch really armed its "go time" alert.
+    const val MESSAGE_REST_TIMER_ACK = "/herculex/workout/rest_timer_ack"
     const val MESSAGE_UPDATE_WEIGHT = "/herculex/workout/update_weight"
     const val MESSAGE_FINISH_WORKOUT = "/herculex/workout/finish"
     const val MESSAGE_ACHIEVEMENT = "/herculex/achievement"

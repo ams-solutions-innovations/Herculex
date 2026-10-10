@@ -35,7 +35,7 @@ private data class MenuItem(
 private val menuItems = listOf(
     MenuItem("Log food",      HxIcons.Utensils,  OneUiPillStyle.SlateNavy,    "log_food"),
     MenuItem("Nutrients",     HxIcons.Nutrients, OneUiPillStyle.VioletIndigo, "nutrients"),
-    MenuItem("Add kcal",      HxIcons.Flame,     OneUiPillStyle.Terracotta,   "add_calories"),
+    MenuItem("Add calories",  HxIcons.Flame,    OneUiPillStyle.Terracotta,   "add_calories"),
     MenuItem("Add water",     HxIcons.Drop,      OneUiPillStyle.AccentBlue,   "add_water"),
 )
 

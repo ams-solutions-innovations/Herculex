@@ -35,6 +35,12 @@ class WearSyncService {
   static Function(String?)? _onWatchMacroCommand;
   static Function()? onRequestSync;
 
+  /// The watch's answer to a rest timer message (see `RestTimerAck`). Not
+  /// buffered like the handlers below: an ack is only meaningful while the
+  /// rest it answers is still running, so one that arrives before a handler
+  /// exists is simply dropped and the phone keeps its own alert.
+  static Function(String?)? onWatchRestTimerAck;
+
   /// Watch events that arrived before the handlers below were registered.
   ///
   /// The native host fires these from `MainActivity.onResume` (notification
@@ -148,6 +154,9 @@ class WearSyncService {
           break;
         case 'onWatchRamblerCommand':
           _deliverRamblerCommand(call.arguments?['command_json'] as String?);
+          break;
+        case 'onWatchRestTimerAck':
+          onWatchRestTimerAck?.call(call.arguments?['ack_json'] as String?);
           break;
         case 'onRequestSync':
           onRequestSync?.call();
@@ -273,6 +282,7 @@ class WearSyncService {
     _onWatchMacroCommand = null;
     _onWatchRamblerCommand = null;
     onRequestSync = null;
+    onWatchRestTimerAck = null;
     _pendingWatchEvents.clear();
     _pendingFastingCommands.clear();
     _pendingQuickAddCommands.clear();
@@ -406,6 +416,19 @@ class WearSyncService {
     }
   }
 
+  /// Today's program workout, or an empty string when nothing is scheduled.
+  /// Travels on its own DataItem so a template re-sync never overwrites it.
+  Future<void> syncTodayWorkout(String todayJson) async {
+    try {
+      await _channel.invokeMethod('syncTodayWorkout', {
+        'today_json': todayJson,
+      });
+      debugPrint('Synced today workout to wear');
+    } on PlatformException catch (e) {
+      debugPrint('Failed to sync today workout to wear: ${e.message}');
+    }
+  }
+
   Future<void> syncCatalog(String catalogJson) async {
     try {
       await _channel.invokeMethod('syncCatalog', {'catalog_json': catalogJson});
@@ -431,7 +454,9 @@ class WearSyncService {
   }
 
   /// Mirrors the rest timer onto the watch. Returns true when a connected
-  /// watch received it (and will buzz at the end itself).
+  /// watch *accepted the message* — transport success only. It does not mean
+  /// the watch will buzz: that is confirmed separately by [onWatchRestTimerAck],
+  /// and only that lets the phone drop its own end-of-rest notification.
   Future<bool> syncRestTimer(String restJson) async {
     try {
       final delivered = await _channel.invokeMethod<bool>('syncRestTimer', {

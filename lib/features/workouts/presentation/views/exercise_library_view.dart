@@ -11,32 +11,9 @@ import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/presentation/sheets/exercise_library_filter_sheet.dart';
 import 'package:herculex/features/workouts/presentation/views/custom_exercise_builder_view.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
-
-const _exerciseLibraryFilterChips = <String>[
-  'All',
-  'Custom',
-  'Chest',
-  'Back',
-  'Shoulders',
-  'Biceps',
-  'Triceps',
-  'Legs',
-  'Quads',
-  'Hamstrings',
-  'Glutes',
-  'Calves',
-  'Core',
-  'Abs',
-  'Forearms',
-  'Compound',
-  'Isolation',
-  'Push',
-  'Pull',
-  'Cardio',
-  'Calisthenics',
-];
 
 class ExerciseLibraryView extends ConsumerStatefulWidget {
   const ExerciseLibraryView({super.key});
@@ -85,13 +62,27 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
     final theme = Theme.of(context);
     final hx = context.hx;
 
-    // When "Custom" is selected, we query without a facet category and filter in-memory.
-    final effectiveCategory = _category == 'Custom' ? null : _category;
+    // "Custom", "Core lifts" and "Liked" query without a facet category and
+    // filter in memory.
+    final effectiveCategory =
+        ExerciseLibraryFilters.inMemory.contains(_category) ? null : _category;
     final exercisesAsync = ref.watch(
       exerciseSearchProvider(
         ExerciseCatalogFilter(query: _query, category: effectiveCategory),
       ),
     );
+    final affinityFilter = switch (_category) {
+      ExerciseLibraryFilters.coreLifts => ExerciseAffinity.core,
+      ExerciseLibraryFilters.liked => ExerciseAffinity.liked,
+      _ => null,
+    };
+    final affinityIds = affinityFilter == null
+        ? null
+        : ref
+                  .watch(exerciseIdsWithAffinityProvider(affinityFilter))
+                  .asData
+                  ?.value ??
+              const <int>{};
 
     final usageCounts =
         ref.watch(exerciseUsageCountsProvider).asData?.value ??
@@ -142,43 +133,38 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
         ),
         const SizedBox(height: 12),
 
-        // ── Category / Filter Chips ──────────────────────────────────────
-        SizedBox(
-          height: 36,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _exerciseLibraryFilterChips.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final c = _exerciseLibraryFilterChips[index];
-              final isSelected =
-                  (c == 'All' && _category == null) || _category == c;
-              return FilterChip(
-                label: Text(
-                  c,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : AppColors.secondary,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                    fontSize: 13,
-                  ),
-                ),
-                selected: isSelected,
-                selectedColor: AppColors.primary,
-                backgroundColor: AppColors.surfaceContainer,
-                side: BorderSide.none,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                onSelected: (_) {
+        // ── Filter (opens a bottom sheet) ─────────────────────────────────
+        Row(
+          children: [
+            Expanded(
+              child: HxPickerPill(
+                key: const ValueKey('exercise-library-filter'),
+                caption: 'FILTER',
+                label: _category ?? ExerciseLibraryFilters.all,
+                icon: Icons.tune_rounded,
+                onTap: () async {
+                  final picked = await ExerciseLibraryFilterSheet.show(
+                    context,
+                    selected: _category,
+                  );
+                  if (picked == null || !mounted) return;
                   setState(() {
-                    _category = c == 'All' ? null : c;
+                    _category = picked == ExerciseLibraryFilters.all
+                        ? null
+                        : picked;
                   });
                 },
-              );
-            },
-          ),
+              ),
+            ),
+            if (_category != null) ...[
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Clear filter',
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => setState(() => _category = null),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 16),
 
@@ -194,8 +180,13 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
           ),
           data: (list) {
             var filtered = [...list];
-            if (_category == 'Custom') {
+            if (_category == ExerciseLibraryFilters.custom) {
               filtered = filtered.where((e) => e.isCustom).toList();
+            }
+            if (affinityIds != null) {
+              filtered = filtered
+                  .where((e) => affinityIds.contains(e.id))
+                  .toList();
             }
 
             if (_query.isEmpty) {
@@ -228,18 +219,29 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        _category == 'Custom'
-                            ? 'No custom exercises yet'
-                            : 'No exercises found',
+                        switch (_category) {
+                          ExerciseLibraryFilters.custom =>
+                            'No custom exercises yet',
+                          ExerciseLibraryFilters.coreLifts =>
+                            'No core lifts yet',
+                          ExerciseLibraryFilters.liked =>
+                            'No liked exercises yet',
+                          _ => 'No exercises found',
+                        },
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: hx.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _category == 'Custom'
-                            ? 'Tap the + button to create your own custom exercise.'
-                            : 'Try adjusting your search query or filter chips.',
+                        switch (_category) {
+                          ExerciseLibraryFilters.custom =>
+                            'Tap the + button to create your own custom exercise.',
+                          ExerciseLibraryFilters.coreLifts ||
+                          ExerciseLibraryFilters.liked =>
+                            'Open an exercise and set how you feel about it.',
+                          _ => 'Try adjusting your search or the filter.',
+                        },
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: hx.onSurfaceVariant,
                         ),

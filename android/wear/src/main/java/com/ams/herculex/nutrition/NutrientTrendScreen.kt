@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,7 +34,9 @@ import androidx.navigation.NavController
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Text
+import com.ams.herculex.ui.HxIcons
 import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
 import com.ams.herculex.workout.attachRotaryScroll
@@ -50,7 +53,7 @@ data class NutrientConfig(
     val key: String,
     val name: String,
     val unit: String,
-    val icon: String,
+    val icon: ImageVector,
     val color: Color,
     val style: OneUiPillStyle,
     val actionRoute: String,
@@ -64,8 +67,8 @@ private val nutrientConfigs = listOf(
     NutrientConfig(
         key = "calories",
         name = "Calories",
-        unit = "kcal",
-        icon = "⚡",
+        unit = "Calories",
+        icon = HxIcons.Flame,
         color = Color(0xFF42A5F5),
         style = OneUiPillStyle.RoyalBlue,
         actionRoute = "add_calories",
@@ -78,7 +81,7 @@ private val nutrientConfigs = listOf(
         key = "protein",
         name = "Protein",
         unit = "g",
-        icon = "🥩",
+        icon = HxIcons.Protein,
         color = Color(0xFFFFA726),
         style = OneUiPillStyle.Terracotta,
         actionRoute = "log_food",
@@ -91,7 +94,7 @@ private val nutrientConfigs = listOf(
         key = "carbs",
         name = "Carbs",
         unit = "g",
-        icon = "🌾",
+        icon = HxIcons.Carbs,
         color = Color(0xFF26C6DA),
         style = OneUiPillStyle.SlateNavy,
         actionRoute = "log_food",
@@ -104,7 +107,7 @@ private val nutrientConfigs = listOf(
         key = "fats",
         name = "Fats",
         unit = "g",
-        icon = "🥑",
+        icon = HxIcons.Fat,
         color = Color(0xFFBA68C8),
         style = OneUiPillStyle.VioletIndigo,
         actionRoute = "log_food",
@@ -117,7 +120,7 @@ private val nutrientConfigs = listOf(
         key = "water",
         name = "Water",
         unit = "ml",
-        icon = "💧",
+        icon = HxIcons.Drop,
         color = Color(0xFF80DEEA),
         style = OneUiPillStyle.AccentBlue,
         actionRoute = "add_water",
@@ -135,7 +138,7 @@ fun resolveNutrientConfig(nutrientKey: String): NutrientConfig {
         "carbs", "carb", "c" -> nutrientConfigs[2]
         "fats", "fat", "f" -> nutrientConfigs[3]
         "water" -> nutrientConfigs[4]
-        else -> nutrientConfigs[0] // calories / kcal default
+        else -> nutrientConfigs[0] // calories default (also matches legacy "kcal" keys)
     }
 }
 
@@ -218,21 +221,95 @@ fun NutrientTrendScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    Icon(
+                        imageVector = config.icon,
+                        contentDescription = null,
+                        tint = config.color,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(
+                        text = config.name,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                    )
+                }
                 Text(
-                    text = "${config.icon} ${config.name} Trends",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                )
-                Text(
-                    text = "7-day overview",
+                    text = "Today & 7-day average",
                     color = Color.Gray,
                     fontSize = 11.sp,
                 )
             }
         }
 
-        // ── 2. 7-Day Average Card ─────────────────────────────────────────────
+        // ── 2. Today (top) ────────────────────────────────────────────────────
+        item {
+            val progress = if (goalValue > 0) (todayValue.toFloat() / goalValue.toFloat()).coerceIn(0f, 1f) else 0f
+            val pct = if (goalValue > 0) ((todayValue.toFloat() / goalValue.toFloat()) * 100).toInt() else 0
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(config.style.containerColor)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "TODAY",
+                    color = config.style.secondaryColor,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp,
+                )
+                Spacer(Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = "$todayValue",
+                        color = config.color,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                    )
+                    if (goalValue > 0) {
+                        Text(
+                            text = " / $goalValue",
+                            color = config.style.secondaryColor,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(bottom = 3.dp),
+                        )
+                    }
+                }
+                if (config.unit.isNotEmpty()) {
+                    Text(
+                        text = if (goalValue > 0) "${config.unit} · $pct%" else config.unit,
+                        color = Color.White,
+                        fontSize = 11.sp,
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x33FFFFFF)),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress)
+                            .height(4.dp)
+                            .clip(CircleShape)
+                            .background(config.color),
+                    )
+                }
+            }
+        }
+
+        // ── 3. Daily Average Card (below today) ───────────────────────────────
         item {
             Column(
                 modifier = Modifier
@@ -243,7 +320,7 @@ fun NutrientTrendScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "7-DAY AVERAGE",
+                    text = "DAILY AVERAGE",
                     color = config.style.secondaryColor,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
@@ -280,7 +357,7 @@ fun NutrientTrendScreen(
             }
         }
 
-        // ── 3. 7-Day Mini Bar Chart ───────────────────────────────────────────
+        // ── 4. 7-Day Mini Bar Chart ───────────────────────────────────────────
         if (trendItems.size >= 2) {
             item {
                 Column(
@@ -338,50 +415,6 @@ fun NutrientTrendScreen(
                             }
                         }
                     }
-                }
-            }
-        }
-
-        // ── 4. Today's Status ─────────────────────────────────────────────────
-        item {
-            val progress = if (goalValue > 0) (todayValue.toFloat() / goalValue.toFloat()).coerceIn(0f, 1f) else 0f
-            val pct = if (goalValue > 0) ((todayValue.toFloat() / goalValue.toFloat()) * 100).toInt() else 0
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(CircleShape)
-                    .background(config.style.containerColor)
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Today", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    Text(
-                        text = "$todayValue / $goalValue ${config.unit} ($pct%)",
-                        color = config.color,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                    )
-                }
-                Spacer(Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(CircleShape)
-                        .background(Color(0x33FFFFFF)),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(progress)
-                            .height(4.dp)
-                            .clip(CircleShape)
-                            .background(config.color),
-                    )
                 }
             }
         }
@@ -452,7 +485,7 @@ fun NutrientTrendScreen(
         item {
             OneUiPill(
                 title = config.actionLabel,
-                icon = "+",
+                iconVector = HxIcons.Plus,
                 style = OneUiPillStyle.RoyalBlue,
                 onClick = { navController.navigate(config.actionRoute) },
             )

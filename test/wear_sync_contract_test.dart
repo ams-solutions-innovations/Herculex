@@ -414,6 +414,44 @@ void main() {
       expect(fasting.next(), greaterThan(fastingFirst));
       expect(workout.next(), greaterThan(workoutNext));
     });
+
+    test('observe makes the next revision outrank a peer on a faster '
+        'clock', () async {
+      final prefs = await SharedPreferences.getInstance();
+      final allocator = WearRevisionAllocator(prefs, 'workout');
+      final peer = DateTime.now().millisecondsSinceEpoch + 60000;
+
+      allocator.observe(peer);
+
+      expect(allocator.next(), greaterThan(peer));
+    });
+
+    test('observe never moves the counter backwards', () async {
+      final prefs = await SharedPreferences.getInstance();
+      final allocator = WearRevisionAllocator(prefs, 'workout');
+      final issued = allocator.next();
+
+      allocator.observe(issued - 100000);
+
+      expect(prefs.getInt('wear_sync_revision_workout'), issued);
+      expect(allocator.next(), greaterThan(issued));
+    });
+
+    test('observe clamps a revision far beyond the skew cap, so a broken '
+        'clock cannot poison the counter', () async {
+      final prefs = await SharedPreferences.getInstance();
+      final allocator = WearRevisionAllocator(prefs, 'workout');
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      allocator.observe(now + const Duration(days: 30).inMilliseconds);
+
+      expect(
+        allocator.next(),
+        lessThanOrEqualTo(
+          now + WearRevisionAllocator.maxObservedSkew.inMilliseconds + 60000,
+        ),
+      );
+    });
   });
 
   test(

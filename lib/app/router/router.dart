@@ -17,6 +17,10 @@ import 'package:herculex/features/analytics/presentation/views/personal_records_
 import 'package:herculex/features/buddy/presentation/buddy_join_scanner_view.dart';
 import 'package:herculex/features/fasting/presentation/fasting_schedule_view.dart';
 import 'package:herculex/features/fasting/presentation/fasting_view.dart';
+import 'package:herculex/features/friends/presentation/views/friend_detail_view.dart';
+import 'package:herculex/features/friends/presentation/views/friend_invite_accept_view.dart';
+import 'package:herculex/features/friends/presentation/views/gym_buddy_view.dart';
+import 'package:herculex/features/gamification/presentation/level_system_view.dart';
 import 'package:herculex/features/gamification/presentation/training_level_view.dart';
 import 'package:herculex/features/gyms/presentation/gyms_view.dart';
 import 'package:herculex/features/health/presentation/cycle_tracking_view.dart';
@@ -26,6 +30,7 @@ import 'package:herculex/features/measurements/presentation/measurements_view.da
 import 'package:herculex/features/measurements/presentation/metric_detail_view.dart';
 import 'package:herculex/features/notifications/presentation/notification_settings_view.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
+import 'package:herculex/features/nutrition/presentation/views/activity_calibration_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/calorie_macro_goals_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/calorie_meal_goals_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/goals_view.dart';
@@ -248,6 +253,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const TrainingLevelView(),
       ),
       GoRoute(
+        path: AppRoutes.levelSystem,
+        builder: (_, _) => const LevelSystemView(),
+      ),
+      GoRoute(
         path: AppRoutes.notifications,
         builder: (_, _) => const NotificationSettingsView(),
       ),
@@ -305,6 +314,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: AppRoutes.goals, builder: (_, _) => const GoalsView()),
       GoRoute(
+        path: AppRoutes.activityCalibration,
+        builder: (_, _) => const ActivityCalibrationView(),
+      ),
+      GoRoute(
         path: AppRoutes.calorieMacroGoals,
         builder: (_, _) => const CalorieMacroGoalsView(),
       ),
@@ -319,6 +332,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.buddyJoin,
         builder: (_, _) => const BuddyJoinScannerView(),
+      ),
+      GoRoute(
+        path: AppRoutes.gymBuddy,
+        builder: (_, _) => const GymBuddyView(),
+      ),
+      GoRoute(
+        path: AppRoutes.friendDetail,
+        builder: (_, state) =>
+            FriendDetailView(friendId: state.pathParameters['uid']!),
+      ),
+      GoRoute(
+        path: AppRoutes.friendInvite,
+        builder: (_, state) =>
+            FriendInviteAcceptView(token: state.pathParameters['token']!),
       ),
       // Deliberately *not* behind kDebugMode: release is where an error is
       // otherwise invisible (blank ErrorWidget, no reporter), so this has to

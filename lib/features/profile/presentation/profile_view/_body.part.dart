@@ -35,6 +35,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   late BiologicalSex? _sex;
   late bool _countBurnedCalories;
   late String _herculTone;
+  String? _avatarId;
 
   final _nameCtrl = TextEditingController();
   final _ageCtrl = TextEditingController();
@@ -78,6 +79,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _targetController = ref.read(goalTargetControllerProvider);
     _weightFormat = ref.read(weightFormatProvider);
     final p = widget.profile;
+    _avatarId = p?.avatarId;
     _goal = p?.goal ?? FitnessGoal.maintenance;
     _activityLevel = p?.activityLevel ?? ActivityLevel.lightlyActive;
     _sex = p?.sex;
@@ -120,6 +122,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       _goal = p?.goal ?? FitnessGoal.maintenance;
       _activityLevel = p?.activityLevel ?? ActivityLevel.lightlyActive;
       _sex = p?.sex;
+      _avatarId = p?.avatarId;
       _countBurnedCalories = p?.countBurnedCalories ?? false;
       _herculTone = p?.herculTone ?? 'normal';
       if (_nameCtrl.text != (p?.name ?? '')) {
@@ -287,6 +290,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final torso = double.tryParse(_torsoCtrl.text.trim());
     return Profile(
       name: name.isEmpty ? null : name,
+      avatarId: _avatarId,
       goal: _goal,
       activityLevel: _activityLevel,
       sex: _sex,
@@ -317,6 +321,8 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           ? null
           : ref.read(heightFormatProvider).toCm(torso),
       preferredUnit: ref.read(unitsProvider),
+      // Not editable here; carried over so a profile save keeps it.
+      strengthSurvey: widget.profile?.strengthSurvey,
     );
   }
 
@@ -367,14 +373,40 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     await ref.read(localProfileRepositoryProvider).clear();
   }
 
-  /// Opens the identity editor — tapping the avatar is the only entry point
-  /// for changing the name or picture (§5).
+  Future<void> _pickAvatar() async {
+    final chosen = await GreekAvatarPickerSheet.show(
+      context,
+      currentAvatarId: _avatarId,
+    );
+    if (chosen == null || !mounted) return;
+    setState(() {
+      _avatarId = chosen.isEmpty ? null : chosen;
+    });
+    await _save();
+    if (mounted) {
+      final avatar = GreekAvatar.findById(_avatarId);
+      AppNotice.showWith(
+        ref,
+        avatar != null
+            ? 'Profilna slika: ${avatar.name}'
+            : 'Profilna slika odstranjena',
+        title: avatar?.title ?? 'Uporabljena začetnica',
+      );
+    }
+  }
+
+  /// Opens the identity editor — tapping the name or avatar is the entry point
+  /// for changing the name or picture.
   Future<void> _editIdentity() async {
     final name = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _IdentitySheet(initialName: _nameCtrl.text),
+      builder: (_) => _IdentitySheet(
+        initialName: _nameCtrl.text,
+        currentAvatarId: _avatarId,
+        onPickAvatar: _pickAvatar,
+      ),
     );
     if (name == null || !mounted) return;
     setState(() => _nameCtrl.text = name);
@@ -422,7 +454,21 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
           ),
         // ── Avatar / header ───────────────────────────────────────────────
-        _AvatarHeader(profile: widget.profile, onEdit: _editIdentity),
+        _AvatarHeader(
+          profile:
+              (widget.profile ??
+                      Profile(
+                        name: _nameCtrl.text.isEmpty ? null : _nameCtrl.text,
+                        goal: _goal,
+                        activityLevel: _activityLevel,
+                      ))
+                  .copyWith(
+                    avatarId: _avatarId,
+                    clearAvatarId: _avatarId == null,
+                  ),
+          onPickAvatar: _pickAvatar,
+          onEditName: _editIdentity,
+        ),
         const SizedBox(height: 32),
 
         // ── Body stats ────────────────────────────────────────────────────
@@ -567,25 +613,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         // ── Biological sex ────────────────────────────────────────────────
         _SectionHeader('Biological Sex'),
         const SizedBox(height: 12),
-        Row(
-          children: BiologicalSex.values.map((s) {
-            final selected = _sex == s;
-            return Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  right: s == BiologicalSex.male ? 8 : 0,
-                ),
-                child: _PillToggle(
-                  label: s.label,
-                  selected: selected,
-                  onTap: () {
-                    setState(() => _sex = s);
-                    _onFieldChanged();
-                  },
-                ),
-              ),
-            );
-          }).toList(),
+        _SexDropdown(
+          selected: _sex,
+          onChanged: (s) {
+            setState(() => _sex = s);
+            _onFieldChanged();
+          },
         ),
 
         const SizedBox(height: 28),
@@ -608,6 +641,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         // ── Active Target & Dieting Phase (Gradient Squircle) ──
         const _ProfileLevelCard(),
         const SizedBox(height: 12),
+        const _ProfileFunFactCard(),
         const _ProfileActiveTargetSquircleCard(),
         const SizedBox(height: 12),
         const DreamPhysiqueSummaryCard(),
@@ -718,6 +752,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             _SettingsDivider(),
             _SettingsTile(
+              icon: Icons.notifications_active_outlined,
+              label: 'Notification style',
+              trailing: _NotificationStyleToggle(),
+            ),
+            _SettingsDivider(),
+            _SettingsTile(
               icon: Icons.mic_rounded,
               label: 'Voice / Rambler Language',
               trailing: Row(
@@ -816,6 +856,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             _SettingsDivider(),
             _SettingsTile(
+              icon: Icons.groups_rounded,
+              label: 'Gym Buddy',
+              trailing: Icon(
+                Icons.chevron_right,
+                color: context.hx.onSurfaceVariant,
+              ),
+              onTap: () => context.push(AppRoutes.gymBuddy),
+            ),
+            _SettingsDivider(),
+            _SettingsTile(
               icon: Icons.task_alt,
               label: 'Micro Workouts',
               trailing: Icon(
@@ -886,6 +936,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
           ],
         ),
+
+        const SizedBox(height: 28),
+
+        // ── Home-screen widgets ───────────────────────────────────────────
+        _SectionHeader('Widgets'),
+        const SizedBox(height: 12),
+        const _WidgetsSettingsCard(),
 
         const SizedBox(height: 28),
 
@@ -1286,119 +1343,6 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           'Designed to provide full offline capabilities and advanced analytics.',
         ),
       ],
-    );
-  }
-}
-
-// ── Avatar header ─────────────────────────────────────────────────────────────
-
-class _ProfileLevelCard extends ConsumerWidget {
-  const _ProfileLevelCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final progressAsync = ref.watch(levelProgressProvider);
-    return progressAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-      data: (progress) {
-        final level = progress.level;
-        final remaining = progress.xpRemaining;
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(22),
-            onTap: () {
-              Haptics.selection();
-              context.push(AppRoutes.trainingLevel);
-            },
-            child: Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.25),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.military_tech_rounded,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Training level',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        level.title,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: AppColors.primary.withValues(alpha: 0.8),
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '${progress.totalXp} XP · ${progress.completedWorkouts} workouts logged',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(99),
-                    child: LinearProgressIndicator(
-                      value: progress.progressToNext,
-                      minHeight: 8,
-                      backgroundColor: AppColors.primary.withValues(
-                        alpha: 0.16,
-                      ),
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        remaining == null
-                            ? 'Top training level reached'
-                            : '$remaining XP to ${progress.nextLevel!.title}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: context.hx.onSurfaceVariant,
-                        ),
-                      ),
-                      Text(
-                        'View Details',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }

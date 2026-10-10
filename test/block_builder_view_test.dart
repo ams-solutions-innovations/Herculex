@@ -129,9 +129,7 @@ class _FakeHerculexGeminiBackend implements GeminiBackend {
 
   @override
   Future<Map<String, dynamic>> analyzeNutritionLabel({
-    required List<int> imageBytes,
-    required String mimeType,
-    required String ocrText,
+    required List<GeminiImage> images,
   }) => throw UnimplementedError();
 
   @override
@@ -155,8 +153,7 @@ class _FakeHerculexGeminiBackend implements GeminiBackend {
 
   @override
   Future<Map<String, dynamic>> analyzeBarcodeProduct({
-    required List<int> imageBytes,
-    required String mimeType,
+    required List<GeminiImage> images,
     required String barcode,
     String? userNote,
   }) => throw UnimplementedError();

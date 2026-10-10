@@ -30,10 +30,56 @@ class WaveLabelInfo {
       'Weeks ${waveStartWeek + 1}–${waveEndWeek + 1}';
 }
 
+/// One contiguous run of weeks that share the same anchor exercise, 0-based
+/// and inclusive on both ends.
+class WaveRange {
+  const WaveRange({required this.startWeek, required this.endWeek});
+
+  final int startWeek;
+  final int endWeek;
+
+  bool contains(int weekIndex) =>
+      weekIndex >= startWeek && weekIndex <= endWeek;
+
+  /// "Weeks 1–3", or "Week 4" for a single-week wave.
+  String get weeksLabel => startWeek == endWeek
+      ? 'Week ${startWeek + 1}'
+      : 'Weeks ${startWeek + 1}–${endWeek + 1}';
+
+  @override
+  bool operator ==(Object other) =>
+      other is WaveRange &&
+      other.startWeek == startWeek &&
+      other.endWeek == endWeek;
+
+  @override
+  int get hashCode => Object.hash(startWeek, endWeek);
+}
+
 /// Pure, in-memory domain functions for D-05's wave indicator. Neither
 /// function touches drift or Riverpod — callers read the already-fetched
 /// rows and pass plain data structures in.
 abstract final class WaveLabel {
+  /// Every wave of the block, in order: the contiguous runs of weeks in
+  /// 0..[totalWeeks]-1 whose [exerciseIdByWeek] value is the same.
+  static List<WaveRange> ranges({
+    required int totalWeeks,
+    required Map<int, int?> exerciseIdByWeek,
+  }) {
+    final waves = <WaveRange>[];
+    var start = 0;
+    while (start < totalWeeks) {
+      var end = start;
+      while (end + 1 < totalWeeks &&
+          exerciseIdByWeek[end + 1] == exerciseIdByWeek[start]) {
+        end++;
+      }
+      waves.add(WaveRange(startWeek: start, endWeek: end));
+      start = end + 1;
+    }
+    return waves;
+  }
+
   /// Computes the wave containing [currentWeekIndex], anchored on one slot's
   /// per-week exercise assignment ([exerciseIdByWeek]).
   ///

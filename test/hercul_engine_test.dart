@@ -518,6 +518,62 @@ void main() {
       expect(message.text, isNot(contains('{')));
     });
 
+    test('no message opens with a "Hercul sees" preamble', () {
+      final offenders = [
+        for (final r in rules)
+          for (final tone in HerculTone.values)
+            if (RegExp(
+              r'Hercul (sees|noticed)',
+              caseSensitive: false,
+            ).hasMatch(r.copy[tone]!))
+              '${r.id}/${tone.id}',
+      ];
+      expect(offenders, isEmpty);
+    });
+
+    test('a protein shortfall quotes the user\'s own grams and a fix', () {
+      final context = _context(
+        scalars: {
+          HerculSignals.proteinPct7d: 0.7,
+          HerculSignals.proteinAvg7dG: 112,
+          HerculSignals.proteinTargetG: 160,
+          HerculSignals.proteinGap7dG: 48,
+          HerculSignals.daysLogged7d: 6,
+        },
+      );
+      final out = HerculEngine.evaluate(context: context, rules: rules);
+      final message = out.firstWhere((m) => m.ruleId == 'protein-under-target');
+      expect(message.text, contains('112 g'));
+      expect(message.text, contains('160 g'));
+      expect(message.text, contains('48 g short'));
+      expect(message.text, contains('Greek yogurt'));
+    });
+
+    test('a zero-set muscle late in the week gets a concrete fix', () {
+      final context = _context(
+        scalars: {HerculSignals.weekday: 5},
+        series: {
+          HerculSignals.weeklySets: {'Quads': 10, 'Hamstrings': 0},
+        },
+      );
+      final out = HerculEngine.evaluate(context: context, rules: rules);
+      final message = out.firstWhere((m) => m.ruleId == 'hamstrings-neglected');
+      expect(message.text, contains('Romanian deadlifts'));
+
+      // Early in the week the same numbers are just a Monday.
+      final monday = _context(
+        scalars: {HerculSignals.weekday: 1},
+        series: context.series,
+      );
+      expect(
+        HerculEngine.evaluate(
+          context: monday,
+          rules: rules,
+        ).map((m) => m.ruleId),
+        isNot(contains('hamstrings-neglected')),
+      );
+    });
+
     test('the honest voice never targets the body or sex', () {
       // The tone brief: blunt about training, never about the person. This is
       // the guard that keeps a future rule from crossing that line quietly.

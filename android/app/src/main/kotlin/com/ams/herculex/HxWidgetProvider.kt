@@ -26,18 +26,31 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
 
     protected open val layoutId: Int get() = R.layout.widget_hx_card
 
+    /**
+     * Whether the user's pill setting applies: the one-row widgets two cells
+     * wide. Taken from the design size, not the live bounds, because a 4x1 is
+     * as tall as a 2x1 and a launcher can stretch either.
+     */
+    private val pillEligible: Boolean get() = defaultSize.first < 250f && defaultSize.second < 100f
+
     protected abstract fun render(context: Context, renderer: HxWidgetRenderer, w: Float, h: Float): HxRendered
 
     /** Wires taps. The default layout has a single target, [R.id.widget_root]. */
     protected abstract fun bindClicks(context: Context, views: RemoteViews)
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        val renderer = HxWidgetRenderer(
-            HxFonts.fromAssets(context.assets),
-            HxWidgetPalette.load(context),
-            context.resources.displayMetrics.density,
-        )
-        for (id in appWidgetIds) update(context, appWidgetManager, id, renderer)
+        val themes = HxWidgetPalette.loadThemes(context)
+        val fonts = HxFonts.fromAssets(context.assets)
+        val density = context.resources.displayMetrics.density
+        // Two bitmaps share RemoteViews' memory budget, so each gets half of it.
+        val maxPixels = if (themes.followsSystem) HxWidgetRenderer.MAX_PIXELS / 2 else HxWidgetRenderer.MAX_PIXELS
+        val light = HxWidgetRenderer(fonts, themes.light.forWidget(pillEligible), density, maxPixels)
+        val dark = if (themes.followsSystem) {
+            HxWidgetRenderer(fonts, themes.dark.forWidget(pillEligible), density, maxPixels)
+        } else {
+            null
+        }
+        for (id in appWidgetIds) update(context, appWidgetManager, id, light, dark)
     }
 
     override fun onAppWidgetOptionsChanged(
@@ -49,14 +62,32 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
         onUpdate(context, appWidgetManager, intArrayOf(appWidgetId))
     }
 
-    private fun update(context: Context, manager: AppWidgetManager, id: Int, renderer: HxWidgetRenderer) {
+    /**
+     * [dark] is null when the app pins one theme. Otherwise both bitmaps go in
+     * the layout and its night-qualified alphas show the one matching the
+     * phone, which keeps working after the system flips light/dark with no
+     * broadcast to the provider.
+     */
+    private fun update(
+        context: Context,
+        manager: AppWidgetManager,
+        id: Int,
+        light: HxWidgetRenderer,
+        dark: HxWidgetRenderer?,
+    ) {
         val (w, h) = sizeOf(context, manager.getAppWidgetOptions(id))
-        val rendered = render(context, renderer, w, h)
+        val rendered = render(context, light, w, h)
         val views = RemoteViews(context.packageName, layoutId)
         views.setImageViewBitmap(R.id.widget_canvas, rendered.bitmap)
         // Drop the pre-draw placeholder so it can't show at the bitmap's edges.
         views.setInt(R.id.widget_canvas, "setBackgroundResource", 0)
         views.setContentDescription(R.id.widget_canvas, rendered.description)
+        if (dark != null) {
+            views.setImageViewBitmap(R.id.widget_canvas_dark, render(context, dark, w, h).bitmap)
+        } else {
+            views.setFloat(R.id.widget_canvas, "setAlpha", 1f)
+            views.setFloat(R.id.widget_canvas_dark, "setAlpha", 0f)
+        }
         bindClicks(context, views)
         manager.updateAppWidget(id, views)
     }

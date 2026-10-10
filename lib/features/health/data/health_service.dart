@@ -4,12 +4,17 @@ import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/health/data/health_adapter.dart';
 import 'package:herculex/features/health/domain/health_read_state.dart';
+import 'package:herculex/features/health/domain/sleep_analyzer.dart';
+import 'package:herculex/features/health/domain/sleep_summary.dart';
+
+part 'health_service/_sleep.part.dart';
 
 class HealthService {
   final AppDatabase _db;
   final Clock _clock;
   final HealthAdapter _health;
   DateTime? _lastSyncTime;
+  DateTime? _lastSleepRefresh;
   DailyHealthRead? _lastDailyRead;
 
   HealthService(this._db, this._clock, {HealthAdapter? health})
@@ -25,21 +30,28 @@ class HealthService {
     HealthDataType.HEART_RATE,
     HealthDataType.SLEEP_SESSION,
     HealthDataType.SLEEP_ASLEEP,
+    HealthDataType.SLEEP_LIGHT,
     HealthDataType.SLEEP_DEEP,
     HealthDataType.SLEEP_REM,
+    HealthDataType.SLEEP_AWAKE,
     HealthDataType.WATER,
     HealthDataType.NUTRITION,
     HealthDataType.WEIGHT,
     HealthDataType.WORKOUT,
+    HealthDataType.TOTAL_CALORIES_BURNED,
     HealthDataType.MENSTRUATION_FLOW,
   ];
 
   // Only WATER, NUTRITION, and WORKOUT are ever written by this app; everything
   // else is read-only telemetry and should not request write access.
+  // TOTAL_CALORIES_BURNED is written alongside every workout: the plugin
+  // inserts the exercise session and its calories in one atomic call, so
+  // without this grant Health Connect rejects the whole workout.
   static const Set<HealthDataType> _readWriteTypes = {
     HealthDataType.WATER,
     HealthDataType.NUTRITION,
     HealthDataType.WORKOUT,
+    HealthDataType.TOTAL_CALORIES_BURNED,
   };
 
   static List<HealthDataAccess> get _syncPermissions => _syncTypes
@@ -101,6 +113,7 @@ class HealthService {
     final midnight = DateTime(now.year, now.month, now.day);
     // Buffer query window by +15 min so rounded interval buckets from watches/wearables are captured
     final queryEnd = now.add(const Duration(minutes: 15));
+    final sleep = await _readSleep(midnight, queryEnd);
 
     final result = DailyHealthRead(
       dateIso: todayStr,
@@ -115,7 +128,8 @@ class HealthService {
         startTime: midnight,
         endTime: queryEnd,
       ),
-      sleepHours: await _readSleepHours(midnight, queryEnd),
+      sleepHours: _sleepHoursOf(sleep),
+      sleepDetail: sleep.value,
       waterMl: await _readWaterMl(midnight, queryEnd),
       foodKcal: await _readSummedNumeric(
         types: [HealthDataType.NUTRITION],
@@ -198,6 +212,11 @@ class HealthService {
   }
 
   /// Writes workout session from Herculex out to Samsung Health / Health Connect.
+  ///
+  /// Tries with calories first. If that is rejected (typically because the
+  /// calories permission was never granted — the session and its energy record
+  /// go in as one atomic insert, so one denied record loses both) it retries
+  /// with the session alone, which still counts as a workout in Samsung Health.
   Future<bool> writeWorkoutToHealth({
     required String activityName,
     required DateTime startTime,
@@ -206,34 +225,30 @@ class HealthService {
     HealthWorkoutActivityType activityType =
         HealthWorkoutActivityType.STRENGTH_TRAINING,
   }) async {
-    try {
-      await _health.configure();
-      return await _health.writeWorkoutData(
-        activityType: activityType,
-        title: activityName,
-        start: startTime,
-        end: endTime,
-        totalEnergyBurned: totalCaloriesBurned,
-        totalEnergyBurnedUnit: HealthDataUnit.KILOCALORIE,
-      );
-    } catch (_) {
+    Future<bool> attempt(HealthWorkoutActivityType type, int? kcal) async {
       try {
-        final fallbackType =
-            activityType == HealthWorkoutActivityType.STRENGTH_TRAINING
-            ? HealthWorkoutActivityType.WEIGHTLIFTING
-            : HealthWorkoutActivityType.STRENGTH_TRAINING;
         return await _health.writeWorkoutData(
-          activityType: fallbackType,
+          activityType: type,
           title: activityName,
           start: startTime,
           end: endTime,
-          totalEnergyBurned: totalCaloriesBurned,
+          totalEnergyBurned: kcal,
           totalEnergyBurnedUnit: HealthDataUnit.KILOCALORIE,
         );
       } catch (_) {
         return false;
       }
     }
+
+    await _health.configure();
+    if (await attempt(activityType, totalCaloriesBurned)) return true;
+    if (await attempt(activityType, null)) return true;
+
+    final fallbackType =
+        activityType == HealthWorkoutActivityType.STRENGTH_TRAINING
+        ? HealthWorkoutActivityType.WEIGHTLIFTING
+        : HealthWorkoutActivityType.STRENGTH_TRAINING;
+    return attempt(fallbackType, null);
   }
 
   Stream<List<HealthSampleData>> watchTodaySamples() {
@@ -459,76 +474,48 @@ class HealthService {
     }
   }
 
-  Future<HealthRead<double>> _readSleepHours(
-    DateTime midnight,
-    DateTime endTime,
-  ) async {
-    const types = [
-      HealthDataType.SLEEP_SESSION,
-      HealthDataType.SLEEP_ASLEEP,
-      HealthDataType.SLEEP_DEEP,
-      HealthDataType.SLEEP_REM,
-    ];
-    try {
-      final sleepData = await _health.getHealthDataFromTypes(
-        types: types,
-        startTime: midnight.subtract(const Duration(hours: 14)),
-        endTime: endTime,
+  /// The most recent night on record — today's, or yesterday's until today's
+  /// sync lands — live from `health_samples`. Anything older is stale and reads
+  /// as null, so recovery falls back to baseline instead of leaning on an old
+  /// night.
+  Stream<SleepSummary?> watchLatestSleep() {
+    final cutoff = _formatDateIso(
+      _clock.now().subtract(const Duration(days: 1)),
+    );
+    final query = _db.select(_db.healthSamples)
+      ..where(
+        (t) =>
+            t.kind.isIn(SleepSummary.sampleKinds) &
+            t.dateIso.isBiggerOrEqualValue(cutoff),
       );
-      final intervals =
-          sleepData
-              .where((p) => p.dateTo.isAfter(p.dateFrom))
-              .map((p) => (p.dateFrom, p.dateTo))
-              .toList()
-            ..sort((a, b) => a.$1.compareTo(b.$1));
-
-      if (intervals.isEmpty) {
-        return HealthRead<double>.empty(
-          readAt: endTime,
-          dataTypes: _typeNames(types),
-        );
-      }
-
-      var sleepHours = 0.0;
-      DateTime? mergedStart;
-      DateTime? mergedEnd;
-      for (final interval in intervals) {
-        final (start, end) = interval;
-        if (mergedEnd == null) {
-          mergedStart = start;
-          mergedEnd = end;
-        } else if (!start.isAfter(mergedEnd)) {
-          if (end.isAfter(mergedEnd)) mergedEnd = end;
-        } else {
-          sleepHours += mergedEnd.difference(mergedStart!).inMinutes / 60.0;
-          mergedStart = start;
-          mergedEnd = end;
-        }
-      }
-      if (mergedEnd != null) {
-        sleepHours += mergedEnd.difference(mergedStart!).inMinutes / 60.0;
-      }
-
-      if (sleepHours <= 0) {
-        return HealthRead<double>.empty(
-          readAt: endTime,
-          dataTypes: _typeNames(types),
-        );
-      }
-      return HealthRead<double>.available(
-        value: sleepHours,
-        readAt: endTime,
-        dataTypes: _typeNames(types),
-      );
-    } catch (error) {
-      return _failedRead<double>(error, types, endTime);
-    }
+    return query.watch().map(
+      (rows) => SleepSummary.latestFromSamples([
+        for (final r in rows)
+          (dateIso: r.dateIso, kind: r.kind, value: r.value),
+      ]),
+    );
   }
+
+  /// Re-reads sleep in the background, at most once per [minGap] — see
+  /// `_refreshSleep`. Safe to call from a provider: it never prompts and never
+  /// throws.
+  Future<void> refreshSleepIfStale({
+    Duration minGap = const Duration(minutes: 30),
+  }) => _refreshSleep(minGap);
 
   Future<void> _persistDailyRead(DailyHealthRead result) async {
     await _db.transaction(() async {
       await _applyMetricRead(result.dateIso, 'steps', result.steps);
-      await _applyMetricRead(result.dateIso, 'sleep_hours', result.sleepHours);
+      await _applyMetricRead(
+        result.dateIso,
+        SleepSummary.kindAsleepHours,
+        result.sleepHours,
+      );
+      await _applySleepDetail(
+        result.dateIso,
+        result.sleepHours.status,
+        result.sleepDetail,
+      );
       await _applyMetricRead(result.dateIso, 'active_kcal', result.activeKcal);
       await _applyMetricRead(result.dateIso, 'resting_hr', result.restingHr);
       await _applyMetricRead(result.dateIso, 'water_ml', result.waterMl);

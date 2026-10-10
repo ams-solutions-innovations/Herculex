@@ -54,7 +54,7 @@ enum DashboardWidgetType {
   remainingCalories('remaining_calories', 'Calories Remaining'),
   nutritionStreak('nutrition_streak', 'Nutrition Streak'),
   workoutStreak('workout_streak', 'Workout Streak'),
-  herculInsights('hercul_insights', 'Hercul Insights');
+  herculInsights('hercul_insights', 'Herculex Insights');
 
   const DashboardWidgetType(this.id, this.label);
   final String id;
@@ -106,7 +106,7 @@ enum DashboardWidgetType {
 
   /// Whether this widget can be stacked with [other].
   /// All standard cards and compact pills (CNS Load, Volume, Streaks, Remaining Calories,
-  /// Recovery, Trends, Quick Scan, Supplements, Hercul Insights, PRs, etc.)
+  /// Recovery, Trends, Quick Scan, Supplements, Herculex Insights, PRs, etc.)
   /// are mutually stackable. Large widgets stack with other large widgets.
   bool canStackWith(DashboardWidgetType other) {
     if (this == other) return false;

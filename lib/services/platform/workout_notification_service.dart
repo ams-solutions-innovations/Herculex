@@ -177,7 +177,9 @@ class WorkoutNotificationService {
   Timer? _ticker;
 
   Future<void> init() async {
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    // The status-bar icon must be a white silhouette on transparent;
+    // `@mipmap/ic_launcher` is Flutter's default logo, not Herculex.
+    const android = AndroidInitializationSettings('@drawable/ic_stat_herculex');
     final iOS = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -411,8 +413,7 @@ class WorkoutNotificationService {
       // `showWhen` is on without it, Android instead renders `when` as a
       // static wall-clock timestamp that looks like a broken duration.
       showWhen: false,
-      icon: '@mipmap/ic_launcher',
-      largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+      icon: '@drawable/ic_stat_herculex',
       category: AndroidNotificationCategory.workout,
       visibility: NotificationVisibility.private,
       additionalFlags: Int32List.fromList(<int>[_flagOngoingEvent]),

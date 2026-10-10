@@ -10,4 +10,5 @@
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:updatePeriodMillis="0"
+    android:previewImage="@drawable/widget_preview_workout_streak"
     android:description="@string/widget_workout_streak_description" />

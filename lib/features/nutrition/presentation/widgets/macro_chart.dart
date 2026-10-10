@@ -249,8 +249,10 @@ class MacroTrendChart extends StatelessWidget {
                       : '';
                   return LineTooltipItem(
                     '$dateStr\n${spot.y.round()} $unit',
-                    const TextStyle(
-                      color: Colors.white,
+                    // Same surface as the tooltip background, so the text must
+                    // follow the theme: fixed white was invisible on light.
+                    TextStyle(
+                      color: AppColors.onSurface,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),

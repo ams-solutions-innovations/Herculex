@@ -5,7 +5,20 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Scan food barcodes to log meals quickly.</string>
+	<string>Scan food barcodes and Gym Buddy QR codes.</string>
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.ams.herculex.friend</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>herculex</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Record your voice to describe foods and meals with Rambler AI.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

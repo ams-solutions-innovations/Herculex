@@ -32,7 +32,7 @@ class HerculInsightsCard extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Hercul Insights',
+                  'Herculex Insights',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),

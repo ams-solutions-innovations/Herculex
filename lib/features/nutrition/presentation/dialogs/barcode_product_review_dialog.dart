@@ -9,6 +9,8 @@ import 'package:herculex/features/nutrition/application/nutrition_providers.dart
 import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
 import 'package:herculex/features/nutrition/data/product_catalogue_repository.dart';
 import 'package:herculex/features/nutrition/domain/food_portion.dart';
+import 'package:herculex/features/nutrition/domain/nutrition_label.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/scan_variant_form.dart';
 
 /// Shown after [GeminiFoodAnalyzerService.analyzeBarcodeProduct] returns for
 /// a barcode the app didn't already know: the model's guess is editable, the
@@ -16,19 +18,25 @@ import 'package:herculex/features/nutrition/domain/food_portion.dart';
 /// both saves the food locally and publishes it to the shared
 /// `product_catalogue` so the next person who scans this barcode gets an
 /// instant hit — see [ProductCatalogueRepository.publish].
+///
+/// A package that prints several nutrition tables (drained / not drained, as
+/// sold / prepared) is shown as one form per variant. Every variant is saved
+/// as a food; the chosen one carries the barcode and is returned for logging.
+/// The shared catalogue holds one row per barcode, so it is only published to
+/// when there is a single variant.
 class BarcodeProductReviewDialog extends ConsumerStatefulWidget {
   const BarcodeProductReviewDialog({
     super.key,
-    required this.imageFile,
+    required this.imageFiles,
     required this.barcode,
   });
 
-  final File imageFile;
+  final List<File> imageFiles;
   final String barcode;
 
   static Future<FoodData?> show(
     BuildContext context, {
-    required File imageFile,
+    required List<File> imageFiles,
     required String barcode,
   }) {
     return showModalBottomSheet<FoodData>(
@@ -36,7 +44,7 @@ class BarcodeProductReviewDialog extends ConsumerStatefulWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) =>
-          BarcodeProductReviewDialog(imageFile: imageFile, barcode: barcode),
+          BarcodeProductReviewDialog(imageFiles: imageFiles, barcode: barcode),
     );
   }
 
@@ -49,15 +57,8 @@ class _BarcodeProductReviewDialogState
     extends ConsumerState<BarcodeProductReviewDialog> {
   final _nameCtrl = TextEditingController();
   final _brandCtrl = TextEditingController();
-  final _portionCtrl = TextEditingController();
-  final _portionUnitCtrl = TextEditingController();
-  final _gramsCtrl = TextEditingController();
-  final _kcalCtrl = TextEditingController();
-  final _proteinCtrl = TextEditingController();
-  final _carbsCtrl = TextEditingController();
-  final _fatCtrl = TextEditingController();
-  final _fiberCtrl = TextEditingController();
-  final _sodiumCtrl = TextEditingController();
+  final List<ScanVariantFields> _fields = [];
+  int _selected = 0;
 
   bool _analyzing = true;
   bool _saving = false;
@@ -73,20 +74,10 @@ class _BarcodeProductReviewDialogState
 
   @override
   void dispose() {
-    for (final c in [
-      _nameCtrl,
-      _brandCtrl,
-      _portionCtrl,
-      _portionUnitCtrl,
-      _gramsCtrl,
-      _kcalCtrl,
-      _proteinCtrl,
-      _carbsCtrl,
-      _fatCtrl,
-      _fiberCtrl,
-      _sodiumCtrl,
-    ]) {
-      c.dispose();
+    _nameCtrl.dispose();
+    _brandCtrl.dispose();
+    for (final fields in _fields) {
+      fields.dispose();
     }
     super.dispose();
   }
@@ -101,7 +92,7 @@ class _BarcodeProductReviewDialogState
     try {
       final analyzer = ref.read(geminiFoodAnalyzerServiceProvider);
       final result = await analyzer.analyzeBarcodeProduct(
-        imageFile: widget.imageFile,
+        imageFiles: widget.imageFiles,
         barcode: widget.barcode,
       );
 
@@ -119,17 +110,21 @@ class _BarcodeProductReviewDialogState
         _result = result;
         _nameCtrl.text = result.name;
         _brandCtrl.text = result.brand ?? '';
-        _portionCtrl.text = result.portionAmount.toStringAsFixed(
-          result.portionAmount % 1 == 0 ? 0 : 1,
-        );
-        _portionUnitCtrl.text = result.portionUnit;
-        _gramsCtrl.text = result.servingGrams.toStringAsFixed(0);
-        _kcalCtrl.text = result.kcalPer100g.toStringAsFixed(0);
-        _proteinCtrl.text = result.proteinPer100g.toStringAsFixed(1);
-        _carbsCtrl.text = result.carbsPer100g.toStringAsFixed(1);
-        _fatCtrl.text = result.fatPer100g.toStringAsFixed(1);
-        _fiberCtrl.text = (result.fiberPer100g ?? 0).toStringAsFixed(1);
-        _sodiumCtrl.text = (result.sodiumMgPer100g ?? 0).toStringAsFixed(0);
+        for (final fields in _fields) {
+          fields.dispose();
+        }
+        _fields
+          ..clear()
+          ..addAll(
+            result.allVariants.map(
+              (v) => ScanVariantFields(
+                v,
+                fallbackAmount: 1,
+                fallbackUnit: 'serving',
+              ),
+            ),
+          );
+        _selected = 0;
       });
     } catch (e) {
       if (!mounted) return;
@@ -140,6 +135,11 @@ class _BarcodeProductReviewDialogState
     }
   }
 
+  String _labelOf(int index) {
+    final label = _fields[index].label?.trim();
+    return label == null || label.isEmpty ? 'Table ${index + 1}' : label;
+  }
+
   Future<void> _saveAndPublish() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) return;
@@ -147,70 +147,78 @@ class _BarcodeProductReviewDialogState
     final brand = _brandCtrl.text.trim().isEmpty
         ? null
         : _brandCtrl.text.trim();
-    final servingGrams = double.tryParse(_gramsCtrl.text) ?? 100;
-    final portionAmount = double.tryParse(_portionCtrl.text) ?? 1;
-    final portionUnit = _portionUnitCtrl.text.trim().isEmpty
-        ? 'serving'
-        : _portionUnitCtrl.text.trim();
-    final kcalPer100g = double.tryParse(_kcalCtrl.text) ?? 0;
-    final proteinPer100g = double.tryParse(_proteinCtrl.text) ?? 0;
-    final carbsPer100g = double.tryParse(_carbsCtrl.text) ?? 0;
-    final fatPer100g = double.tryParse(_fatCtrl.text) ?? 0;
-    final fiberPer100g = double.tryParse(_fiberCtrl.text);
-    final sodiumMgPer100g = double.tryParse(_sodiumCtrl.text);
+    final multiple = _fields.length > 1;
 
     setState(() => _saving = true);
 
     try {
       final repo = ref.read(nutritionRepositoryProvider);
-      final food = await repo.createCustomFood(
-        name: name,
-        brand: brand,
-        barcode: widget.barcode,
-        kcalPer100g: kcalPer100g,
-        proteinPer100g: proteinPer100g,
-        carbsPer100g: carbsPer100g,
-        fatPer100g: fatPer100g,
-        servingGrams: servingGrams,
-        servingAmount: portionAmount,
-        servingUnit: portionUnit,
-        servingLabel: FoodPortion.labelFor(
-          amount: portionAmount,
-          unit: portionUnit,
-          mass: servingGrams,
-        ),
-        sodiumMgPer100g: sodiumMgPer100g,
-        sourceMetadataJson: jsonEncode({
-          'source': 'gemini',
-          'confidence': _result?.confidence,
-          'nutrients': {'fiber': fiberPer100g, 'sodium': sodiumMgPer100g}
-            ..removeWhere((_, value) => value == null),
-        }),
-      );
+      FoodData? chosen;
+      for (var i = 0; i < _fields.length; i++) {
+        final fields = _fields[i];
+        final servingGrams = fields.servingGrams ?? 100;
+        final portionAmount = fields.portionAmount;
+        final portionUnit = fields.portionUnit;
+        final isChosen = i == _selected;
+        final food = await repo.createCustomFood(
+          name: variantFoodName(name, fields.label, multiple: multiple),
+          brand: brand,
+          // One barcode maps to one food: the variant being logged keeps it,
+          // so the next scan of this code finds the table the user picked.
+          barcode: isChosen ? widget.barcode : null,
+          kcalPer100g: fields.kcalPer100g ?? 0,
+          proteinPer100g: fields.proteinPer100g,
+          carbsPer100g: fields.carbsPer100g,
+          fatPer100g: fields.fatPer100g,
+          servingGrams: servingGrams,
+          servingAmount: portionAmount,
+          servingUnit: portionUnit,
+          servingLabel: FoodPortion.labelFor(
+            amount: portionAmount,
+            unit: portionUnit,
+            mass: servingGrams,
+          ),
+          sodiumMgPer100g: fields.sodiumMgPer100g,
+          sourceMetadataJson: jsonEncode({
+            'source': 'gemini',
+            'confidence': _result?.confidence,
+            'variant': fields.label,
+            'nutrients': {
+              'fiber': fields.fiberPer100g,
+              'sodium': fields.sodiumMgPer100g,
+            }..removeWhere((_, value) => value == null),
+          }),
+        );
+        if (isChosen) chosen = food;
+      }
 
-      await ref
-          .read(productCatalogueRepositoryProvider)
-          .publish(
-            barcode: widget.barcode,
-            name: name,
-            brand: brand,
-            kcalPer100g: kcalPer100g,
-            proteinPer100g: proteinPer100g,
-            carbsPer100g: carbsPer100g,
-            fatPer100g: fatPer100g,
-            fiberPer100g: fiberPer100g,
-            sodiumMgPer100g: sodiumMgPer100g,
-            servingGrams: servingGrams,
-            servingLabel: '${servingGrams.toStringAsFixed(0)} g',
-            // Passed through to `product_catalogue_submissions` so a
-            // disputed entry can later be adjudicated against what the
-            // model actually claimed, and how sure it was.
-            confidence: _result?.confidence,
-            evidence: _result?.evidence,
-          );
+      if (!multiple) {
+        final fields = _fields.first;
+        final servingGrams = fields.servingGrams ?? 100;
+        await ref
+            .read(productCatalogueRepositoryProvider)
+            .publish(
+              barcode: widget.barcode,
+              name: name,
+              brand: brand,
+              kcalPer100g: fields.kcalPer100g ?? 0,
+              proteinPer100g: fields.proteinPer100g,
+              carbsPer100g: fields.carbsPer100g,
+              fatPer100g: fields.fatPer100g,
+              fiberPer100g: fields.fiberPer100g,
+              sodiumMgPer100g: fields.sodiumMgPer100g,
+              servingGrams: servingGrams,
+              servingLabel: '${servingGrams.toStringAsFixed(0)} g',
+              // Passed through to `product_catalogue_submissions` so a
+              // disputed entry can later be adjudicated against what the
+              // model actually claimed, and how sure it was.
+              confidence: _result?.confidence,
+              evidence: _result?.evidence,
+            );
+      }
 
       if (!mounted) return;
-      Navigator.of(context).pop(food);
+      Navigator.of(context).pop(chosen);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -275,19 +283,31 @@ class _BarcodeProductReviewDialogState
                 controller: controller,
                 padding: const EdgeInsets.all(16),
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      height: 180,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
-                        image: DecorationImage(
-                          image: FileImage(widget.imageFile),
-                          fit: BoxFit.cover,
+                  Row(
+                    children: [
+                      for (final file in widget.imageFiles)
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              right: file == widget.imageFiles.last ? 0 : 8,
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                height: 180,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceContainer,
+                                  image: DecorationImage(
+                                    image: FileImage(file),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -386,110 +406,27 @@ class _BarcodeProductReviewDialogState
                     const SizedBox(height: 12),
                     _Field(controller: _brandCtrl, label: 'Brand'),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _Field(
-                            controller: _portionCtrl,
-                            label: 'Serving quantity',
-                            suffix: '×',
-                            decimal: true,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _Field(
-                            controller: _portionUnitCtrl,
-                            label: 'Measure (scoop, bar…)',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _Field(
-                            controller: _gramsCtrl,
-                            label: 'Serving (g)',
-                            suffix: 'g',
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _Field(
-                            controller: _kcalCtrl,
-                            label: 'Calories / 100g',
-                            suffix: 'kcal',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Macronutrients (per 100g)',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.secondary,
+                    if (_fields.length > 1)
+                      ScanVariantChips(
+                        labels: [
+                          for (var i = 0; i < _fields.length; i++) _labelOf(i),
+                        ],
+                        selected: _selected,
+                        onSelected: (i) => setState(() => _selected = i),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _Field(
-                            controller: _proteinCtrl,
-                            label: 'Protein',
-                            suffix: 'g',
-                            decimal: true,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _Field(
-                            controller: _carbsCtrl,
-                            label: 'Carbs',
-                            suffix: 'g',
-                            decimal: true,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _Field(
-                            controller: _fatCtrl,
-                            label: 'Fat',
-                            suffix: 'g',
-                            decimal: true,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _Field(
-                            controller: _fiberCtrl,
-                            label: 'Fiber',
-                            suffix: 'g',
-                            decimal: true,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _Field(
-                            controller: _sodiumCtrl,
-                            label: 'Sodium',
-                            suffix: 'mg',
-                            decimal: true,
-                          ),
-                        ),
-                      ],
+                    ScanVariantForm(
+                      key: ValueKey(_selected),
+                      fields: _fields[_selected],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Verify the data before saving — '
-                      'product will be added to the shared database for all users.',
+                      _fields.length > 1
+                          ? 'Verify the data before saving — all tables are '
+                                'saved as foods. They are not added to the '
+                                'shared database because the barcode has '
+                                'several tables.'
+                          : 'Verify the data before saving — '
+                                'product will be added to the shared database for all users.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.secondary,
                       ),
@@ -507,8 +444,10 @@ class _BarcodeProductReviewDialogState
                         ),
                         child: _saving
                             ? const CircularProgressIndicator()
-                            : const Text(
-                                'Confirm and add to database',
+                            : Text(
+                                _fields.length > 1
+                                    ? 'Save and use ${_labelOf(_selected)}'
+                                    : 'Confirm and add to database',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -560,28 +499,17 @@ class _ErrorPanel extends StatelessWidget {
 }
 
 class _Field extends StatelessWidget {
-  const _Field({
-    required this.controller,
-    required this.label,
-    this.suffix,
-    this.decimal = false,
-  });
+  const _Field({required this.controller, required this.label});
 
   final TextEditingController controller;
   final String label;
-  final String? suffix;
-  final bool decimal;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      keyboardType: suffix == null
-          ? TextInputType.text
-          : TextInputType.numberWithOptions(decimal: decimal),
       decoration: InputDecoration(
         labelText: label,
-        suffixText: suffix,
         filled: true,
         fillColor: AppColors.surfaceContainer,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

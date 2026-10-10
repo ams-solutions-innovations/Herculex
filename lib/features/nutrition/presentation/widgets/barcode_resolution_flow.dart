@@ -1,17 +1,14 @@
 import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/utils/env.dart';
 import 'package:herculex/data/local/database.dart';
-import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/product_catalogue_repository.dart';
 import 'package:herculex/features/nutrition/presentation/dialogs/barcode_product_review_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/custom_food_form_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/product_photos_sheet.dart';
 import 'package:herculex/services/ai/pending_ai_scan_service.dart';
-import 'package:image_picker/image_picker.dart';
 
 /// Resolves a scanned barcode the local catalogue doesn't have:
 ///
@@ -66,12 +63,20 @@ Future<FoodData?> resolveUnknownBarcode(
     final wantsPhoto = await _confirmPhotoPrompt(context);
     if (wantsPhoto == true) {
       if (!context.mounted) return null;
-      final imageFile = await _pickProductPhoto(context, ref, barcode);
-      if (imageFile != null) {
+      final imageFiles = await ProductPhotosSheet.show(
+        context,
+        requireTable: false,
+        confirmLabel: 'Find nutrition facts',
+        pendingContext: () => PendingAiScanContext(
+          type: AiScanContextType.food,
+          extra: {'barcode': barcode},
+        ),
+      );
+      if (imageFiles != null && imageFiles.isNotEmpty) {
         if (!context.mounted) return null;
         final food = await BarcodeProductReviewDialog.show(
           context,
-          imageFile: imageFile,
+          imageFiles: imageFiles,
           barcode: barcode,
         );
         if (food != null) return food;
@@ -104,53 +109,4 @@ Future<bool?> _confirmPhotoPrompt(BuildContext context) {
       ],
     ),
   );
-}
-
-Future<File?> _pickProductPhoto(
-  BuildContext context,
-  WidgetRef ref,
-  String barcode,
-) async {
-  final source = await showModalBottomSheet<ImageSource>(
-    context: context,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (ctx) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: Icon(Icons.camera_alt, color: AppColors.primary),
-            title: const Text('Take photo with camera'),
-            onTap: () => Navigator.pop(ctx, ImageSource.camera),
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_library),
-            title: const Text('Choose image from gallery'),
-            onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-          ),
-        ],
-      ),
-    ),
-  );
-  if (source == null) return null;
-  await ref
-      .read(pendingAiScanServiceProvider)
-      .setPendingContext(
-        PendingAiScanContext(
-          type: AiScanContextType.food,
-          extra: {'barcode': barcode},
-        ),
-      );
-  final picked = await ImagePicker().pickImage(
-    source: source,
-    maxWidth: 1024,
-    maxHeight: 1024,
-    imageQuality: 85,
-  );
-  await ref.read(pendingAiScanServiceProvider).clearPendingContext();
-  if (picked == null) return null;
-  return File(picked.path);
 }

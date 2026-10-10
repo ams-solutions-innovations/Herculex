@@ -42,6 +42,7 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.CircularProgressIndicator
 import androidx.wear.compose.material.Text
+import com.ams.herculex.ui.HxIcons
 import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
 import com.ams.herculex.workout.attachRotaryScroll
@@ -198,7 +199,7 @@ fun RamblerScreen(
                     OneUiPill(
                         title = "Tap to Speak",
                         subtitle = "Describe your meal",
-                        icon = "🎙️",
+                        iconVector = HxIcons.Mic,
                         style = OneUiPillStyle.RoyalBlue,
                         onClick = { startListening() },
                     )
@@ -235,7 +236,7 @@ fun RamblerScreen(
                     OneUiPill(
                         title = "Log with AI",
                         subtitle = "Analyze & save macros",
-                        icon = "⚡",
+                        iconVector = HxIcons.Save,
                         style = OneUiPillStyle.EmeraldGreen,
                         onClick = {
                             if (spokenText.isNotBlank()) {
@@ -257,7 +258,7 @@ fun RamblerScreen(
                 item {
                     OneUiPill(
                         title = "Speak Again",
-                        icon = "🔄",
+                        iconVector = HxIcons.Sync,
                         style = OneUiPillStyle.SlateNavy,
                         onClick = { startListening() },
                     )

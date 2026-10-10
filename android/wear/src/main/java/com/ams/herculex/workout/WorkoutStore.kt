@@ -26,6 +26,7 @@ object WorkoutStore {
 
     private const val PREFS       = "herculex_workouts"
     private const val KEY_WORKOUTS = "workouts_json"
+    private const val KEY_TODAY = "today_workout_json"
     private const val KEY_ACTIVE_SESSION = "active_session_json"
     private const val KEY_ACTIVE_SESSION_START_EPOCH = "active_session_start_epoch_ms"
 
@@ -110,13 +111,61 @@ object WorkoutStore {
         ),
     )
 
+    /// Every routine the watch can start, with the workout the program has
+    /// planned for today first.
     fun getWorkouts(context: Context): List<WorkoutTemplate> {
+        val base = getSyncedWorkouts(context)
+        val today = getToday(context)?.workout ?: return base
+        return listOf(today) + base.filter { it.id != today.id }
+    }
+
+    private fun getSyncedWorkouts(context: Context): List<WorkoutTemplate> {
         val json = prefs(context).getString(KEY_WORKOUTS, null) ?: return defaults
         return try { parse(json) } catch (e: Exception) { defaults }
     }
 
     fun saveJson(context: Context, json: String) {
         prefs(context).edit().putString(KEY_WORKOUTS, json).apply()
+    }
+
+    /// What the program plans for today. [title] is the program day's own name
+    /// ("Push A"), which can differ from the name of the template behind it.
+    data class TodayWorkout(val title: String, val workout: WorkoutTemplate)
+
+    /// Stores the phone's "today" payload; a blank [json] clears it.
+    fun saveToday(context: Context, json: String) {
+        prefs(context).edit().putString(KEY_TODAY, json.ifBlank { null }).apply()
+    }
+
+    /// Today's planned workout, or null when the phone has none — including
+    /// when the stored one is for an earlier day (the phone re-syncs at
+    /// midnight, but the watch may have been out of range).
+    fun getToday(context: Context): TodayWorkout? {
+        val json = prefs(context).getString(KEY_TODAY, null) ?: return null
+        return try {
+            val obj = JSONObject(json)
+            if (obj.optString("dateIso") != todayIso()) return null
+            val title = obj.optString("title").ifBlank { null }
+            val templateId = obj.optString("templateId").takeIf { it.isNotBlank() }
+            val workout = (if (templateId != null) {
+                getSyncedWorkouts(context).firstOrNull { it.id == templateId }
+            } else {
+                obj.optJSONObject("workout")?.let { parseTemplate(it) }
+            }) ?: return null
+            TodayWorkout(title ?: workout.name, workout)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun todayIso(): String {
+        val cal = java.util.Calendar.getInstance()
+        return String.format(
+            java.util.Locale.US, "%04d-%02d-%02d",
+            cal.get(java.util.Calendar.YEAR),
+            cal.get(java.util.Calendar.MONTH) + 1,
+            cal.get(java.util.Calendar.DAY_OF_MONTH),
+        )
     }
 
     fun getById(context: Context, id: String): WorkoutTemplate? =
@@ -151,8 +200,12 @@ object WorkoutStore {
         }
     }
 
-    fun parseAndUpdateSession(json: String, viewModel: WorkoutViewModel?) {
-        try {
+    /// Returns false when the payload could not be parsed or applied, so a
+    /// caller can decline to mark the envelope as applied and let a re-delivery
+    /// retry. A null [viewModel] (watch app not running) is not a failure: the
+    /// session was valid and the caller has already persisted it.
+    fun parseAndUpdateSession(json: String, viewModel: WorkoutViewModel?): Boolean {
+        return try {
             val envelope = sessionEnvelope(json)
             val obj = envelope.payload
             val templateObj = obj.optJSONObject("template")
@@ -202,8 +255,10 @@ object WorkoutStore {
                 origin = envelope.origin,
                 sessionId = envelope.entityId,
             )
+            true
         } catch (e: Exception) {
             e.printStackTrace()
+            false
         }
     }
 

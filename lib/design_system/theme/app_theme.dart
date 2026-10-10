@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
+import 'package:herculex/design_system/theme/opaque_page_transitions.dart';
 import 'package:herculex/design_system/tokens/hx_colors.dart';
 import 'package:herculex/design_system/tokens/hx_geometry.dart';
 
@@ -314,10 +315,16 @@ class AppTheme {
         behavior: SnackBarBehavior.floating,
       ),
 
-      pageTransitionsTheme: const PageTransitionsTheme(
+      pageTransitionsTheme: PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          // Android 14+ predictive back: the page follows the finger and the
+          // previous one is revealed underneath. Needs
+          // `android:enableOnBackInvokedCallback` in AndroidManifest.xml;
+          // without it this falls back to the plain Material transition.
+          TargetPlatform.android: OpaquePredictiveBackTransitionsBuilder(
+            gradient: p.backgroundGradient,
+          ),
+          TargetPlatform.iOS: const CupertinoPageTransitionsBuilder(),
         },
       ),
     );

@@ -73,6 +73,11 @@ class GeminiBarcodeProductResult {
   final double? sodiumMgPer100g;
   final double confidence;
 
+  /// Extra nutrition tables when the package prints one per product state
+  /// (drained / not drained, as sold / prepared). Empty for a single table;
+  /// use [allVariants] rather than reading this directly.
+  final List<NutritionVariant> variants;
+
   /// The URLs the grounded search actually read, when the server returned
   /// any. Carried through to `product_catalogue_submissions` on publish:
   /// the model's own answer is not evidence of anything, but the pages it
@@ -93,8 +98,27 @@ class GeminiBarcodeProductResult {
     this.fiberPer100g,
     this.sodiumMgPer100g,
     required this.confidence,
+    this.variants = const [],
     this.groundingSources = const [],
   });
+
+  /// Every nutrition table found, never empty: the top-level values stand in
+  /// as the single variant when the model reported no [variants].
+  List<NutritionVariant> get allVariants => variants.length > 1
+      ? variants
+      : [
+          NutritionVariant(
+            servingGrams: servingGrams,
+            portionAmount: portionAmount,
+            servingUnit: portionUnit,
+            kcalPer100g: kcalPer100g,
+            proteinPer100g: proteinPer100g,
+            carbsPer100g: carbsPer100g,
+            fatPer100g: fatPer100g,
+            fiberPer100g: fiberPer100g,
+            sodiumMgPer100g: sodiumMgPer100g,
+          ),
+        ];
 
   factory GeminiBarcodeProductResult.fromJson(Map<String, dynamic> json) {
     return GeminiBarcodeProductResult(
@@ -114,9 +138,29 @@ class GeminiBarcodeProductResult {
         0.0,
         1.0,
       ),
+      variants: [
+        for (final v in (json['variants'] as List? ?? const []))
+          if (v is Map) _barcodeVariantFromJson(Map<String, dynamic>.from(v)),
+      ],
       groundingSources:
           (json['groundingSources'] as List?)?.whereType<String>().toList() ??
           const [],
+    );
+  }
+
+  static NutritionVariant _barcodeVariantFromJson(Map<String, dynamic> json) {
+    double? number(String key) => (json[key] as num?)?.toDouble();
+    return NutritionVariant(
+      label: (json['label'] as String?)?.trim(),
+      servingGrams: number('servingGrams'),
+      portionAmount: number('portionAmount'),
+      servingUnit: json['portionUnit'] as String? ?? 'g',
+      kcalPer100g: number('kcalPer100g'),
+      proteinPer100g: number('proteinPer100g'),
+      carbsPer100g: number('carbsPer100g'),
+      fatPer100g: number('fatPer100g'),
+      fiberPer100g: number('fiberPer100g'),
+      sodiumMgPer100g: number('sodiumMgPer100g'),
     );
   }
 
@@ -247,24 +291,42 @@ class GeminiFoodAnalyzerService {
     return GeminiFoodAnalysisResult.fromJson(parsedMap);
   }
 
-  /// Fallback for a low-confidence local label OCR result.
+  /// Reads the nutrition table from one or two photos (the product and/or its
+  /// table). A label that prints several tables, such as drained / not
+  /// drained, comes back as several variants.
   ///
-  /// Gemini receives the image and the OCR evidence through the server-side
-  /// Edge Function, but the output is still returned as an editable draft. It
-  /// never writes to the diary directly.
+  /// Gemini runs server-side in the Edge Function and the output is an
+  /// editable draft; it never writes to the diary directly.
   Future<NutritionLabelDraft> analyzeNutritionLabel({
-    required File imageFile,
-    required String ocrText,
+    required List<File> imageFiles,
   }) async {
     final responseJson = await _backend.analyzeNutritionLabel(
-      imageBytes: await imageFile.readAsBytes(),
-      mimeType: _mimeType(imageFile.path),
-      ocrText: ocrText,
+      images: await _images(imageFiles),
     );
-    final serving = (responseJson['servingGrams'] as num?)?.toDouble();
+    final rawVariants = responseJson['variants'];
+    final variants = <NutritionVariant>[
+      if (rawVariants is List)
+        for (final raw in rawVariants)
+          if (raw is Map) _labelVariant(Map<String, dynamic>.from(raw)),
+    ];
+    // A function deployed before variants existed answers with one flat table.
+    if (variants.isEmpty) variants.add(_labelVariant(responseJson));
+    return NutritionLabelDraft(
+      name: responseJson['name'] as String? ?? 'Scanned food',
+      brand: responseJson['brand'] as String?,
+      variants: variants,
+      confidence: ((responseJson['confidence'] as num?)?.toDouble() ?? 0.5)
+          .clamp(0.0, 1.0),
+      evidence: jsonEncode(responseJson),
+      warning: responseJson['notes'] as String?,
+    );
+  }
+
+  NutritionVariant _labelVariant(Map<String, dynamic> json) {
+    final serving = (json['servingGrams'] as num?)?.toDouble();
     final factor = serving == null || serving <= 0 ? 1 : 100 / serving;
     final micros = <String, double>{};
-    final rawMicros = responseJson['microsPerServing'];
+    final rawMicros = json['microsPerServing'];
     if (rawMicros is Map) {
       for (final item in rawMicros.entries) {
         if (item.value is num) {
@@ -272,60 +334,44 @@ class GeminiFoodAnalyzerService {
         }
       }
     }
-    final confidence = ((responseJson['confidence'] as num?)?.toDouble() ?? 0.5)
-        .clamp(0.0, 1.0);
-    return NutritionLabelDraft(
-      name: responseJson['name'] as String? ?? 'Scanned food',
-      brand: responseJson['brand'] as String?,
+    double? per100(String key) =>
+        NutritionVariant.per100((json[key] as num?)?.toDouble(), serving);
+    final label = (json['label'] as String?)?.trim();
+    return NutritionVariant(
+      label: label == null || label.isEmpty ? null : label,
       servingGrams: serving,
-      portionAmount:
-          (responseJson['portionAmount'] as num?)?.toDouble() ?? serving,
-      servingUnit: responseJson['portionUnit'] as String? ?? 'g',
-      kcalPer100g: NutritionLabelDraft.per100(
-        (responseJson['kcalPerServing'] as num?)?.toDouble(),
-        serving,
-      ),
-      proteinPer100g: NutritionLabelDraft.per100(
-        (responseJson['proteinPerServing'] as num?)?.toDouble(),
-        serving,
-      ),
-      carbsPer100g: NutritionLabelDraft.per100(
-        (responseJson['carbsPerServing'] as num?)?.toDouble(),
-        serving,
-      ),
-      fatPer100g: NutritionLabelDraft.per100(
-        (responseJson['fatPerServing'] as num?)?.toDouble(),
-        serving,
-      ),
-      fiberPer100g: NutritionLabelDraft.per100(
-        (responseJson['fiberPerServing'] as num?)?.toDouble(),
-        serving,
-      ),
-      sodiumMgPer100g: NutritionLabelDraft.per100(
-        (responseJson['sodiumMgPerServing'] as num?)?.toDouble(),
-        serving,
-      ),
+      portionAmount: (json['portionAmount'] as num?)?.toDouble() ?? serving,
+      servingUnit: json['portionUnit'] as String? ?? 'g',
+      kcalPer100g: per100('kcalPerServing'),
+      proteinPer100g: per100('proteinPerServing'),
+      carbsPer100g: per100('carbsPerServing'),
+      fatPer100g: per100('fatPerServing'),
+      fiberPer100g: per100('fiberPerServing'),
+      sodiumMgPer100g: per100('sodiumMgPerServing'),
       microsPer100g: micros,
-      confidence: confidence,
-      source: LabelExtractionSource.gemini,
-      evidence: jsonEncode(responseJson),
-      warning: responseJson['notes'] as String?,
     );
   }
 
   Future<GeminiBarcodeProductResult> analyzeBarcodeProduct({
-    required File imageFile,
+    required List<File> imageFiles,
     required String barcode,
     String? userNote,
   }) async {
     final parsedMap = await _backend.analyzeBarcodeProduct(
-      imageBytes: await imageFile.readAsBytes(),
-      mimeType: _mimeType(imageFile.path),
+      images: await _images(imageFiles),
       barcode: barcode,
       userNote: userNote,
     );
     return GeminiBarcodeProductResult.fromJson(parsedMap);
   }
+
+  Future<List<GeminiImage>> _images(List<File> files) async => [
+    for (final file in files)
+      GeminiImage(
+        bytes: await file.readAsBytes(),
+        mimeType: _mimeType(file.path),
+      ),
+  ];
 
   Future<RamblerFoodResult> analyzeRamblerText({
     required String text,

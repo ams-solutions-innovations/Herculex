@@ -99,7 +99,7 @@ class MacrosTileService : SuspendingTileService() {
                     .build()
             )
             .setContent(
-                Text.Builder(this, "$calories kcal")
+                Text.Builder(this, "$calories Calories")
                     .setTypography(Typography.TYPOGRAPHY_DISPLAY1)
                     .setColor(ColorBuilders.argb(Color.WHITE))
                     .build()

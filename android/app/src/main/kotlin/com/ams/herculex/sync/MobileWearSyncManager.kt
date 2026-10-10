@@ -39,9 +39,13 @@ class MobileWearSyncManager(
      * (via [syncActiveWorkoutSession]) AND fires an immediate MessageClient
      * send so a connected watch reflects the change without waiting on
      * DataClient's system-level batching.
+     *
+     * Deliberately does NOT touch the `wear_workout_pending` slot: that slot
+     * holds the *watch's* not-yet-applied session and is replayed to Dart as
+     * `onWatchWorkoutUpdated`. Writing the phone's own snapshot into it made
+     * the phone re-apply its previous push as if the watch had sent it.
      */
     suspend fun syncActiveSession(sessionJson: String, isStart: Boolean) {
-        savePendingWorkout(sessionJson)
         syncActiveWorkoutSession(sessionJson)
         sendMessageToAllNodes(
             path = if (isStart) WearSyncPaths.MESSAGE_ACTIVE_SESSION_START else WearSyncPaths.MESSAGE_ACTIVE_SESSION_UPDATE,
@@ -67,8 +71,15 @@ class MobileWearSyncManager(
     }
 
     /// Mirrors the phone's rest timer onto the watch. Returns whether at
-    /// least one watch received it — when one did, that watch delivers the
-    /// "rest over" buzz and the phone keeps its own notification quiet.
+    /// least one watch accepted the message — that is transport success only.
+    /// Whether the watch will really alert comes back later as a
+    /// `MESSAGE_REST_TIMER_ACK`, and only that lets the phone drop its own
+    /// notification.
+    ///
+    /// The same payload is also written as a durable DataItem after the fast
+    /// message, so a watch that missed the message (out of range, app killed)
+    /// or reconnects mid-rest still arms its alarm. Duplicates are harmless:
+    /// the watch applies each `rev` once.
     suspend fun sendRestTimer(restJson: String): Boolean {
         val nodes = try {
             nodeClient.connectedNodes.awaitResult()
@@ -90,6 +101,13 @@ class MobileWearSyncManager(
                 Log.e(TAG, "Failed to send rest timer to ${node.displayName}", error)
             }
         }
+        // After the message, so the DataClient round trip never delays it.
+        runCatching {
+            putState(
+                path = WearSyncPaths.STATE_REST_TIMER,
+                values = mapOf("rest_json" to restJson),
+            )
+        }.onFailure { Log.w(TAG, "Failed to store rest timer state", it) }
         return delivered
     }
 
@@ -130,13 +148,6 @@ class MobileWearSyncManager(
             .put("updatedAtEpochMs", now)
             .put("payload", JSONObject())
             .toString()
-    }
-
-    private fun savePendingWorkout(sessionJson: String) {
-        appContext.getSharedPreferences("wear_workout_pending", Context.MODE_PRIVATE)
-            .edit()
-            .putString("session_json", sessionJson)
-            .apply()
     }
 
     private fun clearPendingWorkout() {

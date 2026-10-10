@@ -7,20 +7,25 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/fasting/presentation/fasting_food_log_dialog.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
-import 'package:herculex/features/nutrition/data/nutrition_label_ocr_service.dart';
 import 'package:herculex/features/nutrition/domain/food_portion.dart';
 import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/domain/nutrition_label.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/scan_variant_form.dart';
 
+/// Reviews a nutrition label read by Herculex AI from one or two photos.
+///
+/// A label with several tables (drained / not drained, as sold / prepared) is
+/// shown as one editable form per variant. Every variant is saved as its own
+/// food; the variant chosen with the chips is the one logged to the diary.
 class LabelCaptureDialog extends ConsumerStatefulWidget {
-  final File imageFile;
+  final List<File> imageFiles;
   final Meal meal;
   final String? mealKey;
   final DateTime date;
 
   const LabelCaptureDialog({
     super.key,
-    required this.imageFile,
+    required this.imageFiles,
     required this.meal,
     this.mealKey,
     required this.date,
@@ -28,7 +33,7 @@ class LabelCaptureDialog extends ConsumerStatefulWidget {
 
   static Future<bool?> show(
     BuildContext context, {
-    required File imageFile,
+    required List<File> imageFiles,
     required Meal meal,
     String? mealKey,
     required DateTime date,
@@ -38,7 +43,7 @@ class LabelCaptureDialog extends ConsumerStatefulWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => LabelCaptureDialog(
-        imageFile: imageFile,
+        imageFiles: imageFiles,
         meal: meal,
         mealKey: mealKey,
         date: date,
@@ -53,14 +58,9 @@ class LabelCaptureDialog extends ConsumerStatefulWidget {
 class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
   final _name = TextEditingController();
   final _brand = TextEditingController();
-  final _serving = TextEditingController();
-  final _kcal = TextEditingController();
-  final _protein = TextEditingController();
-  final _carbs = TextEditingController();
-  final _fat = TextEditingController();
-  final _fiber = TextEditingController();
-  final _sodium = TextEditingController();
+  final List<ScanVariantFields> _fields = [];
   NutritionLabelDraft? _draft;
+  int _selected = 0;
   bool _analyzing = true;
   bool _saving = false;
   String? _error;
@@ -73,18 +73,10 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
 
   @override
   void dispose() {
-    for (final controller in [
-      _name,
-      _brand,
-      _serving,
-      _kcal,
-      _protein,
-      _carbs,
-      _fat,
-      _fiber,
-      _sodium,
-    ]) {
-      controller.dispose();
+    _name.dispose();
+    _brand.dispose();
+    for (final fields in _fields) {
+      fields.dispose();
     }
     super.dispose();
   }
@@ -92,21 +84,22 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
   Future<void> _extract() async {
     try {
       final gemini = ref.read(geminiFoodAnalyzerServiceProvider);
-      final draft = await NutritionLabelOcrService(
-        gemini,
-      ).extract(widget.imageFile);
+      final draft = await gemini.analyzeNutritionLabel(
+        imageFiles: widget.imageFiles,
+      );
       if (!mounted) return;
+      _fill(draft);
       setState(() {
         _draft = draft;
         _analyzing = false;
         _error = null;
       });
-      _fill(draft);
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _analyzing = false;
-        _error = 'OCR/Herculex AI analiza ni uspela: $e';
+        _error =
+            'Herculex AI analysis failed: ${e.toString().replaceAll('Exception: ', '')}';
       });
     }
   }
@@ -114,26 +107,38 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
   void _fill(NutritionLabelDraft draft) {
     _name.text = draft.name;
     _brand.text = draft.brand ?? '';
-    _serving.text = draft.servingGrams?.toStringAsFixed(0) ?? '';
-    _kcal.text = draft.kcalPer100g?.toStringAsFixed(0) ?? '';
-    _protein.text = draft.proteinPer100g?.toStringAsFixed(1) ?? '';
-    _carbs.text = draft.carbsPer100g?.toStringAsFixed(1) ?? '';
-    _fat.text = draft.fatPer100g?.toStringAsFixed(1) ?? '';
-    _fiber.text = draft.fiberPer100g?.toStringAsFixed(1) ?? '';
-    _sodium.text = draft.sodiumMgPer100g?.toStringAsFixed(0) ?? '';
+    for (final fields in _fields) {
+      fields.dispose();
+    }
+    _fields
+      ..clear()
+      ..addAll(draft.variants.map(ScanVariantFields.new));
+    _selected = 0;
+  }
+
+  String _labelOf(int index) {
+    final label = _fields[index].label?.trim();
+    return label == null || label.isEmpty ? 'Table ${index + 1}' : label;
   }
 
   Future<void> _save() async {
     final name = _name.text.trim();
-    final kcal = double.tryParse(_kcal.text.replaceAll(',', '.'));
-    final serving = double.tryParse(_serving.text.replaceAll(',', '.'));
-    final portionAmount = _draft?.portionAmount ?? serving ?? 100;
-    final portionUnit = _draft?.servingUnit.trim().isNotEmpty == true
-        ? _draft!.servingUnit
-        : 'g';
-    if (name.isEmpty || kcal == null || kcal <= 0) {
-      setState(() => _error = 'Name and calories / 100g are required.');
+    if (name.isEmpty) {
+      setState(() => _error = 'Product name is required.');
       return;
+    }
+    final multiple = _fields.length > 1;
+    for (var i = 0; i < _fields.length; i++) {
+      final kcal = _fields[i].kcalPer100g;
+      if (kcal == null || kcal <= 0) {
+        setState(() {
+          _error = multiple
+              ? 'Calories / 100 g are required (${_labelOf(i)}).'
+              : 'Calories / 100 g are required.';
+          _selected = i;
+        });
+        return;
+      }
     }
     final proceed = await confirmEndFastOnFoodLog(context, ref);
     if (!proceed || !mounted) return;
@@ -144,45 +149,57 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
     });
     try {
       final repo = ref.read(nutritionRepositoryProvider);
-      final metadata = jsonEncode({
-        'source': _draft?.source.name ?? LabelExtractionSource.ocr.name,
-        'confidence': _draft?.confidence,
-        'rawEvidence': _draft?.evidence,
-        'warning': _draft?.warning,
-        'nutrients': {
-          'energy_kcal': kcal,
-          'protein': double.tryParse(_protein.text.replaceAll(',', '.')),
-          'carbohydrates': double.tryParse(_carbs.text.replaceAll(',', '.')),
-          'fat': double.tryParse(_fat.text.replaceAll(',', '.')),
-          'fiber': double.tryParse(_fiber.text.replaceAll(',', '.')),
-          'sodium': double.tryParse(_sodium.text.replaceAll(',', '.')),
-        }..removeWhere((_, value) => value == null),
-      });
-      final food = await repo.createCustomFood(
-        name: name,
-        brand: _brand.text.trim().isEmpty ? null : _brand.text.trim(),
-        kcalPer100g: kcal,
-        proteinPer100g:
-            double.tryParse(_protein.text.replaceAll(',', '.')) ?? 0,
-        carbsPer100g: double.tryParse(_carbs.text.replaceAll(',', '.')) ?? 0,
-        fatPer100g: double.tryParse(_fat.text.replaceAll(',', '.')) ?? 0,
-        servingGrams: serving,
-        servingLabel: FoodPortion.labelFor(
-          amount: portionAmount,
-          unit: portionUnit,
-          mass: serving,
-        ),
-        servingAmount: portionAmount,
-        servingUnit: portionUnit,
-        sourceMetadataJson: metadata,
-      );
+      final brand = _brand.text.trim().isEmpty ? null : _brand.text.trim();
+      final draft = _draft;
+      ({int foodId, double amount, String unit})? toLog;
+      for (var i = 0; i < _fields.length; i++) {
+        final fields = _fields[i];
+        final kcal = fields.kcalPer100g!;
+        final portionAmount = fields.portionAmount;
+        final portionUnit = fields.portionUnit;
+        final food = await repo.createCustomFood(
+          name: variantFoodName(name, fields.label, multiple: multiple),
+          brand: brand,
+          kcalPer100g: kcal,
+          proteinPer100g: fields.proteinPer100g,
+          carbsPer100g: fields.carbsPer100g,
+          fatPer100g: fields.fatPer100g,
+          servingGrams: fields.servingGrams,
+          servingLabel: FoodPortion.labelFor(
+            amount: portionAmount,
+            unit: portionUnit,
+            mass: fields.servingGrams,
+          ),
+          servingAmount: portionAmount,
+          servingUnit: portionUnit,
+          sodiumMgPer100g: fields.sodiumMgPer100g,
+          sourceMetadataJson: jsonEncode({
+            'source': 'gemini',
+            'confidence': draft?.confidence,
+            'rawEvidence': draft?.evidence,
+            'warning': draft?.warning,
+            'variant': fields.label,
+            'nutrients': {
+              'energy_kcal': kcal,
+              'protein': fields.proteinPer100g,
+              'carbohydrates': fields.carbsPer100g,
+              'fat': fields.fatPer100g,
+              'fiber': fields.fiberPer100g,
+              'sodium': fields.sodiumMgPer100g,
+            }..removeWhere((_, value) => value == null),
+          }),
+        );
+        if (i == _selected) {
+          toLog = (foodId: food.id, amount: portionAmount, unit: portionUnit);
+        }
+      }
       await repo.logFood(
         date: widget.date,
         meal: widget.meal,
         mealKey: widget.mealKey,
-        foodId: food.id,
-        portionAmount: portionAmount,
-        portionUnit: portionUnit,
+        foodId: toLog!.foodId,
+        portionAmount: toLog.amount,
+        portionUnit: toLog.unit,
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
@@ -237,13 +254,26 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
                 ),
               ],
             ),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.file(
-                widget.imageFile,
-                height: 150,
-                fit: BoxFit.cover,
-              ),
+            Row(
+              children: [
+                for (final file in widget.imageFiles)
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        right: file == widget.imageFiles.last ? 0 : 8,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.file(
+                          file,
+                          height: 150,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 12),
             if (_analyzing)
@@ -253,70 +283,59 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
                   children: [
                     CircularProgressIndicator(),
                     SizedBox(height: 12),
-                    Text(
-                      'OCR is reading the label; Herculex AI will refine the result if needed…',
-                    ),
+                    Text('Herculex AI is reading the label…'),
                   ],
                 ),
               )
             else ...[
-              if (_draft != null) _SourceBanner(draft: _draft!),
+              if (_draft != null) _ConfidenceBanner(draft: _draft!),
               if (_error != null) _ErrorBanner(message: _error!),
-              const SizedBox(height: 12),
-              _field('Product name', _name),
-              _field('Brand (optional)', _brand),
-              Row(
-                children: [
-                  Expanded(
-                    child: _field('Serving (g)', _serving, numeric: true),
+              if (_fields.isEmpty)
+                OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                )
+              else ...[
+                const SizedBox(height: 12),
+                _field('Product name', _name),
+                _field('Brand (optional)', _brand),
+                if (_fields.length > 1)
+                  ScanVariantChips(
+                    labels: [
+                      for (var i = 0; i < _fields.length; i++) _labelOf(i),
+                    ],
+                    selected: _selected,
+                    onSelected: (i) => setState(() => _selected = i),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(child: _field('kcal / 100 g', _kcal, numeric: true)),
-                ],
-              ),
-              Text(
-                'Macronutrients / 100 g',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: AppColors.secondary,
+                // Keyed so each variant keeps its own focus and scroll state.
+                ScanVariantForm(
+                  key: ValueKey(_selected),
+                  fields: _fields[_selected],
                 ),
-              ),
-              Row(
-                children: [
-                  Expanded(child: _field('Protein g', _protein, numeric: true)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _field('Carbs g', _carbs, numeric: true)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _field('Fat g', _fat, numeric: true)),
-                ],
-              ),
-              Row(
-                children: [
-                  Expanded(child: _field('Fiber g', _fiber, numeric: true)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _field('Sodium mg', _sodium, numeric: true)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (_draft?.warning != null)
-                _ErrorBanner(message: _draft!.warning!),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: const Icon(Icons.save_outlined),
-                label: Text(
-                  _saving
-                      ? 'Saving…'
-                      : 'Review and add to ${widget.meal.label}',
+                const SizedBox(height: 16),
+                if (_draft?.warning != null)
+                  _ErrorBanner(message: _draft!.warning!),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: _saving ? null : _save,
+                  icon: const Icon(Icons.save_outlined),
+                  label: Text(
+                    _saving
+                        ? 'Saving…'
+                        : _fields.length > 1
+                        ? 'Log ${_labelOf(_selected)} to ${widget.meal.label}'
+                        : 'Review and add to ${widget.meal.label}',
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Nothing is saved without this review. You can adjust values before logging.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.secondary,
+                const SizedBox(height: 8),
+                Text(
+                  'Nothing is saved without this review. You can adjust values before logging.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.secondary,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
+              ],
             ],
           ],
         ),
@@ -324,17 +343,10 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
     );
   }
 
-  Widget _field(
-    String label,
-    TextEditingController controller, {
-    bool numeric = false,
-  }) => Padding(
+  Widget _field(String label, TextEditingController controller) => Padding(
     padding: const EdgeInsets.only(bottom: 10),
     child: TextField(
       controller: controller,
-      keyboardType: numeric
-          ? const TextInputType.numberWithOptions(decimal: true)
-          : TextInputType.text,
       decoration: InputDecoration(
         labelText: label,
         filled: true,
@@ -345,26 +357,18 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
   );
 }
 
-class _SourceBanner extends StatelessWidget {
+class _ConfidenceBanner extends StatelessWidget {
   final NutritionLabelDraft draft;
-  const _SourceBanner({required this.draft});
+  const _ConfidenceBanner({required this.draft});
 
   @override
   Widget build(BuildContext context) {
-    final source = draft.source == LabelExtractionSource.gemini
-        ? 'Herculex AI fallback'
-        : 'On-device OCR';
     return Card(
       color: AppColors.surfaceContainer,
       child: ListTile(
         dense: true,
-        leading: Icon(
-          draft.source == LabelExtractionSource.gemini
-              ? Icons.auto_awesome
-              : Icons.phone_android,
-          color: AppColors.primary,
-        ),
-        title: Text(source),
+        leading: Icon(Icons.auto_awesome, color: AppColors.primary),
+        title: const Text('Herculex AI'),
         subtitle: Text(
           'Confidence ${(draft.confidence * 100).round()}% — check label',
         ),

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/buddy/application/buddy_providers.dart';
 import 'package:herculex/features/buddy/domain/buddy_join_payload.dart';
+import 'package:herculex/features/friends/domain/friend_invite_payload.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -103,6 +106,16 @@ class _BuddyJoinScannerViewState extends ConsumerState<BuddyJoinScannerView>
       if (raw == null || raw.trim().isEmpty) continue;
 
       final payload = BuddyJoinPayload.tryDecode(raw);
+      // One camera for both QR kinds: a friend invite opens its confirm
+      // screen in place of the scanner.
+      if (payload == null) {
+        if (FriendInvitePayload.tryDecode(raw) case final invite?) {
+          if (!mounted) return;
+          setState(() => _isProcessing = true);
+          context.pushReplacement(AppPaths.friendInvite(invite.token));
+          return;
+        }
+      }
       if (payload == null) {
         setState(() {
           _statusMessage = 'Not a Gym Buddy QR code. Keep scanning...';
@@ -211,7 +224,8 @@ class _BuddyJoinScannerViewState extends ConsumerState<BuddyJoinScannerView>
                   CircularProgressIndicator(color: AppColors.primary)
                 else
                   Text(
-                    _statusMessage ?? 'Point camera at host\'s QR code',
+                    _statusMessage ??
+                        'Point the camera at a workout or friend QR code',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: _isErrorMessage

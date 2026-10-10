@@ -1019,6 +1019,225 @@ void main() {
     expect(resolved.isCompleted, isTrue);
   });
 
+  Map<String, dynamic> latestPhoneSet(String entityId) {
+    final call = dispatchedCalls.lastWhere(
+      (candidate) => candidate.method == 'syncActiveSession',
+    );
+    final args = call.arguments as Map<dynamic, dynamic>;
+    final envelope = WearSyncEnvelope.decode(
+      args['session_json'] as String,
+      fallbackEntity: wearSyncEntityActiveWorkout,
+      fallbackEntityId: entityId,
+      fallbackOrigin: wearSyncOriginPhone,
+    );
+    final exercise =
+        (envelope.payload['exercises'] as List<dynamic>).single
+            as Map<String, dynamic>;
+    return (exercise['sets'] as List<dynamic>).single as Map<String, dynamic>;
+  }
+
+  int weightRevisionOf(Map<String, dynamic> set) =>
+      ((set['syncVersions'] as Map)['weight'] as Map)['revision'] as int;
+
+  test('a phone edit overtaken by an inbound apply is still stamped, so the '
+      'watch accepts it', () async {
+    final service = buildService();
+    final exerciseId = await createExercise('Bench Press');
+    final sessionId = await repo.startSession(sessionUuid: 'lost-edit-1');
+    final workoutExerciseId = await repo.addExerciseToSession(
+      sessionId: sessionId,
+      exerciseId: exerciseId,
+    );
+    final set =
+        (await repo.watchSetsForWorkoutExercise(workoutExerciseId).first)
+            .single;
+    await repo.updateSet(setId: set.id, weightKg: 80, reps: 8);
+
+    final session = (await repo.watchActiveSession().first)!;
+    await service.pushActiveSessionToWatch(session);
+    await pumpEventQueue();
+    final staleSet = latestPhoneSet('lost-edit-1');
+    final staleVersions = Map<String, dynamic>.from(
+      staleSet['syncVersions'] as Map,
+    );
+
+    // The user edits the weight on the phone. The push for that edit has not
+    // run yet when a watch snapshot that still carries the old stamps lands
+    // (for example the watch has just logged another set).
+    await repo.updateSet(setId: set.id, weightKg: 85);
+    await emitWorkoutUpdated(
+      workoutEnvelopeJson(
+        entityId: 'lost-edit-1',
+        revision: 5000,
+        exercises: [
+          exerciseWithWireId(
+            exerciseId,
+            'Bench Press',
+            wireId: 'exercise_$workoutExerciseId',
+            sets: [
+              {
+                'wireId': 'set_${set.id}',
+                'weight': 80,
+                'reps': 8,
+                'completed': false,
+                'syncVersions': staleVersions,
+              },
+            ],
+          ),
+        ],
+      ),
+    );
+    await pumpEventQueue();
+
+    // Nothing in the snapshot is newer, so the phone keeps its own value ...
+    final resolved =
+        (await repo.watchSetsForWorkoutExercise(workoutExerciseId).first)
+            .single;
+    expect(resolved.weightKg, 85);
+
+    // ... and the watch must still be told, with a stamp it will accept.
+    await service.pushActiveSessionToWatch(session);
+    await pumpEventQueue();
+    final sent = latestPhoneSet('lost-edit-1');
+    expect(sent['weight'], 85);
+    expect(weightRevisionOf(sent), greaterThan(weightRevisionOf(staleSet)));
+  });
+
+  test('applying a newer watch value mints no stamp of its own, so the next '
+      'push is an echo the watch merges as a no-op', () async {
+    final service = buildService();
+    final exerciseId = await createExercise('Bench Press');
+    final sessionId = await repo.startSession(sessionUuid: 'no-pingpong-1');
+    final workoutExerciseId = await repo.addExerciseToSession(
+      sessionId: sessionId,
+      exerciseId: exerciseId,
+    );
+    final set =
+        (await repo.watchSetsForWorkoutExercise(workoutExerciseId).first)
+            .single;
+    await repo.updateSet(setId: set.id, weightKg: 80, reps: 8);
+
+    final session = (await repo.watchActiveSession().first)!;
+    await service.pushActiveSessionToWatch(session);
+    await pumpEventQueue();
+    final staleVersions = Map<String, dynamic>.from(
+      latestPhoneSet('no-pingpong-1')['syncVersions'] as Map,
+    );
+
+    final watchStamp = {
+      'revision': DateTime.now().millisecondsSinceEpoch + 1000,
+      'origin': wearSyncOriginWatch,
+    };
+    await emitWorkoutUpdated(
+      workoutEnvelopeJson(
+        entityId: 'no-pingpong-1',
+        revision: 5000,
+        exercises: [
+          exerciseWithWireId(
+            exerciseId,
+            'Bench Press',
+            wireId: 'exercise_$workoutExerciseId',
+            sets: [
+              {
+                'wireId': 'set_${set.id}',
+                'weight': 90,
+                'reps': 8,
+                'completed': false,
+                'syncVersions': {...staleVersions, 'weight': watchStamp},
+              },
+            ],
+          ),
+        ],
+      ),
+    );
+    await pumpEventQueue();
+    expect(
+      (await repo.watchSetsForWorkoutExercise(workoutExerciseId).first)
+          .single
+          .weightKg,
+      90,
+    );
+
+    // Whatever the phone sends next carries the watch's own stamp unchanged:
+    // taking over the watch's value did not count as a phone edit.
+    await service.pushActiveSessionToWatch(session);
+    await pumpEventQueue();
+    final echoed = latestPhoneSet('no-pingpong-1');
+    expect(echoed['weight'], 90);
+    expect((echoed['syncVersions'] as Map)['weight'], watchStamp);
+  });
+
+  test('a local edit made after seeing a stamp from a faster watch clock '
+      'outranks it', () async {
+    final service = buildService();
+    final exerciseId = await createExercise('Bench Press');
+    final sessionId = await repo.startSession(sessionUuid: 'skew-1');
+    final workoutExerciseId = await repo.addExerciseToSession(
+      sessionId: sessionId,
+      exerciseId: exerciseId,
+    );
+    final set =
+        (await repo.watchSetsForWorkoutExercise(workoutExerciseId).first)
+            .single;
+    await repo.updateSet(setId: set.id, weightKg: 80, reps: 8);
+
+    final session = (await repo.watchActiveSession().first)!;
+    await service.pushActiveSessionToWatch(session);
+    await pumpEventQueue();
+    final staleVersions = Map<String, dynamic>.from(
+      latestPhoneSet('skew-1')['syncVersions'] as Map,
+    );
+
+    // The watch's clock runs five minutes ahead and it edits the weight.
+    final aheadRevision =
+        DateTime.now().millisecondsSinceEpoch +
+        const Duration(minutes: 5).inMilliseconds;
+    await emitWorkoutUpdated(
+      workoutEnvelopeJson(
+        entityId: 'skew-1',
+        revision: 5000,
+        exercises: [
+          exerciseWithWireId(
+            exerciseId,
+            'Bench Press',
+            wireId: 'exercise_$workoutExerciseId',
+            sets: [
+              {
+                'wireId': 'set_${set.id}',
+                'weight': 90,
+                'reps': 8,
+                'completed': false,
+                'syncVersions': {
+                  ...staleVersions,
+                  'weight': {
+                    'revision': aheadRevision,
+                    'origin': wearSyncOriginWatch,
+                  },
+                },
+              },
+            ],
+          ),
+        ],
+      ),
+    );
+    await pumpEventQueue();
+    expect(
+      (await repo.watchSetsForWorkoutExercise(workoutExerciseId).first)
+          .single
+          .weightKg,
+      90,
+    );
+
+    // The user then changes it on the phone. Wall-clock "now" is older than
+    // the watch's stamp, but the edit really is the later one.
+    await repo.updateSet(setId: set.id, weightKg: 95);
+    await service.pushActiveSessionToWatch(session);
+    await pumpEventQueue();
+    final sent = latestPhoneSet('skew-1');
+    expect(sent['weight'], 95);
+    expect(weightRevisionOf(sent), greaterThan(aheadRevision));
+  });
+
   test('active-session sync preserves the immutable program target', () async {
     final service = buildService();
     final exerciseId = await createExercise('Low-Bar Squat');

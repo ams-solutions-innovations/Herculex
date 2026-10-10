@@ -66,6 +66,8 @@ class HxWidgetRenderer(
     internal val fonts: HxFonts,
     internal val palette: HxWidgetPalette,
     internal val density: Float,
+    /** Per bitmap; a widget drawn in both themes shares the budget between two. */
+    internal val maxPixels: Float = MAX_PIXELS,
 ) {
     internal val p = palette
 
@@ -83,7 +85,6 @@ class HxWidgetRenderer(
     internal inline fun draw(w: Float, h: Float, block: HxCanvas.() -> Unit): Bitmap {
         // RemoteViews bitmaps count against a per-widget memory budget; cap the
         // pixel count so a stretched 4×4 placement can't blow through it.
-        val maxPixels = 1_600_000f
         var scale = density
         if (w * h * scale * scale > maxPixels) scale = sqrt(maxPixels / (w * h))
         val bitmap = Bitmap.createBitmap(
@@ -406,6 +407,7 @@ class HxWidgetRenderer(
     }
 
     companion object {
+        const val MAX_PIXELS = 1_600_000f
         const val TODAY_RING = 124f
         const val TODAY_ROW_LABEL = 16f
 

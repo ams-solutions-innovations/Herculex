@@ -61,6 +61,7 @@ abstract final class AppRoutes {
   // Profile
   static const profile = '/profile';
   static const trainingLevel = '/training-level';
+  static const levelSystem = '/training-level/how-it-works';
   static const notifications = '/notifications';
   static const dreamPhysique = '/dream-physique';
   static const dreamPhysiquePriorities = '/dream-physique/priorities';
@@ -77,6 +78,7 @@ abstract final class AppRoutes {
   static const nutritionWeeklyStats = '/nutrition/weekly-stats';
   static const macroTrends = '/macro-trends/:macro';
   static const goals = '/goals';
+  static const activityCalibration = '/activity-calibration';
   static const calorieMacroGoals = '/calorie-macro-goals';
   static const calorieMealGoals = '/calorie-meal-goals';
 
@@ -85,6 +87,9 @@ abstract final class AppRoutes {
 
   // Buddy
   static const buddyJoin = '/buddy/join';
+  static const gymBuddy = '/gym-buddy';
+  static const friendDetail = '/gym-buddy/friend/:uid';
+  static const friendInvite = '/gym-buddy/invite/:token';
 
   // Admin / diagnostics
   static const admin = '/admin';
@@ -103,6 +108,9 @@ abstract final class AppPaths {
   static String plannedWorkoutPreview(int id) => '/planned-workout-preview/$id';
   static String exercise(int id) => '/exercise/$id';
   static String measurementDetail(String metric) => '/measurements/$metric';
+  static String friendDetail(String uid) => '/gym-buddy/friend/$uid';
+  static String friendInvite(String token) =>
+      '/gym-buddy/invite/${Uri.encodeComponent(token)}';
   static String muscleVolumeDetail(String muscle) => '/muscle-volume/$muscle';
   static String macroTrends(String macro) => '/macro-trends/$macro';
   static String weeklyReport(int isoYear, int isoWeek) =>

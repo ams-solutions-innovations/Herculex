@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
@@ -120,17 +121,15 @@ void main() {
       findsOneWidget,
     );
 
-    // Verify filter chips exist
-    expect(find.widgetWithText(FilterChip, 'All'), findsOneWidget);
-    expect(find.widgetWithText(FilterChip, 'Custom'), findsOneWidget);
-    expect(find.widgetWithText(FilterChip, 'Chest'), findsOneWidget);
-    expect(find.widgetWithText(FilterChip, 'Biceps'), findsOneWidget);
+    // The chip row is gone: one filter pill opens a grouped sheet.
+    expect(find.byType(FilterChip), findsNothing);
+    expect(find.byKey(const ValueKey('exercise-library-filter')), findsOne);
 
     // Verify exercise items
     expect(find.text('Barbell Bench Press'), findsOneWidget);
     expect(find.text('Incline Dumbbell Curl'), findsOneWidget);
     expect(find.text('Custom Cable Fly'), findsOneWidget);
-    expect(find.text('Custom'), findsNWidgets(2)); // Chip + item 3 badge
+    expect(find.text('Custom'), findsOneWidget); // item 3 badge
     expect(find.text('3 exercises'), findsOneWidget);
     expect(find.text('Okay'), findsNWidgets(3));
   });
@@ -159,15 +158,64 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Tap the "Custom" filter chip
-      await tester.tap(find.widgetWithText(FilterChip, 'Custom'));
+      // Open the filter sheet and pick "Custom".
+      await tester.tap(find.byKey(const ValueKey('exercise-library-filter')));
+      await tester.pumpAndSettle();
+      expect(find.text('Filter exercises'), findsOneWidget);
+      await tester.tap(find.widgetWithText(HxTextPill, 'Custom'));
       await tester.pumpAndSettle();
 
       // Now only custom exercise should appear in the list
+      expect(find.text('Filter exercises'), findsNothing);
       expect(find.text('Custom Cable Fly'), findsOneWidget);
       expect(find.text('Barbell Bench Press'), findsNothing);
       expect(find.text('Incline Dumbbell Curl'), findsNothing);
       expect(find.text('1 exercise'), findsOneWidget);
+
+      // Clearing the filter brings everything back.
+      await tester.tap(find.byTooltip('Clear filter'));
+      await tester.pumpAndSettle();
+      expect(find.text('3 exercises'), findsOneWidget);
     },
   );
+
+  testWidgets('ExerciseLibraryView "Core lifts" shows only starred exercises', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          exerciseSearchProvider.overrideWith(
+            (ref, filter) => AsyncValue.data(sampleExercises),
+          ),
+          exerciseAffinityProvider.overrideWith(
+            (ref, exerciseId) => Stream.value(
+              exerciseId == 1 ? ExerciseAffinity.core : ExerciseAffinity.okay,
+            ),
+          ),
+          exerciseIdsWithAffinityProvider.overrideWith(
+            (ref, affinity) =>
+                Stream.value(affinity == ExerciseAffinity.core ? {1} : <int>{}),
+          ),
+        ],
+        child: const MaterialApp(home: ExerciseLibraryView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('exercise-library-filter')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(HxTextPill, 'Core lifts'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Barbell Bench Press'), findsOneWidget);
+    expect(find.text('Incline Dumbbell Curl'), findsNothing);
+    expect(find.text('Custom Cable Fly'), findsNothing);
+    expect(find.text('1 exercise'), findsOneWidget);
+  });
 }

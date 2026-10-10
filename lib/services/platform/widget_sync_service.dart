@@ -4,6 +4,7 @@ import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter/services.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/design_system/tokens/hx_colors.dart';
+import 'package:herculex/services/platform/widget_appearance.dart';
 
 /// Pushes nutrition and fitness data to the Android home-screen widgets.
 ///
@@ -171,10 +172,15 @@ class WidgetSyncService {
   /// Sync the selected app theme so the widgets draw with the same
   /// [HxColors]. Both palettes are sent so a `system` [mode] can follow the
   /// device's dark setting without the app running.
+  ///
+  /// [transparency] (1-3) and [shape] are the user's Widgets settings; the
+  /// Kotlin side applies the shape to the 2x1 widgets only.
   Future<void> syncTheme({
     required ThemeMode mode,
     required HxColors dark,
     required HxColors light,
+    int transparency = WidgetAppearance.defaultTransparency,
+    WidgetCornerShape shape = WidgetCornerShape.squircle,
   }) async {
     Map<String, int> palette(HxColors c) => {
       'surface': c.surfaceContainerLowest.toARGB32(),
@@ -205,6 +211,8 @@ class WidgetSyncService {
         },
         'dark': palette(dark),
         'light': palette(light),
+        'transparency': transparency,
+        'shape': shape.name,
       });
     } on PlatformException catch (e) {
       debugPrint('[WidgetSync] syncTheme failed: ${e.message}');

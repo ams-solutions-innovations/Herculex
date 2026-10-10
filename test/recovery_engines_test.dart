@@ -140,6 +140,83 @@ const _noCnsDeload = CnsTrendsResult(
 final _asOf = DateTime(2026, 6, 12, 12);
 
 void main() {
+  group('MuscleRecoveryV3 sleep recovery multiplier', () {
+    // Two hard squat sets a day ago: well short of the fatigue clamp, so the
+    // score is sensitive to the decay rate.
+    final squat = _ex(1, primaryMuscle: 'Quads', recoveryImpact: 5);
+    final snapshot = TrainingSnapshot(
+      sets: [
+        for (var i = 0; i < 2; i++)
+          _resolved(
+            set: _set(
+              i,
+              1,
+              rpeX10: 95,
+              completedAt: _asOf.subtract(const Duration(hours: 24)),
+            ),
+            we: _we(1, 1),
+            ex: squat,
+          ),
+      ],
+      exerciseMuscles: [_muscle(1, 1, 'Quads', 'primary')],
+    );
+
+    int quadsScore({double? multiplier}) =>
+        (multiplier == null
+                ? MuscleRecoveryV3.compute(snapshot: snapshot, asOf: _asOf)
+                : MuscleRecoveryV3.compute(
+                    snapshot: snapshot,
+                    asOf: _asOf,
+                    recoveryRateMultiplier: multiplier,
+                  ))
+            .singleWhere((r) => r.muscle == 'Quads')
+            .recoveryScore;
+
+    test('a multiplier of 1.0 is exactly the baseline', () {
+      expect(quadsScore(multiplier: 1.0), quadsScore());
+    });
+
+    test('poor sleep leaves a muscle less recovered at the same moment', () {
+      expect(quadsScore(multiplier: 0.75), lessThan(quadsScore()));
+    });
+
+    test('poor sleep pushes the time-to-recovered out', () {
+      final baseline = MuscleRecoveryV3.recoveryEtaHours(
+        snapshot: snapshot,
+        asOf: _asOf,
+      )['Quads'];
+      final slow = MuscleRecoveryV3.recoveryEtaHours(
+        snapshot: snapshot,
+        asOf: _asOf,
+        recoveryRateMultiplier: 0.75,
+      )['Quads'];
+
+      expect(baseline, isNotNull);
+      expect(slow, isNotNull);
+      expect(slow!, greaterThan(baseline!));
+    });
+
+    test('compute() and recoveryEtaHours() agree under a slowed rate', () {
+      final eta = MuscleRecoveryV3.recoveryEtaHours(
+        snapshot: snapshot,
+        asOf: _asOf,
+        recoveryRateMultiplier: 0.8,
+      )['Quads']!;
+
+      // compute() truncates elapsed time to whole hours, so allow one spare.
+      final later = MuscleRecoveryV3.compute(
+        snapshot: snapshot,
+        asOf: _asOf.add(Duration(hours: eta.ceil() + 1)),
+        recoveryRateMultiplier: 0.8,
+      ).singleWhere((r) => r.muscle == 'Quads').recoveryScore;
+
+      expect(
+        later,
+        greaterThanOrEqualTo(MuscleRecoveryV3.recoveredScoreThreshold),
+      );
+    });
+  });
+
   group('MuscleRecoveryV3.recoveryEtaHours', () {
     test('every muscle is already recovered on an empty snapshot', () {
       final eta = MuscleRecoveryV3.recoveryEtaHours(

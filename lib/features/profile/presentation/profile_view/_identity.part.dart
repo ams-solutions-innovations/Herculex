@@ -2,70 +2,136 @@ part of '../profile_view.dart';
 
 class _AvatarHeader extends StatelessWidget {
   final Profile? profile;
-  final VoidCallback onEdit;
+  final VoidCallback onPickAvatar;
+  final VoidCallback onEditName;
 
-  const _AvatarHeader({required this.profile, required this.onEdit});
+  const _AvatarHeader({
+    required this.profile,
+    required this.onPickAvatar,
+    required this.onEditName,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final name = profile?.name?.trim() ?? '';
+    final avatar = GreekAvatar.findById(profile?.avatarId);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         GestureDetector(
-          onTap: onEdit,
-          child: Stack(
-            alignment: Alignment.bottomRight,
-            children: [
-              Container(
-                width: 96,
-                height: 96,
-                decoration: BoxDecoration(
-                  color: context.hx.primary.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: context.hx.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: name.isEmpty
-                    ? Icon(
-                        Icons.person_rounded,
-                        size: 48,
-                        color: context.hx.primary,
-                      )
-                    : Text(
-                        name[0].toUpperCase(),
-                        style: theme.textTheme.displayMedium?.copyWith(
-                          color: context.hx.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: context.hx.primary,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: theme.colorScheme.surface,
-                    width: 2,
-                  ),
-                ),
-                child: const Icon(Icons.edit, size: 14, color: Colors.white),
-              ),
-            ],
+          onTap: onPickAvatar,
+          child: GreekAvatarBadge(
+            avatarId: profile?.avatarId,
+            fallbackName: name,
+            size: 104,
+            showBorder: true,
+            borderColor: avatar?.primaryColor ?? context.hx.primary,
+            showEditBadge: true,
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
+        if (avatar != null) ...[
+          GestureDetector(
+            onTap: onPickAvatar,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+              decoration: BoxDecoration(
+                color: avatar.primaryColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: avatar.primaryColor.withValues(alpha: 0.4),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    avatar.name,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: avatar.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    '(${avatar.greekName})',
+                    style: TextStyle(
+                      fontFamily: 'SpaceGrotesk',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: avatar.primaryColor.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '· ${avatar.category.label}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: context.hx.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ] else ...[
+          GestureDetector(
+            onTap: onPickAvatar,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: context.hx.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: context.hx.primary.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 13,
+                    color: context.hx.primary,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Izberi grškega boga / titan',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: context.hx.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
         GestureDetector(
-          onTap: onEdit,
-          child: Text(
-            name.isEmpty ? 'My Profile' : name,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.displayMedium,
+          onTap: onEditName,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                name.isEmpty ? 'My Profile' : name,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.displayMedium,
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                Icons.edit_rounded,
+                size: 16,
+                color: context.hx.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 4),
@@ -81,12 +147,17 @@ class _AvatarHeader extends StatelessWidget {
   }
 }
 
-/// Name editor reached by tapping the avatar. Picture selection is offered
-/// here too; it is currently a placeholder because the profile model stores no
-/// image path yet.
+/// Name editor reached by tapping the name or avatar.
 class _IdentitySheet extends StatefulWidget {
   final String initialName;
-  const _IdentitySheet({required this.initialName});
+  final String? currentAvatarId;
+  final VoidCallback? onPickAvatar;
+
+  const _IdentitySheet({
+    required this.initialName,
+    this.currentAvatarId,
+    this.onPickAvatar,
+  });
 
   @override
   State<_IdentitySheet> createState() => _IdentitySheetState();
@@ -105,6 +176,7 @@ class _IdentitySheetState extends State<_IdentitySheet> {
 
   @override
   Widget build(BuildContext context) {
+    final avatar = GreekAvatar.findById(widget.currentAvatarId);
     return HxSheet(
       scrollable: false,
       title: 'Edit profile',
@@ -118,9 +190,69 @@ class _IdentitySheetState extends State<_IdentitySheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (widget.onPickAvatar != null) ...[
+            InkWell(
+              onTap: () {
+                Navigator.of(context).pop();
+                widget.onPickAvatar!();
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: context.hx.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: (avatar?.primaryColor ?? context.hx.primary)
+                        .withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    GreekAvatarBadge(
+                      avatarId: widget.currentAvatarId,
+                      fallbackName: widget.initialName,
+                      size: 46,
+                      showEditBadge: false,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            avatar != null
+                                ? '${avatar.name} (${avatar.greekName})'
+                                : 'Izberi profilno sliko',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            avatar?.title ?? 'Grški bogovi, titani in legende',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: context.hx.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: context.hx.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           TextField(
             controller: _ctrl,
-            autofocus: true,
+            autofocus: widget.onPickAvatar == null,
             textCapitalization: TextCapitalization.words,
             decoration: InputDecoration(
               labelText: 'Name',
@@ -341,45 +473,78 @@ class _StatField extends StatelessWidget {
 
 // ── Pill toggle button ────────────────────────────────────────────────────────
 
-class _PillToggle extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _PillToggle({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+/// Biological sex as a row that opens a menu, styled like the activity-level
+/// row, with a male / female icon on each option.
+class _SexDropdown extends StatelessWidget {
+  final BiologicalSex? selected;
+  final ValueChanged<BiologicalSex> onChanged;
+  const _SexDropdown({required this.selected, required this.onChanged});
+
+  static IconData _icon(BiologicalSex sex) => switch (sex) {
+    BiologicalSex.male => Icons.male_rounded,
+    BiologicalSex.female => Icons.female_rounded,
+  };
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        decoration: BoxDecoration(
-          color: selected ? context.hx.primary : context.hx.surfaceContainer,
-          borderRadius: BorderRadius.circular(32),
-          border: Border.all(
-            color: selected
-                ? context.hx.primary
-                : context.hx.outlineVariant.withValues(alpha: 0.5),
-          ),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? Colors.white : context.hx.onSurfaceVariant,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-              fontSize: 14,
+    final hx = context.hx;
+    final current = selected;
+    return PopupMenuButton<BiologicalSex>(
+      tooltip: 'Biological sex',
+      position: PopupMenuPosition.under,
+      onSelected: onChanged,
+      itemBuilder: (_) => [
+        for (final sex in BiologicalSex.values)
+          PopupMenuItem(
+            value: sex,
+            child: Row(
+              children: [
+                Icon(_icon(sex), size: 20, color: hx.primary),
+                const SizedBox(width: 10),
+                Text(
+                  sex.label,
+                  style: TextStyle(
+                    fontWeight: sex == current
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
+              ],
             ),
           ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: hx.surfaceContainer,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              current == null ? Icons.person_outline_rounded : _icon(current),
+              color: hx.primary,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                'Biological sex',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ),
+            Text(
+              current?.label ?? 'Select',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: hx.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.expand_more_rounded, color: hx.onSurfaceVariant),
+          ],
         ),
       ),
     );
   }
 }
-
-// ── Settings card / tile helpers ──────────────────────────────────────────────

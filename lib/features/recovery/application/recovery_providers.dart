@@ -25,11 +25,13 @@ final recoveryEtaProvider = FutureProvider<Map<String, double?>>((ref) async {
   final snapshot = await ref.watch(trainingSnapshotProvider.future);
   final workouts = await ref.watch(externalWorkoutsProvider.future);
   final historyDays = await ref.watch(daysOfStepHistoryProvider.future);
+  final sleep = ref.watch(sleepRecoveryProvider);
   return MuscleRecoveryV3.recoveryEtaHours(
     snapshot: snapshot,
     externalWorkouts: workouts,
     asOf: ref.watch(clockProvider).now(),
     daysOfHealthHistory: historyDays,
+    recoveryRateMultiplier: sleep?.rateMultiplier ?? 1.0,
   );
 });
 

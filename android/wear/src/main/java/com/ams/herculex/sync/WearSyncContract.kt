@@ -106,6 +106,27 @@ class WearRevisionAllocator(context: Context, key: String) {
         prefs.edit().putLong(prefKey, next).apply()
         return next
     }
+
+    /// Records a revision seen from the other device so every revision issued
+    /// afterwards is strictly greater (mirrors Dart `WearRevisionAllocator.
+    /// observe`). Per-field "last change wins" otherwise compares two
+    /// unsynchronised wall clocks, and an edit made *after* seeing the peer's
+    /// value could still lose just because this clock runs a little behind.
+    /// Only ever raises the counter and sends nothing, so it cannot start a
+    /// ping-pong. A revision further than [MAX_OBSERVED_SKEW_MS] ahead of this
+    /// clock is clamped so one broken clock cannot poison every later stamp.
+    @Synchronized
+    fun observe(revision: Long) {
+        val ceiling = System.currentTimeMillis() + MAX_OBSERVED_SKEW_MS
+        val observed = if (revision > ceiling) ceiling else revision
+        if (observed > prefs.getLong(prefKey, 0L)) {
+            prefs.edit().putLong(prefKey, observed).apply()
+        }
+    }
+
+    companion object {
+        const val MAX_OBSERVED_SKEW_MS = 10 * 60 * 1000L
+    }
 }
 
 /// Split (Phase 4) from a single combined `shouldAccept` into a pure

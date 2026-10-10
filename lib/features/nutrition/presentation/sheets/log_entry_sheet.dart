@@ -17,7 +17,9 @@ import 'package:herculex/features/nutrition/application/nutrition_providers.dart
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/food_insights.dart';
 import 'package:herculex/features/nutrition/domain/food_portion.dart';
+import 'package:herculex/features/nutrition/domain/log_dates.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/repeat_weeks_toggle.dart';
 import 'package:intl/intl.dart';
 
 /// Final step before logging/editing: choose grams (food) or servings (recipe), pick meal, or delete.
@@ -152,7 +154,18 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
   /// Extra days this entry should also be copied to ("Add to multiple days").
   final Set<DateTime> _extraDays = {};
 
+  /// Repeat the chosen days for [_weeks] weeks instead of this week only.
+  bool _repeatWeeks = false;
+  int _weeks = kDefaultRepeatWeeks;
+
   bool _saving = false;
+
+  /// Every date the new entry is written to.
+  List<DateTime> get _logDates => expandLogDates(
+    base: widget.date,
+    extraDays: _extraDays,
+    weeks: _repeatWeeks ? _weeks : 1,
+  );
 
   @override
   void initState() {
@@ -287,7 +300,7 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
         loggedAt: _loggedAtOn(widget.date),
       );
     } else {
-      for (final date in {widget.date, ..._extraDays}) {
+      for (final date in _logDates) {
         if (widget.food != null) {
           await repo.logFood(
             date: date,
@@ -364,60 +377,78 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     Haptics.selection();
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surfaceContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      isScrollControlled: true,
+      useSafeArea: true,
+      // Transparent so the themed sheet does not float inset from the screen
+      // edges; the container below fills the width and sits on the bottom.
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Select Meal',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final m in mealSlots)
-                    GestureDetector(
-                      onTap: () {
-                        Haptics.selection();
-                        setState(() => _mealKey = m.key);
-                        Navigator.of(context).pop();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _mealKey == m.key
-                              ? AppColors.primary
-                              : AppColors.surfaceVariant,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          m.label,
-                          style: TextStyle(
-                            color: _mealKey == m.key
-                                ? Colors.white
-                                : AppColors.onSurface,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.fromLTRB(
+            24,
+            12,
+            24,
+            16 + MediaQuery.of(context).viewPadding.bottom,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainer,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Select Meal',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                for (final m in mealSlots)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      m.icon,
+                      color: _mealKey == m.key
+                          ? AppColors.primary
+                          : AppColors.secondary,
+                    ),
+                    title: Text(
+                      m.label,
+                      style: TextStyle(
+                        fontWeight: _mealKey == m.key
+                            ? FontWeight.bold
+                            : FontWeight.w500,
+                        color: _mealKey == m.key
+                            ? AppColors.primary
+                            : AppColors.onSurface,
                       ),
                     ),
-                ],
-              ),
-            ],
+                    trailing: _mealKey == m.key
+                        ? Icon(Icons.check, color: AppColors.primary)
+                        : null,
+                    onTap: () {
+                      Haptics.selection();
+                      setState(() => _mealKey = m.key);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+              ],
+            ),
           ),
         );
       },
@@ -808,8 +839,8 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
       buttonText = isEditing ? 'Update Ingredient' : 'Add to Recipe';
     } else if (isEditing) {
       buttonText = 'Update Entry';
-    } else if (_extraDays.isNotEmpty) {
-      buttonText = 'Log to ${_extraDays.length + 1} Days';
+    } else if (_logDates.length > 1) {
+      buttonText = 'Log to ${_logDates.length} Days';
     } else {
       buttonText = 'Log Food';
     }
@@ -971,6 +1002,16 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
                   if (!_extraDays.remove(day)) _extraDays.add(day);
                 });
               },
+            ),
+            const SizedBox(height: 8),
+            RepeatWeeksToggle(
+              enabled: _repeatWeeks,
+              weeks: _weeks,
+              onEnabledChanged: (value) {
+                Haptics.selection();
+                setState(() => _repeatWeeks = value);
+              },
+              onWeeksChanged: (value) => setState(() => _weeks = value),
             ),
             const SizedBox(height: 14),
           ],

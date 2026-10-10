@@ -7,11 +7,23 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- Light and dark renders of the same card. The alphas come from
+         values/ and values-night/, so the launcher shows the one matching the
+         phone's theme without the provider being told it changed. -->
     <ImageView
         android:id="@+id/widget_canvas"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:alpha="@dimen/widget_hx_light_alpha"
         android:background="@drawable/widget_hx_placeholder"
+        android:scaleType="fitXY" />
+
+    <ImageView
+        android:id="@+id/widget_canvas_dark"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="@dimen/widget_hx_dark_alpha"
+        android:importantForAccessibility="no"
         android:scaleType="fitXY" />
 
     <LinearLayout

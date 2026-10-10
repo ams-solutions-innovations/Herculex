@@ -183,7 +183,9 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
                       context: context,
                       initialDate: date,
                       firstDate: DateTime(2020),
-                      lastDate: today.add(const Duration(days: 30)),
+                      // Far enough ahead to reach entries repeated over up to
+                      // 12 weeks ("Repeat for multiple weeks").
+                      lastDate: today.add(const Duration(days: 365)),
                     );
                     if (picked != null) {
                       ref.read(selectedDateProvider.notifier).state =
@@ -875,15 +877,6 @@ class _EntryTile extends ConsumerWidget {
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: AppColors.macroKcal.withValues(alpha: 0.7),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -951,6 +944,10 @@ class _EntryTile extends ConsumerWidget {
   ) {
     showModalBottomSheet<void>(
       context: context,
+      // Without this the sheet is capped at 9/16 of the screen, which cut off
+      // the bottom button, and its scroll view swallowed the drag-to-dismiss.
+      isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (modalContext) {
         final repo = ref.read(nutritionRepositoryProvider);
@@ -960,7 +957,7 @@ class _EntryTile extends ConsumerWidget {
             display.potassiumMg > 0 ||
             display.cholesterolMg > 0;
         return Container(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
           decoration: BoxDecoration(
             color: theme.bottomSheetTheme.backgroundColor,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
@@ -1135,47 +1132,20 @@ class _EntryTile extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final slot in mealSlots)
-                      ChoiceChip(
-                        avatar: Icon(
-                          slot.icon,
-                          size: 16,
-                          color: slot.key == entry.meal
-                              ? Colors.white
-                              : AppColors.primary,
-                        ),
-                        label: Text(slot.label),
-                        selected: slot.key == entry.meal,
-                        selectedColor: AppColors.primary,
-                        labelStyle: TextStyle(
-                          color: slot.key == entry.meal
-                              ? Colors.white
-                              : AppColors.onSurface,
-                          fontWeight: slot.key == entry.meal
-                              ? FontWeight.bold
-                              : FontWeight.w500,
-                        ),
-                        onSelected: (selected) async {
-                          if (slot.key == entry.meal) return;
-                          Haptics.selection();
-                          Navigator.of(modalContext).pop();
-                          await repo.updateEntry(
-                            id: entry.id,
-                            mealKey: slot.key,
-                          );
-                          if (!context.mounted) return;
-                          AppNotice.showWith(
-                            ref,
-                            'Moved to ${slot.label}',
-                            title: display.name,
-                          );
-                        },
-                      ),
-                  ],
+                _MealDropdown(
+                  slots: mealSlots,
+                  currentKey: entry.meal,
+                  onSelected: (slot) async {
+                    Haptics.selection();
+                    Navigator.of(modalContext).pop();
+                    await repo.updateEntry(id: entry.id, mealKey: slot.key);
+                    if (!context.mounted) return;
+                    AppNotice.showWith(
+                      ref,
+                      'Moved to ${slot.label}',
+                      title: display.name,
+                    );
+                  },
                 ),
                 if (hasMicros) ...[
                   const SizedBox(height: 16),
@@ -1223,6 +1193,81 @@ class _EntryTile extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Meal picker for the entry detail sheet: one row showing the current meal
+/// that opens a menu, instead of a wrapping chip grid that pushed the sheet's
+/// buttons off screen.
+class _MealDropdown extends StatelessWidget {
+  const _MealDropdown({
+    required this.slots,
+    required this.currentKey,
+    required this.onSelected,
+  });
+
+  final List<MealSlot> slots;
+  final String currentKey;
+  final ValueChanged<MealSlot> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = slots.firstWhere(
+      (s) => s.key == currentKey,
+      orElse: () => MealSlot(key: currentKey, label: currentKey),
+    );
+    return PopupMenuButton<MealSlot>(
+      tooltip: 'Move to meal',
+      position: PopupMenuPosition.under,
+      onSelected: onSelected,
+      itemBuilder: (_) => [
+        for (final slot in slots)
+          PopupMenuItem(
+            value: slot,
+            enabled: slot.key != currentKey,
+            child: Row(
+              children: [
+                Icon(
+                  slot.icon,
+                  size: 18,
+                  color: slot.key == currentKey
+                      ? AppColors.secondary
+                      : AppColors.primary,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  slot.label,
+                  style: TextStyle(
+                    fontWeight: slot.key == currentKey
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainer,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Icon(current.icon, size: 18, color: AppColors.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                current.label,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            Icon(Icons.expand_more, color: AppColors.secondary),
+          ],
+        ),
+      ),
     );
   }
 }

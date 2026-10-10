@@ -14,6 +14,7 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/health/application/cycle_providers.dart';
 import 'package:herculex/features/health/application/health_providers.dart';
 import 'package:herculex/features/health/domain/health_read_state.dart';
+import 'package:herculex/features/health/domain/sleep_summary.dart';
 import 'package:herculex/features/health/presentation/health_platform_detail_view.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/application/calendar_providers.dart';
@@ -1101,6 +1102,10 @@ class _HealthIntegrationsViewState
 
     final steps = val('steps');
     final sleep = val('sleep_hours');
+    final sleepNight = SleepSummary.fromSamples({
+      for (final s in samples)
+        if (SleepSummary.sampleKinds.contains(s.kind)) s.kind: s.value,
+    });
     final kcal = val('active_kcal');
     final hr = val('resting_hr');
     final water = val('water_ml');
@@ -1123,12 +1128,13 @@ class _HealthIntegrationsViewState
           status: status('steps'),
         ),
         _buildMetricCard(
-          'SLEEP DEPTH',
+          'ACTUAL SLEEP',
           sleep == null ? null : '${sleep.toStringAsFixed(1)} hrs',
           Icons.bedtime,
           Colors.indigo,
           theme,
           status: status('sleep_hours'),
+          detail: sleep == null ? null : _sleepDetail(sleepNight),
         ),
         _buildMetricCard(
           'WATER INTAKE',
@@ -1173,6 +1179,7 @@ class _HealthIntegrationsViewState
     Color color,
     ThemeData theme, {
     String? status,
+    String? detail,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1209,9 +1216,39 @@ class _HealthIntegrationsViewState
               color: value == null ? AppColors.secondary : null,
             ),
           ),
+          if (detail != null)
+            Text(
+              detail,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+                fontSize: 10,
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  /// Time in bed and, when the source reports stages, deep / REM / efficiency —
+  /// so what was actually read from Health Connect is visible, not just a total.
+  String? _sleepDetail(SleepSummary? night) {
+    if (night == null) return null;
+    String hm(double minutes) {
+      final m = minutes.round();
+      return '${m ~/ 60}h ${(m % 60).toString().padLeft(2, '0')}m';
+    }
+
+    if (!night.hasStages) {
+      return 'In bed ${hm(night.inBedMinutes)} · no stage data';
+    }
+    final deep = night.deepMinutes;
+    final rem = night.remMinutes;
+    return [
+      'In bed ${hm(night.inBedMinutes)} · ${(night.efficiency * 100).round()}%',
+      if (deep != null && rem != null) 'Deep ${hm(deep)} · REM ${hm(rem)}',
+    ].join('\n');
   }
 
   String _statusText(HealthReadStatus status) {

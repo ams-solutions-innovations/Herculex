@@ -14,6 +14,7 @@ flutter test                         # ~2min. 1308 pass / 4 skipped.
 dart run tool/check_structure.dart   # layout rules (see docs/ARCHITECTURE.md)
 dart format lib test tool
 tool/codegen.ps1                     # drift build_runner (or -Watch)
+tool/widget_previews.ps1             # home-screen widget picker previews; needs a running emulator
 ```
 
 `flutter analyze` exits 1 on warnings as well as errors, so check the error

@@ -50,12 +50,14 @@ class _FakeHealthAdapter implements HealthAdapter {
     ];
   }
 
+  bool permissionsGranted = true;
+
   @override
   Future<bool?> hasPermissions(
     List<HealthDataType> types, {
     List<HealthDataAccess>? permissions,
   }) async {
-    return true;
+    return permissionsGranted;
   }
 
   @override
@@ -84,7 +86,7 @@ class _FakeHealthAdapter implements HealthAdapter {
     required String title,
     required DateTime start,
     required DateTime end,
-    required int totalEnergyBurned,
+    required int? totalEnergyBurned,
     required HealthDataUnit totalEnergyBurnedUnit,
   }) async {
     lastWrittenWorkout = {
@@ -211,32 +213,267 @@ void main() {
     },
   );
 
-  test(
-    'overlapping sleep intervals are merged instead of double-counted',
-    () async {
+  group('sleep', () {
+    // The night under test: 23:00 → 07:00, 8h in bed, 7h actually asleep.
+    DateTime at(int day, int hour, [int minute = 0]) =>
+        DateTime(2026, 8, day, hour, minute);
+
+    void seedStagedNight() {
+      void put(HealthDataType type, DateTime from, DateTime to) {
+        adapter.data[type] = [
+          ...?adapter.data[type],
+          _numericPoint(type: type, value: 0, from: from, to: to),
+        ];
+      }
+
+      put(HealthDataType.SLEEP_SESSION, at(12, 23), at(13, 7));
+      put(HealthDataType.SLEEP_AWAKE, at(12, 23), at(12, 23, 30));
+      put(HealthDataType.SLEEP_LIGHT, at(12, 23, 30), at(13, 3));
+      put(HealthDataType.SLEEP_DEEP, at(13, 3), at(13, 4, 30));
+      put(HealthDataType.SLEEP_REM, at(13, 4, 30), at(13, 6, 30));
+      put(HealthDataType.SLEEP_AWAKE, at(13, 6, 30), at(13, 7));
+    }
+
+    const allSleepTypes = [
+      HealthDataType.SLEEP_SESSION,
+      HealthDataType.SLEEP_IN_BED,
+      HealthDataType.SLEEP_ASLEEP,
+      HealthDataType.SLEEP_LIGHT,
+      HealthDataType.SLEEP_DEEP,
+      HealthDataType.SLEEP_REM,
+      HealthDataType.SLEEP_AWAKE,
+      HealthDataType.SLEEP_AWAKE_IN_BED,
+      HealthDataType.SLEEP_OUT_OF_BED,
+    ];
+
+    Future<Map<String, double>> sleepRows() async {
+      final rows = await db.select(db.healthSamples).get();
+      return {
+        for (final r in rows)
+          if (r.kind.startsWith('sleep_')) r.kind: r.value,
+      };
+    }
+
+    test(
+      'sleep_hours is time actually asleep, not the whole session',
+      () async {
+        seedStagedNight();
+
+        final read = await service.runDailySync();
+
+        expect(read.sleepHours.status, HealthReadStatus.available);
+        expect(read.sleepHours.value, 7.0, reason: '8h in bed − 1h awake');
+        final detail = read.sleepDetail!;
+        expect(detail.inBedHours, 8.0);
+        expect(detail.awakeMinutes, 60);
+        expect(detail.lightMinutes, 210);
+        expect(detail.deepMinutes, 90);
+        expect(detail.remMinutes, 120);
+      },
+    );
+
+    test('the detail is persisted next to sleep_hours', () async {
+      seedStagedNight();
+
+      await service.runDailySync();
+
+      expect(await sleepRows(), {
+        'sleep_hours': 7.0,
+        'sleep_in_bed_hours': 8.0,
+        'sleep_awake_min': 60.0,
+        'sleep_light_min': 210.0,
+        'sleep_deep_min': 90.0,
+        'sleep_rem_min': 120.0,
+        'sleep_awakenings': 0.0,
+      });
+    });
+
+    test('a session with no stages still reads, without stage rows', () async {
       adapter.data[HealthDataType.SLEEP_SESSION] = [
         _numericPoint(
           type: HealthDataType.SLEEP_SESSION,
-          value: 1,
-          from: DateTime(2026, 8, 13, 0),
-          to: DateTime(2026, 8, 13, 4),
-        ),
-      ];
-      adapter.data[HealthDataType.SLEEP_DEEP] = [
-        _numericPoint(
-          type: HealthDataType.SLEEP_DEEP,
-          value: 1,
-          from: DateTime(2026, 8, 13, 2),
-          to: DateTime(2026, 8, 13, 6),
+          value: 0,
+          from: at(12, 23),
+          to: at(13, 7),
         ),
       ];
 
       final read = await service.runDailySync();
+      final rows = await sleepRows();
+
+      expect(read.sleepHours.value, 8.0);
+      expect(read.sleepDetail!.hasStages, isFalse);
+      expect(rows['sleep_hours'], 8.0);
+      expect(rows.keys, isNot(contains('sleep_deep_min')));
+      expect(rows.keys, isNot(contains('sleep_rem_min')));
+    });
+
+    test('a stage figure from an earlier read does not outlive its '
+        'night', () async {
+      await db
+          .into(db.healthSamples)
+          .insert(
+            HealthSamplesCompanion.insert(
+              dateIso: '2026-08-13',
+              kind: 'sleep_deep_min',
+              value: 75,
+            ),
+          );
+      adapter.data[HealthDataType.SLEEP_SESSION] = [
+        _numericPoint(
+          type: HealthDataType.SLEEP_SESSION,
+          value: 0,
+          from: at(12, 23),
+          to: at(13, 7),
+        ),
+      ];
+
+      await service.runDailySync();
+
+      expect((await sleepRows()).keys, isNot(contains('sleep_deep_min')));
+    });
+
+    test('platform-unsupported sleep types are skipped, not fatal', () async {
+      seedStagedNight();
+      // HealthKit-only on Android; the plugin throws for it.
+      adapter.errors[HealthDataType.SLEEP_IN_BED] = Exception(
+        'Not available on platform',
+      );
+
+      final read = await service.runDailySync();
 
       expect(read.sleepHours.status, HealthReadStatus.available);
-      expect(read.sleepHours.value, 6);
-    },
-  );
+      expect(read.sleepHours.value, 7.0);
+    });
+
+    test('permission denied on every sleep type is an explicit denied read '
+        'and leaves the last night untouched', () async {
+      await db
+          .into(db.healthSamples)
+          .insert(
+            HealthSamplesCompanion.insert(
+              dateIso: '2026-08-13',
+              kind: 'sleep_hours',
+              value: 6.5,
+            ),
+          );
+      for (final type in allSleepTypes) {
+        adapter.errors[type] = Exception('permission denied');
+      }
+
+      final read = await service.runDailySync();
+
+      expect(read.sleepHours.status, HealthReadStatus.denied);
+      expect(read.sleepDetail, isNull);
+      expect((await sleepRows())['sleep_hours'], 6.5);
+    });
+
+    test('no sleep at all clears a stale night and its detail', () async {
+      for (final kind in ['sleep_hours', 'sleep_in_bed_hours']) {
+        await db
+            .into(db.healthSamples)
+            .insert(
+              HealthSamplesCompanion.insert(
+                dateIso: '2026-08-13',
+                kind: kind,
+                value: 7,
+              ),
+            );
+      }
+
+      final read = await service.runDailySync();
+
+      expect(read.sleepHours.status, HealthReadStatus.empty);
+      expect(await sleepRows(), isEmpty);
+    });
+
+    group('refreshSleepIfStale', () {
+      test('stores last night without a full sync', () async {
+        seedStagedNight();
+
+        await service.refreshSleepIfStale();
+
+        final rows = await sleepRows();
+        expect(rows['sleep_hours'], 7.0);
+        expect(rows['sleep_deep_min'], 90.0);
+        // Nothing but sleep was written.
+        final all = await db.select(db.healthSamples).get();
+        expect(all.every((r) => r.kind.startsWith('sleep_')), isTrue);
+      });
+
+      test('reads at most once per gap', () async {
+        seedStagedNight();
+        await service.refreshSleepIfStale();
+
+        // The watch syncs more data, but the clock has not moved.
+        adapter.data[HealthDataType.SLEEP_SESSION] = [];
+        adapter.data[HealthDataType.SLEEP_AWAKE] = [];
+        adapter.data[HealthDataType.SLEEP_LIGHT] = [];
+        adapter.data[HealthDataType.SLEEP_DEEP] = [];
+        adapter.data[HealthDataType.SLEEP_REM] = [];
+        await service.refreshSleepIfStale();
+
+        expect((await sleepRows())['sleep_hours'], 7.0);
+      });
+
+      test('never prompts: without a grant it does nothing', () async {
+        seedStagedNight();
+        adapter.permissionsGranted = false;
+
+        await service.refreshSleepIfStale();
+
+        expect(await sleepRows(), isEmpty);
+      });
+
+      test('an empty read does not erase a stored night', () async {
+        await db
+            .into(db.healthSamples)
+            .insert(
+              HealthSamplesCompanion.insert(
+                dateIso: '2026-08-13',
+                kind: 'sleep_hours',
+                value: 7.5,
+              ),
+            );
+
+        await service.refreshSleepIfStale();
+
+        expect((await sleepRows())['sleep_hours'], 7.5);
+      });
+
+      test('a failing read is swallowed', () async {
+        for (final type in allSleepTypes) {
+          adapter.errors[type] = StateError('boom');
+        }
+
+        await expectLater(service.refreshSleepIfStale(), completes);
+      });
+    });
+
+    test('watchLatestSleep serves the latest stored night', () async {
+      seedStagedNight();
+      await service.runDailySync();
+
+      final night = await service.watchLatestSleep().first;
+
+      expect(night!.asleepHours, 7.0);
+      expect(night.deepMinutes, 90);
+    });
+
+    test('watchLatestSleep ignores a night older than yesterday', () async {
+      await db
+          .into(db.healthSamples)
+          .insert(
+            HealthSamplesCompanion.insert(
+              dateIso: '2026-08-10',
+              kind: 'sleep_hours',
+              value: 8,
+            ),
+          );
+
+      expect(await service.watchLatestSleep().first, isNull);
+    });
+  });
 
   test('empty step history does not return a 10000-step baseline', () async {
     final read = await service.getAverageSteps(30);

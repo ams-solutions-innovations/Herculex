@@ -75,7 +75,7 @@ Deno.test("dream physique prompt carries the programming and privacy contract", 
 
 Deno.test("food prompts require a practical, physically grounded portion", () => {
   const photo = foodPhotoPrompt();
-  const label = nutritionLabelPrompt("Serving size: 30 g");
+  const label = nutritionLabelPrompt();
   const barcode = barcodeProductPrompt("4006381333931");
 
   for (const prompt of [photo, label, barcode]) {
@@ -85,4 +85,26 @@ Deno.test("food prompts require a practical, physically grounded portion", () =>
   assert(photo.includes("Never use ml for meat"));
   assert(label.includes("Do not use ml for solid foods"));
   assert(photo.includes('"brand": "Herculex AI"'));
+});
+
+Deno.test("label prompt asks for variants and knows how many photos it gets", () => {
+  const single = nutritionLabelPrompt(1);
+  const double = nutritionLabelPrompt(2);
+
+  for (const prompt of [single, double]) {
+    assert(prompt.includes('"variants"'));
+    assert(prompt.includes("drained"));
+    assert(!prompt.includes("OCR"));
+  }
+  assert(single.includes("one photo"));
+  assert(double.includes("2 photos"));
+});
+
+Deno.test("barcode prompt prefers the table photo and allows variants", () => {
+  const withTable = barcodeProductPrompt("4006381333931", null, 2);
+  const withoutTable = barcodeProductPrompt("4006381333931");
+
+  assert(withTable.includes("take priority"));
+  assert(!withoutTable.includes("take priority"));
+  assert(withTable.includes('"variants"'));
 });

@@ -64,7 +64,11 @@ import com.ams.herculex.ui.OneUiPillTrailingIcon
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val weightOptions = (0..400).map { it * 0.5 }
+// 0–600 kg in 0.5 steps. A weight above the last option used to fall through to
+// index 0 and show as 0.0, so a heavy leg-press edit made on the phone looked
+// like it had not arrived. Anything still beyond the range now clamps to the
+// top option instead.
+private val weightOptions = (0..1200).map { it * 0.5 }
 private val repsOptions = (1..50).toList()
 private val durationOptions = ((5..300 step 5) + (330..1800 step 30) + (1860..3600 step 60)).toList()
 private val distanceOptions = ((0..2000 step 25) + (2050..10000 step 50) + (10100..50000 step 100)).toList()
@@ -182,7 +186,7 @@ fun SetLoggerScreen(
         val initialWeight = plannedOrCurrentSet?.weight?.takeIf { it > 0 }
             ?: currentPlannedSet?.targetWeightKg?.takeIf { it > 0 }
             ?: exercise.template.prevWeight
-        weightOptions.indexOfFirst { it >= initialWeight }.takeIf { it >= 0 } ?: 0
+        weightOptions.indexOfFirst { it >= initialWeight }.takeIf { it >= 0 } ?: weightOptions.lastIndex
     }
     val initRepsIdx = remember(exerciseIndex, currentSetIdx, plannedOrCurrentSet?.reps) {
         val initialReps = plannedOrCurrentSet?.reps?.takeIf { it > 0 }
@@ -278,7 +282,7 @@ fun SetLoggerScreen(
             val targetWeight = plannedOrCurrentSet?.weight?.takeIf { it > 0 }
                 ?: currentPlannedSet?.targetWeightKg?.takeIf { it > 0 }
                 ?: exercise.template.prevWeight
-            val wIdx = weightOptions.indexOfFirst { it >= targetWeight }.takeIf { it >= 0 } ?: 0
+            val wIdx = weightOptions.indexOfFirst { it >= targetWeight }.takeIf { it >= 0 } ?: weightOptions.lastIndex
             if (wIdx != weightState.selectedOption && wIdx in 0 until weightOptions.size) {
                 weightState.scrollToOption(wIdx)
             }

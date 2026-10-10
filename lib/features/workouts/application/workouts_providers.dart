@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
@@ -10,6 +12,7 @@ import 'package:herculex/features/fasting/domain/fasting_sync_snapshot.dart';
 import 'package:herculex/features/gamification/application/gamification_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
+import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/workouts/data/media_sync_service.dart';
 import 'package:herculex/features/workouts/data/micro_workouts_repository.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
@@ -426,8 +429,52 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
   final syncService = ref.watch(wearWorkoutSyncServiceProvider);
   ref.watch(mediaSyncServiceProvider);
 
+  // Today's program workout for the watch tile. Everything ref-derived is
+  // captured here, before any await (see the note on onRequestSync below).
+  final clock = ref.read(clockProvider);
+  final programsRepository = ref.read(programsRepositoryProvider);
+  String isoDay(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+  Future<void> syncToday() async {
+    final iso = isoDay(clock.now());
+    final rows = await programsRepository
+        .watchScheduleRange(fromIso: iso, toIso: iso)
+        .first;
+    await syncService.syncTodayWorkoutToWatch(rows);
+  }
+
+  // The schedule only emits on change, so the first sync after midnight has
+  // to be scheduled by hand or the watch keeps showing yesterday's workout.
+  Timer? midnightTimer;
+  void armMidnightTimer() {
+    final now = clock.now();
+    final nextMidnight = DateTime(now.year, now.month, now.day + 1);
+    midnightTimer = Timer(
+      nextMidnight.difference(now) + const Duration(seconds: 5),
+      () {
+        syncToday();
+        armMidnightTimer();
+      },
+    );
+  }
+
+  armMidnightTimer();
+  ref.onDispose(() => midnightTimer?.cancel());
+
+  final todayIso = isoDay(clock.now());
+  ref.listen(
+    scheduleRangeProvider(ScheduleRange(fromIso: todayIso, toIso: todayIso)),
+    (previous, next) {
+      if (next.hasValue) syncToday();
+    },
+    fireImmediately: true,
+  );
+
   // Handle explicit sync requests from watch
   WearSyncService.onRequestSync = () async {
+    await syncToday();
     // Snapshot everything ref-derived up front — same reasoning as the
     // workoutFoldersProvider listener below: this provider's watched
     // streams can flag it as dirty mid-await, and any ref.read after that

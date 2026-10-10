@@ -358,4 +358,37 @@ class WearSyncContractTest {
         assertTrue(workoutSecond > workoutFirst)
         assertTrue(fastingFirst != workoutSecond)
     }
+
+    @Test
+    fun `WearRevisionAllocator observe makes the next revision outrank a peer on a faster clock`() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val allocator = WearRevisionAllocator(context, "observe_ahead")
+        val peer = System.currentTimeMillis() + 60_000
+
+        allocator.observe(peer)
+
+        assertTrue(allocator.next() > peer)
+    }
+
+    @Test
+    fun `WearRevisionAllocator observe never moves the counter backwards`() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val allocator = WearRevisionAllocator(context, "observe_backwards")
+        val issued = allocator.next()
+
+        allocator.observe(issued - 100_000)
+
+        assertTrue(allocator.next() > issued)
+    }
+
+    @Test
+    fun `WearRevisionAllocator observe clamps a revision far beyond the skew cap`() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val allocator = WearRevisionAllocator(context, "observe_clamp")
+        val now = System.currentTimeMillis()
+
+        allocator.observe(now + 30L * 24 * 60 * 60 * 1000)
+
+        assertTrue(allocator.next() <= now + WearRevisionAllocator.MAX_OBSERVED_SKEW_MS + 60_000)
+    }
 }

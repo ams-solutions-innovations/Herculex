@@ -139,7 +139,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
           if (!mounted) return;
           await LabelCaptureDialog.show(
             context,
-            imageFile: file,
+            imageFiles: [file],
             meal: Meal.fromName(mealKey),
             mealKey: mealKey,
             date: dateOnly,

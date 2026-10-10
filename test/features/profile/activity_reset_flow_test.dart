@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/features/nutrition/application/tdee_providers.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/profile/presentation/widgets/activity_level_section.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const _captionCalibrating =
     "Your starting estimate. We'll refine it automatically as you log.";
@@ -34,9 +36,25 @@ TdeeEstimateResult _row(TdeeMethod method, {bool qualified = false}) =>
       estimatedAt: DateTime(2026, 9, 1, 8),
     );
 
+const _profile = Profile(
+  name: 'Test Athlete',
+  weightKg: 80,
+  heightCm: 180,
+  ageYears: 28,
+  sex: BiologicalSex.male,
+  activityLevel: ActivityLevel.lightlyActive,
+  goal: FitnessGoal.maintenance,
+);
+
 void main() {
   late List<ActivityLevel> calls;
   late ActivityLevel selected;
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
 
   Future<void> pump(
     WidgetTester tester, {
@@ -49,7 +67,11 @@ void main() {
     selected = ActivityLevel.lightlyActive;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [latestTdeeEstimateProvider.overrideWith((ref) => stream)],
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          profileProvider.overrideWith((ref) => Stream.value(_profile)),
+          latestTdeeEstimateProvider.overrideWith((ref) => stream),
+        ],
         child: MaterialApp(
           builder: (context, child) => InAppNotificationHost(child: child!),
           theme: AppTheme.darkTheme,
@@ -75,8 +97,12 @@ void main() {
   Future<void> pumpRow(WidgetTester tester, TdeeEstimateResult? row) =>
       pump(tester, stream: Stream.value(row));
 
+  /// Opens the picker from the row, then taps [level] in the sheet. The row
+  /// also shows the selected label, so the sheet's entry is the last match.
   Future<void> tapTile(WidgetTester tester, ActivityLevel level) async {
-    await tester.tap(find.text(level.label));
+    await tester.tap(find.text('Activity level'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(level.label).last);
     await tester.pumpAndSettle();
   }
 
@@ -207,6 +233,33 @@ void main() {
       expect(find.text(_captionCalibrating), findsOneWidget);
       await expectSavesImmediately(tester);
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('row', () {
+    testWidgets('shows only the selected level, the picker lists all', (
+      tester,
+    ) async {
+      await pumpRow(tester, _row(TdeeMethod.classifier));
+      expect(find.text('Lightly Active'), findsOneWidget);
+      expect(find.text('Sedentary'), findsNothing);
+      expect(find.text('Very Active'), findsNothing);
+      expect(find.text('Classified · Medium confidence'), findsOneWidget);
+
+      await tester.tap(find.text('Activity level'));
+      await tester.pumpAndSettle();
+      for (final level in ActivityLevel.values) {
+        expect(find.text(level.label), findsWidgets);
+      }
+      expect(find.text('Sedentary'), findsOneWidget);
+    });
+
+    testWidgets('badge reads Calibrating on a cold start', (tester) async {
+      await pumpRow(tester, _row(TdeeMethod.coldStart));
+      expect(
+        find.text('Calibrating — using onboarding estimate'),
+        findsOneWidget,
+      );
     });
   });
 

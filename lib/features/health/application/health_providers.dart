@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:health/health.dart';
@@ -6,6 +8,8 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/health/data/health_service.dart';
 import 'package:herculex/features/health/domain/activity_adjuster.dart';
 import 'package:herculex/features/health/domain/health_read_state.dart';
+import 'package:herculex/features/health/domain/sleep_recovery.dart';
+import 'package:herculex/features/health/domain/sleep_summary.dart';
 
 final healthServiceProvider = Provider<HealthService>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -22,6 +26,24 @@ final todayHealthSamplesProvider = StreamProvider<List<HealthSampleData>>((
 
 final lastDailyHealthReadProvider = StateProvider<DailyHealthRead?>((ref) {
   return null;
+});
+
+/// The latest night's sleep detail (stages, time in bed, awakenings), live
+/// from the synced rows. Null when no sleep has been read in the last day.
+///
+/// Listening kicks off a throttled background re-read of sleep, because the
+/// full sync otherwise only runs when the Health screen is opened — recovery
+/// would never see last night. The rows it writes arrive through the stream.
+final latestSleepProvider = StreamProvider<SleepSummary?>((ref) {
+  final service = ref.watch(healthServiceProvider);
+  unawaited(service.refreshSleepIfStale());
+  return service.watchLatestSleep();
+});
+
+/// How the latest night affects recovery speed; null (= no effect) when there
+/// is no recent sleep data.
+final sleepRecoveryProvider = Provider<SleepRecoveryAssessment?>((ref) {
+  return SleepRecovery.assess(ref.watch(latestSleepProvider).asData?.value);
 });
 
 /// Reflects real OS-granted health permission status, keyed by platform

@@ -164,7 +164,9 @@ class MuscleRecoveryV3 {
     required List<HealthDataPoint> externalWorkouts,
     required DateTime asOf,
     int daysOfHealthHistory = 0,
+    double recoveryRateMultiplier = 1.0,
   }) {
+    assert(recoveryRateMultiplier > 0);
     final contributions = {for (final g in groups) g: <FatigueContribution>[]};
 
     final musclesByExercise = <int, List<ExerciseMuscleData>>{};
@@ -186,8 +188,10 @@ class MuscleRecoveryV3 {
           ? (rpe >= 9 ? 1.6 : (rpe >= 8 ? 1.3 : 1.0))
           : 1.0;
 
-      // Higher systemic recovery cost decays more slowly.
-      final halfLife = 18.0 + 6.0 * rs.exercise.recoveryImpact; // 24–48h
+      // Higher systemic recovery cost decays more slowly; so does poor sleep
+      // (`recoveryRateMultiplier` < 1 stretches every half-life).
+      final halfLife =
+          (18.0 + 6.0 * rs.exercise.recoveryImpact) / recoveryRateMultiplier;
       final perSet =
           _perSetBase *
           (rs.exercise.recoveryImpact / 3.0) *
@@ -231,7 +235,8 @@ class MuscleRecoveryV3 {
           wv.workoutActivityType == HealthWorkoutActivityType.WALKING;
       final equivalentSets = (durationMinutes / 60.0) * (isWalking ? 3.0 : 6.0);
 
-      final halfLife = 18.0 + 6.0 * (impact.baseCnsScore * 10);
+      final halfLife =
+          (18.0 + 6.0 * (impact.baseCnsScore * 10)) / recoveryRateMultiplier;
 
       for (final entry in impact.muscleInvolvement.entries) {
         final muscle = entry.key;
@@ -324,17 +329,22 @@ class MuscleRecoveryV3 {
     return sum.clamp(0.0, 1.0);
   }
 
+  /// [recoveryRateMultiplier] is how fast fatigue clears relative to a normal
+  /// night's sleep — 1.0 (the default) is baseline, below 1.0 stretches every
+  /// decay half-life. See `SleepRecovery.assess`.
   static List<MuscleGroupRecovery> compute({
     required TrainingSnapshot snapshot,
     List<HealthDataPoint> externalWorkouts = const [],
     required DateTime asOf,
     int daysOfHealthHistory = 0,
+    double recoveryRateMultiplier = 1.0,
   }) {
     final contributions = _computeContributions(
       snapshot: snapshot,
       externalWorkouts: externalWorkouts,
       asOf: asOf,
       daysOfHealthHistory: daysOfHealthHistory,
+      recoveryRateMultiplier: recoveryRateMultiplier,
     );
     final weeklySets = _computeWeeklySets(
       snapshot: snapshot,
@@ -366,10 +376,11 @@ class MuscleRecoveryV3 {
   /// — so the total is a sum of non-increasing terms and therefore itself
   /// non-increasing in `h`, which is what makes a binary search for the
   /// crossing point valid. [maxHorizonHours] (default 240h/10 days) bounds
-  /// the search: the slowest half-life the model produces is ~72h (heaviest
-  /// external-workout impact), and decaying from full fatigue to the
-  /// threshold at that half-life takes ~125h, so 240h leaves comfortable
-  /// margin for a pathological stacked-fatigue case. Muscles still above the
+  /// the search: the slowest half-life the model produces is ~96h (heaviest
+  /// external-workout impact, stretched by the worst sleep multiplier of
+  /// 0.75), and decaying from full fatigue to the threshold at that half-life
+  /// takes ~167h, so 240h still leaves margin for a pathological
+  /// stacked-fatigue case. Muscles still above the
   /// threshold at the horizon report exactly [maxHorizonHours] — render that
   /// as e.g. "10d+" rather than false precision.
   static Map<String, double?> recoveryEtaHours({
@@ -378,12 +389,14 @@ class MuscleRecoveryV3 {
     required DateTime asOf,
     double maxHorizonHours = maxEtaHorizonHours,
     int daysOfHealthHistory = 0,
+    double recoveryRateMultiplier = 1.0,
   }) {
     final contributions = _computeContributions(
       snapshot: snapshot,
       externalWorkouts: externalWorkouts,
       asOf: asOf,
       daysOfHealthHistory: daysOfHealthHistory,
+      recoveryRateMultiplier: recoveryRateMultiplier,
     );
     final targetMaxFatigue = 1.0 - recoveredScoreThreshold / 100.0;
 

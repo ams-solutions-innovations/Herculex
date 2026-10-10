@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.wear.compose.material.Text
+import com.ams.herculex.ui.HxIcons
 import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
 
@@ -96,7 +97,7 @@ fun AddWaterScreen(navController: NavController, viewModel: NutritionViewModel) 
                 Box(modifier = Modifier.weight(1f)) {
                     OneUiPill(
                         title = "Add",
-                        icon = "✓",
+                        iconVector = HxIcons.Check,
                         style = OneUiPillStyle.AccentBlue,
                         onClick = {
                             if (amount > 0) {

@@ -98,22 +98,24 @@ Persistent state uses `DataClient`:
 
 - `/herculex/state/active_workout`
 - `/herculex/state/macro_targets`
+- `/herculex/state/rest_timer`
 
 Transient realtime events use `MessageClient`:
 
-- `/workout/start_rest_timer`
-- `/workout/update_weight`
-- `/workout/finish`
+- `/herculex/workout/start_rest_timer`
+- `/herculex/workout/rest_timer_ack` (watch to phone)
+- `/herculex/workout/update_weight`
+- `/herculex/workout/finish`
 
 ```kotlin
 val syncManager = MobileWearSyncManager(context)
 syncManager.syncActiveWorkoutSession(sessionJson)
 syncManager.syncMacroTargets(macroTargetsJson)
-syncManager.sendRealtimeEvent(
-    WearSyncPaths.MESSAGE_START_REST_TIMER,
-    """{"durationSeconds":90}""",
-)
 ```
+
+The rest timer is not a queued event. `sendRestTimer` sends the message and
+writes the same payload to `/herculex/state/rest_timer`; see
+`docs/wear-sync-debugging.md` for the payload and the ack.
 
 > `syncUserToken(firebaseIdToken)` from the old doc is gone. The watch does not
 > need a bearer token — it talks to the phone, and the phone talks to Supabase.

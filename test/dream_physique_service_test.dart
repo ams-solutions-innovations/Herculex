@@ -291,8 +291,7 @@ class _MockGeminiBackend implements GeminiBackend {
 
   @override
   Future<Map<String, dynamic>> analyzeBarcodeProduct({
-    required List<int> imageBytes,
-    required String mimeType,
+    required List<GeminiImage> images,
     required String barcode,
     String? userNote,
   }) async => throw UnimplementedError();
@@ -306,9 +305,7 @@ class _MockGeminiBackend implements GeminiBackend {
 
   @override
   Future<Map<String, dynamic>> analyzeNutritionLabel({
-    required List<int> imageBytes,
-    required String mimeType,
-    required String ocrText,
+    required List<GeminiImage> images,
   }) async => throw UnimplementedError();
 
   @override
@@ -367,8 +364,7 @@ class _FailingGeminiBackend implements GeminiBackend {
 
   @override
   Future<Map<String, dynamic>> analyzeBarcodeProduct({
-    required List<int> imageBytes,
-    required String mimeType,
+    required List<GeminiImage> images,
     required String barcode,
     String? userNote,
   }) async => throw UnimplementedError();
@@ -382,9 +378,7 @@ class _FailingGeminiBackend implements GeminiBackend {
 
   @override
   Future<Map<String, dynamic>> analyzeNutritionLabel({
-    required List<int> imageBytes,
-    required String mimeType,
-    required String ocrText,
+    required List<GeminiImage> images,
   }) async => throw UnimplementedError();
 
   @override

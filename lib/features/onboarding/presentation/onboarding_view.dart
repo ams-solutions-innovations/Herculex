@@ -5,12 +5,22 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/core/utils/auth_validator.dart';
+import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
-import 'package:herculex/features/auth/domain/auth_session.dart';
+import 'package:herculex/features/gamification/domain/level_progress.dart';
+import 'package:herculex/features/gamification/domain/lift_best_extractor.dart';
+import 'package:herculex/features/gamification/domain/strength_standards.dart';
+import 'package:herculex/features/gamification/domain/strength_survey.dart';
+import 'package:herculex/features/gamification/domain/strength_tier_evaluator.dart';
+import 'package:herculex/features/gamification/presentation/level_band_style.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
+
+part 'onboarding_view/auth_card.part.dart';
+part 'onboarding_view/fields.part.dart';
+part 'onboarding_view/strength_step.part.dart';
 
 class OnboardingView extends ConsumerStatefulWidget {
   const OnboardingView({super.key});
@@ -20,43 +30,39 @@ class OnboardingView extends ConsumerStatefulWidget {
 }
 
 class _OnboardingViewState extends ConsumerState<OnboardingView> {
+  static const _stepCount = 4;
+
   final _pageController = PageController();
   final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController();
   final _ageCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
-  final _rateLimiter = AuthRateLimiter();
 
   int _index = 0;
-  bool _isRegisterMode = true;
-  bool _authBusy = false;
   FitnessGoal? _goal;
   ActivityLevel? _activity;
   BiologicalSex? _sex;
+  StrengthSurvey? _survey;
 
   @override
   void dispose() {
     _pageController.dispose();
     _nameCtrl.dispose();
-    _emailCtrl.dispose();
-    _passwordCtrl.dispose();
     _ageCtrl.dispose();
     _weightCtrl.dispose();
     _heightCtrl.dispose();
     super.dispose();
   }
 
-  bool _canAdvance(AuthSession? authSession) => switch (_index) {
+  bool get _canAdvance => switch (_index) {
     0 => _goal != null,
     1 => _activity != null,
-    2 => true,
+    2 || 3 => true,
     _ => false,
   };
 
-  Future<void> _next(AuthSession? authSession) async {
-    if (_index < 2) {
+  Future<void> _next() async {
+    if (_index < _stepCount - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -68,6 +74,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
 
   Future<void> _complete() async {
     final name = _nameCtrl.text.trim();
+    final survey = _survey;
     final profile = Profile(
       name: name.isEmpty ? null : name,
       goal: _goal ?? FitnessGoal.maintenance,
@@ -76,183 +83,16 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       weightKg: double.tryParse(_weightCtrl.text.trim()),
       heightCm: double.tryParse(_heightCtrl.text.trim()),
       sex: _sex ?? BiologicalSex.male,
+      strengthSurvey: survey == null || survey.isEmpty ? null : survey,
     );
     await ref.read(localProfileRepositoryProvider).save(profile);
     if (!mounted) return;
     context.go(AppRoutes.app);
   }
 
-  Future<void> _submitEmailAuth({required bool register}) async {
-    final (allowed, secondsRemaining) = _rateLimiter.canAttempt();
-    if (!allowed) {
-      _showError(
-        'Too many failed attempts. Please wait $secondsRemaining seconds.',
-      );
-      return;
-    }
-
-    final email = _emailCtrl.text.trim();
-    final password = _passwordCtrl.text;
-
-    final emailError = AuthValidator.validateEmail(email);
-    if (emailError != null) {
-      _showError(emailError);
-      return;
-    }
-
-    final passwordError = AuthValidator.validatePassword(
-      password,
-      isRegistration: register,
-    );
-    if (passwordError != null) {
-      _showError(passwordError);
-      return;
-    }
-
-    if (register) {
-      final name = _nameCtrl.text.trim();
-      if (name.isNotEmpty) {
-        final nameError = AuthValidator.validateUsername(name);
-        if (nameError != null) {
-          _showError(nameError);
-          return;
-        }
-      }
-    }
-
-    setState(() => _authBusy = true);
-    try {
-      final authRepository = ref.read(authRepositoryProvider);
-      if (register) {
-        await authRepository.registerWithEmail(
-          email: email,
-          password: password,
-          displayName: _nameCtrl.text.trim().isEmpty
-              ? null
-              : _nameCtrl.text.trim(),
-        );
-      } else {
-        await authRepository.loginWithEmail(email: email, password: password);
-      }
-      _rateLimiter.recordSuccess();
-      _showMessage(
-        register ? 'Account created successfully.' : 'Signed in successfully.',
-      );
-    } catch (error) {
-      _rateLimiter.recordFailure();
-      _showError(
-        '$error'
-            .replaceAll('Exception: ', '')
-            .replaceAll('AuthException: ', ''),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _authBusy = false);
-      }
-    }
-  }
-
-  Future<void> _signInWithGoogle() async {
-    setState(() => _authBusy = true);
-    try {
-      await ref.read(authRepositoryProvider).signInWithGoogle();
-      _rateLimiter.recordSuccess();
-      _showMessage('Signed in with Google.');
-    } catch (error) {
-      _showError(
-        '$error'
-            .replaceAll('Exception: ', '')
-            .replaceAll('AuthException: ', ''),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _authBusy = false);
-      }
-    }
-  }
-
-  Future<void> _signInWithApple() async {
-    setState(() => _authBusy = true);
-    try {
-      await ref.read(authRepositoryProvider).signInWithApple();
-      _rateLimiter.recordSuccess();
-      _showMessage('Signed in with Apple.');
-    } catch (error) {
-      _showError(
-        '$error'
-            .replaceAll('Exception: ', '')
-            .replaceAll('AuthException: ', ''),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _authBusy = false);
-      }
-    }
-  }
-
-  Future<void> _sendPasswordReset() async {
-    final (allowed, secondsRemaining) = _rateLimiter.canAttempt();
-    if (!allowed) {
-      _showError('Too many attempts. Please wait $secondsRemaining seconds.');
-      return;
-    }
-
-    final email = _emailCtrl.text.trim();
-    final emailError = AuthValidator.validateEmail(email);
-    if (emailError != null) {
-      _showError(emailError);
-      return;
-    }
-
-    setState(() => _authBusy = true);
-    try {
-      await ref.read(authRepositoryProvider).sendPasswordReset(email);
-      _showMessage('Password reset email sent.');
-    } catch (error) {
-      _showError(
-        '$error'
-            .replaceAll('Exception: ', '')
-            .replaceAll('AuthException: ', ''),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _authBusy = false);
-      }
-    }
-  }
-
-  Future<void> _signOut() async {
-    setState(() => _authBusy = true);
-    try {
-      await ref.read(authRepositoryProvider).signOut();
-      _showMessage('Signed out.');
-    } catch (error) {
-      _showError('$error');
-    } finally {
-      if (mounted) {
-        setState(() => _authBusy = false);
-      }
-    }
-  }
-
-  void _showMessage(String message) {
-    final notices = AppNotice.of(context);
-    notices.show(message);
-  }
-
-  void _showError(String message) {
-    AppNotice.showWith(
-      ref,
-      message.trim().isEmpty ? 'Check your connection and retry' : message,
-      title: 'Could not save',
-      kind: AppNoticeKind.error,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final authSession = ref.watch(authSessionProvider).asData?.value;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -282,7 +122,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
           child: Column(
             children: [
               Row(
-                children: List.generate(3, (i) {
+                children: List.generate(_stepCount, (i) {
                   return Expanded(
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -304,17 +144,20 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
                   physics: const NeverScrollableScrollPhysics(),
                   onPageChanged: (i) => setState(() => _index = i),
                   children: [
-                    _buildGoals(theme, authSession),
+                    _buildGoals(theme),
                     _buildActivity(theme),
                     _buildDetails(theme),
+                    _StrengthStep(
+                      bodyweightKg: double.tryParse(_weightCtrl.text.trim()),
+                      sex: _sex,
+                      onChanged: (survey) => _survey = survey,
+                    ),
                   ],
                 ),
               ),
               PremiumButton(
-                text: _index == 2 ? 'Complete' : 'Next',
-                onTap: _canAdvance(authSession)
-                    ? () => _next(authSession)
-                    : () {},
+                text: _index == _stepCount - 1 ? 'Complete' : 'Next',
+                onTap: _canAdvance ? _next : () {},
               ),
             ],
           ),
@@ -323,12 +166,12 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
     );
   }
 
-  Widget _buildGoals(ThemeData theme, AuthSession? authSession) {
+  Widget _buildGoals(ThemeData theme) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildAuthCard(theme, authSession),
+          _AuthCard(nameController: _nameCtrl),
           const SizedBox(height: 24),
           Text(
             "What is your primary goal?",
@@ -426,7 +269,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 32),
-          _textField(
+          _labeledField(
             "Name (optional)",
             "e.g. Alex",
             _nameCtrl,
@@ -456,7 +299,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
     String label,
     String hint,
     TextEditingController controller,
-  ) => _textField(
+  ) => _labeledField(
     label,
     hint,
     controller,
@@ -509,177 +352,6 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
               ),
             );
           }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAuthCard(ThemeData theme, AuthSession? authSession) {
-    if (authSession != null) {
-      return GlassContainer(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Account Connected', style: theme.textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Text(
-              authSession.email ?? authSession.displayName ?? authSession.uid,
-              style: theme.textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Provider: ${authSession.provider.name}',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            PremiumButton(
-              text: _authBusy ? 'Please wait...' : 'Sign Out',
-              isPrimary: false,
-              onTap: _authBusy ? () {} : _signOut,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return GlassContainer(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            _isRegisterMode ? 'Create your account' : 'Sign in to Herculex',
-            style: theme.textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Use email/password, Google, or Apple before continuing.',
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 16),
-          _textField(
-            'Email',
-            'you@example.com',
-            _emailCtrl,
-            keyboardType: TextInputType.emailAddress,
-            maxLength: AuthValidator.maxEmailLength,
-          ),
-          const SizedBox(height: 16),
-          _textField(
-            'Password',
-            'At least 8 characters',
-            _passwordCtrl,
-            keyboardType: TextInputType.visiblePassword,
-            obscureText: true,
-            maxLength: AuthValidator.maxPasswordLength,
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: PremiumButton(
-                  text: _authBusy
-                      ? 'Please wait...'
-                      : (_isRegisterMode ? 'Register' : 'Sign In'),
-                  onTap: _authBusy
-                      ? () {}
-                      : () => _submitEmailAuth(register: _isRegisterMode),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: PremiumButton(
-                  text: 'Google',
-                  isPrimary: false,
-                  onTap: _authBusy ? () {} : _signInWithGoogle,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: PremiumButton(
-                  text: 'Apple',
-                  isPrimary: false,
-                  onTap: _authBusy ? () {} : _signInWithApple,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: _authBusy
-                        ? null
-                        : () => setState(
-                            () => _isRegisterMode = !_isRegisterMode,
-                          ),
-                    child: Text(
-                      _isRegisterMode
-                          ? 'Already have an account? Sign in'
-                          : 'Need an account? Register',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: _authBusy ? null : _sendPasswordReset,
-                child: const Text('Reset Password'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _textField(
-    String label,
-    String hint,
-    TextEditingController controller, {
-    TextInputType keyboardType = TextInputType.text,
-    bool obscureText = false,
-    int? maxLength,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          obscureText: obscureText,
-          maxLength: maxLength,
-          decoration: InputDecoration(
-            hintText: hint,
-            counterText: '',
-            filled: true,
-            fillColor: AppColors.surfaceContainerLowest,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.outlineVariant),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: AppColors.outlineVariant.withValues(alpha: 0.5),
-              ),
-            ),
-          ),
-          keyboardType: keyboardType,
         ),
       ],
     );
