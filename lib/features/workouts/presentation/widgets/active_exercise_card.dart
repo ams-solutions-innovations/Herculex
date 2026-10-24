@@ -173,10 +173,6 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
             ],
           ),
 
-          CalisthenicsProgressionCard(
-            exercise: exercise,
-            workoutExercise: workoutExercise,
-          ),
           lastPerformance.maybeWhen(
             data: (snapshot) {
               final allLastSets = snapshot?.sets ?? const <SetEntryData>[];
@@ -1161,6 +1157,27 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                     );
                   },
                 ),
+              if (!widget.exercise.isCustom &&
+                  calisthenicsPathFor(widget.exercise.slug) != null)
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: const Text('Calisthenics progression'),
+                  subtitle: Text(
+                    CalisthenicsProgressionCard.subtitleFor(
+                          exercise: widget.exercise,
+                          workoutExercise: widget.workoutExercise,
+                        ) ??
+                        'Progression details',
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    CalisthenicsProgressionCard.showDetailsSheet(
+                      context,
+                      exercise: widget.exercise,
+                      workoutExercise: widget.workoutExercise,
+                    );
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.swap_horiz_rounded),
                 title: const Text('Substitute exercise'),
@@ -1269,9 +1286,18 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
         candidate.supersetGroup == widget.workoutExercise.supersetGroup &&
         candidate.supersetGroup != null;
     final disabled = atCap && !alreadyConnected;
+    final catalogExercise = widget.catalogExercises
+        .firstWhereOrNull((e) => e.id == candidate.exerciseId);
     return ListTile(
       enabled: !disabled,
-      leading: Icon(alreadyConnected ? Icons.check_circle : Icons.add_link),
+      leading: catalogExercise != null
+          ? ExerciseArtwork(
+              exercise: catalogExercise,
+              size: 40,
+              radius: 10,
+              equipmentVariant: candidate.equipmentVariant,
+            )
+          : const Icon(Icons.fitness_center),
       title: Text(_exerciseName(candidate.exerciseId)),
       subtitle: Text(
         alreadyConnected
@@ -1279,6 +1305,16 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
             : disabled
             ? 'Group is full (max 5)'
             : 'Connect to this exercise',
+      ),
+      trailing: Icon(
+        alreadyConnected
+            ? Icons.check_circle
+            : (disabled ? Icons.block : Icons.add_link),
+        color: alreadyConnected
+            ? AppColors.primary
+            : (disabled
+                ? AppColors.secondary.withValues(alpha: 0.3)
+                : AppColors.secondary),
       ),
       onTap: disabled
           ? null
