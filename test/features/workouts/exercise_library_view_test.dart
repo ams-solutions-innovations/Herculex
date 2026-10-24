@@ -170,4 +170,41 @@ void main() {
       expect(find.text('1 exercise'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'Tapping affinity badge in ExerciseLibraryView opens ExerciseAffinitySheet',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            exerciseSearchProvider.overrideWith((ref, filter) {
+              return AsyncValue.data(sampleExercises);
+            }),
+            exerciseAffinityProvider.overrideWith(
+              (ref, exerciseId) => Stream.value(ExerciseAffinity.okay),
+            ),
+          ],
+          child: const MaterialApp(home: ExerciseLibraryView()),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Find the first "Okay" badge and tap it
+      final okayBadge = find.text('Okay').first;
+      await tester.tap(okayBadge);
+      await tester.pumpAndSettle();
+
+      // Verify that the bottom sheet menu opens with the 4 affinity choices
+      expect(find.text('Programming Preference'), findsOneWidget);
+      expect(find.text('Core lift'), findsOneWidget);
+      expect(find.text('Like'), findsOneWidget);
+      expect(find.text('Never'), findsOneWidget);
+    },
+  );
 }

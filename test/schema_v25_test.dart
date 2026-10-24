@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/migrations/sync_backfill.dart'
     show backfillSyncUuids;
-
 import 'generated_migrations/schema.dart';
 
 /// Content-level assertions for the v24 -> v25 (Phase 10 sync) migration,
@@ -27,10 +26,10 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 48);
+    await verifier.migrateAndValidate(db, 51);
 
     final row = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(row.data.values.first, 48);
+    expect(row.data.values.first, 51);
   });
 
   test(
@@ -39,7 +38,7 @@ void main() {
       final connection = await verifier.startAt(24);
       final db = AppDatabase.forTesting(connection);
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 48);
+      await verifier.migrateAndValidate(db, 51);
 
       // v24's generated fixture ships with no seed rows for `gyms`; insert
       // pre-migration-shaped rows directly to simulate an existing user.
@@ -69,7 +68,7 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 48);
+    await verifier.migrateAndValidate(db, 51);
 
     await db.into(db.gyms).insert(GymsCompanion.insert(name: 'New Gym'));
 
@@ -83,7 +82,7 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 48);
+    await verifier.migrateAndValidate(db, 51);
 
     // Column exists and is nullable/queryable post-migration — the v25
     // block must not have tried (and failed) to re-add it.

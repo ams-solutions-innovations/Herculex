@@ -35,18 +35,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Picker
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.rememberPickerState
 import com.ams.herculex.sync.QuickAddFoodItem
+import com.ams.herculex.sync.SyncService
+import com.ams.herculex.ui.HxIcons
 import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
 import com.ams.herculex.workout.attachPickerRotary
@@ -55,16 +64,21 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-/// Tap-to-log list of the user's recent/most-common foods, synced from the
-/// phone's diary (see `NutritionRepository.quickAddFoods`). There is no
-/// manual entry or search here on purpose — the watch has no catalogue of
-/// its own, so it can only offer what the phone last sent down.
+/// Tap-to-log list of the user's Suggested foods, Recent foods, and My Recipes,
+/// synced from the phone's diary and recipe catalogue.
 @Composable
 fun LogFoodScreen(navController: NavController, viewModel: NutritionViewModel) {
-    val items by viewModel.quickAddItems.collectAsState()
+    val suggestedItems by viewModel.quickAddItems.collectAsState()
+    val recentItems by viewModel.recentQuickAddItems.collectAsState()
+    val recipeItems by viewModel.recipeQuickAddItems.collectAsState()
+    val loggedEntries by viewModel.loggedEntries.collectAsState()
     val listState = rememberScalingLazyListState()
+    val context = LocalContext.current
 
-    LaunchedEffect(Unit) { viewModel.refreshQuickAdd() }
+    LaunchedEffect(Unit) {
+        viewModel.refreshQuickAdd()
+        SyncService.requestSyncFromPhone(context)
+    }
 
     ScalingLazyColumn(
         state = listState,
@@ -73,7 +87,7 @@ fun LogFoodScreen(navController: NavController, viewModel: NutritionViewModel) {
             .background(Color.Black)
             .attachRotaryScroll(listState),
         autoCentering = null,
-        contentPadding = PaddingValues(top = 40.dp, bottom = 48.dp, start = 14.dp, end = 14.dp),
+        contentPadding = PaddingValues(top = 40.dp, bottom = 52.dp, start = 14.dp, end = 14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
@@ -91,37 +105,106 @@ fun LogFoodScreen(navController: NavController, viewModel: NutritionViewModel) {
             }
         }
         item {
-            com.ams.herculex.ui.OneUiPill(
+            OneUiPill(
                 title = "Rambler Voice AI",
                 subtitle = "Speak to log meal",
-                icon = "🎙️",
+                iconVector = HxIcons.Mic,
                 style = OneUiPillStyle.VioletIndigo,
                 onClick = { navController.navigate("rambler_voice") },
             )
         }
-        if (items.isEmpty()) {
+        if (loggedEntries.isNotEmpty()) {
             item {
-                Text(
-                    text = "Log a few foods on your phone — they'll show up here for quick add.",
-                    color = Color(0xFF9E9E9E),
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp),
+                OneUiPill(
+                    title = "Today's meals (${loggedEntries.size})",
+                    subtitle = "View & edit logged foods",
+                    iconVector = HxIcons.Utensils,
+                    style = OneUiPillStyle.RoyalBlue,
+                    onClick = { navController.navigate("today_meals") },
                 )
             }
+        }
+
+        // ── Suggested Section ────────────────────────────────────────
+        item {
+            FoodSectionHeader(
+                icon = HxIcons.Star,
+                iconTint = Color(0xFF64D2FF),
+                title = "Suggested",
+                count = suggestedItems.size,
+            )
+        }
+        if (suggestedItems.isEmpty()) {
+            item {
+                EmptySectionHint("Log foods on your phone to see suggestions here.")
+            }
         } else {
-            items(items) { food ->
+            items(suggestedItems) { food ->
                 QuickAddFoodRow(
                     food = food,
-                    // Tap the row itself: adjust the amount before logging.
                     onClick = {
                         viewModel.selectQuickAddItem(food)
                         navController.navigate("log_food_amount")
                     },
-                    // Tap "+": one-tap log of exactly the default/last-used
-                    // amount, straight to the food's last-used meal — no
-                    // extra screens.
                     onQuickAdd = {
                         viewModel.logQuickAdd(food, viewModel.defaultMealKeyFor(food))
+                    },
+                )
+            }
+        }
+
+        // ── Recent Section ───────────────────────────────────────────
+        item {
+            FoodSectionHeader(
+                icon = HxIcons.Clock,
+                iconTint = Color(0xFFA0AABF),
+                title = "Recent",
+                count = recentItems.size,
+            )
+        }
+        if (recentItems.isEmpty()) {
+            item {
+                EmptySectionHint("Recently logged foods will appear here.")
+            }
+        } else {
+            items(recentItems) { food ->
+                QuickAddFoodRow(
+                    food = food,
+                    onClick = {
+                        viewModel.selectQuickAddItem(food)
+                        navController.navigate("log_food_amount")
+                    },
+                    onQuickAdd = {
+                        viewModel.logQuickAdd(food, viewModel.defaultMealKeyFor(food))
+                    },
+                )
+            }
+        }
+
+        // ── My Recipes Section ───────────────────────────────────────
+        item {
+            FoodSectionHeader(
+                icon = HxIcons.Utensils,
+                iconTint = Color(0xFFFFB74D),
+                title = "My Recipes",
+                count = recipeItems.size,
+            )
+        }
+        if (recipeItems.isEmpty()) {
+            item {
+                EmptySectionHint("Create recipes on your phone to log them in one tap.")
+            }
+        } else {
+            items(recipeItems) { recipe ->
+                QuickAddFoodRow(
+                    food = recipe,
+                    leadingIcon = HxIcons.Utensils,
+                    onClick = {
+                        viewModel.selectQuickAddItem(recipe)
+                        navController.navigate("log_food_amount")
+                    },
+                    onQuickAdd = {
+                        viewModel.logQuickAdd(recipe, viewModel.defaultMealKeyFor(recipe))
                     },
                 )
             }
@@ -130,8 +213,71 @@ fun LogFoodScreen(navController: NavController, viewModel: NutritionViewModel) {
 }
 
 @Composable
+private fun FoodSectionHeader(
+    icon: ImageVector,
+    iconTint: Color,
+    title: String,
+    count: Int,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp, bottom = 2.dp, start = 6.dp, end = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = title,
+                color = Color(0xFFE2E6F0),
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+            )
+        }
+        if (count > 0) {
+            Text(
+                text = "$count",
+                color = Color(0xFF7D869C),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 11.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptySectionHint(text: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF141821), shape = RoundedCornerShape(16.dp))
+            .border(1.dp, Color(0xFF232A3B), RoundedCornerShape(16.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            color = Color(0xFF8C95AA),
+            fontSize = 11.sp,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
 private fun QuickAddFoodRow(
     food: QuickAddFoodItem,
+    customStyle: FoodNutritionStyle? = null,
+    leadingIcon: ImageVector? = null,
     onClick: () -> Unit,
     onQuickAdd: () -> Unit,
 ) {
@@ -143,13 +289,12 @@ private fun QuickAddFoodRow(
     val glowAlpha = remember { Animatable(0f) }
     val buttonScale = remember { Animatable(1f) }
 
-    val containerColor by animateColorAsState(
-        targetValue = if (isAdded) Color(0xFF1B4D3E) else OneUiPillStyle.RoyalBlue.containerColor,
-        animationSpec = tween(durationMillis = 260),
-        label = "containerColor",
-    )
+    val nutritionStyle = remember(food, customStyle) {
+        customStyle ?: FoodNutritionStyle.resolve(food)
+    }
+
     val badgeColor by animateColorAsState(
-        targetValue = if (isAdded) Color(0xFF00C853) else OneUiPillStyle.RoyalBlue.badgeColor,
+        targetValue = if (isAdded) Color(0xFF00C853) else nutritionStyle.plusBadgeColor,
         animationSpec = tween(durationMillis = 260),
         label = "badgeColor",
     )
@@ -226,25 +371,48 @@ private fun QuickAddFoodRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(containerColor, shape = CircleShape)
+                .then(
+                    if (isAdded) {
+                        Modifier.background(Color(0xFF1B4D3E), shape = CircleShape)
+                    } else {
+                        Modifier.background(nutritionStyle.backgroundBrush, shape = CircleShape)
+                    }
+                )
+                .then(
+                    if (!isAdded && nutritionStyle.borderColor != Color.Transparent) {
+                        Modifier.border(1.dp, nutritionStyle.borderColor, CircleShape)
+                    } else Modifier
+                )
                 .clickable(onClick = onClick)
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (leadingIcon != null) {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    tint = nutritionStyle.secondaryColor,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = food.name,
-                    color = OneUiPillStyle.RoyalBlue.contentColor,
+                    color = nutritionStyle.contentColor,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = if (isAdded) "✓ Added" else "${food.portionLabel} · ${food.kcal} kcal",
-                    color = if (isAdded) Color(0xFFA5D6A7) else OneUiPillStyle.RoyalBlue.secondaryColor,
+                    color = if (isAdded) Color(0xFFA5D6A7) else nutritionStyle.secondaryColor,
                     fontSize = 10.sp,
                     fontWeight = if (isAdded) FontWeight.SemiBold else FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Spacer(Modifier.size(8.dp))
@@ -296,6 +464,12 @@ fun LogFoodAmountScreen(navController: NavController, viewModel: NutritionViewMo
     val selectedMultiplier = amountMultiplierOptions[pickerState.selectedOption]
     val scaledKcal = (item.kcal * selectedMultiplier).roundToInt()
     val scaledAmount = item.portionAmount * selectedMultiplier
+    val formattedAmount = if (scaledAmount % 1.0 == 0.0) {
+        "%.0f".format(scaledAmount)
+    } else {
+        "%.2f".format(scaledAmount).trimEnd('0').trimEnd('.')
+    }
+    val unitLabel = if (item.portionUnit == "serving" && scaledAmount != 1.0) "servings" else item.portionUnit
     val focusRequester = remember { FocusRequester() }
 
     Column(
@@ -318,7 +492,7 @@ fun LogFoodAmountScreen(navController: NavController, viewModel: NutritionViewMo
             fontSize = 14.sp,
         )
         Text(
-            text = "%.0f %s · $scaledKcal kcal".format(scaledAmount, item.portionUnit),
+            text = "$formattedAmount $unitLabel · $scaledKcal kcal",
             color = Color(0xFF9E9E9E),
             fontSize = 11.sp,
             modifier = Modifier.padding(bottom = 4.dp),

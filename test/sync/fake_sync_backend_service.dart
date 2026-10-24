@@ -54,7 +54,15 @@ class FakeSyncBackendService implements SyncBackendService {
     final stored = Map<String, dynamic>.from(row)
       ..['updated_at'] = DateTime.now().toUtc().toIso8601String();
     final rows = remoteRows.putIfAbsent(table, () => []);
-    rows.removeWhere((r) => r['id'] == stored['id']);
+    rows.removeWhere(
+      (r) =>
+          r['id'] == stored['id'] ||
+          (table == 'nutrition_targets' &&
+              r['user_id'] == stored['user_id'] &&
+              r['applies_to'] == stored['applies_to'] &&
+              r['effective_from_date_iso'] ==
+                  stored['effective_from_date_iso']),
+    );
     rows.add(stored);
   }
 

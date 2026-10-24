@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
@@ -8,11 +9,26 @@ import 'package:herculex/features/supplements/application/supplement_providers.d
 
 /// Coordinates and synchronizes all local notifications (meals, supplements,
 /// fasting, daily check-in) whenever user data or notification settings change.
-class NotificationSyncService {
+class NotificationSyncService with WidgetsBindingObserver {
   final Ref _ref;
 
   NotificationSyncService(this._ref) {
     _initListeners();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // A taken supplement uses a one-shot reminder for tomorrow because a
+      // repeating time notification cannot skip just today's occurrence.
+      // Re-arm daily notifications whenever the app returns to the foreground.
+      unawaited(_syncSupplements());
+    }
   }
 
   void _initListeners() {
@@ -71,12 +87,11 @@ class NotificationSyncService {
   Future<void> _syncSupplements() async {
     try {
       final settings = _ref.read(notificationSettingsProvider);
-      final supplements =
-          _ref.read(supplementsProvider).asData?.value ??
-          _ref.read(supplementRepositoryProvider).loadSupplements();
-      final takenToday =
-          _ref.read(takenTodayProvider).asData?.value ??
-          _ref.read(supplementRepositoryProvider).loadTakenToday();
+      final repository = _ref.read(supplementRepositoryProvider);
+      // Read the persisted date-keyed set directly. StreamProvider can still
+      // hold yesterday's value when the app crosses midnight in the background.
+      final supplements = repository.loadSupplements();
+      final takenToday = repository.loadTakenToday();
       final scheduler = _ref.read(supplementNotificationSchedulerProvider);
       await scheduler.reschedule(
         supplements,
@@ -124,5 +139,7 @@ class NotificationSyncService {
 final notificationSyncServiceProvider = Provider<NotificationSyncService>((
   ref,
 ) {
-  return NotificationSyncService(ref);
+  final service = NotificationSyncService(ref);
+  ref.onDispose(service.dispose);
+  return service;
 });

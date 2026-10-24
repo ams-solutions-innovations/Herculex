@@ -108,7 +108,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
   Future<void> _analyzeWithGemini() async {
     final text = _textCtrl.text.trim();
     if (text.isEmpty) {
-      setState(() => _error = 'Vnesite ali povejte kaj ste jedli.');
+      setState(() => _error = 'Please enter or say what you ate.');
       return;
     }
 
@@ -199,7 +199,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
       if (!mounted) return;
       setState(() {
         _isSaving = false;
-        _error = 'Napaka pri shranjevanju: $e';
+        _error = 'Failed to save: $e';
       });
       Haptics.heavy();
     }
@@ -209,7 +209,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
     setState(() {
       _editableItems.add(
         RamblerFoodItem(
-          name: 'Novo živilo',
+          name: 'New food item',
           servingGrams: 100,
           portionAmount: 100,
           portionUnit: 'g',
@@ -280,7 +280,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                           ),
                         ),
                         Text(
-                          'Povej ali napiši kaj si jedel',
+                          'Say or type what you ate',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.secondary,
                           ),
@@ -304,7 +304,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 children: [
                   Text(
-                    'Obrok / Meal Slot',
+                    'Meal Slot',
                     style: theme.textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: AppColors.secondary,
@@ -452,9 +452,8 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                   focusedBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
                   errorBorder: InputBorder.none,
-                  hintText: stt.selectedLocaleId.toLowerCase().startsWith('sl')
-                      ? 'Npr. "Za kosilo sem pojedel 200g piščančjih prsi, 150g riža in skledo zelene solate z oljem..."'
-                      : 'E.g. "I had 2 scrambled eggs on whole wheat toast with half an avocado and black coffee..."',
+                  hintText:
+                      'E.g. "I had 200g chicken breast, 150g rice, and a side salad with olive oil for lunch..."',
                   hintStyle: TextStyle(
                     color: hx.secondary.withValues(alpha: 0.65),
                     fontSize: 13.5,
@@ -490,7 +489,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                'Počisti',
+                                'Clear',
                                 style: TextStyle(
                                   color: hx.secondary,
                                   fontSize: 12,
@@ -528,7 +527,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                               ),
                               SizedBox(width: 5),
                               Text(
-                                'Poslušam...',
+                                'Listening...',
                                 style: TextStyle(
                                   color: Colors.redAccent,
                                   fontSize: 11,
@@ -576,9 +575,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
               ),
               const SizedBox(height: 10),
               Text(
-                stt.isListening
-                    ? 'Kliknite za ustavitev'
-                    : 'Pritisnite za govor (STT)',
+                stt.isListening ? 'Tap to stop' : 'Tap to speak (Voice AI)',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: stt.isListening ? Colors.redAccent : hx.secondary,
@@ -632,14 +629,14 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Prepoznana živila (${_editableItems.length})',
+              'Detected foods (${_editableItems.length})',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             TextButton.icon(
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Dodaj živilo'),
+              label: const Text('Add food'),
               style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
               onPressed: _addNewItem,
             ),
@@ -667,7 +664,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Skupaj za ta obrok',
+                    'Total for this meal',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -686,17 +683,17 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _MacroTotalColumn(
-                    label: 'Beljakovine',
+                    label: 'Protein',
                     value: '${totalP.toStringAsFixed(1)}g',
                     color: AppColors.macroProtein,
                   ),
                   _MacroTotalColumn(
-                    label: 'Ogljikovi hidrati',
+                    label: 'Carbs',
                     value: '${totalC.toStringAsFixed(1)}g',
                     color: AppColors.macroCarbs,
                   ),
                   _MacroTotalColumn(
-                    label: 'Maščobe',
+                    label: 'Fat',
                     value: '${totalF.toStringAsFixed(1)}g',
                     color: AppColors.macroFat,
                   ),
@@ -710,7 +707,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
         Center(
           child: TextButton.icon(
             icon: const Icon(Icons.refresh, size: 16),
-            label: const Text('Ponovni vnos / Spremeni besedilo'),
+            label: const Text('Re-enter / Edit text'),
             onPressed: () {
               setState(() => _result = null);
             },
@@ -772,7 +769,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
           Row(
             children: [
               Text(
-                'Količina:',
+                'Amount:',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.secondary,
                 ),
@@ -878,8 +875,8 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                       : const Icon(Icons.auto_awesome),
                   label: Text(
                     _isAnalyzing
-                        ? 'Razčlenjujem z Herculex AI...'
-                        : 'Analiziraj z Herculex AI',
+                        ? 'Analyzing with Herculex AI...'
+                        : 'Analyze with Herculex AI',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -906,8 +903,8 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                       : const Icon(Icons.check),
                   label: Text(
                     _isSaving
-                        ? 'Shranjujem v dnevnik...'
-                        : 'Vnesi v dnevnik (${_editableItems.length})',
+                        ? 'Saving to diary...'
+                        : 'Log to diary (${_editableItems.length})',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,

@@ -8,9 +8,11 @@
 library;
 
 import 'dart:convert';
-
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
+
+bool isMachineAssistedPullup(String? slug) =>
+    slug != null && slug.startsWith('assisted-pull-up-machine-');
 
 const _labels = <String, String>{
   'barbell': 'Barbell',
@@ -37,6 +39,7 @@ bool isKnownEquipmentVariant(String variant) => _labels.containsKey(variant);
 /// A single-element result means no choice is worth prompting for — a Seated
 /// Leg Curl exists on exactly one machine.
 List<String> equipmentVariantsFor(ExerciseCatalogData exercise) {
+  if (isMachineAssistedPullup(exercise.slug)) return ['machine_selectorized'];
   final base = exercise.modality;
   // The movement layer knows which equipment this movement is actually
   // performed with, derived from the catalog rows that share it. Guessing a
@@ -93,6 +96,7 @@ LoggingMetric effectiveLoggingMetric({
   required ExerciseCatalogData exercise,
   String? equipmentVariant,
 }) {
+  if (isMachineAssistedPullup(exercise.slug)) return LoggingMetric.weightReps;
   final variant = equipmentVariant ?? exercise.modality;
   if (variant == 'weighted') {
     return LoggingMetric.weightReps;

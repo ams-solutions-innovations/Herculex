@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/features/workouts/application/workout_target_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/data/workout_targets_repository.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/progression_engine.dart';
 
 class ProgressionOverrideSheet extends ConsumerStatefulWidget {
@@ -59,6 +62,8 @@ class _ProgressionOverrideSheetState
   bool _autoAddSets = false;
   int _autoAddSetsCount = 3;
   bool _loaded = false;
+  double _assistanceStep = 2.5;
+  double _assistanceThreshold = 6;
 
   @override
   void initState() {
@@ -67,6 +72,12 @@ class _ProgressionOverrideSheetState
   }
 
   Future<void> _loadExisting() async {
+    final assistance = AssistanceSettings.read(
+      ref.read(sharedPreferencesProvider),
+      widget.exerciseId,
+    );
+    _assistanceStep = assistance.stepKg;
+    _assistanceThreshold = assistance.transitionKg;
     final existing = await ref
         .read(exerciseProgressionsRepositoryProvider)
         .forExercise(widget.exerciseId);
@@ -104,6 +115,11 @@ class _ProgressionOverrideSheetState
           autoAddSets: _autoAddSets,
           autoAddSetsCount: _autoAddSetsCount,
         );
+    await AssistanceSettings(
+      stepKg: _assistanceStep,
+      transitionKg: _assistanceThreshold,
+    ).save(ref.read(sharedPreferencesProvider), widget.exerciseId);
+    ref.invalidate(workoutTargetsProvider);
     ref.invalidate(exerciseProgressionProvider(widget.exerciseId));
     if (mounted) Navigator.of(context).pop();
   }
@@ -148,6 +164,12 @@ class _ProgressionOverrideSheetState
         .asData
         ?.value;
 
+    final exercise = ref
+        .watch(exerciseCatalogProvider(const ExerciseCatalogFilter()))
+        .valueOrNull
+        ?.where((e) => e.id == widget.exerciseId)
+        .firstOrNull;
+    final assisted = isMachineAssistedPullup(exercise?.slug);
     return Container(
       padding: EdgeInsets.fromLTRB(
         24,
@@ -178,6 +200,30 @@ class _ProgressionOverrideSheetState
                   ),
                 ),
               ),
+              if (assisted) ...[
+                Text(
+                  'Assistance decreases as you get stronger. Settings apply to this device.',
+                  style: theme.textTheme.bodySmall,
+                ),
+                Text('Machine step: ${_assistanceStep.toStringAsFixed(1)} kg'),
+                Slider(
+                  value: _assistanceStep.clamp(0.5, 20),
+                  min: 0.5,
+                  max: 20,
+                  divisions: 39,
+                  onChanged: (v) => setState(() => _assistanceStep = v),
+                ),
+                Text(
+                  'Switch to strict pull-ups at ≤ ${_assistanceThreshold.toStringAsFixed(1)} kg assistance',
+                ),
+                Slider(
+                  value: _assistanceThreshold.clamp(0, 20),
+                  min: 0,
+                  max: 20,
+                  divisions: 40,
+                  onChanged: (v) => setState(() => _assistanceThreshold = v),
+                ),
+              ],
               const SizedBox(height: 20),
               Text(
                 'How should this exercise progress?',

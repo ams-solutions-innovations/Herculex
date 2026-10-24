@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
-
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -105,7 +104,9 @@ Uint8List pixelateFaceBoxes(Uint8List jpeg, List<FaceBox> boxes) {
     final y1 = (box.top + box.height + inflate).ceil().clamp(1, image.height);
     final w = x1 - x0;
     final h = y1 - y0;
-    if (w < 2 || h < 2) continue;
+    if (w < 2 || h < 2) {
+      continue;
+    }
     final crop = img.copyCrop(image, x: x0, y: y0, width: w, height: h);
     final blurred = img.pixelate(
       crop,
@@ -211,11 +212,15 @@ class PhysiquePhotoSanitizer {
       );
     } on Object catch (e) {
       try {
-        if (await temp.exists()) await temp.delete();
+        if (await temp.exists()) {
+          await temp.delete();
+        }
       } on FileSystemException {
         // Best effort.
       }
-      if (e is PhotoSanitizeException) rethrow;
+      if (e is PhotoSanitizeException) {
+        rethrow;
+      }
       throw PhotoSanitizeException('Could not process photo: $e');
     }
   }
@@ -233,9 +238,37 @@ class PhysiquePhotoSanitizer {
 
   Future<void> discard(StagedPhoto photo) async {
     try {
-      if (await photo.file.exists()) await photo.file.delete();
+      if (await photo.file.exists()) {
+        await photo.file.delete();
+      }
     } on FileSystemException {
       // Tolerant.
     }
+  }
+}
+
+/// A sanitized photo with its capture angle, ready for one atomic submission.
+class StagedPosePhoto {
+  const StagedPosePhoto({required this.pose, required this.photo});
+  final String pose;
+  final StagedPhoto photo;
+
+  static List<StagedPosePhoto> checked({
+    List<StagedPosePhoto> photos = const [],
+    StagedPhoto? staged,
+    String pose = 'front',
+  }) {
+    final result = photos.isNotEmpty
+        ? List<StagedPosePhoto>.unmodifiable(photos)
+        : staged == null
+        ? <StagedPosePhoto>[]
+        : [StagedPosePhoto(pose: pose, photo: staged)];
+    if (result.isEmpty ||
+        result.length > 3 ||
+        result.any((p) => !const {'front', 'side', 'back'}.contains(p.pose)) ||
+        result.map((p) => p.pose).toSet().length != result.length) {
+      throw ArgumentError('Choose one to three photos with different poses.');
+    }
+    return result;
   }
 }

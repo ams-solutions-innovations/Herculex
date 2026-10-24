@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
@@ -9,6 +10,7 @@ class HealthService {
   final AppDatabase _db;
   final Clock _clock;
   final HealthAdapter _health;
+  final Map<String, Future<bool>> _pendingWorkoutExports = {};
   DateTime? _lastSyncTime;
   DailyHealthRead? _lastDailyRead;
 
@@ -203,8 +205,92 @@ class HealthService {
     required DateTime startTime,
     required DateTime endTime,
     required int totalCaloriesBurned,
+    int? workoutSessionId,
     HealthWorkoutActivityType activityType =
         HealthWorkoutActivityType.STRENGTH_TRAINING,
+  }) {
+    final key = workoutSessionId?.toString() ?? startTime.toIso8601String();
+    return _pendingWorkoutExports.putIfAbsent(key, () {
+      return _writeWorkoutWithOwnership(
+        activityName: activityName,
+        startTime: startTime,
+        endTime: endTime,
+        totalCaloriesBurned: totalCaloriesBurned,
+        activityType: activityType,
+        workoutSessionId: workoutSessionId,
+      ).whenComplete(() {
+        _pendingWorkoutExports.remove(key);
+      });
+    });
+  }
+
+  Future<bool> _writeWorkoutWithOwnership({
+    required String activityName,
+    required DateTime startTime,
+    required DateTime endTime,
+    required int totalCaloriesBurned,
+    int? workoutSessionId,
+    HealthWorkoutActivityType activityType =
+        HealthWorkoutActivityType.STRENGTH_TRAINING,
+  }) async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      final sessions =
+          await (_db.select(_db.workoutSessions)..where(
+                (t) => workoutSessionId == null
+                    ? t.startedAt.equals(startTime)
+                    : t.id.equals(workoutSessionId),
+              ))
+              .get();
+      final entityId = sessions.firstOrNull?.sessionUuid;
+      if (entityId != null) {
+        final ownership = await _db.transaction(() async {
+          await _db.customStatement(
+            'INSERT OR IGNORE INTO watch_health_exports (entity_id, owner, status) VALUES (?, ?, ?)',
+            [entityId, 'phone', 'pending'],
+          );
+          return (await _db
+                  .customSelect(
+                    'SELECT owner, status FROM watch_health_exports WHERE entity_id = ?',
+                    variables: [Variable(entityId)],
+                  )
+                  .getSingle())
+              .data;
+        });
+        if (ownership['owner'] == 'watch') {
+          return ownership['status'] == 'saved';
+        }
+        if (ownership['status'] == 'saved') return true;
+        final saved = await _writeWorkoutToHealth(
+          activityName: activityName,
+          startTime: startTime,
+          endTime: endTime,
+          totalCaloriesBurned: totalCaloriesBurned,
+          activityType: activityType,
+        );
+        if (saved) {
+          await _db.customStatement(
+            "UPDATE watch_health_exports SET status = 'saved' WHERE entity_id = ? AND owner = 'phone'",
+            [entityId],
+          );
+        }
+        return saved;
+      }
+    }
+    return _writeWorkoutToHealth(
+      activityName: activityName,
+      startTime: startTime,
+      endTime: endTime,
+      totalCaloriesBurned: totalCaloriesBurned,
+      activityType: activityType,
+    );
+  }
+
+  Future<bool> _writeWorkoutToHealth({
+    required String activityName,
+    required DateTime startTime,
+    required DateTime endTime,
+    required int totalCaloriesBurned,
+    required HealthWorkoutActivityType activityType,
   }) async {
     try {
       await _health.configure();

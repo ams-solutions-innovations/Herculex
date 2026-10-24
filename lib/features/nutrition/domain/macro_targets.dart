@@ -28,6 +28,7 @@ class MacroTargets {
   /// Hand-picked activity multiplier for an onboarding [ActivityLevel]. This is
   /// the cold-start seed and the manual reseed value for adaptive TDEE.
   static double multiplierFor(ActivityLevel level) => switch (level) {
+    ActivityLevel.autocalibrator => 1.375,
     ActivityLevel.sedentary => 1.2,
     ActivityLevel.lightlyActive => 1.375,
     ActivityLevel.active => 1.55,

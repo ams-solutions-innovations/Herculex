@@ -14,18 +14,21 @@ import 'package:image_picker/image_picker.dart';
 /// bottles, and supplement facts labels with Gemini AI vision.
 class SupplementAiScanDialog extends ConsumerStatefulWidget {
   final File? initialImage;
+  final String? barcode;
 
-  const SupplementAiScanDialog({super.key, this.initialImage});
+  const SupplementAiScanDialog({super.key, this.initialImage, this.barcode});
 
   static Future<SupplementAiResult?> show(
     BuildContext context, {
     File? initialImage,
+    String? barcode,
   }) {
     return showModalBottomSheet<SupplementAiResult>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => SupplementAiScanDialog(initialImage: initialImage),
+      builder: (_) =>
+          SupplementAiScanDialog(initialImage: initialImage, barcode: barcode),
     );
   }
 
@@ -65,7 +68,12 @@ class _SupplementAiScanDialogState
       await ref
           .read(pendingAiScanServiceProvider)
           .setPendingContext(
-            PendingAiScanContext(type: AiScanContextType.supplement),
+            PendingAiScanContext(
+              type: AiScanContextType.supplement,
+              extra: widget.barcode != null
+                  ? {'barcode': widget.barcode!}
+                  : null,
+            ),
           );
       final picker = ImagePicker();
       final picked = await picker.pickImage(
@@ -85,7 +93,7 @@ class _SupplementAiScanDialogState
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error = 'Napaka pri izbiri slike: $e');
+        setState(() => _error = 'Failed to pick image: $e');
       }
     }
   }
@@ -99,23 +107,28 @@ class _SupplementAiScanDialogState
 
     try {
       final service = ref.read(supplementAiServiceProvider);
-      final note = _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim();
+      final typedNote = _noteCtrl.text.trim();
+      final combinedNote = [
+        if (widget.barcode != null && widget.barcode!.isNotEmpty)
+          'Barcode: ${widget.barcode}',
+        if (typedNote.isNotEmpty) typedNote,
+      ].join(' · ');
       final res = await service.analyzeSupplementPhoto(
         imageFile: file,
-        userNote: note,
+        userNote: combinedNote.isEmpty ? null : combinedNote,
       );
 
       if (!mounted) return;
       setState(() {
         _analyzing = false;
-        _result = res;
+        _result = res.copyWith(barcode: widget.barcode);
       });
       Haptics.medium();
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _analyzing = false;
-        _error = 'Napaka pri analizi dopolnila: $e';
+        _error = 'Failed to analyze supplement: $e';
       });
     }
   }
@@ -172,13 +185,15 @@ class _SupplementAiScanDialogState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Skeniranje prehranskega dopolnila',
+                          'Scan Supplement',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
-                          'Herculex AI Vision analiza deklaracije in odmerka',
+                          widget.barcode != null
+                              ? 'Barcode ${widget.barcode} not in database · Herculex AI analysis'
+                              : 'Herculex AI Vision label & dosage analysis',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.secondary,
                           ),
@@ -247,7 +262,7 @@ class _SupplementAiScanDialogState
               ),
               const SizedBox(height: 16),
               Text(
-                'Slikajte embalažo ali deklaracijo dopolnila',
+                'Take a photo of the supplement package or label',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -255,7 +270,7 @@ class _SupplementAiScanDialogState
               ),
               const SizedBox(height: 8),
               Text(
-                'Herculex AI bo samodejno prebral ime izdelka, proizvajalca, priporočen odmerek ter razbral vsebnost vitaminov in mineralov.',
+                'Herculex AI will automatically read the product name, brand, recommended serving size, and vitamin/mineral amounts.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.secondary,
                   height: 1.35,
@@ -266,7 +281,7 @@ class _SupplementAiScanDialogState
               TextField(
                 controller: _noteCtrl,
                 decoration: InputDecoration(
-                  hintText: 'Opomba (neobvezno, npr. 2 kapsuli zjutraj)',
+                  hintText: 'Note (optional, e.g. 2 capsules in the morning)',
                   filled: true,
                   fillColor: AppColors.surfaceContainerLowest,
                   border: OutlineInputBorder(
@@ -283,7 +298,7 @@ class _SupplementAiScanDialogState
                     child: OutlinedButton.icon(
                       onPressed: () => _pickImage(ImageSource.gallery),
                       icon: const Icon(Icons.photo_library_outlined),
-                      label: const Text('Galerija'),
+                      label: const Text('Gallery'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -297,7 +312,7 @@ class _SupplementAiScanDialogState
                     child: FilledButton.icon(
                       onPressed: () => _pickImage(ImageSource.camera),
                       icon: const Icon(Icons.camera_alt),
-                      label: const Text('Kamera'),
+                      label: const Text('Camera'),
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFF9B59B6),
                         foregroundColor: Colors.white,
@@ -347,7 +362,7 @@ class _SupplementAiScanDialogState
                   Icon(Icons.refresh, size: 14, color: Colors.white),
                   SizedBox(width: 4),
                   Text(
-                    'Nova slika',
+                    'New photo',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 11,
@@ -374,13 +389,13 @@ class _SupplementAiScanDialogState
             ),
             SizedBox(height: 18),
             Text(
-              'Herculex AI analizira prehransko dopolnilo in deklaracijo...',
+              'Herculex AI is analyzing the supplement and label...',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 6),
             Text(
-              'Razbira ime izdelka, znamko, odmerek ter vsebnost vitaminov in mineralov',
+              'Extracting product name, brand, serving size, and vitamin/mineral amounts',
               style: TextStyle(color: Colors.grey, fontSize: 12),
               textAlign: TextAlign.center,
             ),
@@ -426,7 +441,7 @@ class _SupplementAiScanDialogState
                         Icon(Icons.auto_awesome, size: 12, color: Colors.white),
                         SizedBox(width: 4),
                         Text(
-                          'Prepoznano',
+                          'Identified',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 10.5,
@@ -438,7 +453,7 @@ class _SupplementAiScanDialogState
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Zanesljivost: ${(r.confidence * 100).toStringAsFixed(0)} %',
+                    'Confidence: ${(r.confidence * 100).toStringAsFixed(0)}%',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: AppColors.secondary,
                       fontWeight: FontWeight.bold,
@@ -473,28 +488,28 @@ class _SupplementAiScanDialogState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _detailRow('Ime dopolnila', r.name, Icons.label_outline),
+              _detailRow('Supplement name', r.name, Icons.label_outline),
               if (r.brand != null) ...[
                 const Divider(height: 18),
-                _detailRow('Znamka', r.brand!, Icons.business_outlined),
+                _detailRow('Brand', r.brand!, Icons.business_outlined),
               ],
               if (r.doseAmount != null && r.doseUnit != null) ...[
                 const Divider(height: 18),
                 _detailRow(
-                  'Priporočen odmerek',
+                  'Recommended dose',
                   '${r.doseAmount!.truncateToDouble() == r.doseAmount ? r.doseAmount!.toStringAsFixed(0) : r.doseAmount!.toStringAsFixed(1)} ${r.doseUnit}',
                   Icons.science_outlined,
                 ),
               ],
               const Divider(height: 18),
               _detailRow(
-                'Priporočen opomnik',
+                'Recommended reminder',
                 r.schedule == SupplementSchedule.postWorkout
-                    ? 'Po treningu'
+                    ? 'Post-workout'
                     : (r.schedule == SupplementSchedule.time &&
                               r.timeHHMM != null
-                          ? 'Vsak dan ob ${r.timeHHMM}'
-                          : 'Brez opomnika'),
+                          ? 'Daily at ${r.timeHHMM}'
+                          : 'No reminder'),
                 Icons.notifications_active_outlined,
               ),
             ],
@@ -504,7 +519,7 @@ class _SupplementAiScanDialogState
 
         if (r.nutrients.isNotEmpty) ...[
           Text(
-            'Zaznana mikrohranila in sestavine (na odmerek)',
+            'Detected micronutrients & ingredients (per serving)',
             style: theme.textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: AppColors.secondary,
@@ -587,7 +602,7 @@ class _SupplementAiScanDialogState
             },
             icon: const Icon(Icons.check_circle_outline),
             label: const Text(
-              'Uporabi te podatke',
+              'Use this data',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
             style: FilledButton.styleFrom(
@@ -639,7 +654,7 @@ class _SupplementAiScanDialogState
           child: OutlinedButton.icon(
             onPressed: () => _pickImage(ImageSource.camera),
             icon: const Icon(Icons.camera_alt_outlined, size: 18),
-            label: const Text('Ponovno slikaj'),
+            label: const Text('Retake photo'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 13),
               shape: RoundedRectangleBorder(

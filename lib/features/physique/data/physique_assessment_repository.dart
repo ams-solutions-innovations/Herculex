@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:drift/drift.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
@@ -14,8 +13,9 @@ import 'package:herculex/features/physique/domain/physique_tuning.dart';
 class CheckInRecord {
   const CheckInRecord({
     required this.goalId,
-    required this.pose,
-    required this.relativePath,
+    this.pose = 'front',
+    this.relativePath = '',
+    this.photos = const [],
     this.blurred = false,
     this.weightKg,
     this.verdict = CheckInVerdict.inconclusive,
@@ -29,6 +29,7 @@ class CheckInRecord {
   });
 
   final int goalId;
+  final List<NewPhotoRow> photos;
   final String pose;
   final String relativePath;
   final bool blurred;
@@ -107,6 +108,26 @@ class PhysiqueAssessmentRepository {
       );
     }
 
+    final photos = record.photos.isNotEmpty
+        ? record.photos
+        : [
+            NewPhotoRow(
+              pose: record.pose,
+              relativePath: record.relativePath,
+              takenAt: now,
+              blurred: record.blurred,
+            ),
+          ];
+    if (photos.isEmpty ||
+        photos.length > 3 ||
+        photos.map((p) => p.pose).toSet().length != photos.length ||
+        photos.any(
+          (p) =>
+              p.relativePath.isEmpty ||
+              !const {'front', 'side', 'back'}.contains(p.pose),
+        )) {
+      throw ArgumentError('A check-in needs one to three different poses.');
+    }
     final dateIso = physiqueDayKey(now);
     final assessmentId = await _db
         .into(_db.physiqueAssessments)
@@ -128,21 +149,46 @@ class PhysiqueAssessmentRepository {
             knowledgeVersion: Value(record.knowledgeVersion),
           ),
         );
-    await _db
-        .into(_db.physiquePhotos)
-        .insert(
-          PhysiquePhotosCompanion.insert(
-            goalId: record.goalId,
-            assessmentId: Value(assessmentId),
-            role: 'checkin',
-            pose: record.pose,
-            dateIso: dateIso,
-            takenAt: Value(now),
-            relativePath: record.relativePath,
-            blurred: Value(record.blurred),
-          ),
-        );
+    for (final photo in photos) {
+      await _db
+          .into(_db.physiquePhotos)
+          .insert(
+            PhysiquePhotosCompanion.insert(
+              goalId: record.goalId,
+              assessmentId: Value(assessmentId),
+              role: 'checkin',
+              pose: photo.pose,
+              dateIso: dateIso,
+              takenAt: Value(photo.takenAt),
+              relativePath: photo.relativePath,
+              blurred: Value(photo.blurred),
+            ),
+          );
+    }
     return assessmentId;
+  });
+
+  Future<List<int>> addBaselinePhotos({
+    required int goalId,
+    required List<NewPhotoRow> photos,
+  }) => _db.transaction(() async {
+    if (photos.isEmpty ||
+        photos.length > 3 ||
+        photos.map((p) => p.pose).toSet().length != photos.length) {
+      throw ArgumentError('Choose one to three different poses.');
+    }
+    final goal =
+        await (_db.select(_db.physiqueGoals)
+              ..where((g) => g.id.equals(goalId) & g.deletedAt.isNull()))
+            .getSingleOrNull();
+    if (goal == null || goal.status != 'active') {
+      throw const GoalNotActiveException();
+    }
+    final ids = <int>[];
+    for (final photo in photos) {
+      ids.add(await addBaselinePhoto(goalId: goalId, photo: photo));
+    }
+    return ids;
   });
 
   /// Baseline photo: no cap, no AI call, at most
@@ -211,6 +257,86 @@ class PhysiqueAssessmentRepository {
       PhysiquePhotosCompanion(deletedAt: Value(now), updatedAt: Value(now)),
     );
     return [for (final p in photos) p.relativePath];
+  });
+
+  /// Returns a saved, not-yet-analysed check-in that can be retried.
+  Future<PhysiqueAssessmentData?> checkInForAnalysisRetry({
+    required int goalId,
+    required int assessmentId,
+  }) =>
+      (_db.select(_db.physiqueAssessments)..where(
+            (a) =>
+                a.id.equals(assessmentId) &
+                a.goalId.equals(goalId) &
+                a.kind.equals('checkin') &
+                a.deletedAt.isNull(),
+          ))
+          .getSingleOrNull();
+
+  /// The private photos already attached to [assessmentId], in pose order.
+  Future<List<PhysiquePhotoData>> checkInPhotosForAnalysisRetry({
+    required int goalId,
+    required int assessmentId,
+  }) async {
+    final rows =
+        await (_db.select(_db.physiquePhotos)..where(
+              (p) =>
+                  p.goalId.equals(goalId) &
+                  p.assessmentId.equals(assessmentId) &
+                  p.role.equals('checkin') &
+                  p.deletedAt.isNull(),
+            ))
+            .get();
+    rows.sort((a, b) {
+      final rank = _poseRank(a.pose).compareTo(_poseRank(b.pose));
+      return rank != 0 ? rank : a.id.compareTo(b.id);
+    });
+    return rows;
+  }
+
+  /// Adds AI evidence to the existing inconclusive check-in. `assessedAt`
+  /// stays unchanged, so this does not consume another weekly check-in slot.
+  Future<void> updateCheckInAnalysis({
+    required int assessmentId,
+    required CheckInVerdict verdict,
+    required CheckInBand band,
+    required AssessmentConfidence confidence,
+    required String reason,
+    required List<String> limitations,
+    String? modelVersion,
+    String? knowledgeVersion,
+  }) => _db.transaction(() async {
+    final row =
+        await (_db.select(_db.physiqueAssessments)..where(
+              (a) =>
+                  a.id.equals(assessmentId) &
+                  a.kind.equals('checkin') &
+                  a.deletedAt.isNull(),
+            ))
+            .getSingleOrNull();
+    if (row == null || row.source != 'no_analysis') {
+      throw StateError('This check-in is no longer available for retry.');
+    }
+    await (_db.update(_db.physiqueAssessments)..where(
+          (a) =>
+              a.id.equals(assessmentId) &
+              a.source.equals('no_analysis') &
+              a.deletedAt.isNull(),
+        ))
+        .write(
+          PhysiqueAssessmentsCompanion(
+            confidence: Value(confidence.wireValue),
+            verdict: Value(verdict.wireValue),
+            directionBandLow: Value(band.low),
+            directionBandHigh: Value(band.high),
+            reason: Value(reason),
+            limitationsJson: Value(jsonEncode(limitations)),
+            source: const Value('ai'),
+            modelVersion: Value(modelVersion),
+            knowledgeVersion: Value(knowledgeVersion),
+            updatedAt: Value(_clock.now()),
+          ),
+        );
   });
 
   Stream<List<PhysiqueAssessmentData>> watchCheckIns(int goalId) =>
@@ -297,7 +423,9 @@ class PhysiqueAssessmentRepository {
             .get();
     rows.sort((a, b) {
       final c = a.takenAt.compareTo(b.takenAt);
-      if (c != 0) return c;
+      if (c != 0) {
+        return c;
+      }
       final r = _poseRank(a.pose).compareTo(_poseRank(b.pose));
       return r != 0 ? r : a.id.compareTo(b.id);
     });

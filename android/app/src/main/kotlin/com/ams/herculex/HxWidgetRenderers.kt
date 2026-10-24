@@ -13,7 +13,7 @@ import kotlin.math.sqrt
 // Widgets › 1b"). Each one draws its widget at the given size in dp and is
 // free of Android resources, so it can be previewed off-device.
 
-data class HxMacro(val current: Int, val target: Int) {
+data class HxMacro(val current: Int, val target: Int, val stale: Boolean = false) {
     val hasTarget: Boolean get() = target > 0
     val fraction: Float get() = if (target > 0) current.toFloat() / target else 0f
 }
@@ -32,7 +32,13 @@ data class HxNutrition(
     val hasGoal: Boolean get() = goal > 0
 
     companion object {
-        val UNSYNCED = HxNutrition(0, 0, 0, 0, HxMacro(0, 0), HxMacro(0, 0), HxMacro(0, 0), stale = true)
+        val UNSYNCED = HxNutrition(
+            0, 0, 0, 0,
+            HxMacro(0, 0, stale = true),
+            HxMacro(0, 0, stale = true),
+            HxMacro(0, 0, stale = true),
+            stale = true,
+        )
     }
 
     val allowance: Int get() = goal + exercise
@@ -144,9 +150,9 @@ class HxWidgetRenderer(
             for ((kind, m) in macros(n)) {
                 val base = baseline(y, name, TODAY_ROW_LABEL)
                 text(kind.title, x0, base, name)
-                val suffix = if (m.hasTarget) " / ${m.target} g" else ""
+                val suffix = if (m.hasTarget) " / ${m.target} g" else if (!n.stale) " g" else ""
                 val sw = text(suffix, x0 + cw, base, target, Paint.Align.RIGHT)
-                text(if (m.hasTarget) "${m.current}" else "—", x0 + cw - sw, base, value, Paint.Align.RIGHT)
+                text(if (m.hasTarget || !n.stale) "${m.current}" else "—", x0 + cw - sw, base, value, Paint.Align.RIGHT)
                 bar(x0, y + TODAY_ROW_LABEL + 5, cw, 4f, m.fraction, p.surfaceVariant, macroColor(kind))
                 y += TODAY_ROW_LABEL + 5 + 4 + 10
             }
@@ -167,8 +173,9 @@ class HxWidgetRenderer(
     internal fun HxCanvas.button(
         x: Float, y: Float, w: Float, h: Float,
         icon: HxIcon, iconSize: Float, text: String, style: HxTextStyle, bg: Int,
+        radius: Float = h / 2f,
     ) {
-        roundRect(x, y, x + w, y + h, h / 2, bg)
+        roundRect(x, y, x + w, y + h, radius, bg)
         val contentW = iconSize + 6 + width(text, style)
         val left = x + (w - contentW) / 2
         icon(icon, left + iconSize / 2, y + h / 2, iconSize, style.color)
@@ -188,7 +195,13 @@ class HxWidgetRenderer(
     }
 
     private fun macroSummary(n: HxNutrition) = macros(n).joinToString(". ") { (kind, m) ->
-        if (m.hasTarget) "${kind.title} ${m.current} of ${m.target} grams" else "${kind.title} no target"
+        if (m.hasTarget) {
+            "${kind.title} ${m.current} of ${m.target} grams"
+        } else if (!n.stale) {
+            "${kind.title} ${m.current} grams"
+        } else {
+            "${kind.title} no data"
+        }
     }
 
     // ── 2×2 Calories ──────────────────────────────────────────────────────
@@ -292,7 +305,7 @@ class HxWidgetRenderer(
         text(kind.caption, x + 6 + 5, baseline(top, label), label, maxWidth = colW - 11)
         val vTop = top + capH + 4
         val base = baseline(vTop, value, value.size * 1.1f)
-        val vw = text(if (m.hasTarget) "${m.current}" else "—", x, base, value)
+        val vw = text(if (m.hasTarget) "${m.current}" else if (!m.stale) "${m.current}g" else "—", x, base, value)
         if (m.hasTarget) text(" / ${m.target} g", x + vw, base, target, maxWidth = colW - vw)
         bar(x, vTop + value.size * 1.1f + 4, colW, 4f, m.fraction, p.surfaceVariant, color)
     }
@@ -312,11 +325,17 @@ class HxWidgetRenderer(
             text(kind.caption, 16f + 11, baseline(top, label), label)
             val vTop = top + capH + 4
             val base = baseline(vTop, value, value.size)
-            val vw = text(if (m.hasTarget) "${m.current}" else "—", 16f, base, value)
+            val vw = text(if (m.hasTarget) "${m.current}" else if (!m.stale) "${m.current}g" else "—", 16f, base, value)
             if (m.hasTarget) text(" / ${m.target} g", 16 + vw, base, target, maxWidth = w - 32 - vw)
             bar(16f, vTop + value.size + 6, w - 32, 4f, m.fraction, p.surfaceVariant, color)
         }
-        val desc = if (m.hasTarget) "${m.current} of ${m.target} grams" else "no target"
+        val desc = if (m.hasTarget) {
+            "${m.current} of ${m.target} grams"
+        } else if (!m.stale) {
+            "${m.current} grams"
+        } else {
+            "no data"
+        }
         return HxRendered(bitmap, "${kind.title} $desc")
     }
 
@@ -366,13 +385,26 @@ class HxWidgetRenderer(
     fun quickLog(w: Float, h: Float): HxRendered {
         val bitmap = draw(w, h) {
             card(w, h, p, null)
-            val slot = QUICK_LOG_SEARCH
-            val scanR = w - 16 - slot - 8
-            button(16f, 16f, scanR - 16, h - 32, HxIcon.BARCODE_SCANNER, 20f, "Scan",
-                manrope(13f, 700, p.onPrimary), p.primary)
-            val d = min(slot, h - 32)
-            val cx = w - 16 - slot / 2
-            iconChip(HxIcon.SEARCH, cx, h / 2, d, 20f, p.surfaceVariant, p.onSurface)
+            val shape = p.look.shape
+            val pad = when (shape) {
+                HxCornerShape.PILL -> 8f
+                HxCornerShape.ROUNDED -> 12f
+                HxCornerShape.SQUIRCLE -> 14f
+            }
+            val btnH = h - 2 * pad
+            val slot = btnH
+            val gap = 8f
+            val scanR = w - pad - slot - gap
+            val scanW = scanR - pad
+            val btnRadius = when (shape) {
+                HxCornerShape.PILL -> btnH / 2f
+                HxCornerShape.ROUNDED -> minOf(btnH / 2f, 22f)
+                HxCornerShape.SQUIRCLE -> 16f
+            }
+            button(pad, pad, scanW, btnH, HxIcon.BARCODE_SCANNER, 20f, "Scan",
+                manrope(13f, 700, p.onPrimary), p.primary, btnRadius)
+            val cx = w - pad - slot / 2f
+            iconChip(HxIcon.SEARCH, cx, h / 2f, slot, 20f, p.surfaceVariant, p.onSurface)
         }
         return HxRendered(bitmap, "Quick log: scan barcode or search food")
     }

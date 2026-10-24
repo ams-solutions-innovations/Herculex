@@ -55,6 +55,11 @@ class SyncService : WearableListenerService() {
         }
     }
 
+    override fun onCreate() {
+        super.onCreate()
+        com.ams.herculex.complication.MidnightAlarmScheduler.scheduleMidnightAlarm(applicationContext)
+    }
+
     override fun onDataChanged(dataEvents: DataEventBuffer) {
         super.onDataChanged(dataEvents)
 
@@ -83,10 +88,11 @@ class SyncService : WearableListenerService() {
                     val weeklySets = dataMap.getInt("weekly_sets", 0)
                     val weeklyVolumeJson = dataMap.getString("weekly_volume_json", "[]") ?: "[]"
                     val nutrientTrendsJson = dataMap.getString("nutrient_trends_json", "[]") ?: "[]"
+                    val day = dataMap.getString("day")
 
-                    MacroStore.save(this, calories, protein, carbs, fats, fasting)
+                    MacroStore.save(this, calories, protein, carbs, fats, fasting, dayKey = day)
                     if (dataMap.containsKey("water_ml")) {
-                        MacroStore.saveWater(this, dataMap.getInt("water_ml", 0))
+                        MacroStore.saveWater(this, dataMap.getInt("water_ml", 0), dayKey = day)
                     }
                     MacroStore.saveWeeklyVolume(this, weeklyTonnage, weeklySets, weeklyVolumeJson)
                     MacroStore.saveNutrientTrends(this, nutrientTrendsJson)
@@ -139,6 +145,7 @@ class SyncService : WearableListenerService() {
                     val quickAddJson = dataMap.getString("quickadd_json")
                     if (!quickAddJson.isNullOrBlank()) {
                         QuickAddStore.save(this, quickAddJson)
+                        activeNutritionViewModel?.refreshQuickAdd()
                         Log.d("SyncService", "Quick-add foods synced from phone")
                     }
                 }
@@ -201,6 +208,14 @@ class SyncService : WearableListenerService() {
                         com.ams.herculex.media.WearMediaStore.save(this, mediaJson)
                         Log.d("SyncService", "Media state synced via DataClient")
                     }
+                }
+
+                path == "/herculex_cns_data" -> {
+                    val readinessPct = dataMap.getInt("readiness_pct", 100)
+                    val status = dataMap.getString("status", "FRESH") ?: "FRESH"
+                    CnsStore.save(this, readinessPct, status)
+                    WearComplicationHelper.requestCnsComplicationsUpdate(this)
+                    Log.d("SyncService", "CNS synced via DataClient: $readinessPct% $status")
                 }
             }
         }

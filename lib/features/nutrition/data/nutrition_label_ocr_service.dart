@@ -38,6 +38,41 @@ class NutritionLabelOcrService {
     }
   }
 
+  /// Extracts nutrition values prioritizing Herculex AI vision + OCR text context,
+  /// falling back to on-device OCR if AI is unavailable.
+  Future<NutritionLabelDraft> extractWithAi(File imageFile) async {
+    var ocrText = '';
+    NutritionLabelDraft? ocrDraft;
+    final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    try {
+      final recognized = await recognizer.processImage(
+        InputImage.fromFilePath(imageFile.path),
+      );
+      ocrText = recognized.text;
+      ocrDraft = parse(ocrText);
+    } catch (_) {
+      // Ignore MLKit errors (e.g. in desktop/test environments) and proceed to AI.
+    } finally {
+      try {
+        await recognizer.close();
+      } catch (_) {}
+    }
+
+    try {
+      return await gemini.analyzeNutritionLabel(
+        imageFile: imageFile,
+        ocrText: ocrText,
+      );
+    } catch (_) {
+      if (ocrDraft != null && ocrDraft.hasCoreNutrition) {
+        return ocrDraft.withWarning(
+          'Herculex AI was unavailable; filled values using on-device OCR. Check all fields before saving.',
+        );
+      }
+      rethrow;
+    }
+  }
+
   static NutritionLabelDraft parse(String text) {
     final lines = text
         .split(RegExp(r'\r?\n'))

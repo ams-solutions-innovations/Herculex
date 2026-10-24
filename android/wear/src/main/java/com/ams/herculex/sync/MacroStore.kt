@@ -38,28 +38,39 @@ object MacroStore {
         protein: Int,
         carbs: Int,
         fats: Int,
-        fasting: String
+        fasting: String,
+        dayKey: String? = null,
     ) {
+        val today = todayKey()
+        // If the phone pushed stale macros from a previous day (e.g. buffered/delayed),
+        // do not overwrite today's progress on the watch with yesterday's totals.
+        if (dayKey != null && dayKey < today) {
+            android.util.Log.w("MacroStore", "Ignored stale macro sync from day $dayKey (today is $today)")
+            return
+        }
+        val targetDay = dayKey ?: today
         prefs(context).edit()
             .putInt(KEY_CALORIES, calories)
             .putInt(KEY_PROTEIN, protein)
             .putInt(KEY_CARBS, carbs)
             .putInt(KEY_FATS, fats)
             .putString(KEY_FASTING, fasting)
-            // The phone is the source of truth for "today", so a full push
-            // also stamps the day key — this is what lets a watch-side
-            // addFood/addCalories/addWater made right after this push detect
-            // it's still the same day and add on top rather than reset.
-            .putString(KEY_DAY, todayKey())
+            .putString(KEY_DAY, targetDay)
             .apply()
     }
 
     /// Today's water total as the phone has it (the phone is the source of truth,
     /// watch-side adds are only a stop-gap until the next push).
-    fun saveWater(context: Context, waterMl: Int) {
+    fun saveWater(context: Context, waterMl: Int, dayKey: String? = null) {
+        val today = todayKey()
+        if (dayKey != null && dayKey < today) {
+            android.util.Log.w("MacroStore", "Ignored stale water sync from day $dayKey (today is $today)")
+            return
+        }
+        val targetDay = dayKey ?: today
         prefs(context).edit()
             .putInt(KEY_WATER, waterMl.coerceAtLeast(0))
-            .putString(KEY_DAY, todayKey())
+            .putString(KEY_DAY, targetDay)
             .apply()
     }
 
@@ -102,6 +113,23 @@ object MacroStore {
             .putInt(KEY_PROTEIN,  p.getInt(KEY_PROTEIN,  0) + protein)
             .putInt(KEY_CARBS,    p.getInt(KEY_CARBS,    0) + carbs)
             .putInt(KEY_FATS,     p.getInt(KEY_FATS,     0) + fats)
+            .apply()
+    }
+
+    fun adjustFood(
+        context: Context,
+        deltaCalories: Int,
+        deltaProtein: Int,
+        deltaCarbs: Int,
+        deltaFats: Int,
+    ) {
+        rolloverIfNeeded(context)
+        val p = prefs(context)
+        p.edit()
+            .putInt(KEY_CALORIES, (p.getInt(KEY_CALORIES, 0) + deltaCalories).coerceAtLeast(0))
+            .putInt(KEY_PROTEIN,  (p.getInt(KEY_PROTEIN,  0) + deltaProtein).coerceAtLeast(0))
+            .putInt(KEY_CARBS,    (p.getInt(KEY_CARBS,    0) + deltaCarbs).coerceAtLeast(0))
+            .putInt(KEY_FATS,     (p.getInt(KEY_FATS,     0) + deltaFats).coerceAtLeast(0))
             .apply()
     }
 
@@ -184,7 +212,7 @@ object MacroStore {
     /// yesterday's leftover numbers instead of starting the new day at zero.
     /// [fasting]/weekly-tonnage/nutrient-trends are intentionally untouched —
     /// fasting spans midnight by design, and the weekly stats aren't daily.
-    private fun rolloverIfNeeded(context: Context) {
+    fun rolloverIfNeeded(context: Context) {
         val p = prefs(context)
         val today = todayKey()
         if (p.getString(KEY_DAY, null) != today) {

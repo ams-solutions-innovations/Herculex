@@ -49,6 +49,11 @@ Map<String, dynamic> _cloneValid() =>
     jsonDecode(jsonEncode(_validBriefJson())) as Map<String, dynamic>;
 
 void main() {
+  test('fractional day indices are rejected instead of truncated', () {
+    final raw = _cloneValid();
+    (raw['dayRoles'] as List).first['dayIndex'] = 0.5;
+    expect(() => ProgramBrief.fromJson(raw), throwsFormatException);
+  });
   group('ProgramBrief.fromJson — valid payload', () {
     test('parses every field successfully', () {
       final brief = ProgramBrief.fromJson(_cloneValid());

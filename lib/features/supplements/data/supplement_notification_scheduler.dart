@@ -62,7 +62,9 @@ class SupplementNotificationScheduler {
   /// [SupplementSchedule.time]. Cancels any previously scheduled ones first.
   ///
   /// If a supplement has already been marked taken today ([takenTodayIds]),
-  /// today's reminder is skipped and rescheduled for tomorrow at that time.
+  /// today's reminder is skipped and a one-shot reminder is scheduled for
+  /// tomorrow. Repeating notifications match only the time components on
+  /// native platforms, which would otherwise fire again today.
   Future<void> reschedule(
     List<Supplement> supplements, {
     Set<String> takenTodayIds = const {},
@@ -132,7 +134,12 @@ class SupplementNotificationScheduler {
         body: 'Time to take ${supplement.name}',
         scheduled: scheduled,
         payload: payload,
-        matchDateTimeComponents: DateTimeComponents.time, // repeat daily
+        // A repeating time notification ignores the date above and may fire
+        // today even when the supplement was already taken. Use a one-shot
+        // for tomorrow in that case; app resume will restore the daily repeat.
+        matchDateTimeComponents: isTakenToday
+            ? null
+            : DateTimeComponents.time,
       );
 
       idOffset++;

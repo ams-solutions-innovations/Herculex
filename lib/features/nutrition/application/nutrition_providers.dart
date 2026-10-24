@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:collection/collection.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
 import 'package:herculex/features/analytics/domain/weekly_muscle_volume.dart';
@@ -16,6 +17,7 @@ import 'package:herculex/features/nutrition/data/carb_cycle_service.dart';
 import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
 import 'package:herculex/features/nutrition/data/nutrition_repository.dart';
 import 'package:herculex/features/nutrition/data/openfoodfacts_client.dart';
+import 'package:herculex/features/nutrition/data/watch_command_inbox.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
 import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
@@ -26,6 +28,7 @@ import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:herculex/features/nutrition/domain/target_resolver.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
 import 'package:herculex/features/physique/application/effective_goal_provider.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/services/platform/widget_sync_service.dart';
 import 'package:intl/intl.dart';
 
@@ -73,7 +76,9 @@ final dailyTotalsProvider = StreamProvider.autoDispose
 /// legacy profile seed (D-08).
 final baselineTargetsProvider = Provider<MacroTargets?>((ref) {
   final stored = ref.watch(profileProvider).asData?.value;
-  if (stored == null) return null;
+  if (stored == null) {
+    return null;
+  }
   // The running roadmap phase decides the direction; the stored goal is
   // only the fallback (and is left as the member set it).
   final profile = stored.copyWith(
@@ -92,6 +97,29 @@ final nutritionTargetsProvider = StreamProvider<List<NutritionTargetData>>((
   return ref.watch(nutritionRepositoryProvider).watchTargets();
 });
 
+/// One current version per scope plus scheduled changes; omit historical duplicates.
+final visibleNutritionTargetsProvider =
+    Provider<AsyncValue<List<NutritionTargetData>>>((ref) {
+      final today = dateIso(ref.watch(localDayProvider));
+      return ref.watch(nutritionTargetsProvider).whenData((rows) {
+        final current = <String, NutritionTargetData>{};
+        final future = <NutritionTargetData>[];
+        for (final row in rows) {
+          if (row.effectiveFromDateIso.compareTo(today) > 0) {
+            future.add(row);
+            continue;
+          }
+          final old = current[row.appliesTo];
+          if (old == null ||
+              row.effectiveFromDateIso.compareTo(old.effectiveFromDateIso) >
+                  0) {
+            current[row.appliesTo] = row;
+          }
+        }
+        return [...current.values, ...future];
+      });
+    });
+
 final activeDietScheduleProvider = StreamProvider<DietScheduleData?>((ref) {
   return ref.watch(nutritionRepositoryProvider).watchActiveDietSchedule();
 });
@@ -101,6 +129,7 @@ final activeDietScheduleProvider = StreamProvider<DietScheduleData?>((ref) {
 /// reduction, falling back to the profile baseline.
 final effectiveTargetsProvider = FutureProvider.autoDispose
     .family<MacroTargets?, DateTime>((ref, date) async {
+      ref.watch(localDayProvider);
       final repo = ref.watch(nutritionRepositoryProvider);
       final rows = await ref.watch(nutritionTargetsProvider.future);
       final schedule = await ref.watch(activeDietScheduleProvider.future);
@@ -148,6 +177,7 @@ final effectiveTargetsProvider = FutureProvider.autoDispose
               fatG: r.fatG,
               fiberG: r.fiberG,
               appliesTo: r.appliesTo,
+              effectiveFromDateIso: r.effectiveFromDateIso,
             ),
         ],
         date: date,
@@ -325,39 +355,97 @@ final wearSyncRevisionAllocatorProvider = Provider<WearRevisionAllocator>((
 
 final formattedFastingProvider = Provider<String>((ref) {
   final duration = ref.watch(fastingTimerTickerProvider).asData?.value;
-  if (duration == null) return '0h 0m';
+  if (duration == null) {
+    return '0h 0m';
+  }
   return '${duration.inHours}h ${duration.inMinutes.remainder(60)}m';
 });
 
+class _WidgetMacroResumeObserver with WidgetsBindingObserver {
+  _WidgetMacroResumeObserver(this.onResume);
+  final VoidCallback onResume;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      onResume();
+    }
+  }
+}
+
 final wearSyncControllerProvider = Provider<void>((ref) {
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
-  final appliedFastingCommands = <String>{};
-  final appliedQuickAddCommands = <String>{};
-  final appliedMacroCommands = <String>{};
-  final appliedRamblerCommands = <String>{};
+  final clock = ref.watch(clockProvider);
+  DateTime getToday() {
+    final now = clock.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  final today = ref.watch(localDayProvider);
+  final commandInbox = WatchCommandInbox(ref.read(appDatabaseProvider));
 
   Future<void> syncQuickAddToWear() async {
     final repo = ref.read(nutritionRepositoryProvider);
-    final items = await repo.quickAddFoods();
+    final suggested = await repo.suggestedQuickAddFoods();
+    final recent = await repo.recentQuickAddFoods();
+    final recipes = await repo.quickAddRecipes();
     final mealSlots = ref.read(mealSlotsProvider);
+
+    final entries = await repo.watchEntriesForDate(today).first;
+    final loggedEntries = <Map<String, dynamic>>[];
+    for (final entry in entries) {
+      final macros = await repo.macrosForEntry(entry);
+      String name = entry.snapshotName ?? '';
+      if (name.isEmpty) {
+        if (entry.foodId != null) {
+          final food = await repo.foodById(entry.foodId!);
+          name = food?.name ?? 'Food';
+        } else if (entry.recipeId != null) {
+          final recipe = await repo.recipeById(entry.recipeId!);
+          name = recipe?.name ?? 'Recipe';
+        } else {
+          name = 'Food';
+        }
+      }
+
+      final amount = entry.portionAmount ??
+          entry.gramsOverride ??
+          entry.snapshotServingAmount ??
+          entry.snapshotServingGrams ??
+          0.0;
+      final unit = entry.portionUnit ??
+          (entry.gramsOverride != null ? 'g' : entry.snapshotServingUnit ?? 'g');
+      final formattedAmount = amount == amount.roundToDouble()
+          ? amount.toStringAsFixed(0)
+          : amount.toStringAsFixed(1);
+      final portionText = entry.foodId != null
+          ? '$formattedAmount $unit'
+          : '${entry.servings.toStringAsFixed(entry.servings.truncateToDouble() == entry.servings ? 0 : 1)} serv';
+
+      loggedEntries.add({
+        'id': entry.id,
+        'name': name,
+        'mealKey': entry.meal,
+        'portionAmount': amount.toDouble(),
+        'portionUnit': unit,
+        'portionText': portionText,
+        'servings': entry.servings,
+        'kcal': macros.kcal.round(),
+        'protein': macros.proteinG.round(),
+        'carbs': macros.carbsG.round(),
+        'fat': macros.fatG.round(),
+        'foodId': entry.foodId,
+        'recipeId': entry.recipeId,
+        'loggedAtEpochMs': entry.loggedAt.millisecondsSinceEpoch,
+      });
+    }
+
     final payload = jsonEncode({
       'mealSlots': [for (final slot in mealSlots) slot.toJson()],
-      'items': [
-        for (final item in items)
-          {
-            'foodId': item.foodId,
-            'name': item.name,
-            'kcal': item.kcal.round(),
-            'protein': item.proteinG.round(),
-            'carbs': item.carbsG.round(),
-            'fat': item.fatG.round(),
-            'portionAmount': item.portionAmount,
-            'portionUnit': item.portionUnit,
-            'portionLabel': item.portionLabel,
-            if (item.lastMealKey != null) 'lastMealKey': item.lastMealKey,
-          },
-      ],
+      'items': [for (final item in suggested) item.toJson()],
+      'suggested': [for (final item in suggested) item.toJson()],
+      'recent': [for (final item in recent) item.toJson()],
+      'recipes': [for (final item in recipes) item.toJson()],
+      'loggedEntries': loggedEntries,
     });
     await ref.read(wearSyncServiceProvider).syncQuickAddFoods(payload);
   }
@@ -396,8 +484,19 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     await syncFastingToWear();
     await syncQuickAddToWear();
 
-    final totals = ref.read(dailyTotalsProvider(today)).asData?.value;
-    if (totals == null) return;
+    final currentToday = getToday();
+    if (currentToday != today) {
+      ref.invalidateSelf();
+      return;
+    }
+
+    DailyTotals? totals = ref.read(dailyTotalsProvider(today)).valueOrNull;
+    if (totals == null) {
+      try {
+        totals = await ref.read(dailyTotalsProvider(today).future);
+      } catch (_) {}
+    }
+    totals ??= DailyTotals.empty;
 
     final fasting = ref.read(formattedFastingProvider);
     final volume = ref.read(weeklyMuscleVolumeProvider).asData?.value;
@@ -431,9 +530,14 @@ final wearSyncControllerProvider = Provider<void>((ref) {
       });
     }
 
-    final targets =
-        ref.read(effectiveTargetsProvider(today)).asData?.value ??
-        ref.read(baselineTargetsProvider);
+    MacroTargets? targets = ref
+        .read(effectiveTargetsProvider(today))
+        .valueOrNull;
+    if (targets == null) {
+      try {
+        targets = await ref.read(effectiveTargetsProvider(today).future);
+      } catch (_) {}
+    }
     final baseline = ref.read(baselineTargetsProvider);
 
     final calorieGoal = targets?.kcal ?? baseline?.kcal ?? 2000;
@@ -443,7 +547,9 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     final waterGoal = 2000;
     final waterMl = await ref
         .read(nutritionRepositoryProvider)
-        .waterMlFor(DateTime.now());
+        .waterMlFor(today);
+
+    final todayIso = DateFormat('yyyy-MM-dd').format(today);
 
     await ref
         .read(wearSyncServiceProvider)
@@ -463,75 +569,81 @@ final wearSyncControllerProvider = Provider<void>((ref) {
           fatGoal: fatGoal,
           waterGoal: waterGoal,
           waterMl: waterMl,
+          day: todayIso,
         );
   }
 
   WearSyncService.onWatchFastingCommand = (commandJson) async {
-    if (commandJson == null || commandJson.isEmpty) return;
+    if (commandJson == null || commandJson.isEmpty) {
+      return;
+    }
     try {
       final decoded = jsonDecode(commandJson) as Map<String, dynamic>;
       final commandId = decoded['commandId'] as String?;
-      if (commandId == null || commandId.isEmpty) return;
-      if (appliedFastingCommands.contains(commandId)) {
+      if (commandId == null || commandId.isEmpty) {
+        return;
+      }
+      if (await commandInbox.wasApplied('fasting', commandId)) {
         await ref
             .read(wearSyncServiceProvider)
             .markWatchFastingCommandApplied(commandId);
         return;
       }
 
-      final action = (decoded['action'] as String? ?? '').toLowerCase();
-      final repo = ref.read(fastingRepositoryProvider);
-      final startedAtEpochMs = (decoded['startedAtEpochMs'] as num?)?.toInt();
-      final endedAtEpochMs = (decoded['endedAtEpochMs'] as num?)?.toInt();
-      final targetSeconds =
-          (decoded['targetSeconds'] as num?)?.toInt() ?? 16 * 60 * 60;
+      await commandInbox.applyOnce('fasting', commandId, () async {
+        final action = (decoded['action'] as String? ?? '').toLowerCase();
+        final repo = ref.read(fastingRepositoryProvider);
+        final startedAtEpochMs = (decoded['startedAtEpochMs'] as num?)?.toInt();
+        final endedAtEpochMs = (decoded['endedAtEpochMs'] as num?)?.toInt();
+        final targetSeconds =
+            (decoded['targetSeconds'] as num?)?.toInt() ?? 16 * 60 * 60;
 
-      if (action == 'start') {
-        final customStartTime = startedAtEpochMs != null
-            ? DateTime.fromMillisecondsSinceEpoch(startedAtEpochMs)
-            : null;
-        await repo.startSession(
-          targetSeconds,
-          customStartTime: customStartTime,
-        );
-      } else if (action == 'stop') {
-        await ref
-            .read(fastingNotificationSchedulerProvider)
-            .cancelFastingGoal();
-        final active = await repo.activeSession();
-        if (active != null) {
-          await repo.endSession(
-            completed: decoded['completed'] as bool? ?? true,
-            // Preserve the watch's actual stop instant after an offline
-            // period instead of incorrectly ending the fast at reconnect.
-            endedAt: endedAtEpochMs != null
+        if (action == 'start') {
+          final customStartTime = startedAtEpochMs != null
+              ? DateTime.fromMillisecondsSinceEpoch(startedAtEpochMs)
+              : null;
+          await repo.startSession(
+            targetSeconds,
+            customStartTime: customStartTime,
+          );
+        } else if (action == 'stop') {
+          await ref
+              .read(fastingNotificationSchedulerProvider)
+              .cancelFastingGoal();
+          final active = await repo.activeSession();
+          if (active != null) {
+            await repo.endSession(
+              completed: decoded['completed'] as bool? ?? true,
+              // Preserve the watch's actual stop instant after an offline
+              // period instead of incorrectly ending the fast at reconnect.
+              endedAt: endedAtEpochMs != null
+                  ? DateTime.fromMillisecondsSinceEpoch(endedAtEpochMs)
+                  : null,
+            );
+          } else if (startedAtEpochMs != null) {
+            final startedAt = DateTime.fromMillisecondsSinceEpoch(
+              startedAtEpochMs,
+            );
+            final endedAt = endedAtEpochMs != null
                 ? DateTime.fromMillisecondsSinceEpoch(endedAtEpochMs)
-                : null,
-          );
-        } else if (startedAtEpochMs != null) {
-          final startedAt = DateTime.fromMillisecondsSinceEpoch(
-            startedAtEpochMs,
-          );
-          final endedAt = endedAtEpochMs != null
-              ? DateTime.fromMillisecondsSinceEpoch(endedAtEpochMs)
-              : DateTime.now();
-          await repo.insertCompletedSession(
-            startedAt: startedAt,
-            endedAt: endedAt,
-            targetSeconds: targetSeconds,
-            completed: decoded['completed'] as bool? ?? true,
-          );
+                : DateTime.now();
+            await repo.insertCompletedSession(
+              startedAt: startedAt,
+              endedAt: endedAt,
+              targetSeconds: targetSeconds,
+              completed: decoded['completed'] as bool? ?? true,
+            );
+          }
         }
-      }
 
-      // Only mark this command "seen" once the write above has actually
-      // succeeded. Adding it on the initial check (as before) meant a
-      // failed write still poisoned the dedupe set, so a retried delivery
-      // of the exact same command was silently dropped forever instead of
-      // reapplied — see Phase 2 of
-      // docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md
-      // (ENG-07/10/12).
-      appliedFastingCommands.add(commandId);
+        // Only mark this command "seen" once the write above has actually
+        // succeeded. Adding it on the initial check (as before) meant a
+        // failed write still poisoned the dedupe set, so a retried delivery
+        // of the exact same command was silently dropped forever instead of
+        // reapplied — see Phase 2 of
+        // docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md
+        // (ENG-07/10/12).
+      });
       await ref
           .read(wearSyncServiceProvider)
           .markWatchFastingCommandApplied(commandId);
@@ -546,37 +658,80 @@ final wearSyncControllerProvider = Provider<void>((ref) {
   };
 
   WearSyncService.onWatchQuickAddCommand = (commandJson) async {
-    if (commandJson == null || commandJson.isEmpty) return;
+    if (commandJson == null || commandJson.isEmpty) {
+      return;
+    }
     try {
       final decoded = jsonDecode(commandJson) as Map<String, dynamic>;
       final commandId = decoded['commandId'] as String?;
-      if (commandId == null || commandId.isEmpty) return;
-      if (appliedQuickAddCommands.contains(commandId)) {
+      if (commandId == null || commandId.isEmpty) {
+        return;
+      }
+      if (await commandInbox.wasApplied('quickadd', commandId)) {
         await ref
             .read(wearSyncServiceProvider)
             .markWatchQuickAddCommandApplied(commandId);
         return;
       }
 
-      final foodId = (decoded['foodId'] as num?)?.toInt();
-      final mealKey = decoded['mealKey'] as String?;
-      final portionAmount = (decoded['portionAmount'] as num?)?.toDouble();
-      final portionUnit = decoded['portionUnit'] as String?;
-      if (foodId != null) {
-        await ref
-            .read(nutritionRepositoryProvider)
-            .logFood(
-              date: DateTime.now(),
-              mealKey: mealKey,
-              foodId: foodId,
+      await commandInbox.applyOnce('quickadd', commandId, () async {
+        final action = (decoded['action'] as String? ?? 'log').toLowerCase();
+        if (action == 'delete') {
+          final entryId = (decoded['entryId'] as num?)?.toInt();
+          if (entryId != null && entryId > 0) {
+            await ref.read(nutritionRepositoryProvider).deleteEntry(entryId);
+          }
+        } else if (action == 'update') {
+          final entryId = (decoded['entryId'] as num?)?.toInt();
+          if (entryId != null && entryId > 0) {
+            final portionAmount = (decoded['portionAmount'] as num?)?.toDouble();
+            final portionUnit = decoded['portionUnit'] as String?;
+            final mealKey = decoded['mealKey'] as String?;
+            final servings = (decoded['servings'] as num?)?.toDouble();
+            await ref.read(nutritionRepositoryProvider).updateEntry(
+              id: entryId,
               portionAmount: portionAmount,
               portionUnit: portionUnit,
+              gramsOverride: (portionUnit == 'g' && portionAmount != null)
+                  ? portionAmount
+                  : null,
+              mealKey: mealKey,
+              servings: servings,
             );
-      }
+          }
+        } else {
+          final recipeId = (decoded['recipeId'] as num?)?.toInt();
+          final foodId = (decoded['foodId'] as num?)?.toInt();
+          final mealKey = decoded['mealKey'] as String?;
+          final portionAmount = (decoded['portionAmount'] as num?)?.toDouble();
+          final portionUnit = decoded['portionUnit'] as String?;
+          if (recipeId != null && recipeId > 0) {
+            await ref
+                .read(nutritionRepositoryProvider)
+                .logRecipe(
+                  date: watchCommandDate(decoded),
+                  mealKey: mealKey,
+                  recipeId: recipeId,
+                  servings: (portionAmount != null && portionAmount > 0)
+                      ? portionAmount
+                      : 1.0,
+                );
+          } else if (foodId != null && foodId > 0) {
+            await ref
+                .read(nutritionRepositoryProvider)
+                .logFood(
+                  date: watchCommandDate(decoded),
+                  mealKey: mealKey,
+                  foodId: foodId,
+                  portionAmount: portionAmount,
+                  portionUnit: portionUnit,
+                );
+          }
+        }
 
-      // Only mark this command "seen" once the write above has actually
-      // succeeded — see the matching comment in onWatchFastingCommand above.
-      appliedQuickAddCommands.add(commandId);
+        // Only mark this command "seen" once the write above has actually
+        // succeeded — see the matching comment in onWatchFastingCommand above.
+      });
       await ref
           .read(wearSyncServiceProvider)
           .markWatchQuickAddCommandApplied(commandId);
@@ -602,68 +757,73 @@ final wearSyncControllerProvider = Provider<void>((ref) {
   // contribution matches the reported totals exactly) rather than requiring
   // a new data model.
   WearSyncService.onWatchMacroCommand = (commandJson) async {
-    if (commandJson == null || commandJson.isEmpty) return;
+    if (commandJson == null || commandJson.isEmpty) {
+      return;
+    }
     try {
       final decoded = jsonDecode(commandJson) as Map<String, dynamic>;
       final commandId = decoded['commandId'] as String?;
-      if (commandId == null || commandId.isEmpty) return;
-      if (appliedMacroCommands.contains(commandId)) {
+      if (commandId == null || commandId.isEmpty) {
+        return;
+      }
+      if (await commandInbox.wasApplied('macro', commandId)) {
         await ref
             .read(wearSyncServiceProvider)
             .markWatchMacroCommandApplied(commandId);
         return;
       }
 
-      final kind = (decoded['kind'] as String? ?? '').toLowerCase();
-      final repo = ref.read(nutritionRepositoryProvider);
-      switch (kind) {
-        case 'water':
-          final waterMl = (decoded['waterMl'] as num?)?.toInt() ?? 0;
-          if (waterMl != 0) {
-            await repo.addWaterMl(DateTime.now(), waterMl);
-          }
-          break;
-        case 'calories':
-          final calories = (decoded['calories'] as num?)?.toInt() ?? 0;
-          if (calories > 0) {
-            final food = await repo.createCustomFood(
-              name: 'Quick Add (Watch)',
-              kcalPer100g: calories.toDouble(),
-            );
-            await repo.logFood(
-              date: DateTime.now(),
-              foodId: food.id,
-              portionAmount: 100,
-              portionUnit: 'g',
-            );
-          }
-          break;
-        case 'food':
-          final calories = (decoded['calories'] as num?)?.toInt() ?? 0;
-          final protein = (decoded['protein'] as num?)?.toInt() ?? 0;
-          final carbs = (decoded['carbs'] as num?)?.toInt() ?? 0;
-          final fats = (decoded['fats'] as num?)?.toInt() ?? 0;
-          if (calories > 0 || protein > 0 || carbs > 0 || fats > 0) {
-            final food = await repo.createCustomFood(
-              name: 'Quick Add (Watch)',
-              kcalPer100g: calories.toDouble(),
-              proteinPer100g: protein.toDouble(),
-              carbsPer100g: carbs.toDouble(),
-              fatPer100g: fats.toDouble(),
-            );
-            await repo.logFood(
-              date: DateTime.now(),
-              foodId: food.id,
-              portionAmount: 100,
-              portionUnit: 'g',
-            );
-          }
-          break;
-      }
+      await commandInbox.applyOnce('macro', commandId, () async {
+        final kind = (decoded['kind'] as String? ?? '').toLowerCase();
+        final repo = ref.read(nutritionRepositoryProvider);
+        switch (kind) {
+          case 'water':
+            final waterMl = (decoded['waterMl'] as num?)?.toInt() ?? 0;
+            if (waterMl != 0) {
+              await repo.addWaterMl(watchCommandDate(decoded), waterMl);
+            }
+            break;
+          case 'calories':
+            final calories = (decoded['calories'] as num?)?.toInt() ?? 0;
+            if (calories > 0) {
+              final food = await repo.createCustomFood(
+                name: 'Quick Add (Watch)',
+                kcalPer100g: calories.toDouble(),
+              );
+              await repo.logFood(
+                date: watchCommandDate(decoded),
+                foodId: food.id,
+                portionAmount: 100,
+                portionUnit: 'g',
+              );
+            }
+            break;
+          case 'food':
+            final calories = (decoded['calories'] as num?)?.toInt() ?? 0;
+            final protein = (decoded['protein'] as num?)?.toInt() ?? 0;
+            final carbs = (decoded['carbs'] as num?)?.toInt() ?? 0;
+            final fats = (decoded['fats'] as num?)?.toInt() ?? 0;
+            if (calories > 0 || protein > 0 || carbs > 0 || fats > 0) {
+              final food = await repo.createCustomFood(
+                name: 'Quick Add (Watch)',
+                kcalPer100g: calories.toDouble(),
+                proteinPer100g: protein.toDouble(),
+                carbsPer100g: carbs.toDouble(),
+                fatPer100g: fats.toDouble(),
+              );
+              await repo.logFood(
+                date: watchCommandDate(decoded),
+                foodId: food.id,
+                portionAmount: 100,
+                portionUnit: 'g',
+              );
+            }
+            break;
+        }
 
-      // Only mark this command "seen" once the write above has actually
-      // succeeded — see the matching comment in onWatchFastingCommand above.
-      appliedMacroCommands.add(commandId);
+        // Only mark this command "seen" once the write above has actually
+        // succeeded — see the matching comment in onWatchFastingCommand above.
+      });
       await ref
           .read(wearSyncServiceProvider)
           .markWatchMacroCommandApplied(commandId);
@@ -677,12 +837,16 @@ final wearSyncControllerProvider = Provider<void>((ref) {
   };
 
   WearSyncService.onWatchRamblerCommand = (commandJson) async {
-    if (commandJson == null || commandJson.isEmpty) return;
+    if (commandJson == null || commandJson.isEmpty) {
+      return;
+    }
     try {
       final decoded = jsonDecode(commandJson) as Map<String, dynamic>;
       final commandId = decoded['commandId'] as String?;
-      if (commandId == null || commandId.isEmpty) return;
-      if (appliedRamblerCommands.contains(commandId)) {
+      if (commandId == null || commandId.isEmpty) {
+        return;
+      }
+      if (await commandInbox.wasApplied('rambler', commandId)) {
         await ref
             .read(wearSyncServiceProvider)
             .markWatchRamblerCommandApplied(commandId);
@@ -692,6 +856,9 @@ final wearSyncControllerProvider = Provider<void>((ref) {
       final text = decoded['text'] as String? ?? '';
       final mealKey = decoded['mealKey'] as String? ?? 'lunch';
 
+      if (text.trim().isEmpty) {
+        throw const FormatException('Empty Rambler entry');
+      }
       if (text.trim().isNotEmpty) {
         final analyzer = ref.read(geminiFoodAnalyzerServiceProvider);
         final result = await analyzer.analyzeRamblerText(
@@ -699,39 +866,39 @@ final wearSyncControllerProvider = Provider<void>((ref) {
           preferredMealKey: mealKey,
         );
 
-        final repo = ref.read(nutritionRepositoryProvider);
-        final selectedMeal =
-            (result.suggestedMealKey != null &&
-                result.suggestedMealKey!.isNotEmpty)
-            ? result.suggestedMealKey!
-            : mealKey;
+        await commandInbox.applyOnce('rambler', commandId, () async {
+          final repo = ref.read(nutritionRepositoryProvider);
+          final selectedMeal =
+              (result.suggestedMealKey != null &&
+                  result.suggestedMealKey!.isNotEmpty)
+              ? result.suggestedMealKey!
+              : mealKey;
 
-        for (final item in result.items) {
-          final food = await repo.createCustomFood(
-            name: item.name,
-            brand: 'Rambler AI',
-            kcalPer100g: item.kcalPer100g,
-            proteinPer100g: item.proteinPer100g,
-            carbsPer100g: item.carbsPer100g,
-            fatPer100g: item.fatPer100g,
-            servingGrams: item.servingGrams,
-            servingAmount: item.portionAmount,
-            servingUnit: item.portionUnit,
-            servingLabel:
-                '${item.portionAmount.toStringAsFixed(item.portionAmount % 1 == 0 ? 0 : 1)} ${item.portionUnit}${item.portionUnit == 'g' ? '' : ' (${item.servingGrams.toStringAsFixed(0)} g)'}',
-          );
+          for (final item in result.items) {
+            final food = await repo.createCustomFood(
+              name: item.name,
+              brand: 'Rambler AI',
+              kcalPer100g: item.kcalPer100g,
+              proteinPer100g: item.proteinPer100g,
+              carbsPer100g: item.carbsPer100g,
+              fatPer100g: item.fatPer100g,
+              servingGrams: item.servingGrams,
+              servingAmount: item.portionAmount,
+              servingUnit: item.portionUnit,
+              servingLabel:
+                  '${item.portionAmount.toStringAsFixed(item.portionAmount % 1 == 0 ? 0 : 1)} ${item.portionUnit}${item.portionUnit == 'g' ? '' : ' (${item.servingGrams.toStringAsFixed(0)} g)'}',
+            );
 
-          await repo.logFood(
-            date: DateTime.now(),
-            mealKey: selectedMeal,
-            foodId: food.id,
-            portionAmount: item.portionAmount,
-            portionUnit: item.portionUnit,
-          );
-        }
+            await repo.logFood(
+              date: watchCommandDate(decoded),
+              mealKey: selectedMeal,
+              foodId: food.id,
+              portionAmount: item.portionAmount,
+              portionUnit: item.portionUnit,
+            );
+          }
+        });
       }
-
-      appliedRamblerCommands.add(commandId);
       await ref
           .read(wearSyncServiceProvider)
           .markWatchRamblerCommandApplied(commandId);
@@ -752,6 +919,15 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     });
   }
 
+  WearSyncService.onRequestNutritionSync = () {
+    final currentDay = getToday();
+    if (currentDay != today) {
+      ref.invalidateSelf();
+    } else {
+      syncAllToWear();
+    }
+  };
+
   ref.listen<AsyncValue<DailyTotals>>(dailyTotalsProvider(today), (
     previous,
     next,
@@ -760,6 +936,15 @@ final wearSyncControllerProvider = Provider<void>((ref) {
       scheduleNutritionSync();
     }
   }, fireImmediately: true);
+
+  ref.listen<AsyncValue<List<FoodEntryData>>>(entriesForDateProvider(today), (
+    previous,
+    next,
+  ) {
+    if (next.hasValue && next.value != null) {
+      scheduleNutritionSync();
+    }
+  });
 
   ref.listen<List<MealSlot>>(mealSlotsProvider, (previous, next) {
     scheduleNutritionSync();
@@ -801,26 +986,79 @@ final wearSyncControllerProvider = Provider<void>((ref) {
       scheduleNutritionSync();
     }
   });
+
+  ref.listen<AsyncValue<List<RecipeData>>>(recipesProvider, (previous, next) {
+    if (next.hasValue) {
+      scheduleNutritionSync();
+    }
+  });
+
+  final observer = _WidgetMacroResumeObserver(() {
+    final currentDay = getToday();
+    if (currentDay != today) {
+      ref.invalidateSelf();
+    } else {
+      scheduleNutritionSync();
+    }
+  });
+  WidgetsBinding.instance.addObserver(observer);
+  ref.onDispose(() => WidgetsBinding.instance.removeObserver(observer));
+
+  Timer? midnightTimer;
+  final nowForMidnight = clock.now();
+  final tomorrow = DateTime(
+    nowForMidnight.year,
+    nowForMidnight.month,
+    nowForMidnight.day + 1,
+  );
+  final delayUntilMidnight =
+      tomorrow.difference(nowForMidnight) + const Duration(seconds: 1);
+  midnightTimer = Timer(delayUntilMidnight, () {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(() => midnightTimer?.cancel());
 });
 
 /// Syncs full nutrition totals + targets to the Android home-screen widgets
-/// every time [dailyTotalsProvider] or [effectiveTargetsProvider] emits.
+/// every time [dailyTotalsProvider] or [effectiveTargetsProvider] emits,
+/// and re-checks freshness on app resume.
 final widgetMacroSyncControllerProvider = Provider<void>((ref) {
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
+  final clock = ref.watch(clockProvider);
+  DateTime getToday() {
+    final now = clock.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  final today = ref.watch(localDayProvider);
   final widgetSync = ref.watch(widgetSyncServiceProvider);
+  Timer? debounceTimer;
 
   Future<void> doSync() async {
-    final totals = ref.read(dailyTotalsProvider(today)).asData?.value;
-    if (totals == null) return;
+    DailyTotals? totals = ref.read(dailyTotalsProvider(today)).valueOrNull;
+    if (totals == null) {
+      try {
+        totals = await ref.read(dailyTotalsProvider(today).future);
+      } catch (_) {}
+    }
+    if (totals == null) {
+      return;
+    }
 
-    final targets =
-        ref.read(effectiveTargetsProvider(today)).asData?.value ??
-        ref.read(baselineTargetsProvider);
+    MacroTargets? targets = ref
+        .read(effectiveTargetsProvider(today))
+        .valueOrNull;
+    if (targets == null) {
+      try {
+        targets = await ref.read(effectiveTargetsProvider(today).future);
+      } catch (_) {}
+    }
+
     final baseline = ref.read(baselineTargetsProvider);
+    final profile =
+        ref.read(profileProvider).valueOrNull ??
+        await ref.read(profileProvider.future).catchError((_) => null);
 
-    final isoDate =
-        "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+    final isoDate = dateIso(today);
     double extraCalories = 0;
     try {
       final healthSamples = await ref
@@ -835,11 +1073,10 @@ final widgetMacroSyncControllerProvider = Provider<void>((ref) {
       }
     } catch (_) {}
 
-    final profile = ref.read(profileProvider).valueOrNull;
     final exerciseKcal = extraCalories.round();
     final foodKcal = totals.kcal.round();
 
-    int baseGoalKcal = baseline?.kcal ?? targets?.kcal ?? 0;
+    int baseGoalKcal = targets?.kcal ?? baseline?.kcal ?? 0;
     if (profile?.countBurnedCalories == true &&
         targets != null &&
         extraCalories > 0) {
@@ -864,9 +1101,19 @@ final widgetMacroSyncControllerProvider = Provider<void>((ref) {
     );
   }
 
+  void scheduleSync() {
+    debounceTimer?.cancel();
+    debounceTimer = Timer(const Duration(milliseconds: 150), () {
+      debounceTimer = null;
+      doSync();
+    });
+  }
+
+  ref.onDispose(() => debounceTimer?.cancel());
+
   ref.listen<AsyncValue<DailyTotals>>(dailyTotalsProvider(today), (_, next) {
     if (next.hasValue && next.value != null) {
-      doSync();
+      scheduleSync();
     }
   }, fireImmediately: true);
 
@@ -875,7 +1122,17 @@ final widgetMacroSyncControllerProvider = Provider<void>((ref) {
     next,
   ) {
     if (next.hasValue) {
-      doSync();
+      scheduleSync();
+    }
+  });
+
+  ref.listen<MacroTargets?>(baselineTargetsProvider, (_, next) {
+    scheduleSync();
+  });
+
+  ref.listen<AsyncValue<Profile?>>(profileProvider, (_, next) {
+    if (next.hasValue) {
+      scheduleSync();
     }
   });
 
@@ -884,9 +1141,20 @@ final widgetMacroSyncControllerProvider = Provider<void>((ref) {
     next,
   ) {
     if (next.hasValue) {
-      doSync();
+      scheduleSync();
     }
   });
+
+  final observer = _WidgetMacroResumeObserver(() {
+    final currentDay = getToday();
+    if (currentDay != today) {
+      ref.invalidateSelf();
+    } else {
+      scheduleSync();
+    }
+  });
+  WidgetsBinding.instance.addObserver(observer);
+  ref.onDispose(() => WidgetsBinding.instance.removeObserver(observer));
 });
 
 /// Provider for multi-day daily totals history (up to 92 days back).
@@ -905,7 +1173,9 @@ final nutritionHistoryProvider =
 final averageWeeklyMacroProvider = Provider.autoDispose.family<double?, String>(
   (ref, macro) {
     final history = ref.watch(nutritionHistoryProvider).asData?.value;
-    if (history == null || history.isEmpty) return null;
+    if (history == null || history.isEmpty) {
+      return null;
+    }
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -933,7 +1203,9 @@ final averageWeeklyMacroProvider = Provider.autoDispose.family<double?, String>(
       }
     }
 
-    if (count == 0) return null;
+    if (count == 0) {
+      return null;
+    }
     return total / count;
   },
 );

@@ -140,19 +140,57 @@ fun SetLoggerScreen(
     }
 
     val exercise = s.exercises.getOrNull(exerciseIndex) ?: return
-    val plannedOrCurrentSet = remember(exerciseIndex, exercise.sets) {
-        exercise.sets.firstOrNull { !it.completed } ?: exercise.sets.lastOrNull()
+    val lastSetIndex = maxOf(exercise.sets.size - 1, 0)
+
+    var selectedSetIndex by remember(exerciseIndex) {
+        val defaultIdx = if (s.currentExerciseIndex == exerciseIndex && s.currentSetIndex in exercise.sets.indices) {
+            s.currentSetIndex
+        } else {
+            val openIdx = exercise.sets.indexOfFirst { !it.completed }
+            if (openIdx >= 0) openIdx else lastSetIndex
+        }
+        mutableIntStateOf(defaultIdx.coerceIn(0, lastSetIndex))
     }
-    val currentSetIdx = if (exercise.sets.isNotEmpty()) {
-        val openIdx = exercise.sets.indexOfFirst { !it.completed }
-        if (openIdx >= 0) openIdx else (exercise.sets.size - 1)
-    } else 0
+
+    LaunchedEffect(exercise.sets.size) {
+        val maxIdx = maxOf(exercise.sets.size - 1, 0)
+        if (selectedSetIndex > maxIdx) {
+            selectedSetIndex = maxIdx
+        }
+    }
+
+    LaunchedEffect(s.currentExerciseIndex) {
+        if (s.currentExerciseIndex in s.exercises.indices && s.currentExerciseIndex != exerciseIndex) {
+            exerciseIndex = s.currentExerciseIndex
+            val ex = s.exercises[s.currentExerciseIndex]
+            val maxIdx = maxOf(ex.sets.size - 1, 0)
+            val defaultIdx = if (s.currentSetIndex in ex.sets.indices) {
+                s.currentSetIndex
+            } else {
+                val openIdx = ex.sets.indexOfFirst { !it.completed }
+                if (openIdx >= 0) openIdx else maxIdx
+            }
+            selectedSetIndex = defaultIdx.coerceIn(0, maxIdx)
+        }
+    }
+
+    LaunchedEffect(s.currentSetIndex) {
+        val ex = s.exercises.getOrNull(exerciseIndex)
+        if (ex != null && s.currentSetIndex in ex.sets.indices && s.currentSetIndex != selectedSetIndex) {
+            selectedSetIndex = s.currentSetIndex
+        }
+    }
+
+    val currentSetIdx = selectedSetIndex.coerceIn(0, lastSetIndex)
+    val plannedOrCurrentSet = exercise.sets.getOrNull(currentSetIdx)
+        ?: exercise.sets.firstOrNull { !it.completed }
+        ?: exercise.sets.lastOrNull()
 
     val currentPlannedSet = exercise.template.plannedSets.getOrNull(currentSetIdx)
         ?: exercise.template.plannedSets.firstOrNull { it.setIndex == plannedOrCurrentSet?.setIndex }
         ?: exercise.template.plannedSets.firstOrNull()
 
-    var setType by remember(exerciseIndex, plannedOrCurrentSet?.setType, plannedOrCurrentSet?.isWarmup) {
+    var setType by remember(exerciseIndex, currentSetIdx, plannedOrCurrentSet?.setType, plannedOrCurrentSet?.isWarmup) {
         val plannedType = if (plannedOrCurrentSet?.isWarmup == true) {
             "warmup"
         } else {
@@ -161,7 +199,7 @@ fun SetLoggerScreen(
         mutableStateOf(setTypes.firstOrNull { it.id == plannedType } ?: setTypes.first())
     }
 
-    LaunchedEffect(exerciseIndex, plannedOrCurrentSet?.setType, plannedOrCurrentSet?.isWarmup) {
+    LaunchedEffect(exerciseIndex, currentSetIdx, plannedOrCurrentSet?.setType, plannedOrCurrentSet?.isWarmup) {
         val plannedType = if (plannedOrCurrentSet?.isWarmup == true) {
             "warmup"
         } else {
@@ -170,7 +208,12 @@ fun SetLoggerScreen(
         setType = setTypes.firstOrNull { it.id == plannedType } ?: setTypes.first()
     }
 
-    var selectedAccessory by remember { mutableStateOf<String?>(null) }
+    var selectedAccessory by remember(exerciseIndex, currentSetIdx, plannedOrCurrentSet?.accessory) {
+        mutableStateOf(plannedOrCurrentSet?.accessory)
+    }
+    LaunchedEffect(exerciseIndex, currentSetIdx, plannedOrCurrentSet?.accessory) {
+        selectedAccessory = plannedOrCurrentSet?.accessory
+    }
     var showRpeDialog by remember { mutableStateOf(false) }
     var isEditingActivation by remember(exerciseIndex, plannedOrCurrentSet?.wireId) { mutableStateOf(false) }
 
@@ -277,7 +320,7 @@ fun SetLoggerScreen(
                 ?: currentPlannedSet?.targetWeightKg?.takeIf { it > 0 }
                 ?: exercise.template.prevWeight
             val wIdx = weightOptions.indexOfFirst { it >= targetWeight }.takeIf { it >= 0 } ?: 0
-            if (wIdx != weightState.selectedOption && wIdx in 0 until weightOptions.size) {
+            if (!userInteractedWeight && !weightState.isScrollInProgress && wIdx != weightState.selectedOption && wIdx in 0 until weightOptions.size) {
                 weightState.scrollToOption(wIdx)
             }
 
@@ -287,7 +330,7 @@ fun SetLoggerScreen(
                 ?: exercise.template.prevReps.takeIf { it > 0 }
                 ?: 10
             val rIdx = (targetReps - 1).coerceIn(0, repsOptions.size - 1)
-            if (rIdx != repsState.selectedOption && rIdx in 0 until repsOptions.size) {
+            if (!userInteractedReps && !repsState.isScrollInProgress && rIdx != repsState.selectedOption && rIdx in 0 until repsOptions.size) {
                 repsState.scrollToOption(rIdx)
             }
 
@@ -337,6 +380,7 @@ fun SetLoggerScreen(
 
     // Debounced outbound broadcast ONLY when user explicitly changes values on the watch pickers (rotary or touch drag)
     LaunchedEffect(
+        isProgrammaticSync,
         hasUserInteraction,
         userInteractedWeight,
         userInteractedReps,
@@ -353,10 +397,10 @@ fun SetLoggerScreen(
             viewModel.updateActiveSetValues(
                 exerciseIndex = exerciseIndex,
                 setIndex = currentSetIdx,
-                weight = if (userInteractedWeight) selectedWeight else plannedOrCurrentSet.weight,
-                reps = if (userInteractedReps) selectedReps else plannedOrCurrentSet.reps,
-                durationSeconds = if (isTimeBased && userInteractedDuration) selectedDuration else plannedOrCurrentSet.durationSeconds,
-                distanceMeters = if ((showsDistanceInWeightSlot || showsDistanceInValueSlot) && userInteractedDistance) selectedDistance.toDouble() else plannedOrCurrentSet.distanceMeters,
+                weight = if (userInteractedWeight) selectedWeight else null,
+                reps = if (userInteractedReps) selectedReps else null,
+                durationSeconds = if (isTimeBased && userInteractedDuration) selectedDuration else null,
+                distanceMeters = if ((showsDistanceInWeightSlot || showsDistanceInValueSlot) && userInteractedDistance) selectedDistance.toDouble() else null,
                 setType = setType.id,
                 isWarmup = setType.id == "warmup",
             )
@@ -432,7 +476,6 @@ fun SetLoggerScreen(
                             )
                         }
                         1 -> {
-                            val currentSetIdx = if (s.currentSetIndex in exercise.sets.indices) s.currentSetIndex else (exercise.sets.indexOf(plannedOrCurrentSet).takeIf { it >= 0 } ?: 0)
                             val activeExtraSet = remember(exercise.sets, currentSetIdx, plannedOrCurrentSet) {
                                 val set = exercise.sets.getOrNull(currentSetIdx) ?: plannedOrCurrentSet
                                 if (set != null && set.completed && (set.setType == "myo_reps" || set.setType == "forced" || set.setType == "cheat")) set else null
@@ -470,7 +513,9 @@ fun SetLoggerScreen(
                                 val thenName = if (groupMembers.size > 1 && groupPos > 0) {
                                     groupMembers[groupPos % groupMembers.size].value.template.name.substringBefore("(").trim()
                                 } else null
-                                val hasNext = exerciseIndex < s.exercises.size - 1
+                                val isLastSetOfExercise = currentSetIdx >= lastSetIndex
+                                val isLastExercise = exerciseIndex >= s.exercises.size - 1
+                                val canGoNext = !isLastSetOfExercise || !isLastExercise
                                 val warmDone = exercise.sets.count { it.completed && it.isWarmup }
                                 val workDone = exercise.sets.count { it.completed && !it.isWarmup }
                                 val nextIsWarmup = setType.id == "warmup"
@@ -478,7 +523,21 @@ fun SetLoggerScreen(
                                     .firstOrNull { (it.targetDistanceMeters ?: 0.0) > 0 }
                                     ?.targetDistanceMeters
                                     ?.let { "%.0f".format(it) } ?: "0"
-                                val hintText = exercise.template.performanceHint
+                                val currentTargetRpe = currentPlannedSet?.targetRpe
+                                    ?: exercise.template.plannedSets.firstOrNull { it.targetRpe != null }?.targetRpe
+                                val rpeHintText = currentTargetRpe?.let {
+                                    if (it % 1.0 == 0.0) "@${it.toInt()} RPE" else "@${"%.1f".format(it)} RPE"
+                                }
+                                val cleanPerformanceHint = exercise.template.performanceHint?.let { hint ->
+                                    if (hint.startsWith("Next:", ignoreCase = true)) {
+                                        hint.substringAfter(":").trim()
+                                    } else if (hint.startsWith("Next", ignoreCase = true)) {
+                                        hint.substringAfter("Next").trim().removePrefix("·").removePrefix(":").trim()
+                                    } else {
+                                        hint
+                                    }
+                                }
+                                val hintText = rpeHintText ?: cleanPerformanceHint
                                     ?: when {
                                         isTimeBased && isBodyweight -> "prev. ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
                                         showsDistanceInWeightSlot -> "prev. ${prevDistanceText}m x ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
@@ -490,17 +549,31 @@ fun SetLoggerScreen(
                                         else -> null
                                     }
                                 val goPrev = {
-                                    if (exerciseIndex > 0) {
-                                        exerciseIndex -= 1
-                                        viewModel.selectExerciseInSession(exerciseIndex)
+                                    if (currentSetIdx > 0) {
+                                        val prevSet = currentSetIdx - 1
+                                        selectedSetIndex = prevSet
+                                        viewModel.selectSetInSession(prevSet)
+                                    } else if (exerciseIndex > 0) {
+                                        val prevEx = exerciseIndex - 1
+                                        val prevExSetsCount = s.exercises.getOrNull(prevEx)?.sets?.size ?: 1
+                                        val targetSet = maxOf(prevExSetsCount - 1, 0)
+                                        exerciseIndex = prevEx
+                                        selectedSetIndex = targetSet
+                                        viewModel.selectExerciseAndSetInSession(prevEx, targetSet)
                                     } else {
                                         navController.popBackStack()
                                     }
                                 }
                                 val goNext = {
-                                    if (hasNext) {
-                                        exerciseIndex += 1
-                                        viewModel.selectExerciseInSession(exerciseIndex)
+                                    if (currentSetIdx < lastSetIndex) {
+                                        val nextSet = currentSetIdx + 1
+                                        selectedSetIndex = nextSet
+                                        viewModel.selectSetInSession(nextSet)
+                                    } else if (exerciseIndex < s.exercises.size - 1) {
+                                        val nextEx = exerciseIndex + 1
+                                        exerciseIndex = nextEx
+                                        selectedSetIndex = 0
+                                        viewModel.selectExerciseAndSetInSession(nextEx, 0)
                                     }
                                 }
                                 Box(
@@ -533,12 +606,10 @@ fun SetLoggerScreen(
                                         ),
                                 ) {
                                 if (isTimeBased) {
-                                    val numberIdx = exercise.sets.indexOfFirst { !it.completed }
-                                        .let { if (it >= 0) it else exercise.sets.size }
                                     val timerRunning = isTimerRunning
                                     TimedSetBody(
                                         name = exercise.template.name.substringBefore("(").trim(),
-                                        setLabel = exercise.setNumberLabel(numberIdx, asWarmup = nextIsWarmup).substringBefore("/"),
+                                        setLabel = exercise.setNumberLabel(currentSetIdx, asWarmup = nextIsWarmup).substringBefore("/"),
                                         dotsTotal = exercise.workingSetTotal,
                                         dotsDone = workDone,
                                         isBodyweight = isBodyweight,
@@ -549,7 +620,7 @@ fun SetLoggerScreen(
                                         targetMeters = selectedDistance,
                                         rowedMeters = rowedMeters,
                                         hint = hintText,
-                                        hasNext = hasNext,
+                                        hasNext = canGoNext,
                                         onTargetStep = { d ->
                                             val idx = (durationState.selectedOption + d).coerceIn(0, durationOptions.size - 1)
                                             userInteractedDuration = true
@@ -683,14 +754,14 @@ fun SetLoggerScreen(
                                                     }
                                                 } else {
                                                     Text(
-                                                        "Kg",
+                                                        if (exercise.template.isAssistanceLoad()) "Assist kg" else "Kg",
                                                         color = if (rotaryTarget == RotaryTarget.WEIGHT) Color(0xFF42A5F5) else Color.White,
                                                         fontSize = 12.sp,
                                                         fontWeight = FontWeight.Bold,
                                                     )
                                                     Picker(
                                                         state = weightState,
-                                                        contentDescription = "Weight",
+                                                        contentDescription = if (exercise.template.isAssistanceLoad()) "Assistance in kilograms" else "Weight",
                                                         modifier = Modifier
                                                             .fillMaxWidth()
                                                             .weight(1f),
@@ -726,12 +797,8 @@ fun SetLoggerScreen(
                                                 SetTypeBadge(setType.id, size = 26)
                                                 Spacer(Modifier.height(2.dp))
                                             }
-                                            // Next set to log: the first open one, or a new
-                                            // one past the end. Warmups count separately.
-                                            val numberIdx = exercise.sets.indexOfFirst { !it.completed }
-                                                .let { if (it >= 0) it else exercise.sets.size }
                                             Text(
-                                                exercise.setNumberLabel(numberIdx, asWarmup = setType.id == "warmup"),
+                                                exercise.setNumberLabel(currentSetIdx, asWarmup = setType.id == "warmup"),
                                                 color = Color.White,
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -864,14 +931,20 @@ fun SetLoggerScreen(
                                         }
                                     }
                                     if (hintText != null) {
-                                        Text(hintText, color = HxMuted, fontSize = 9.sp, maxLines = 1)
+                                        Text(
+                                            text = hintText,
+                                            color = if (rpeHintText != null) Color(0xFFCE93D8) else HxMuted,
+                                            fontSize = if (rpeHintText != null) 11.sp else 9.sp,
+                                            fontWeight = if (rpeHintText != null) FontWeight.Bold else FontWeight.Normal,
+                                            maxLines = 1,
+                                        )
                                     }
                                     if (thenName != null) {
                                         Text("› Then · $thenName", color = HxCyan, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 24.dp))
                                     }
                                     Spacer(Modifier.height(4.dp))
                                     
-                                    // Bottom nav: ‹ prev exercise · OK · › next exercise
+                                    // Bottom nav: ‹ prev set/exercise · OK · › next set/exercise
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -892,7 +965,7 @@ fun SetLoggerScreen(
                                         }
                                         Spacer(Modifier.width(10.dp))
                                         Box(modifier = Modifier.offset(y = (-10).dp)) {
-                                            NavCircleButton(label = "›", bg = Color(0xFF2C2C2E), size = 34, enabled = hasNext) { goNext() }
+                                            NavCircleButton(label = "›", bg = Color(0xFF2C2C2E), size = 34, enabled = canGoNext) { goNext() }
                                         }
                                     }
                                 }
@@ -971,7 +1044,15 @@ fun SetLoggerScreen(
                             title = "Add Set",
                             icon = "+",
                             style = OneUiPillStyle.AccentBlue,
-                            onClick = { viewModel.addSetToExercise(exerciseIndex) },
+                            onClick = {
+                                val newSetIdx = exercise.sets.size
+                                viewModel.addSetToExercise(exerciseIndex)
+                                selectedSetIndex = newSetIdx
+                                viewModel.selectSetInSession(newSetIdx)
+                                coroutineScope.launch {
+                                    horizontalPagerState.scrollToPage(0)
+                                }
+                            },
                         )
                     }
                     item {
@@ -979,7 +1060,36 @@ fun SetLoggerScreen(
                             title = "Remove Set",
                             icon = "✕",
                             style = OneUiPillStyle.DangerTransparent,
-                            onClick = { viewModel.removeSetFromExercise(exerciseIndex) },
+                            onClick = {
+                                if (exercise.sets.isNotEmpty()) {
+                                    val targetRemoveIdx = currentSetIdx.coerceIn(0, exercise.sets.lastIndex)
+                                    val wasLastSet = (targetRemoveIdx == exercise.sets.lastIndex)
+                                    val isLastExercise = (exerciseIndex >= s.exercises.size - 1)
+
+                                    viewModel.removeSetFromExercise(exerciseIndex, targetRemoveIdx)
+
+                                    if (wasLastSet) {
+                                        if (!isLastExercise) {
+                                            val nextEx = exerciseIndex + 1
+                                            exerciseIndex = nextEx
+                                            selectedSetIndex = 0
+                                            viewModel.selectExerciseAndSetInSession(nextEx, 0)
+                                            coroutineScope.launch {
+                                                horizontalPagerState.scrollToPage(0)
+                                            }
+                                        } else {
+                                            navController.popBackStack()
+                                        }
+                                    } else {
+                                        val newSetIdx = targetRemoveIdx.coerceIn(0, maxOf(exercise.sets.size - 2, 0))
+                                        selectedSetIndex = newSetIdx
+                                        viewModel.selectSetInSession(newSetIdx)
+                                        coroutineScope.launch {
+                                            horizontalPagerState.scrollToPage(0)
+                                        }
+                                    }
+                                }
+                            },
                         )
                     }
                 }
@@ -1048,10 +1158,24 @@ fun SetLoggerScreen(
 
     if (showRpeDialog) {
         Dialog(showDialog = showRpeDialog, onDismissRequest = { showRpeDialog = false }) {
-            val rpeState = rememberPickerState(initialNumberOfOptions = rpeOptions.size, initiallySelectedOption = 14)
+            val defaultRpe = plannedOrCurrentSet?.rpe
+                ?: currentPlannedSet?.targetRpe
+                ?: exercise.template.plannedSets.firstOrNull { it.targetRpe != null }?.targetRpe
+                ?: 8.0
+            val defaultRpeIdx = rpeOptions.indexOfFirst { kotlin.math.abs(it - defaultRpe) < 0.01 }
+                .takeIf { it >= 0 } ?: 14
+            val rpeState = rememberPickerState(
+                initialNumberOfOptions = rpeOptions.size,
+                initiallySelectedOption = defaultRpeIdx,
+            )
+            LaunchedEffect(defaultRpeIdx) {
+                if (rpeState.selectedOption != defaultRpeIdx) {
+                    rpeState.scrollToOption(defaultRpeIdx)
+                }
+            }
             val rpeFocus = remember { FocusRequester() }
             
-            val rpeNow = rpeOptions.getOrNull(rpeState.selectedOption) ?: 8.0
+            val rpeNow = rpeOptions.getOrNull(rpeState.selectedOption) ?: defaultRpe
             val rpeHeat = Math.pow(((rpeNow - 2.0) / 8.0).coerceIn(0.0, 1.0), 1.2).toFloat()
             Column(
                 modifier = Modifier
@@ -1140,6 +1264,7 @@ fun SetLoggerScreen(
                             rpe = rpeOptions[rpeState.selectedOption],
                             setType = setType.id,
                             accessory = selectedAccessory,
+                            targetSetIndex = currentSetIdx,
                         )
                         if (setType.id != "myo_reps") {
                             val updatedSession = viewModel.session.value

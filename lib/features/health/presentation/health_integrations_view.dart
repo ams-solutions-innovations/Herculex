@@ -326,19 +326,18 @@ class _HealthIntegrationsViewState
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          '· $subtitle',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.tertiary,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
                     ],
+                  ),
+                  // Own line: sharing the status row cut it to "· Health
+                  // Connect A…".
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.tertiary,
+                      fontSize: 10,
+                    ),
                   ),
                 ],
               ),
@@ -1121,6 +1120,7 @@ class _HealthIntegrationsViewState
           Colors.orange,
           theme,
           status: status('steps'),
+          onTap: () => context.push(AppRoutes.steps),
         ),
         _buildMetricCard(
           'SLEEP DEPTH',
@@ -1129,6 +1129,7 @@ class _HealthIntegrationsViewState
           Colors.indigo,
           theme,
           status: status('sleep_hours'),
+          onTap: () => context.push(AppRoutes.sleep),
         ),
         _buildMetricCard(
           'WATER INTAKE',
@@ -1173,43 +1174,67 @@ class _HealthIntegrationsViewState
     Color color,
     ThemeData theme, {
     String? status,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: AppColors.secondary,
-                  fontSize: 10,
-                  letterSpacing: 1.0,
-                ),
-              ),
-              Icon(icon, size: 18, color: color),
-            ],
-          ),
-          Text(
-            value ?? status ?? 'No data',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: value == null ? 16 : null,
-              color: value == null ? AppColors.secondary : null,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: onTap != null
+                  ? color.withValues(alpha: 0.4)
+                  : AppColors.outlineVariant.withValues(alpha: 0.3),
             ),
           ),
-        ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: onTap != null ? color : AppColors.secondary,
+                          fontSize: 10,
+                          letterSpacing: 1.0,
+                          fontWeight: onTap != null ? FontWeight.bold : null,
+                        ),
+                      ),
+                      if (onTap != null) ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 9,
+                          color: color,
+                        ),
+                      ],
+                    ],
+                  ),
+                  Icon(icon, size: 18, color: color),
+                ],
+              ),
+              Text(
+                value ?? status ?? 'No data',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: value == null ? 16 : null,
+                  color: value == null ? AppColors.secondary : null,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,7 +21,6 @@ import 'package:herculex/features/profile/data/dream_physique_service.dart';
 import 'package:herculex/services/ai/gemini_backend_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../support/exif_jpeg_fixture.dart';
 import '../../../support/fake_clock.dart';
 import '../../../support/fake_face_detector.dart';
@@ -109,13 +107,16 @@ class _FakeReplan implements PhysiqueReplanFlow {
   @override
   Future<void> checkReady(PhysiqueGoalData goal, {double? weightKg}) async {
     final b = blocked;
-    if (b != null) throw b;
+    if (b != null) {
+      throw b;
+    }
   }
 
   @override
   Future<ReplanProposal> analyse({
     required PhysiqueGoalData goal,
-    required StagedPhoto staged,
+    StagedPhoto? staged,
+    List<StagedPosePhoto> photos = const [],
     required bool consentGranted,
     required double? weightKg,
     required DietPhase currentPhase,
@@ -123,7 +124,9 @@ class _FakeReplan implements PhysiqueReplanFlow {
   }) async {
     analysed++;
     final f = analyseFailure;
-    if (f != null) throw f;
+    if (f != null) {
+      throw f;
+    }
     return proposal;
   }
 
@@ -131,8 +134,9 @@ class _FakeReplan implements PhysiqueReplanFlow {
   Future<void> apply({
     required PhysiqueGoalData goal,
     required ReplanProposal proposal,
-    required StagedPhoto staged,
-    required String pose,
+    StagedPhoto? staged,
+    List<StagedPosePhoto> photos = const [],
+    String pose = 'front',
   }) async {
     applied++;
     appliedProposal = proposal;
@@ -166,7 +170,9 @@ class _Harness {
     addTearDown(() {
       for (final d in [staging, pick]) {
         try {
-          if (d.existsSync()) d.deleteSync(recursive: true);
+          if (d.existsSync()) {
+            d.deleteSync(recursive: true);
+          }
         } on FileSystemException {
           // Windows keeps the decoded fixture open until the image is GC'd.
         }
@@ -256,13 +262,21 @@ class _Harness {
         () => Future<void>.delayed(const Duration(milliseconds: 20)),
       );
       await tester.pump(const Duration(milliseconds: 50));
-      if (until.evaluate().isNotEmpty) return;
+      if (until.evaluate().isNotEmpty) {
+        return;
+      }
     }
     fail('never found $until');
   }
 
   Future<void> takePhotoAndContinue() async {
     await tester.tap(find.text('Take photo'));
+    await tester.pump();
+    await settle(until: find.byKey(const Key('check-in-photos-continue')));
+    await tester.ensureVisible(
+      find.byKey(const Key('check-in-photos-continue')),
+    );
+    await tester.tap(find.byKey(const Key('check-in-photos-continue')));
     await tester.pump();
     await settle(until: find.text('Continue'));
     await tester.tap(find.text('Continue'));

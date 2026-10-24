@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/domain/block_adjustment_advisor.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
@@ -13,6 +14,9 @@ import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/programs/domain/wave_label.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
+
+part 'programs_repository/_slot_replacement.part.dart';
+part 'programs_repository/_block_update.part.dart';
 
 /// One exercise a program day will produce, from whichever source the day uses
 /// (a linked template, or its own inline [ProgramDayExercises]).
@@ -45,6 +49,24 @@ enum ProgramExerciseReplacementScope {
   entireBlock,
 }
 
+/// Where an in-workout exercise swap can be written back to the program.
+class ProgramSwapSource {
+  const ProgramSwapSource({
+    required this.programId,
+    this.programDayExerciseId,
+    this.hasSlot = false,
+  });
+
+  final int programId;
+
+  /// Target of [ProgramsRepository.replaceProgramExerciseSlot]. Null for a
+  /// template-driven day, which has no blueprint rows or waves.
+  final int? programDayExerciseId;
+
+  /// True when the row belongs to a rotating slot, so wave scopes apply.
+  final bool hasSlot;
+}
+
 class ProgramLiftProgress {
   const ProgramLiftProgress({required this.label, required this.e1RmKg});
 
@@ -63,6 +85,7 @@ class ProgramDayExerciseSummary {
     this.targetRepsMin,
     this.targetRepsMax,
     this.why,
+    this.exercise,
   });
 
   /// The underlying `ProgramDayExercises` row id — the target of a
@@ -79,6 +102,9 @@ class ProgramDayExerciseSummary {
   final int? targetRepsMin;
   final int? targetRepsMax;
   final String? why;
+
+  /// Catalog row, for artwork. Null when the exercise is missing.
+  final ExerciseCatalogData? exercise;
 
   String get targetLabel {
     final reps = switch ((targetRepsMin, targetRepsMax)) {
@@ -146,7 +172,39 @@ class ProgramsRepository {
                     ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
                   .get();
           if (rows.isEmpty) return const <ProgramDayExerciseSummary>[];
-          final ids = rows.map((row) => row.exerciseId).toSet();
+          // A rotating slot's exercise for this week lives on its assignment;
+          // the row only holds the pool default. Show what will be trained.
+          final slotIds = rows
+              .map((row) => row.programExerciseSlotId)
+              .nonNulls
+              .toSet();
+          final assigned = <int, int>{};
+          if (slotIds.isNotEmpty) {
+            final weekIndex = await _db
+                .customSelect(
+                  'SELECT w.week_index AS week_index FROM program_days d '
+                  'JOIN program_weeks w ON w.id = d.program_week_id '
+                  'WHERE d.id = ?',
+                  variables: [Variable.withInt(programDayId)],
+                )
+                .map((row) => row.read<int>('week_index'))
+                .getSingleOrNull();
+            if (weekIndex != null) {
+              final assignments =
+                  await (_db.select(_db.rotationAssignments)..where(
+                        (t) =>
+                            t.slotId.isIn(slotIds) &
+                            t.weekIndex.equals(weekIndex),
+                      ))
+                      .get();
+              for (final assignment in assignments) {
+                assigned[assignment.slotId] = assignment.exerciseId;
+              }
+            }
+          }
+          int effective(ProgramDayExerciseData row) =>
+              assigned[row.programExerciseSlotId] ?? row.exerciseId;
+          final ids = rows.map(effective).toSet();
           final catalog = await (_db.select(
             _db.exerciseCatalog,
           )..where((t) => t.id.isIn(ids))).get();
@@ -155,8 +213,9 @@ class ProgramsRepository {
             for (final row in rows)
               ProgramDayExerciseSummary(
                 id: row.id,
-                exerciseId: row.exerciseId,
-                name: byId[row.exerciseId]?.name ?? 'Unknown exercise',
+                exerciseId: effective(row),
+                name: byId[effective(row)]?.name ?? 'Unknown exercise',
+                exercise: byId[effective(row)],
                 role: row.slotRole,
                 method: row.trainingMethod,
                 targetSets: row.targetSets,
@@ -954,13 +1013,19 @@ class ProgramsRepository {
     await _db.transaction(() async {
       final slotId = original.programExerciseSlotId;
       if (slotId == null) {
-        await (_db.update(
-          _db.programDayExercises,
-        )..where((t) => t.id.equals(programDayExerciseId))).write(
-          ProgramDayExercisesCompanion(
-            exerciseId: Value(replacementExerciseId),
-            equipmentVariant: const Value(null),
-          ),
+        final dayIds = await _replaceSlotlessAcrossWeeks(
+          _db,
+          original: original,
+          originalDay: originalDay,
+          originalWeek: originalWeek,
+          replacementExerciseId: replacementExerciseId,
+          scope: scope,
+        );
+        await _patchAdaptationOverrides(
+          _db,
+          dayIds: dayIds,
+          fromExerciseId: original.exerciseId,
+          toExerciseId: replacementExerciseId,
         );
         return;
       }
@@ -1085,7 +1150,66 @@ class ProgramsRepository {
               ),
             ),
           );
+      await _patchAdaptationOverrides(
+        _db,
+        dayIds: targetDayIds,
+        fromExerciseId: activeExerciseId,
+        toExerciseId: replacementExerciseId,
+      );
     });
+  }
+
+  /// Where a running workout exercise came from, so an in-workout swap can be
+  /// made permanent. Null when the session was not started from a scheduled
+  /// program day (a freestyle workout has nothing to write back to).
+  ///
+  /// Call this *before* the workout exercise itself is substituted: without a
+  /// slot the blueprint row is matched on the exercise the session started
+  /// with.
+  Future<ProgramSwapSource?> programSourceForWorkoutExercise(
+    int workoutExerciseId,
+  ) async {
+    final we = await (_db.select(
+      _db.workoutExercises,
+    )..where((t) => t.id.equals(workoutExerciseId))).getSingleOrNull();
+    if (we == null) return null;
+    final schedule =
+        await (_db.select(_db.scheduledWorkouts)
+              ..where((t) => t.completedSessionId.equals(we.sessionId)))
+            .getSingleOrNull();
+    if (schedule == null) return null;
+    final day = await (_db.select(
+      _db.programDays,
+    )..where((t) => t.id.equals(schedule.programDayId))).getSingleOrNull();
+    if (day == null) return null;
+    final week = await (_db.select(
+      _db.programWeeks,
+    )..where((t) => t.id.equals(day.programWeekId))).getSingleOrNull();
+    if (week == null) return null;
+    if (schedule.templateIdOverride != null || day.templateId != null) {
+      return ProgramSwapSource(programId: week.programId);
+    }
+    final slotId = we.programExerciseSlotId;
+    final dayRows = await getExercisesForDay(day.id);
+    final row =
+        dayRows
+            .where(
+              (r) => slotId != null
+                  ? r.programExerciseSlotId == slotId
+                  : r.exerciseId == we.exerciseId,
+            )
+            .firstOrNull ??
+        // Already swapped earlier today: the session no longer holds the
+        // planned exercise, so fall back to its position in the day.
+        (slotId == null
+            ? dayRows.where((r) => r.orderIndex == we.orderIndex).firstOrNull
+            : null);
+    if (row == null) return null;
+    return ProgramSwapSource(
+      programId: week.programId,
+      programDayExerciseId: row.id,
+      hasSlot: row.programExerciseSlotId != null,
+    );
   }
 
   static String _replacementScopeReason(

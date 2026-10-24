@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-21",
+  "flutter_full": {
+    "passed": 3248,
+    "skipped": 9,
+    "failed": 0
+  },
+  "supplemental_regressions": {
+    "passed": 45,
+    "failed": 0
+  },
+  "supplemental_ui": {
+    "passed": 25,
+    "failed": 0
+  },
+  "native_android": {
+    "passed": 43,
+    "failed": 0
+  },
+  "wear": {
+    "passed": 75,
+    "failed": 0
+  },
+  "gemini_local": {
+    "passed": 65,
+    "failed": 0
+  },
+  "gemini_production_overlay": {
+    "passed": 41,
+    "failed": 0
+  },
+  "supplemental_analysis": "No issues found",
+  "schema_version": 51,
+  "supabase_project": "ldzgyzigvbwofbswitrv",
+  "gemini_deployment": {
+    "version": 29,
+    "status": "ACTIVE",
+    "verify_jwt": true
+  },
+  "remaining": [
+    "Closed Google billing account prevents successful live AI validation",
+    "Physical paired phone/watch acceptance"
+  ],
+  "artifacts": [
+    {
+      "path": "build/app/outputs/apk/debug/app-debug.apk",
+      "bytes": 462161465,
+      "sha256": "07ae872ebabcc69e506cc2ed0fa05d64794e3870394a814e7c64243c0a3fc478"
+    },
+    {
+      "path": "build/wear/outputs/apk/debug/wear-debug.apk",
+      "bytes": 72562779,
+      "sha256": "984003b1c0b03ffb0215ea6e8af80f501f2cf7af6fc060ad4614de1d2d983cd5"
+    }
+  ]
+}

@@ -174,9 +174,46 @@ void main() {
         'knowledgeVersion': 'kb-1',
         'modelVersion': 'gemini-2.5',
       });
-      expect(backend.lastProfileInputs, {'sex': 'male'});
+      expect(backend.lastProfileInputs!['sex'], 'male');
+      expect(backend.lastProfileInputs!['equipmentContext'], isA<Map>());
       expect(backend.lastUserNote, 'Prefer 4 days/week');
     });
+
+    test(
+      'sends a recent duration aggregate without short micro-workouts or future sessions',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final now = DateTime(2026, 10, 24, 12);
+        for (final minutes in [35, 40, 45, 5]) {
+          final start = now.subtract(Duration(days: minutes));
+          await db
+              .into(db.workoutSessions)
+              .insert(
+                WorkoutSessionsCompanion.insert(
+                  startedAt: start,
+                  endedAt: Value(start.add(Duration(minutes: minutes))),
+                ),
+              );
+        }
+        await db
+            .into(db.workoutSessions)
+            .insert(
+              WorkoutSessionsCompanion.insert(
+                startedAt: now.add(const Duration(days: 1)),
+                endedAt: Value(now.add(const Duration(days: 1, hours: 2))),
+              ),
+            );
+        final backend = _FakeGeminiBackend();
+        await HerculexAiBriefService(
+          backend,
+          db,
+          _FixedClock(now),
+        ).generateBrief(profileInputs: const {});
+        expect(backend.lastProfileInputs!['averageSessionMinutes'], 40);
+        expect(backend.lastProfileInputs, isNot(contains('sessions')));
+      },
+    );
 
     test(
       'backend not-configured failure translates into a recoverable, non-technical exception',
@@ -289,6 +326,8 @@ void main() {
           provenance: {
             'knowledgeVersion': 'kb-2',
             'modelVersion': 'gemini-2.5',
+            'programmingSkillsVersion': 'blueprint-2-skills-1',
+            'programmingSkills': ['foundation', 'hypertrophy', 'time-saving'],
           },
         );
 
@@ -304,6 +343,11 @@ void main() {
         final decoded = jsonDecode(row.briefJson) as Map<String, dynamic>;
         expect(decoded['splitType'], 'upper_lower');
         expect(decoded['phaseIntent'], brief.phaseIntent);
+        expect(decoded['programmingSkills'], [
+          'foundation',
+          'hypertrophy',
+          'time-saving',
+        ]);
       },
     );
   });

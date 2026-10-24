@@ -4,52 +4,72 @@ import android.app.PendingIntent
 import android.content.Intent
 import androidx.wear.watchface.complications.data.ComplicationData
 import androidx.wear.watchface.complications.data.ComplicationType
-import androidx.wear.watchface.complications.data.PlainComplicationText
-import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
 import com.ams.herculex.MainActivity
+import com.ams.herculex.R
 import com.ams.herculex.sync.FastingStore
-import com.ams.herculex.sync.MacroStore
 
 class FastingComplicationService : SuspendingComplicationDataSourceService() {
 
     override fun getPreviewData(type: ComplicationType): ComplicationData? {
-        if (type != ComplicationType.SHORT_TEXT) return null
-        return createComplicationData("14h", "Fast")
+        return WearComplicationHelper.buildProgressComplicationData(
+            context = this,
+            type = type,
+            current = 14f * 3600f,
+            min = 0f,
+            max = 16f * 3600f,
+            text = "14h",
+            title = "Fast",
+            shortTextFallback = "14h",
+            shortTextTitle = "Fast",
+            description = "Fasting 14h of 16h",
+            pendingIntent = null,
+            iconResId = R.drawable.ic_hx_fasting,
+        )
     }
 
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
-        if (request.complicationType != ComplicationType.SHORT_TEXT) return null
-
         val snapshot = FastingStore.snapshot(this)
-        val fasting = if (snapshot.hasActiveFast) {
-            snapshot.elapsedText()
-        } else {
-            MacroStore.fasting(this)
-        }
 
-        return createComplicationData(fasting, "Fast")
-    }
-
-    private fun createComplicationData(text: String, title: String): ComplicationData {
         val intent = Intent(this, MainActivity::class.java).apply {
             putExtra("route", "fasting")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = PendingIntent.getActivity(
             this,
-            0,
+            1005,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        return ShortTextComplicationData.Builder(
-            text = PlainComplicationText.Builder(text).build(),
-            contentDescription = PlainComplicationText.Builder("Fasting Time Elapsed").build()
+        val (current, max, text, desc) = if (snapshot.hasActiveFast) {
+            val elapsedSec = snapshot.elapsedSeconds().toFloat()
+            val targetSec = snapshot.targetSeconds.toFloat()
+            val hours = (elapsedSec / 3600f).toInt()
+            val mins = ((elapsedSec % 3600f) / 60f).toInt()
+            val display = if (hours >= 1) "${hours}h" else "${mins}m"
+            val targetHours = (targetSec / 3600f).toInt()
+            Quad(elapsedSec, targetSec, display, "Fasting ${snapshot.elapsedText()} of ${targetHours}h")
+        } else {
+            Quad(0f, 16f * 3600f, "0h", "No active fast")
+        }
+
+        return WearComplicationHelper.buildProgressComplicationData(
+            context = this,
+            type = request.complicationType,
+            current = current,
+            min = 0f,
+            max = max,
+            text = text,
+            title = "Fast",
+            shortTextFallback = text,
+            shortTextTitle = "Fast",
+            description = desc,
+            pendingIntent = pendingIntent,
+            iconResId = R.drawable.ic_hx_fasting,
         )
-            .setTitle(PlainComplicationText.Builder(title).build())
-            .setTapAction(pendingIntent)
-            .build()
     }
+
+    private data class Quad(val current: Float, val max: Float, val text: String, val desc: String)
 }

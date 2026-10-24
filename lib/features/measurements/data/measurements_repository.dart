@@ -59,23 +59,37 @@ class MeasurementsRepository {
 
   Stream<List<BodyMeasurementData>> watchMetric(String metric) {
     return (_db.select(_db.bodyMeasurements)
-          ..where((t) => t.metric.equals(metric))
-          ..orderBy([(t) => OrderingTerm(expression: t.dateIso)]))
+          ..where((t) => t.metric.equals(metric) & t.deletedAt.isNull())
+          // A previous version could leave more than one row for a day.
+          // Keep the newest row deterministic while those histories exist.
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.dateIso),
+            (t) => OrderingTerm(expression: t.id),
+          ]))
         .watch();
   }
 
   /// Latest sample per metric (for the measurements overview screen).
   Stream<List<BodyMeasurementData>> watchAll() {
-    return (_db.select(
-      _db.bodyMeasurements,
-    )..orderBy([(t) => OrderingTerm(expression: t.dateIso)])).watch();
+    return (_db.select(_db.bodyMeasurements)
+          ..where((t) => t.deletedAt.isNull())
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.dateIso),
+            (t) => OrderingTerm(expression: t.id),
+          ]))
+        .watch();
   }
 
   /// Get the most recent value for each metric as a map (e.g. {'waist': 82.0, 'neck': 38.0}).
   Future<Map<String, double>> getLatestMeasurements() async {
-    final rows = await (_db.select(
-      _db.bodyMeasurements,
-    )..orderBy([(t) => OrderingTerm(expression: t.dateIso)])).get();
+    final rows =
+        await (_db.select(_db.bodyMeasurements)
+              ..where((t) => t.deletedAt.isNull())
+              ..orderBy([
+                (t) => OrderingTerm(expression: t.dateIso),
+                (t) => OrderingTerm(expression: t.id),
+              ]))
+            .get();
     final map = <String, double>{};
     for (final r in rows) {
       map[r.metric] = r.value;
@@ -83,25 +97,66 @@ class MeasurementsRepository {
     return map;
   }
 
-  /// One sample per metric per day — re-logging the same day overwrites.
+  /// One active sample per metric per day — re-logging that day updates the
+  /// existing row.  Keeping its sync identity is important: deleting and
+  /// re-inserting could leave an old value visible on another device while
+  /// its delete and replacement were being synced independently.
   Future<void> logMeasurement({
     required String dateIso,
     required String metric,
     required double value,
   }) async {
+    if (!value.isFinite || value <= 0) {
+      throw ArgumentError.value(
+        value,
+        'value',
+        'must be a finite positive number',
+      );
+    }
     await _db.transaction(() async {
-      await (_db.delete(_db.bodyMeasurements)
-            ..where((t) => t.dateIso.equals(dateIso) & t.metric.equals(metric)))
-          .go();
-      await _db
-          .into(_db.bodyMeasurements)
-          .insert(
-            BodyMeasurementsCompanion.insert(
-              dateIso: dateIso,
-              metric: metric,
-              value: value,
+      final matching =
+          await (_db.select(_db.bodyMeasurements)
+                ..where(
+                  (t) =>
+                      t.dateIso.equals(dateIso) &
+                      t.metric.equals(metric) &
+                      t.deletedAt.isNull(),
+                )
+                ..orderBy([
+                  (t) =>
+                      OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+                ]))
+              .get();
+      final now = DateTime.now();
+
+      if (matching.isEmpty) {
+        await _db
+            .into(_db.bodyMeasurements)
+            .insert(
+              BodyMeasurementsCompanion.insert(
+                dateIso: dateIso,
+                metric: metric,
+                value: value,
+              ),
+            );
+      } else {
+        // Update the newest active record and retire any historical duplicate.
+        await (_db.update(
+          _db.bodyMeasurements,
+        )..where((t) => t.id.equals(matching.first.id))).write(
+          BodyMeasurementsCompanion(value: Value(value), updatedAt: Value(now)),
+        );
+        for (final duplicate in matching.skip(1)) {
+          await (_db.update(
+            _db.bodyMeasurements,
+          )..where((t) => t.id.equals(duplicate.id))).write(
+            BodyMeasurementsCompanion(
+              deletedAt: Value(now),
+              updatedAt: Value(now),
             ),
           );
+        }
+      }
     });
     if (metric == 'bodyweight') {
       await _syncProfileWithLatestWeight();
@@ -111,11 +166,46 @@ class MeasurementsRepository {
   Future<void> deleteMeasurement(int id) async {
     final row = await (_db.select(
       _db.bodyMeasurements,
-    )..where((t) => t.id.equals(id))).getSingleOrNull();
-    await (_db.delete(
+    )..where((t) => t.id.equals(id) & t.deletedAt.isNull())).getSingleOrNull();
+    if (row == null) return;
+    final now = DateTime.now();
+    await (_db.update(
       _db.bodyMeasurements,
-    )..where((t) => t.id.equals(id))).go();
-    if (row?.metric == 'bodyweight') {
+    )..where((t) => t.id.equals(id))).write(
+      BodyMeasurementsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+    );
+    if (row.metric == 'bodyweight') {
+      await _syncProfileWithLatestWeight();
+    }
+  }
+
+  /// Corrects the value while preserving the original measurement date and
+  /// sync identity. This is the safe path for fixing an accidental entry.
+  Future<void> updateMeasurement({
+    required int id,
+    required double value,
+  }) async {
+    if (!value.isFinite || value <= 0) {
+      throw ArgumentError.value(
+        value,
+        'value',
+        'must be a finite positive number',
+      );
+    }
+    final row = await (_db.select(
+      _db.bodyMeasurements,
+    )..where((t) => t.id.equals(id) & t.deletedAt.isNull())).getSingleOrNull();
+    if (row == null) return;
+
+    await (_db.update(
+      _db.bodyMeasurements,
+    )..where((t) => t.id.equals(id))).write(
+      BodyMeasurementsCompanion(
+        value: Value(value),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+    if (row.metric == 'bodyweight') {
       await _syncProfileWithLatestWeight();
     }
   }
@@ -141,11 +231,13 @@ class MeasurementsRepository {
     final row =
         await (_db.select(_db.bodyMeasurements)
               ..where((t) => t.metric.equals('bodyweight'))
+              ..where((t) => t.deletedAt.isNull())
               ..orderBy([
                 (t) => OrderingTerm(
                   expression: t.dateIso,
                   mode: OrderingMode.desc,
                 ),
+                (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
               ])
               ..limit(1))
             .getSingleOrNull();

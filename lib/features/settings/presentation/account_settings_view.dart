@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
@@ -188,6 +190,20 @@ class AccountSettingsView extends ConsumerWidget {
                 onTap: () => _signOut(context, ref),
               ),
             ],
+          ],
+        ),
+        const SizedBox(height: 24),
+        const HxSectionHeader('Social & Gym Buddy'),
+        const SizedBox(height: 10),
+        HxSettingsCard(
+          children: [
+            HxSettingsTile(
+              icon: Icons.group_rounded,
+              label: 'Gym Buddy & Friends',
+              subtitle: 'Compare lifts, goals, and shared workouts',
+              chevron: true,
+              onTap: () => context.push(AppRoutes.gymBuddy),
+            ),
           ],
         ),
         const SizedBox(height: 24),

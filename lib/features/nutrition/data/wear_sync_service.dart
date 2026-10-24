@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:herculex/core/notifications/in_app_notification_model.dart';
@@ -23,6 +22,7 @@ class _WatchEvent {
 }
 
 class WearSyncService {
+  static Future<bool> Function(Map<String, dynamic>)? onAppleWatchWorkoutEvent;
   static const String channelName = 'com.example.herculex/wear';
   static const MethodChannel _channel = MethodChannel(channelName);
 
@@ -34,6 +34,7 @@ class WearSyncService {
   static Function(String?)? _onWatchQuickAddCommand;
   static Function(String?)? _onWatchMacroCommand;
   static Function()? onRequestSync;
+  static Function()? onRequestNutritionSync;
 
   /// Watch events that arrived before the handlers below were registered.
   ///
@@ -51,21 +52,28 @@ class WearSyncService {
 
   static Function(String?)? _onWatchRamblerCommand;
 
+  static Function(String?, bool)? get onWatchWorkoutStarted =>
+      _onWatchWorkoutStarted;
   static set onWatchWorkoutStarted(Function(String?, bool)? handler) {
     _onWatchWorkoutStarted = handler;
     _drainPendingWatchEvents();
   }
 
+  static Function(String?)? get onWatchWorkoutUpdated => _onWatchWorkoutUpdated;
   static set onWatchWorkoutUpdated(Function(String?)? handler) {
     _onWatchWorkoutUpdated = handler;
     _drainPendingWatchEvents();
   }
 
+  static Function(String?, bool)? get onWatchWorkoutEnded =>
+      _onWatchWorkoutEnded;
   static set onWatchWorkoutEnded(Function(String?, bool)? handler) {
     _onWatchWorkoutEnded = handler;
     _drainPendingWatchEvents();
   }
 
+  static Function(String?)? get onWatchWorkoutSavedAsTemplate =>
+      _onWatchWorkoutSavedAsTemplate;
   static set onWatchWorkoutSavedAsTemplate(Function(String?)? handler) {
     _onWatchWorkoutSavedAsTemplate = handler;
   }
@@ -103,6 +111,10 @@ class WearSyncService {
 
     _channel.setMethodCallHandler((call) async {
       switch (call.method) {
+        case 'onAppleWatchWorkoutEvent':
+          final handler = onAppleWatchWorkoutEvent;
+          if (handler == null) return false;
+          return handler(Map<String, dynamic>.from(call.arguments as Map));
         case 'onWatchWorkoutStarted':
           _deliver(
             _WatchEvent(
@@ -150,8 +162,9 @@ class WearSyncService {
           _deliverRamblerCommand(call.arguments?['command_json'] as String?);
           break;
         case 'onRequestSync':
-          onRequestSync?.call();
-          break;
+          await onRequestSync?.call();
+          await onRequestNutritionSync?.call();
+          return onRequestSync != null && onRequestNutritionSync != null;
       }
     });
 
@@ -163,7 +176,9 @@ class WearSyncService {
   /// applied in the order they were emitted — a "started" that overtook an
   /// earlier "updated" would rewind the session to a stale snapshot.
   static void _deliver(_WatchEvent event) {
-    if (_pendingWatchEvents.isEmpty && _dispatch(event)) return;
+    if (_pendingWatchEvents.isEmpty && _dispatch(event)) {
+      return;
+    }
     _pendingWatchEvents.add(event);
   }
 
@@ -171,17 +186,23 @@ class WearSyncService {
     switch (event.type) {
       case _WatchEventType.started:
         final handler = _onWatchWorkoutStarted;
-        if (handler == null) return false;
+        if (handler == null) {
+          return false;
+        }
         handler(event.sessionJson, event.jumpToWorkout);
         return true;
       case _WatchEventType.updated:
         final handler = _onWatchWorkoutUpdated;
-        if (handler == null) return false;
+        if (handler == null) {
+          return false;
+        }
         handler(event.sessionJson);
         return true;
       case _WatchEventType.ended:
         final handler = _onWatchWorkoutEnded;
-        if (handler == null) return false;
+        if (handler == null) {
+          return false;
+        }
         handler(event.entityId, event.isDiscard);
         return true;
     }
@@ -205,7 +226,9 @@ class WearSyncService {
 
   static void _drainPendingFastingCommands() {
     final handler = _onWatchFastingCommand;
-    if (handler == null) return;
+    if (handler == null) {
+      return;
+    }
     while (_pendingFastingCommands.isNotEmpty) {
       handler(_pendingFastingCommands.removeAt(0));
     }
@@ -222,7 +245,9 @@ class WearSyncService {
 
   static void _drainPendingQuickAddCommands() {
     final handler = _onWatchQuickAddCommand;
-    if (handler == null) return;
+    if (handler == null) {
+      return;
+    }
     while (_pendingQuickAddCommands.isNotEmpty) {
       handler(_pendingQuickAddCommands.removeAt(0));
     }
@@ -239,7 +264,9 @@ class WearSyncService {
 
   static void _drainPendingMacroCommands() {
     final handler = _onWatchMacroCommand;
-    if (handler == null) return;
+    if (handler == null) {
+      return;
+    }
     while (_pendingMacroCommands.isNotEmpty) {
       handler(_pendingMacroCommands.removeAt(0));
     }
@@ -256,7 +283,9 @@ class WearSyncService {
 
   static void _drainPendingRamblerCommands() {
     final handler = _onWatchRamblerCommand;
-    if (handler == null) return;
+    if (handler == null) {
+      return;
+    }
     while (_pendingRamblerCommands.isNotEmpty) {
       handler(_pendingRamblerCommands.removeAt(0));
     }
@@ -265,6 +294,7 @@ class WearSyncService {
   /// Visible for tests — the handlers and queue are process-global statics.
   @visibleForTesting
   static void resetForTesting() {
+    onAppleWatchWorkoutEvent = null;
     _onWatchWorkoutStarted = null;
     _onWatchWorkoutUpdated = null;
     _onWatchWorkoutEnded = null;
@@ -273,6 +303,7 @@ class WearSyncService {
     _onWatchMacroCommand = null;
     _onWatchRamblerCommand = null;
     onRequestSync = null;
+    onRequestNutritionSync = null;
     _pendingWatchEvents.clear();
     _pendingFastingCommands.clear();
     _pendingQuickAddCommands.clear();
@@ -294,6 +325,17 @@ class WearSyncService {
     }
   }
 
+  Future<void> syncAppleHealthOwnership(
+    String entityId,
+    Map<String, dynamic> ownership,
+  ) async {
+    if (defaultTargetPlatform != TargetPlatform.iOS || kIsWeb) return;
+    await _channel.invokeMethod('syncAppleHealthOwnership', {
+      'entityId': entityId,
+      'ownership': ownership,
+    });
+  }
+
   Future<void> syncMacros(
     int calories,
     int protein, {
@@ -310,8 +352,14 @@ class WearSyncService {
     int fatGoal = 65,
     int waterGoal = 2000,
     int waterMl = 0,
+    String? day,
   }) async {
     try {
+      final targetDay =
+          day ??
+          '${DateTime.now().year.toString().padLeft(4, '0')}-'
+              '${DateTime.now().month.toString().padLeft(2, '0')}-'
+              '${DateTime.now().day.toString().padLeft(2, '0')}';
       await _channel.invokeMethod('syncMacros', {
         'calories': calories,
         'protein': protein,
@@ -328,10 +376,26 @@ class WearSyncService {
         'fat_goal': fatGoal,
         'water_goal': waterGoal,
         'water_ml': waterMl,
+        'day': targetDay,
       });
-      debugPrint('Synced macros & goals to wear');
+      debugPrint('Synced macros & goals to wear (day: $targetDay)');
     } on PlatformException catch (e) {
       debugPrint('Failed to sync macros to wear: ${e.message}');
+    }
+  }
+
+  Future<void> syncCns({
+    required int readinessPct,
+    required String status,
+  }) async {
+    try {
+      await _channel.invokeMethod('syncCnsToWear', {
+        'readiness_pct': readinessPct,
+        'status': status,
+      });
+      debugPrint('Synced CNS to wear: $readinessPct% ($status)');
+    } on PlatformException catch (e) {
+      debugPrint('Failed to sync CNS to wear: ${e.message}');
     }
   }
 

@@ -2,12 +2,12 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
+import 'package:herculex/features/measurements/presentation/weight_picker_sheet.dart';
 import 'package:herculex/features/physique/application/goal_target_provider.dart';
 import 'package:herculex/features/physique/presentation/save_goal_target.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
@@ -245,12 +245,8 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
                   _HistoryTile(
                     row: r,
                     unit: _unit,
-                    onDelete: () async {
-                      Haptics.medium();
-                      await ref
-                          .read(measurementsRepositoryProvider)
-                          .deleteMeasurement(r.id);
-                    },
+                    onEdit: () => _editEntry(context, r),
+                    onDelete: () => _confirmDelete(context, r),
                   ),
               ],
             );
@@ -521,16 +517,33 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
     final rows = ref.read(_metricHistoryProvider(widget.metric)).asData?.value;
     final lastVal = (rows != null && rows.isNotEmpty) ? rows.last.value : null;
 
-    String initialText = '';
     if (widget.metric == 'bodyweight') {
       final latestKg = await ref.read(latestBodyweightProvider.future);
       final profile = ref.read(profileProvider).valueOrNull;
       final kg = latestKg ?? profile?.weightKg;
-      if (kg != null) {
-        final fmt = ref.read(weightFormatProvider);
-        initialText = fmt.formatValue(kg);
+      if (!context.mounted) return;
+      final value = await WeightPickerSheet.show(
+        context,
+        initialKg: kg,
+        previousKg: latestKg,
+        title: 'Log $_label',
+      );
+      if (value != null && value > 0) {
+        Haptics.medium();
+        await ref
+            .read(measurementsRepositoryProvider)
+            .logMeasurement(
+              dateIso: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+              metric: widget.metric,
+              value: value,
+            );
+        ref.invalidate(latestBodyweightProvider);
       }
-    } else if (lastVal != null) {
+      return;
+    }
+
+    String initialText = '';
+    if (lastVal != null) {
       initialText = lastVal.truncateToDouble() == lastVal
           ? lastVal.toStringAsFixed(0)
           : lastVal.toStringAsFixed(1);
@@ -582,6 +595,87 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
             value: value,
           );
     }
+  }
+
+  Future<void> _editEntry(BuildContext context, BodyMeasurementData row) async {
+    Haptics.selection();
+    final initialText = row.value.truncateToDouble() == row.value
+        ? row.value.toStringAsFixed(0)
+        : row.value.toStringAsFixed(1);
+    final ctrl = TextEditingController(text: initialText);
+    final value = await showDialog<double>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text('Correct $_label'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: _formatShortDate(row.dateIso),
+            suffixText: _unit,
+          ),
+          onSubmitted: (raw) => Navigator.pop(
+            dialogCtx,
+            double.tryParse(raw.replaceAll(',', '.')),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(
+              dialogCtx,
+              double.tryParse(ctrl.text.replaceAll(',', '.')),
+            ),
+            child: const Text('Save correction'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (value == null || value <= 0 || !value.isFinite) return;
+
+    Haptics.medium();
+    await ref
+        .read(measurementsRepositoryProvider)
+        .updateMeasurement(id: row.id, value: value);
+    ref.invalidate(latestBodyweightProvider);
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    BodyMeasurementData row,
+  ) async {
+    final remove = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Delete measurement?'),
+        content: Text(
+          '${row.value.toStringAsFixed(1)} $_unit from '
+          '${_formatShortDate(row.dateIso)} will no longer be used in your '
+          'profile, trends, or calculations.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (remove != true) return;
+
+    Haptics.medium();
+    await ref.read(measurementsRepositoryProvider).deleteMeasurement(row.id);
+    ref.invalidate(latestBodyweightProvider);
   }
 
   String _formatShortDate(String dateIso) {
@@ -697,11 +791,13 @@ class _MiniStatTile extends StatelessWidget {
 class _HistoryTile extends StatelessWidget {
   final BodyMeasurementData row;
   final String unit;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _HistoryTile({
     required this.row,
     required this.unit,
+    required this.onEdit,
     required this.onDelete,
   });
 
@@ -737,10 +833,23 @@ class _HistoryTile extends StatelessWidget {
             color: AppColors.secondary,
           ),
         ),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline, size: 20),
-          color: AppColors.secondary,
-          onPressed: onDelete,
+        onTap: onEdit,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 20),
+              color: AppColors.secondary,
+              tooltip: 'Correct value',
+              onPressed: onEdit,
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 20),
+              color: AppColors.secondary,
+              tooltip: 'Delete entry',
+              onPressed: onDelete,
+            ),
+          ],
         ),
       ),
     );

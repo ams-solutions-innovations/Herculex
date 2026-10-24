@@ -216,4 +216,40 @@ void main() {
       }
     },
   );
+
+  test(
+    'syncNutrition passes all calorie and macro numbers correctly',
+    () async {
+      final sync = WidgetSyncService(
+        clock: _FixedClock(DateTime(2026, 10, 7, 12, 0)),
+      );
+      await sync.syncNutrition(
+        baseGoalKcal: 2500,
+        foodKcal: 1800,
+        exerciseKcal: 400,
+        remainingKcal: 1100,
+        carbsCurrent: 180,
+        carbsTarget: 220,
+        fatCurrent: 65,
+        fatTarget: 75,
+        proteinCurrent: 140,
+        proteinTarget: 160,
+      );
+
+      expect(calls.single.method, 'syncNutrition');
+      expect(calls.single.arguments, {
+        'baseGoalKcal': 2500,
+        'foodKcal': 1800,
+        'exerciseKcal': 400,
+        'remainingKcal': 1100,
+        'carbsCurrent': 180,
+        'carbsTarget': 220,
+        'fatCurrent': 65,
+        'fatTarget': 75,
+        'proteinCurrent': 140,
+        'proteinTarget': 160,
+        'epochDay': _epochDayOct7,
+      });
+    },
+  );
 }

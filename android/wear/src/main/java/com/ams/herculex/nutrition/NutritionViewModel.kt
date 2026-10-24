@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ams.herculex.complication.WearComplicationHelper
 import com.ams.herculex.sync.FastingSnapshot
 import com.ams.herculex.sync.FastingStore
+import com.ams.herculex.sync.LoggedFoodEntry
 import com.ams.herculex.sync.MacroStore
 import com.ams.herculex.sync.QuickAddFoodItem
 import com.ams.herculex.sync.QuickAddMealSlot
@@ -48,11 +49,23 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
     private val _goals = MutableStateFlow(loadGoals())
     val goals: StateFlow<NutritionGoals> = _goals.asStateFlow()
 
-    private val _quickAddItems = MutableStateFlow(QuickAddStore.items(application))
+    private val _quickAddItems = MutableStateFlow(QuickAddStore.suggestedItems(application))
     val quickAddItems: StateFlow<List<QuickAddFoodItem>> = _quickAddItems.asStateFlow()
+
+    private val _recentQuickAddItems = MutableStateFlow(QuickAddStore.recentItems(application))
+    val recentQuickAddItems: StateFlow<List<QuickAddFoodItem>> = _recentQuickAddItems.asStateFlow()
+
+    private val _recipeQuickAddItems = MutableStateFlow(QuickAddStore.recipeItems(application))
+    val recipeQuickAddItems: StateFlow<List<QuickAddFoodItem>> = _recipeQuickAddItems.asStateFlow()
 
     private val _quickAddMealSlots = MutableStateFlow(QuickAddStore.mealSlots(application))
     val quickAddMealSlots: StateFlow<List<QuickAddMealSlot>> = _quickAddMealSlots.asStateFlow()
+
+    private val _loggedEntries = MutableStateFlow(QuickAddStore.loggedEntries(application))
+    val loggedEntries: StateFlow<List<LoggedFoodEntry>> = _loggedEntries.asStateFlow()
+
+    private val _selectedLoggedEntry = MutableStateFlow<LoggedFoodEntry?>(null)
+    val selectedLoggedEntry: StateFlow<LoggedFoodEntry?> = _selectedLoggedEntry.asStateFlow()
 
     private val _pendingQuickAddItem = MutableStateFlow<QuickAddFoodItem?>(null)
     val pendingQuickAddItem: StateFlow<QuickAddFoodItem?> = _pendingQuickAddItem.asStateFlow()
@@ -89,6 +102,10 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
         _pendingQuickAddMultiplier.value = multiplier
     }
 
+    fun selectLoggedEntry(entry: LoggedFoodEntry) {
+        _selectedLoggedEntry.value = entry
+    }
+
     /// The meal a one-tap "+" quick-add should log to, skipping the meal
     /// picker entirely: the food's own last-used meal if the phone reported
     /// one, otherwise the first synced meal slot, otherwise "snack".
@@ -103,8 +120,11 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
     /// push from the phone, so callers should invoke it when the Log Food
     /// screen appears.
     fun refreshQuickAdd() {
-        _quickAddItems.value = QuickAddStore.items(ctx())
+        _quickAddItems.value = QuickAddStore.suggestedItems(ctx())
+        _recentQuickAddItems.value = QuickAddStore.recentItems(ctx())
+        _recipeQuickAddItems.value = QuickAddStore.recipeItems(ctx())
         _quickAddMealSlots.value = QuickAddStore.mealSlots(ctx())
+        _loggedEntries.value = QuickAddStore.loggedEntries(ctx())
         viewModelScope.launch {
             runCatching { syncManager.flushPendingRealtimeMessages() }
         }
@@ -113,7 +133,8 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
     /// Logs a quick-add item against [mealKey]: applies the macro delta
     /// locally (so the watch's own totals update immediately) and forwards
     /// the command to the phone, which is the source of truth for the food
-    /// diary and will resolve [item.foodId] against its catalogue.
+    /// diary and will resolve [item.foodId] or [item.recipeId] against its
+    /// catalogue.
     ///
     /// [multiplier] scales the item's default-portion macros/amount linearly
     /// (e.g. 1.5 = one and a half of the usual serving) — set via the
@@ -130,11 +151,124 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
         refresh()
         _pendingQuickAddItem.value = null
         _pendingQuickAddMultiplier.value = 1.0
+
+        val formattedAmount = if (portionAmount % 1.0 == 0.0) {
+            "%.0f".format(portionAmount)
+        } else {
+            "%.1f".format(portionAmount)
+        }
+        val tempId = -(System.currentTimeMillis() % 100000).toInt()
+        val tempEntry = LoggedFoodEntry(
+            id = tempId,
+            name = item.name,
+            mealKey = mealKey,
+            portionAmount = portionAmount,
+            portionUnit = item.portionUnit,
+            portionText = "$formattedAmount ${item.portionUnit}",
+            servings = multiplier,
+            kcal = calories,
+            protein = protein,
+            carbs = carbs,
+            fat = fats,
+            foodId = item.foodId,
+            recipeId = item.recipeId,
+            loggedAtEpochMs = System.currentTimeMillis(),
+        )
+        val currentEntries = _loggedEntries.value.toMutableList()
+        currentEntries.add(tempEntry)
+        _loggedEntries.value = currentEntries
+
         val commandJson = QuickAddStore.createLogCommand(
             foodId = item.foodId,
             mealKey = mealKey,
             portionAmount = portionAmount,
             portionUnit = item.portionUnit,
+            recipeId = item.recipeId,
+        )
+        viewModelScope.launch {
+            syncManager.sendQuickAddCommand(commandJson)
+        }
+    }
+
+    fun deleteLoggedEntry(entry: LoggedFoodEntry) {
+        QuickAddStore.deleteLoggedEntryLocally(ctx(), entry.id)
+        _loggedEntries.value = _loggedEntries.value.filter { it.id != entry.id }
+        if (_selectedLoggedEntry.value?.id == entry.id) {
+            _selectedLoggedEntry.value = null
+        }
+        MacroStore.adjustFood(
+            ctx(),
+            deltaCalories = -entry.kcal,
+            deltaProtein = -entry.protein,
+            deltaCarbs = -entry.carbs,
+            deltaFats = -entry.fat,
+        )
+        refresh()
+        val commandJson = QuickAddStore.createDeleteCommand(entry.id)
+        viewModelScope.launch {
+            syncManager.sendQuickAddCommand(commandJson)
+        }
+    }
+
+    fun updateLoggedEntry(
+        entry: LoggedFoodEntry,
+        newMealKey: String,
+        newAmount: Double,
+        newUnit: String,
+        newPortionText: String,
+        newKcal: Int,
+        newProtein: Int,
+        newCarbs: Int,
+        newFat: Int,
+        newServings: Double,
+    ) {
+        val deltaCalories = newKcal - entry.kcal
+        val deltaProtein  = newProtein - entry.protein
+        val deltaCarbs    = newCarbs - entry.carbs
+        val deltaFats     = newFat - entry.fat
+
+        QuickAddStore.updateLoggedEntryLocally(
+            context = ctx(),
+            entryId = entry.id,
+            newMealKey = newMealKey,
+            newAmount = newAmount,
+            newUnit = newUnit,
+            newPortionText = newPortionText,
+            newKcal = newKcal,
+            newProtein = newProtein,
+            newCarbs = newCarbs,
+            newFat = newFat,
+            newServings = newServings,
+        )
+        val updated = entry.copy(
+            mealKey = newMealKey,
+            portionAmount = newAmount,
+            portionUnit = newUnit,
+            portionText = newPortionText,
+            kcal = newKcal,
+            protein = newProtein,
+            carbs = newCarbs,
+            fat = newFat,
+            servings = newServings,
+        )
+        _loggedEntries.value = _loggedEntries.value.map { if (it.id == entry.id) updated else it }
+        if (_selectedLoggedEntry.value?.id == entry.id) {
+            _selectedLoggedEntry.value = updated
+        }
+        MacroStore.adjustFood(
+            ctx(),
+            deltaCalories = deltaCalories,
+            deltaProtein = deltaProtein,
+            deltaCarbs = deltaCarbs,
+            deltaFats = deltaFats,
+        )
+        refresh()
+        val commandJson = QuickAddStore.createUpdateCommand(
+            entryId = entry.id,
+            mealKey = newMealKey,
+            portionAmount = newAmount,
+            portionUnit = newUnit,
+            servings = newServings,
         )
         viewModelScope.launch {
             syncManager.sendQuickAddCommand(commandJson)

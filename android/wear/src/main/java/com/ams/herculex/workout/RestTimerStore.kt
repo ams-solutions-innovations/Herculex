@@ -61,9 +61,32 @@ object RestTimerStore {
     @Volatile
     var appInForeground: Boolean = false
 
+    /**
+     * Grace period during which waking up the watch (wrist raise / screen on)
+     * still surfaces the "IT'S GO TIME" overlay so the lifter doesn't miss it.
+     */
+    const val WAKE_GRACE_MS = 12_000L
+
     private const val PREFS = "rest_timer_store"
     private const val KEY_TIMER = "timer"
+    private const val KEY_LAST_FINISHED_MS = "last_finished_ms"
+    private const val KEY_GO_TIME_PRESENTED = "go_time_presented"
+    private const val KEY_LAST_LABEL = "last_label"
     private const val WAKE_LOCK_SLACK_MS = 10_000L
+
+    /** Timestamp of the last finished rest. */
+    @Volatile
+    var lastFinishedEpochMs: Long = 0L
+        internal set
+
+    /** Whether the last rest-finish has already been presented to the user on screen. */
+    @Volatile
+    var goTimePresented: Boolean = false
+        internal set
+
+    /** Label of the last finished rest (e.g. exercise name). */
+    private val _lastGoTimeLabel = MutableStateFlow("")
+    val lastGoTimeLabel: StateFlow<String> = _lastGoTimeLabel.asStateFlow()
 
     // The rest ends on whichever fires first: this in-process handler (held
     // awake by a short wake lock, so it lands on the second even with the
@@ -89,6 +112,9 @@ object RestTimerStore {
             alert = obj.optBoolean("alert", true),
         )
         _timer.value = timer
+        lastFinishedEpochMs = 0L
+        goTimePresented = false
+        _lastGoTimeLabel.value = timer.label
         persist(appContext, timer)
         scheduleAlarm(appContext, timer)
         scheduleInProcess(appContext, timer)
@@ -97,9 +123,12 @@ object RestTimerStore {
     fun clear(context: Context) {
         val appContext = context.applicationContext
         _timer.value = null
+        lastFinishedEpochMs = 0L
+        goTimePresented = false
         forget(appContext)
         cancelInProcess()
         cancelAlarm(appContext)
+        cancelGoTimeNotification(appContext)
     }
 
     private fun scheduleInProcess(context: Context, timer: RestTimer) {
@@ -198,6 +227,24 @@ object RestTimerStore {
      * The rest is over — called by the in-process handler or the alarm,
      * whichever is first; the second finds nothing left to announce.
      */
+    private fun persistFinishedState(context: Context, epochMs: Long, label: String, presented: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong(KEY_LAST_FINISHED_MS, epochMs)
+            .putString(KEY_LAST_LABEL, label)
+            .putBoolean(KEY_GO_TIME_PRESENTED, presented)
+            .apply()
+    }
+
+    private fun persistGoTimePresented(context: Context, presented: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean(KEY_GO_TIME_PRESENTED, presented)
+            .apply()
+    }
+
+    /**
+     * The rest is over — called by the in-process handler or the alarm,
+     * whichever is first; the second finds nothing left to announce.
+     */
     internal fun onRestFinished(context: Context) {
         val appContext = context.applicationContext
         val timer = _timer.value ?: persisted(appContext) ?: return
@@ -206,17 +253,83 @@ object RestTimerStore {
         cancelInProcess()
         cancelAlarm(appContext)
         if (!timer.alert) return
+
+        lastFinishedEpochMs = System.currentTimeMillis()
+        _lastGoTimeLabel.value = timer.label
+        goTimePresented = false
+        persistFinishedState(appContext, lastFinishedEpochMs, timer.label, false)
+
         vibrateGoTime(appContext)
-        // The in-app flash is only for a lifter who is looking at the app. With
-        // the screen off/ambient (or the app away) it must be a real system
-        // notification, otherwise the rest ends unnoticed.
+        wakeScreenBriefly(appContext)
+
+        // If the lifter is currently looking at the app with screen on, show immediately.
+        // Otherwise, post a system notification and let checkWakeGoTime() show the overlay
+        // out-of-wake when the lifter glances at their wrist within WAKE_GRACE_MS.
         val power = appContext.getSystemService(PowerManager::class.java)
-        val watching = appInForeground && power?.isInteractive != false
+        val watching = appInForeground && power?.isInteractive == true
         if (watching) {
+            goTimePresented = true
+            persistGoTimePresented(appContext, true)
             _goTimeEvents.value += 1
+            cancelGoTimeNotification(appContext)
         } else {
             postGoTimeNotification(appContext, timer.label)
         }
+    }
+
+    /**
+     * Checks if a rest timer recently expired (within [WAKE_GRACE_MS]) and has not
+     * yet been presented to the user. If so, triggers the in-app "IT'S GO TIME" overlay
+     * and dismisses any lingering system notification.
+     *
+     * Returns true if a pending "go time" overlay was triggered.
+     */
+    fun checkWakeGoTime(context: Context? = null): Boolean {
+        val now = System.currentTimeMillis()
+        var lastMs = lastFinishedEpochMs
+        var presented = goTimePresented
+        if (lastMs == 0L && context != null) {
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            lastMs = prefs.getLong(KEY_LAST_FINISHED_MS, 0L)
+            presented = prefs.getBoolean(KEY_GO_TIME_PRESENTED, false)
+            val savedLabel = prefs.getString(KEY_LAST_LABEL, "").orEmpty()
+            if (savedLabel.isNotBlank()) {
+                _lastGoTimeLabel.value = savedLabel
+            }
+        }
+        if (!presented && lastMs > 0 && (now - lastMs) <= WAKE_GRACE_MS) {
+            goTimePresented = true
+            lastFinishedEpochMs = lastMs
+            context?.let {
+                persistGoTimePresented(it, true)
+                cancelGoTimeNotification(it)
+            }
+            _goTimeEvents.value += 1
+            return true
+        }
+        return false
+    }
+
+    fun dismissGoTime(context: Context? = null) {
+        goTimePresented = true
+        context?.let { persistGoTimePresented(it, true) }
+    }
+
+    fun cancelGoTimeNotification(context: Context) {
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        runCatching { manager.cancel(NOTIFICATION_ID) }
+    }
+
+    private fun wakeScreenBriefly(context: Context) {
+        runCatching {
+            val power = context.getSystemService(PowerManager::class.java) ?: return
+            @Suppress("DEPRECATION")
+            val flags = PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                PowerManager.ON_AFTER_RELEASE
+            val wake = power.newWakeLock(flags, "herculex:rest_go_time_wake")
+            wake.acquire(3_000L)
+        }.onFailure { Log.w(TAG, "Could not briefly wake screen", it) }
     }
 
     /** Two short pulses: noticeable on the wrist, never a long buzz. */
@@ -267,8 +380,9 @@ object RestTimerStore {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(open)
+            .setFullScreenIntent(open, true)
             .setAutoCancel(true)
-            .setTimeoutAfter(6_000)
+            .setTimeoutAfter(WAKE_GRACE_MS)
             .build()
         runCatching { manager.notify(NOTIFICATION_ID, notification) }
     }

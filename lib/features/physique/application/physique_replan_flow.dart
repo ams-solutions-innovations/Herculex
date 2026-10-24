@@ -1,6 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/utils/clock.dart';
@@ -126,19 +126,21 @@ class PhysiqueReplanFlow {
   /// [weeksInPhase] describe the phase running now.
   Future<ReplanProposal> analyse({
     required PhysiqueGoalData goal,
-    required StagedPhoto staged,
+    StagedPhoto? staged,
+    List<StagedPosePhoto> photos = const [],
     required bool consentGranted,
     required double? weightKg,
     required DietPhase currentPhase,
     required int weeksInPhase,
   }) async {
+    final batch = StagedPosePhoto.checked(photos: photos, staged: staged);
     await checkReady(goal, weightKg: weightKg);
     final weight = weightKg!;
     final dream = (await _dreamPhotos.find(goal.syncUuid!))!;
     final profile = _readProfile();
 
     final result = await _service.compareAndAnalyzePhysique(
-      currentImages: [staged.file],
+      currentImages: batch.map((p) => p.photo.file).toList(),
       targetImages: [dream],
       consentGranted: consentGranted,
       profile: profile?.copyWith(weightKg: weight),
@@ -188,9 +190,15 @@ class PhysiqueReplanFlow {
   Future<void> apply({
     required PhysiqueGoalData goal,
     required ReplanProposal proposal,
-    required StagedPhoto staged,
-    required String pose,
+    StagedPhoto? staged,
+    String pose = 'front',
+    List<StagedPosePhoto> photos = const [],
   }) async {
+    final batch = StagedPosePhoto.checked(
+      photos: photos,
+      staged: staged,
+      pose: pose,
+    );
     final uuid = goal.syncUuid;
     if (uuid == null) {
       throw StateError('Physique goal ${goal.id} has no sync uuid');
@@ -199,12 +207,25 @@ class PhysiqueReplanFlow {
     final now = _clock.now();
     final summary = DreamPhysiqueAnalysisSummary.fromResult(
       result: result,
-      currentPhotoCount: 1,
+      currentPhotoCount: batch.length,
       targetPhotoCount: 1,
       analyzedAt: proposal.analyzedAt.toUtc(),
     );
-    final relative = await _store.adopt(staged.file, goalUuid: uuid);
+    final rows = <NewPhotoRow>[];
     try {
+      for (final p in batch) {
+        rows.add(
+          NewPhotoRow(
+            pose: p.pose,
+            relativePath: await _store.copyIntoGoal(
+              p.photo.file,
+              goalUuid: uuid,
+            ),
+            takenAt: now,
+            blurred: p.photo.blurApplied,
+          ),
+        );
+      }
       await _goals.applyReanalysis(
         goalId: goal.id,
         analysis: AnalysisInput(
@@ -219,16 +240,22 @@ class PhysiqueReplanFlow {
         estimatedMonths: result.estimatedMonths,
         targetBfPercent: result.targetBfPercent,
         roadmap: proposal.phases,
-        photo: NewPhotoRow(
-          pose: pose,
-          relativePath: relative,
-          takenAt: now,
-          blurred: staged.blurApplied,
-        ),
+        photos: rows,
       );
     } on Object {
-      await _store.delete(relative);
+      for (final row in rows) {
+        await _store.delete(row.relativePath);
+      }
       rethrow;
+    }
+    for (final p in batch) {
+      try {
+        if (await p.photo.file.exists()) {
+          await p.photo.file.delete();
+        }
+      } on FileSystemException {
+        // Keep the committed copy even if temporary-file cleanup fails.
+      }
     }
   }
 }

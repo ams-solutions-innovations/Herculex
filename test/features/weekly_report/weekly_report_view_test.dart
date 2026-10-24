@@ -194,6 +194,9 @@ Future<_Harness> _pump(
         }),
         weeklyReportEnabledProvider.overrideWithValue(enabled),
         weeklyReportDueWeekProvider.overrideWithValue(null),
+        weeklyPlannedSessionsProvider.overrideWith(
+          (ref, week) => Stream.value(4),
+        ),
         clockProvider.overrideWithValue(h.clock),
         narrativeUiStateProvider.overrideWith((ref, week) => ui),
         // A live target that differs from anything in the payload: the report

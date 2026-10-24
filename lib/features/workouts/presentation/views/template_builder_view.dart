@@ -209,6 +209,7 @@ class _CreateFormState extends ConsumerState<_CreateForm> {
         ),
         const SizedBox(height: 32),
         PremiumButton(
+          expand: true,
           text: _saving ? 'Creating…' : 'Create & Add Exercises',
           icon: Icons.add,
           onTap: _saving
@@ -354,7 +355,12 @@ class _EditBodyState extends ConsumerState<_EditBody> {
                   await repo.addExerciseToTemplate(
                     templateId: template.id,
                     exerciseId: picked.exercise.id,
-                    targetSets: _defaultTargetSets,
+                    targetSets: picked.targetSets ?? _defaultTargetSets,
+                    targetRepsMin: picked.targetReps,
+                    targetRepsMax: picked.targetReps,
+                    equipmentVariant: picked.equipmentVariant,
+                    targetWeightKg: picked.targetWeightKg,
+                    targetDurationSeconds: picked.targetDurationSeconds,
                   );
                 }
               },
@@ -409,6 +415,17 @@ class _EditBodyState extends ConsumerState<_EditBody> {
                       (e) => e.id == te.exerciseId,
                       orElse: () => _placeholder(te.exerciseId),
                     ),
+                    onReplace: () async {
+                      final results = await ExercisePickerSheet.show(context);
+                      final replacement = results?.firstOrNull;
+                      if (replacement != null &&
+                          replacement.circuitId == null) {
+                        await repo.replaceTemplateExercise(
+                          te.id,
+                          replacement.exercise.id,
+                        );
+                      }
+                    },
                     onRemove: () => repo.removeExerciseFromTemplate(te.id),
                   ),
               ],
@@ -423,6 +440,7 @@ class _EditBodyState extends ConsumerState<_EditBody> {
           child: Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: PremiumButton(
+              expand: true,
               text: 'Done',
               icon: Icons.check,
               onTap: () async {
@@ -680,12 +698,14 @@ class _TemplateExerciseCard extends ConsumerWidget {
   final TemplateExerciseData te;
   final ExerciseCatalogData exercise;
   final VoidCallback onRemove;
+  final VoidCallback onReplace;
 
   const _TemplateExerciseCard({
     super.key,
     required this.te,
     required this.exercise,
     required this.onRemove,
+    required this.onReplace,
   });
 
   @override
@@ -737,6 +757,12 @@ class _TemplateExerciseCard extends ConsumerWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  IconButton(
+                    tooltip: 'Replace exercise',
+                    icon: const Icon(Icons.swap_horiz_rounded, size: 20),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onReplace,
+                  ),
                   IconButton(
                     icon: Icon(
                       Icons.delete_outline,

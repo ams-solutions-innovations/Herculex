@@ -8,16 +8,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
-import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Text
 import com.ams.herculex.ui.HxIcons
@@ -25,23 +26,15 @@ import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
 import com.ams.herculex.workout.attachRotaryScroll
 
-private data class MenuItem(
-    val label: String,
-    val icon: ImageVector,
-    val style: OneUiPillStyle,
-    val route: String,
-)
-
-private val menuItems = listOf(
-    MenuItem("Log food",      HxIcons.Utensils,  OneUiPillStyle.SlateNavy,    "log_food"),
-    MenuItem("Nutrients",     HxIcons.Nutrients, OneUiPillStyle.VioletIndigo, "nutrients"),
-    MenuItem("Add kcal",      HxIcons.Flame,     OneUiPillStyle.Terracotta,   "add_calories"),
-    MenuItem("Add water",     HxIcons.Drop,      OneUiPillStyle.AccentBlue,   "add_water"),
-)
-
 @Composable
-fun NutritionScreen(navController: NavController) {
+fun NutritionScreen(
+    navController: NavController,
+    viewModel: NutritionViewModel = viewModel(),
+) {
     val listState = rememberScalingLazyListState()
+    val loggedEntries by viewModel.loggedEntries.collectAsState()
+    val nutritionData by viewModel.data.collectAsState()
+
     ScalingLazyColumn(
         state = listState,
         modifier = Modifier
@@ -66,12 +59,49 @@ fun NutritionScreen(navController: NavController) {
                 )
             }
         }
-        items(menuItems) { item ->
+        item {
             OneUiPill(
-                title = item.label,
-                iconVector = item.icon,
-                style = item.style,
-                onClick = { navController.navigate(item.route) },
+                title = "Today's meals",
+                subtitle = if (loggedEntries.isNotEmpty()) {
+                    "${nutritionData.calories} kcal · ${loggedEntries.size} items"
+                } else {
+                    "View logged foods"
+                },
+                iconVector = HxIcons.Utensils,
+                style = OneUiPillStyle.RoyalBlue,
+                onClick = { navController.navigate("today_meals") },
+            )
+        }
+        item {
+            OneUiPill(
+                title = "Log food",
+                iconVector = HxIcons.Plus,
+                style = OneUiPillStyle.EmeraldGreen,
+                onClick = { navController.navigate("log_food") },
+            )
+        }
+        item {
+            OneUiPill(
+                title = "Nutrients",
+                iconVector = HxIcons.Nutrients,
+                style = OneUiPillStyle.VioletIndigo,
+                onClick = { navController.navigate("nutrients") },
+            )
+        }
+        item {
+            OneUiPill(
+                title = "Add kcal",
+                iconVector = HxIcons.Flame,
+                style = OneUiPillStyle.Terracotta,
+                onClick = { navController.navigate("add_calories") },
+            )
+        }
+        item {
+            OneUiPill(
+                title = "Add water",
+                iconVector = HxIcons.Drop,
+                style = OneUiPillStyle.AccentBlue,
+                onClick = { navController.navigate("add_water") },
             )
         }
     }

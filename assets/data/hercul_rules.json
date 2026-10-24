@@ -22,7 +22,7 @@
     },
     "cta": {
       "type": "route",
-      "value": "/insights"
+      "value": "/cns"
     }
   },
   {
@@ -186,7 +186,7 @@
     },
     "cta": {
       "type": "route",
-      "value": "/nutrition"
+      "value": "/app"
     }
   },
   {
@@ -217,7 +217,7 @@
     },
     "cta": {
       "type": "route",
-      "value": "/nutrition"
+      "value": "/app"
     }
   },
   {
@@ -248,7 +248,7 @@
     },
     "cta": {
       "type": "route",
-      "value": "/nutrition"
+      "value": "/app"
     }
   },
   {
@@ -274,7 +274,7 @@
     },
     "cta": {
       "type": "route",
-      "value": "/nutrition"
+      "value": "/app"
     }
   },
   {
@@ -667,7 +667,7 @@
     ],
     "copy": {
       "normal": "Hercul sees your sleep tracking closely with your training RPE. After a bad night, expect the same weights to feel heavier today \u2014 plan around it rather than pushing through.",
-      "honest": "Your RPE follows your sleep almost one to one. You slept badly, so today's weights will feel heavy, and that is not weakness. Do not run into the wall to prove a point."
+      "honest": "Your RPE follows your sleep almost one to one. You slept badly, so today's weights will feel heavy, and that is not a lack of grit. Do not run into the wall to prove a point."
     }
   },
   {
@@ -720,6 +720,1152 @@
     "cta": {
       "type": "route",
       "value": "/exercises"
+    }
+  },
+  {
+    "id": "scale-up-late-carbs-glycogen-good",
+    "domain": "bodyweight",
+    "priority": 86,
+    "cooldownDays": 2,
+    "when": [
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "1",
+        "op": ">=",
+        "value": 0.4
+      },
+      {
+        "signal": "nutrition.carbsBeforeBedYesterdayG",
+        "op": ">=",
+        "value": 80
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees the scale up +{body.weightDeltaKg:1|1dp} kg after {nutrition.carbsBeforeBedYesterdayG|int} g of carbs before bed. Each gram of stored glycogen binds ~3 g of intracellular water \u2014 that jump is muscle fullness, not adipose tissue. Use the extra leverage on today's heavy sets.",
+      "honest": "Scale jumped +{body.weightDeltaKg:1|1dp} kg after {nutrition.carbsBeforeBedYesterdayG|int} g of late-night carbs and you are already panicking. One gram of glycogen holds three grams of water inside the muscle. Put the calculator away and go lift."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/measurements"
+    }
+  },
+  {
+    "id": "scale-up-3d-carbs-refeed",
+    "domain": "bodyweight",
+    "priority": 74,
+    "cooldownDays": 4,
+    "when": [
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "3",
+        "op": ">=",
+        "value": 0.7
+      },
+      {
+        "signal": "nutrition.carbsYesterdayG",
+        "op": ">=",
+        "value": 220
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees +{body.weightDeltaKg:3|1dp} kg over three days alongside {nutrition.carbsYesterdayG|int} g of carbohydrates yesterday. Replenished muscle glycogen and bound intracellular water explain the rise \u2014 expect fuller muscles and stronger rep endurance today.",
+      "honest": "You ate {nutrition.carbsYesterdayG|int} g of carbs and the scale moved +{body.weightDeltaKg:3|1dp} kg in three days. That is refilled glycogen and water inside the muscle belly, not tissue gain. Channel it into the bar."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/measurements"
+    }
+  },
+  {
+    "id": "scale-down-low-late-carbs",
+    "domain": "bodyweight",
+    "priority": 66,
+    "cooldownDays": 3,
+    "when": [
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "1",
+        "op": "<=",
+        "value": -0.4
+      },
+      {
+        "signal": "nutrition.carbsBeforeBedYesterdayG",
+        "op": "<",
+        "value": 25
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees a {body.weightDeltaKg:1|abs} kg overnight drop after only {nutrition.carbsBeforeBedYesterdayG|int} g of evening carbs. Lower overnight glycogen releases bound water, so your morning weight sits at the bottom of your hydration band.",
+      "honest": "Down {body.weightDeltaKg:1|abs} kg overnight because you ate {nutrition.carbsBeforeBedYesterdayG|int} g of carbs before bed. That is drained glycogen water, not a miracle overnight cut. Eat some carbs before you train."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/measurements"
+    }
+  },
+  {
+    "id": "carbs-before-bed-strength-surge",
+    "domain": "volume",
+    "priority": 77,
+    "cooldownDays": 4,
+    "when": [
+      {
+        "signal": "nutrition.carbsBeforeBedYesterdayG",
+        "op": ">=",
+        "value": 85
+      },
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": ">=",
+        "value": 1.5
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees your lifting loads up +{workout.liftingDeltaPct7d|1dp}% following {nutrition.carbsBeforeBedYesterdayG|int} g of evening carbs. Overnight muscle glycogen storage directly fuels morning and afternoon bar velocity \u2014 keep this pre-training night protocol.",
+      "honest": "Lifting weights are up +{workout.liftingDeltaPct7d|1dp}% after {nutrition.carbsBeforeBedYesterdayG|int} g of carbs before bed. Turns out stocked muscle glycogen moves more iron than willpower alone. Repeat it."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/insights"
+    }
+  },
+  {
+    "id": "lifting-down-low-evening-carbs",
+    "domain": "volume",
+    "priority": 83,
+    "cooldownDays": 3,
+    "when": [
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": "<=",
+        "value": -2.0
+      },
+      {
+        "signal": "nutrition.carbsBeforeBedYesterdayG",
+        "op": "<",
+        "value": 30
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees your lifting weights down {workout.liftingDeltaPct7d|abs}% after logging only {nutrition.carbsBeforeBedYesterdayG|int} g of evening carbs. Going to bed glycogen-depleted leaves muscles flat and cuts 8\u201312 rep output \u2014 shift 60\u201380 g of carbs to dinner before blaming your programme.",
+      "honest": "Your working weights dropped {workout.liftingDeltaPct7d|abs}% after {nutrition.carbsBeforeBedYesterdayG|int} g of evening carbs. You showed up to lift with an empty tank and acted surprised when the bar felt bolted to the floor. Eat carbs at dinner."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/app"
+    }
+  },
+  {
+    "id": "late-carbs-sleep-recovery-boost",
+    "domain": "recovery",
+    "priority": 48,
+    "cooldownDays": 6,
+    "when": [
+      {
+        "signal": "nutrition.carbsBeforeBedYesterdayG",
+        "op": ">=",
+        "value": 60
+      },
+      {
+        "signal": "biometrics.sleepYesterdayHours",
+        "op": ">=",
+        "value": 7.5
+      },
+      {
+        "signal": "cns.readiness",
+        "op": ">=",
+        "value": 0.65
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees {nutrition.carbsBeforeBedYesterdayG|int} g of evening carbs paired with {biometrics.sleepYesterdayHours|1dp} h of sleep and {cns.readiness|pct}% CNS readiness. Evening carbohydrates lower nocturnal cortisol and support sleep architecture \u2014 your regeneration is primed.",
+      "honest": "{nutrition.carbsBeforeBedYesterdayG|int} g of carbs before bed, {biometrics.sleepYesterdayHours|1dp} h of sleep, and {cns.readiness|pct}% CNS readiness. You accidentally executed textbook recovery physiology."
+    }
+  },
+  {
+    "id": "scale-up-creatine-intracellular-good",
+    "domain": "bodyweight",
+    "priority": 87,
+    "cooldownDays": 5,
+    "when": [
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "7",
+        "op": ">=",
+        "value": 0.6
+      },
+      {
+        "signal": "supplements.creatineLoadingPhase",
+        "op": "==",
+        "value": 1
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees your scale weight up +{body.weightDeltaKg:7|1dp} kg this week while saturating creatine ({supplements.creatineDays7d|int}/7 days). Creatine osmotically pulls 0.8\u20132.0 kg of water inside the muscle cell \u2014 this is beneficial lean cell volume that boosts strength, not unwanted gain.",
+      "honest": "You started taking creatine ({supplements.creatineDays7d|int}/7 days) and the scale went up +{body.weightDeltaKg:7|1dp} kg. That water is inside your muscle fibers where you want it. Do not touch your calories."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/supplements"
+    }
+  },
+  {
+    "id": "scale-up-14d-creatine-saturated",
+    "domain": "bodyweight",
+    "priority": 73,
+    "cooldownDays": 7,
+    "when": [
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "14",
+        "op": ">=",
+        "value": 0.7
+      },
+      {
+        "signal": "supplements.creatineDays14d",
+        "op": ">=",
+        "value": 10
+      },
+      {
+        "signal": "nutrition.kcalPct14d",
+        "op": "<=",
+        "value": 1.02
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees +{body.weightDeltaKg:14|1dp} kg over 14 days despite controlled calories ({nutrition.kcalPct14d|pct}% of target), alongside {supplements.creatineDays14d|int}/14 days of creatine. Intracellular muscle hydration explains the scale offset.",
+      "honest": "Scale says +{body.weightDeltaKg:14|1dp} kg on {nutrition.kcalPct14d|pct}% calories because you took creatine {supplements.creatineDays14d|int} of the last 14 days. Your muscles are holding intracellular water. That is the whole point of taking it."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/supplements"
+    }
+  },
+  {
+    "id": "scale-down-creatine-missed-water-loss",
+    "domain": "bodyweight",
+    "priority": 69,
+    "cooldownDays": 5,
+    "when": [
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "7",
+        "op": "<=",
+        "value": -0.5
+      },
+      {
+        "signal": "supplements.creatineDays7d",
+        "op": "<=",
+        "value": 2
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees your weight down {body.weightDeltaKg:7|abs} kg this week while creatine intake dropped to {supplements.creatineDays7d|int}/7 days. Skipping creatine releases intracellular muscle water, lowering scale weight and reducing muscle fullness.",
+      "honest": "Down {body.weightDeltaKg:7|abs} kg this week and only {supplements.creatineDays7d|int}/7 days of creatine logged. Half of that drop is intracellular water leaving your muscles because you forgot your scoop."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/supplements"
+    }
+  },
+  {
+    "id": "creatine-saturated-strength-up",
+    "domain": "volume",
+    "priority": 64,
+    "cooldownDays": 7,
+    "when": [
+      {
+        "signal": "supplements.creatineDays7d",
+        "op": ">=",
+        "value": 5
+      },
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": ">=",
+        "value": 2.0
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees lifting loads up +{workout.liftingDeltaPct7d|1dp}% with {supplements.creatineDays7d|int}/7 days of creatine saturation. Saturated phosphocreatine pools speed up ATP regeneration between heavy sets \u2014 your consistency is paying off on the bar.",
+      "honest": "{supplements.creatineDays7d|int}/7 days of creatine and working weights up +{workout.liftingDeltaPct7d|1dp}%. Full phosphocreatine stores buy you the extra rep at the end of a heavy set. Keep taking it."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/supplements"
+    }
+  },
+  {
+    "id": "lifting-down-creatine-missed",
+    "domain": "volume",
+    "priority": 79,
+    "cooldownDays": 4,
+    "when": [
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": "<=",
+        "value": -2.0
+      },
+      {
+        "signal": "supplements.creatineDays7d",
+        "op": "<=",
+        "value": 2
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees your working weights down {workout.liftingDeltaPct7d|abs}% alongside {supplements.creatineDays7d|int}/7 days of creatine this week. Lower intramuscular phosphocreatine and reduced sarcoplasmic hydration shave 1\u20132 reps off heavy sets \u2014 resume daily dosing.",
+      "honest": "Lifting loads dipped {workout.liftingDeltaPct7d|abs}% and you only took creatine {supplements.creatineDays7d|int} times this week. You drained your ATP buffer and lost intracellular leverage. Take the scoop daily."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/supplements"
+    }
+  },
+  {
+    "id": "creatine-missed-yesterday",
+    "domain": "consistency",
+    "priority": 52,
+    "cooldownDays": 3,
+    "when": [
+      {
+        "signal": "supplements.creatineTakenYesterday",
+        "op": "==",
+        "value": 0
+      },
+      {
+        "signal": "supplements.creatineDays7d",
+        "op": "<=",
+        "value": 4
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees creatine missed yesterday ({supplements.creatineDays7d|int}/7 days this week). Daily saturation keeps intracellular hydration and top-set ATP recovery steady \u2014 log today's dose.",
+      "honest": "{supplements.creatineDays7d|int}/7 days of creatine and missed again yesterday. Creatine works by saturation, not by occasional cameo appearances."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/supplements"
+    }
+  },
+  {
+    "id": "creatine-and-late-carbs-peak-pump",
+    "domain": "recovery",
+    "priority": 44,
+    "cooldownDays": 6,
+    "when": [
+      {
+        "signal": "supplements.creatineDays7d",
+        "op": ">=",
+        "value": 5
+      },
+      {
+        "signal": "nutrition.carbsBeforeBedYesterdayG",
+        "op": ">=",
+        "value": 80
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees saturated creatine ({supplements.creatineDays7d|int}/7d) combined with {nutrition.carbsBeforeBedYesterdayG|int} g of evening carbs. Intracellular muscle hydration and glycogen are both maxed out \u2014 expect peak joint cushioning and pressing leverage today.",
+      "honest": "Saturated creatine plus {nutrition.carbsBeforeBedYesterdayG|int} g of late carbs means your muscle cells are maximally hydrated today. If you cannot hit a good top set today, it is not the fuel."
+    }
+  },
+  {
+    "id": "scale-down-fasting-water-drop-expected",
+    "domain": "bodyweight",
+    "priority": 83,
+    "cooldownDays": 2,
+    "when": [
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "1",
+        "op": "<=",
+        "value": -0.5
+      },
+      {
+        "signal": "fasting.yesterdayHours",
+        "op": ">=",
+        "value": 16
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees your scale down {body.weightDeltaKg:1|abs} kg after a {fasting.yesterdayHours|1dp} h fast. Fasting lowers insulin and releases liver/muscle glycogen along with bound water and sodium \u2014 expect 0.4\u20131.0 kg to return normally when you refeed.",
+      "honest": "You fasted {fasting.yesterdayHours|1dp} hours and the scale dropped {body.weightDeltaKg:1|abs} kg. Most of that is flushed glycogen water and gut weight, so do not lose your mind when half of it comes back after dinner."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/fasting"
+    }
+  },
+  {
+    "id": "fasting-refeed-scale-bounce",
+    "domain": "bodyweight",
+    "priority": 79,
+    "cooldownDays": 3,
+    "when": [
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "1",
+        "op": ">=",
+        "value": 0.5
+      },
+      {
+        "signal": "fasting.yesterdayHours",
+        "op": ">=",
+        "value": 16
+      },
+      {
+        "signal": "nutrition.carbsYesterdayG",
+        "op": ">=",
+        "value": 150
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees a +{body.weightDeltaKg:1|1dp} kg scale bounce after breaking your {fasting.yesterdayHours|1dp} h fast with {nutrition.carbsYesterdayG|int} g of carbs. Refilling depleted glycogen supercompensates intracellular water \u2014 this is normal physiological restoration.",
+      "honest": "Scale bounced +{body.weightDeltaKg:1|1dp} kg after breaking a {fasting.yesterdayHours|1dp} h fast with {nutrition.carbsYesterdayG|int} g of carbs. That is water rushing back into empty muscle glycogen stores, not overnight tissue gain."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/fasting"
+    }
+  },
+  {
+    "id": "lifting-down-fasted-training",
+    "domain": "volume",
+    "priority": 86,
+    "cooldownDays": 3,
+    "when": [
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": "<=",
+        "value": -2.0
+      },
+      {
+        "signal": "fasting.yesterdayHours",
+        "op": ">=",
+        "value": 18
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees your lifting weights down {workout.liftingDeltaPct7d|abs}% alongside a {fasting.yesterdayHours|1dp} h fast. Extended fasting reduces intramuscular glycogen and raises cortisol during multi-set volume work \u2014 schedule a carb+protein meal 60\u201390 minutes before heavy sessions.",
+      "honest": "Your working weights dropped {workout.liftingDeltaPct7d|abs}% after fasting {fasting.yesterdayHours|1dp} hours. Glycolytic sets of 8\u201312 run on glycogen, not vibes. Break the fast before heavy lifting or accept the lighter bar."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/fasting"
+    }
+  },
+  {
+    "id": "active-deep-fast-heavy-compound-warning",
+    "domain": "recovery",
+    "priority": 88,
+    "cooldownDays": 2,
+    "when": [
+      {
+        "signal": "fasting.isFasting",
+        "op": "==",
+        "value": 1
+      },
+      {
+        "signal": "fasting.activeHours",
+        "op": ">=",
+        "value": 18
+      },
+      {
+        "signal": "cns.currentLoad",
+        "op": ">=",
+        "value": 0.55
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees you {fasting.activeHours|1dp} h into an active fast with CNS load already elevated ({cns.readiness|pct}% readiness). Training heavy compounds in a deep fasted state compounds cortisol and delays muscle regeneration \u2014 refeed first or keep today's session light.",
+      "honest": "You are {fasting.activeHours|1dp} hours fasted with {cns.readiness|pct}% CNS readiness. Maxing out before eating today is a recipe for catabolism and a missed rep. Eat first or dial back the load."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/fasting"
+    }
+  },
+  {
+    "id": "fasting-protein-compressed-window",
+    "domain": "nutrition",
+    "priority": 81,
+    "cooldownDays": 4,
+    "when": [
+      {
+        "signal": "fasting.yesterdayHours",
+        "op": ">=",
+        "value": 16
+      },
+      {
+        "signal": "nutrition.proteinPct7d",
+        "op": "<",
+        "value": 0.85
+      },
+      {
+        "signal": "nutrition.daysLogged7d",
+        "op": ">=",
+        "value": 3
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees a {fasting.yesterdayHours|1dp} h fasting window compressing your feeding time, leaving protein at {nutrition.proteinPct7d|pct}% of target. Fasting only preserves lean mass if full daily protein is hit inside the eating window.",
+      "honest": "Fasting {fasting.yesterdayHours|1dp} hours is costing you your protein target ({nutrition.proteinPct7d|pct}%). A shorter eating window is not an excuse to under-recover your muscles."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/fasting"
+    }
+  },
+  {
+    "id": "fasting-autophagy-recovery-great",
+    "domain": "recovery",
+    "priority": 42,
+    "cooldownDays": 7,
+    "when": [
+      {
+        "signal": "fasting.yesterdayHours",
+        "op": "between",
+        "value": 15,
+        "upper": 19
+      },
+      {
+        "signal": "nutrition.proteinPct7d",
+        "op": ">=",
+        "value": 0.92
+      },
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": ">=",
+        "value": 0
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees a {fasting.yesterdayHours|1dp} h fast paired with {nutrition.proteinPct7d|pct}% protein adherence and steady lifting loads (+{workout.liftingDeltaPct7d|1dp}%). You are getting insulin-sensitivity and autophagy benefits without sacrificing strength.",
+      "honest": "{fasting.yesterdayHours|1dp} h fast, {nutrition.proteinPct7d|pct}% protein, and lifting numbers holding strong. That is how intermittent fasting is supposed to be run."
+    }
+  },
+  {
+    "id": "alcohol-yesterday-lifting-drop",
+    "domain": "recovery",
+    "priority": 94,
+    "cooldownDays": 2,
+    "when": [
+      {
+        "signal": "nutrition.alcoholYesterdayG",
+        "op": ">=",
+        "value": 20
+      },
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": "<=",
+        "value": -1.5
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees lifting loads down {workout.liftingDeltaPct7d|abs}% after {nutrition.alcoholYesterdayDrinks|1dp} drinks ({nutrition.alcoholYesterdayG|int} g ethanol) yesterday. Alcohol impairs CNS motor unit recruitment, dehydrates muscle fibers, and blunts protein synthesis by ~24% \u2014 treat today as a recovery session.",
+      "honest": "Working weights dropped {workout.liftingDeltaPct7d|abs}% the day after {nutrition.alcoholYesterdayDrinks|1dp} drinks. Ethanol taxes your central nervous system and steals your REM sleep. Do not blame the programme for last night's tab."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/cns"
+    }
+  },
+  {
+    "id": "alcohol-yesterday-high-rpe",
+    "domain": "recovery",
+    "priority": 91,
+    "cooldownDays": 2,
+    "when": [
+      {
+        "signal": "nutrition.alcoholYesterdayG",
+        "op": ">=",
+        "value": 18
+      },
+      {
+        "signal": "workout.lastSessionAvgRpe",
+        "op": ">=",
+        "value": 8.5
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees your session RPE averaging {workout.lastSessionAvgRpe|1dp} following {nutrition.alcoholYesterdayDrinks|1dp} drinks yesterday. Post-alcohol dehydration and reduced neural drive inflate perceived effort by 1\u20131.5 RPE at the same bar weight.",
+      "honest": "Session RPE hit {workout.lastSessionAvgRpe|1dp} after {nutrition.alcoholYesterdayDrinks|1dp} drinks yesterday. The weights did not get heavier; your nervous system is just hungover. Leave a rep in the tank today."
+    }
+  },
+  {
+    "id": "alcohol-yesterday-water-retention-cortisol",
+    "domain": "bodyweight",
+    "priority": 92,
+    "cooldownDays": 2,
+    "when": [
+      {
+        "signal": "nutrition.alcoholYesterdayG",
+        "op": ">=",
+        "value": 20
+      },
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "1",
+        "op": ">=",
+        "value": 0.4
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees the scale up +{body.weightDeltaKg:1|1dp} kg after {nutrition.alcoholYesterdayDrinks|1dp} drinks yesterday. After alcohol's initial diuretic effect wears off, rebound cortisol and aldosterone cause extracellular water retention for 24\u201348 h. Hydrate with electrolytes to flush it.",
+      "honest": "Up +{body.weightDeltaKg:1|1dp} kg the day after {nutrition.alcoholYesterdayDrinks|1dp} drinks. That is cortisol and aldosterone holding extracellular water while your liver clears acetate. Drink three litres of water and skip the crash-diet panic."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/measurements"
+    }
+  },
+  {
+    "id": "alcohol-yesterday-dehydration-scale-dip",
+    "domain": "bodyweight",
+    "priority": 89,
+    "cooldownDays": 2,
+    "when": [
+      {
+        "signal": "nutrition.alcoholYesterdayG",
+        "op": ">=",
+        "value": 24
+      },
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "1",
+        "op": "<=",
+        "value": -0.4
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees a {body.weightDeltaKg:1|abs} kg scale drop the morning after {nutrition.alcoholYesterdayDrinks|1dp} drinks. Alcohol suppresses vasopressin (ADH), flushing body water \u2014 rehydrate with 750 ml water and electrolytes before training so joints and strength are protected.",
+      "honest": "Scale dropped {body.weightDeltaKg:1|abs} kg after {nutrition.alcoholYesterdayDrinks|1dp} drinks yesterday. You did not diet in your sleep; you are dehydrated. Drink water and salt before you touch a barbell."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/measurements"
+    }
+  },
+  {
+    "id": "alcohol-yesterday-regeneration-penalty",
+    "domain": "recovery",
+    "priority": 90,
+    "cooldownDays": 2,
+    "when": [
+      {
+        "signal": "nutrition.alcoholYesterdayG",
+        "op": ">=",
+        "value": 25
+      },
+      {
+        "signal": "cns.currentLoad",
+        "op": ">=",
+        "value": 0.5
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees {nutrition.alcoholYesterdayG|int} g of alcohol yesterday stacked on {cns.readiness|pct}% CNS readiness. Alcohol suppresses mTOR signaling and overnight growth hormone pulses \u2014 prioritize hydration, protein, and sub-maximal RPE 7 work today.",
+      "honest": "{nutrition.alcoholYesterdayG|int} g of alcohol yesterday while CNS readiness sits at {cns.readiness|pct}%. Your muscle regeneration is running at a discount today. Keep the ego out of the rack."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/recovery"
+    }
+  },
+  {
+    "id": "alcohol-frequent-recovery-wrecked",
+    "domain": "recovery",
+    "priority": 93,
+    "cooldownDays": 5,
+    "when": [
+      {
+        "signal": "nutrition.alcoholDays7d",
+        "op": ">=",
+        "value": 3
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees alcohol logged on {nutrition.alcoholDays7d|int} of the last 7 days. Frequent intake chronically elevates cortisol, masks scale progress with extracellular water, and blunts weekly strength adaptation.",
+      "honest": "Alcohol on {nutrition.alcoholDays7d|int} days this week. You are training to build muscle all afternoon and pouring recovery suppressant on it at night. Pick which goal is actually driving."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/recovery"
+    }
+  },
+  {
+    "id": "high-sodium-scale-spike",
+    "domain": "bodyweight",
+    "priority": 78,
+    "cooldownDays": 3,
+    "when": [
+      {
+        "signal": "nutrition.sodiumYesterdayMg",
+        "op": ">=",
+        "value": 3500
+      },
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "1",
+        "op": ">=",
+        "value": 0.4
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees +{body.weightDeltaKg:1|1dp} kg on the scale after {nutrition.sodiumYesterdayMg|int} mg of sodium yesterday. High plasma osmolarity holds transient extracellular water for 24\u201348 h, which also cushions joints and boosts gym pumps today.",
+      "honest": "You ate {nutrition.sodiumYesterdayMg|int} mg of sodium yesterday and gained +{body.weightDeltaKg:1|1dp} kg of water overnight. Drink water, enjoy the absurd bench pump today, and watch it flush out tomorrow."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/nutrient-overview"
+    }
+  },
+  {
+    "id": "low-water-lifting-fatigue",
+    "domain": "nutrition",
+    "priority": 77,
+    "cooldownDays": 3,
+    "when": [
+      {
+        "signal": "nutrition.waterYesterdayMl",
+        "op": ">",
+        "value": 0
+      },
+      {
+        "signal": "nutrition.waterYesterdayMl",
+        "op": "<",
+        "value": 1600
+      },
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": "<=",
+        "value": -1.5
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees lifting loads down {workout.liftingDeltaPct7d|abs}% with only {nutrition.waterYesterdayMl|int} ml of water logged yesterday. Even a 2% drop in cellular hydration reduces barbell force output by 5\u20138% \u2014 drink 600 ml before your warmup.",
+      "honest": "Only {nutrition.waterYesterdayMl|int} ml of water yesterday and your lifts dropped {workout.liftingDeltaPct7d|abs}%. Dehydrated muscle fibers contract poorly. Drink water before you blame your strength."
+    }
+  },
+  {
+    "id": "hydration-optimal-performance",
+    "domain": "nutrition",
+    "priority": 36,
+    "cooldownDays": 7,
+    "when": [
+      {
+        "signal": "nutrition.waterYesterdayMl",
+        "op": ">=",
+        "value": 2800
+      },
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": ">=",
+        "value": 1.0
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees {nutrition.waterYesterdayMl|int} ml of hydration yesterday supporting a +{workout.liftingDeltaPct7d|1dp}% climb in lifting loads. High cellular hydration keeps plasma volume and muscle leverage at their peak.",
+      "honest": "{nutrition.waterYesterdayMl|int} ml of water logged and lifting weights up +{workout.liftingDeltaPct7d|1dp}%. Proper hydration is the cheapest performance enhancer in the gym."
+    }
+  },
+  {
+    "id": "sleep-deprived-lifting-drop",
+    "domain": "recovery",
+    "priority": 89,
+    "cooldownDays": 3,
+    "when": [
+      {
+        "signal": "biometrics.sleepYesterdayHours",
+        "op": "<",
+        "value": 6.0
+      },
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": "<=",
+        "value": -1.5
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees lifting performance down {workout.liftingDeltaPct7d|abs}% after {biometrics.sleepYesterdayHours|1dp} h of sleep. Short sleep slows glycogen replenishment and reduces high-threshold motor unit firing \u2014 cap sets at RPE 8 today.",
+      "honest": "{biometrics.sleepYesterdayHours|1dp} hours of sleep and your lifts dipped {workout.liftingDeltaPct7d|abs}%. Sleep debt taxes bar speed first. Get to bed on time tonight instead of grinding sloppy reps."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/sleep"
+    }
+  },
+  {
+    "id": "sleep-deprived-cortisol-water-retention",
+    "domain": "bodyweight",
+    "priority": 81,
+    "cooldownDays": 3,
+    "when": [
+      {
+        "signal": "biometrics.sleepYesterdayHours",
+        "op": "<",
+        "value": 5.8
+      },
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "1",
+        "op": ">=",
+        "value": 0.3
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees +{body.weightDeltaKg:1|1dp} kg on the scale after {biometrics.sleepYesterdayHours|1dp} h of sleep. Sleep restriction elevates morning cortisol, which holds extracellular fluid and masks real body composition progress.",
+      "honest": "Slept {biometrics.sleepYesterdayHours|1dp} hours and the scale ticked up +{body.weightDeltaKg:1|1dp} kg. High morning cortisol from sleep debt holds water. One full night of sleep flushes it."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/sleep"
+    }
+  },
+  {
+    "id": "sleep-optimal-strength-surge",
+    "domain": "recovery",
+    "priority": 38,
+    "cooldownDays": 7,
+    "when": [
+      {
+        "signal": "biometrics.sleepAvg7dHours",
+        "op": ">=",
+        "value": 7.5
+      },
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": ">=",
+        "value": 2.0
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees {biometrics.sleepAvg7dHours|1dp} h average sleep this week driving a +{workout.liftingDeltaPct7d|1dp}% surge in lifting loads. Deep and REM sleep are where neural adaptations lock in.",
+      "honest": "Averaging {biometrics.sleepAvg7dHours|1dp} hours of sleep and lifting weights are up +{workout.liftingDeltaPct7d|1dp}%. Sleep is still undefeated."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/sleep"
+    }
+  },
+  {
+    "id": "recomp-weight-flat-strength-up",
+    "domain": "bodyweight",
+    "priority": 62,
+    "cooldownDays": 10,
+    "when": [
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "14",
+        "op": "between",
+        "value": -0.4,
+        "upper": 0.4
+      },
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": ">=",
+        "value": 2.5
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees your 14-day bodyweight essentially flat ({body.weightDeltaKg:14|1dp} kg) while lifting loads climbed +{workout.liftingDeltaPct7d|1dp}%. Rising strength at stable bodyweight is the textbook signature of body recomposition.",
+      "honest": "Scale barely moved ({body.weightDeltaKg:14|1dp} kg in 14d) while lifting weights jumped +{workout.liftingDeltaPct7d|1dp}%. You are replacing stored tissue with contractile muscle. Stop staring only at the scale."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/measurements"
+    }
+  },
+  {
+    "id": "cut-strength-preserved-great",
+    "domain": "bodyweight",
+    "priority": 54,
+    "cooldownDays": 10,
+    "when": [
+      {
+        "signal": "profile.goal",
+        "op": "==",
+        "text": "weightLoss"
+      },
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "14",
+        "op": "<=",
+        "value": -0.5
+      },
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": ">=",
+        "value": 0
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees you down {body.weightDeltaKg:14|abs} kg over 14 days while lifting loads held or climbed (+{workout.liftingDeltaPct7d|1dp}%). Maintaining bar weight during a cut confirms your lean muscle mass is protected.",
+      "honest": "Down {body.weightDeltaKg:14|abs} kg in two weeks and lifting numbers are up +{workout.liftingDeltaPct7d|1dp}%. Zero muscle lost. Keep the deficit and protein right where they are."
+    }
+  },
+  {
+    "id": "cut-lifting-crash-glycogen-or-deficit",
+    "domain": "volume",
+    "priority": 87,
+    "cooldownDays": 5,
+    "when": [
+      {
+        "signal": "profile.goal",
+        "op": "==",
+        "text": "weightLoss"
+      },
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "14",
+        "op": "<=",
+        "value": -1.2
+      },
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": "<=",
+        "value": -4.0
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees lifting loads down {workout.liftingDeltaPct7d|abs}% alongside a {body.weightDeltaKg:14|abs} kg 14-day drop. Glycogen depletion and an aggressive deficit are taxing your top sets \u2014 place your daily carbs around training and before bed to defend bar weight.",
+      "honest": "Down {body.weightDeltaKg:14|abs} kg in 14 days and your lifting weights crashed {workout.liftingDeltaPct7d|abs}%. If you let bar weight free-fall on a cut, your body has no reason to keep the muscle. Time your carbs around training."
+    }
+  },
+  {
+    "id": "bulk-weight-up-lifting-down",
+    "domain": "bodyweight",
+    "priority": 85,
+    "cooldownDays": 5,
+    "when": [
+      {
+        "signal": "profile.goal",
+        "op": "==",
+        "text": "muscleGain"
+      },
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "14",
+        "op": ">=",
+        "value": 0.8
+      },
+      {
+        "signal": "workout.liftingDeltaPct7d",
+        "op": "<=",
+        "value": -2.0
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees bodyweight up +{body.weightDeltaKg:14|1dp} kg over 14 days while lifting loads dipped {workout.liftingDeltaPct7d|abs}%. When scale weight rises without bar progression, accumulated CNS fatigue, poor sleep, or alcohol is blocking hypertrophy.",
+      "honest": "Scale is up +{body.weightDeltaKg:14|1dp} kg on a bulk, but your lifting weights are down {workout.liftingDeltaPct7d|abs}%. Extra calories without progressive overload or recovery do not build muscle. Check your sleep and CNS load."
+    }
+  },
+  {
+    "id": "water-retention-high-reassurance",
+    "domain": "bodyweight",
+    "priority": 74,
+    "cooldownDays": 3,
+    "when": [
+      {
+        "signal": "biometrics.waterRetentionIndex",
+        "op": ">=",
+        "value": 40
+      },
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "3",
+        "op": ">=",
+        "value": 0.5
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees a high water retention index (+{biometrics.waterRetentionIndex|int}) coinciding with a +{body.weightDeltaKg:3|1dp} kg 3-day scale shift. Your recent carb, creatine, or sodium inputs explain the fluid retention \u2014 stay on plan.",
+      "honest": "Water retention index is sitting at +{biometrics.waterRetentionIndex|int} and the scale is up +{body.weightDeltaKg:3|1dp} kg over three days. It is water chemistry, not tissue gain. Do not slash calories over water."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/hercul-insights"
+    }
+  },
+  {
+    "id": "water-depletion-low-reassurance",
+    "domain": "bodyweight",
+    "priority": 71,
+    "cooldownDays": 3,
+    "when": [
+      {
+        "signal": "biometrics.waterRetentionIndex",
+        "op": "<=",
+        "value": -35
+      },
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "3",
+        "op": "<=",
+        "value": -0.5
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees your water retention index at {biometrics.waterRetentionIndex|int} with a {body.weightDeltaKg:3|abs} kg 3-day drop. Fasting or low carbohydrate turnover has flushed glycogen-bound water \u2014 rehydrate and refuel before heavy volume.",
+      "honest": "Water index is {biometrics.waterRetentionIndex|int} and the scale dropped {body.weightDeltaKg:3|abs} kg in three days. You are depleted of glycogen water. Expect a normal bounce when you eat carbs."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/hercul-insights"
+    }
+  },
+  {
+    "id": "regeneration-compromised-warning",
+    "domain": "recovery",
+    "priority": 88,
+    "cooldownDays": 2,
+    "when": [
+      {
+        "signal": "biometrics.regenerationScore",
+        "op": "<",
+        "value": 45
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees your composite regeneration score down at {biometrics.regenerationScore|int}%. Between CNS load, sleep, and recovery inputs, pushing sets to failure today carries poor return \u2014 keep 2\u20133 reps in reserve.",
+      "honest": "Regeneration score is {biometrics.regenerationScore|int}%. Grinding max sets today only digs a deeper recovery hole. Train smart at RPE 7 and go to bed early."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/recovery"
+    }
+  },
+  {
+    "id": "regeneration-primed-pr-window",
+    "domain": "recovery",
+    "priority": 35,
+    "cooldownDays": 5,
+    "when": [
+      {
+        "signal": "biometrics.regenerationScore",
+        "op": ">=",
+        "value": 85
+      },
+      {
+        "signal": "cns.readiness",
+        "op": ">=",
+        "value": 0.7
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees your regeneration score at {biometrics.regenerationScore|int}% with {cns.readiness|pct}% CNS readiness. Muscle repair, fuel, and nervous system recovery are aligned \u2014 prime window for progressive overload.",
+      "honest": "{biometrics.regenerationScore|int}% regeneration and {cns.readiness|pct}% CNS readiness. Every physiological light is green today. Put weight on the bar."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/cns"
+    }
+  },
+  {
+    "id": "back-under-trained",
+    "domain": "volume",
+    "priority": 72,
+    "cooldownDays": 7,
+    "when": [
+      {
+        "signal": "volume.weeklySets",
+        "arg": "Back",
+        "op": "<",
+        "value": 8
+      },
+      {
+        "signal": "volume.weeklySets",
+        "arg": "Chest",
+        "op": ">",
+        "value": 12
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees {volume.weeklySets:Back|int} back sets compared with {volume.weeklySets:Chest|int} chest sets this week. Upper-back and lat volume stabilizes your bench and deadlift \u2014 add rows or pull-ups.",
+      "honest": "{volume.weeklySets:Chest|int} sets of chest and {volume.weeklySets:Back|int} sets of back. A big bench needs a bigger upper back to sit on. Add rows."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/muscle-volume"
+    }
+  },
+  {
+    "id": "hamstrings-quads-imbalance",
+    "domain": "volume",
+    "priority": 71,
+    "cooldownDays": 7,
+    "when": [
+      {
+        "signal": "volume.weeklySets",
+        "arg": "Hamstrings",
+        "op": "<",
+        "value": 4
+      },
+      {
+        "signal": "volume.weeklySets",
+        "arg": "Quads",
+        "op": ">",
+        "value": 10
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees {volume.weeklySets:Quads|int} quad sets and only {volume.weeklySets:Hamstrings|int} hamstring sets this week. Balanced knee flexion and hip hinge work protects your knees and drives lockout power.",
+      "honest": "{volume.weeklySets:Quads|int} sets of quads and {volume.weeklySets:Hamstrings|int} of hamstrings. Your posterior chain is an afterthought right now. Program RDLs and leg curls."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/muscle-volume"
+    }
+  },
+  {
+    "id": "tonnage-spike-overreach",
+    "domain": "volume",
+    "priority": 82,
+    "cooldownDays": 5,
+    "when": [
+      {
+        "signal": "workout.tonnageDeltaPct7d",
+        "op": ">",
+        "value": 30
+      },
+      {
+        "signal": "cns.currentLoad",
+        "op": ">",
+        "value": 0.65
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees weekly tonnage up +{workout.tonnageDeltaPct7d|int}% over your 4-week average while CNS fatigue is climbing ({cns.readiness|pct}% readiness). Hold volume steady next week so connective tissue and regeneration catch up.",
+      "honest": "You spiked weekly tonnage +{workout.tonnageDeltaPct7d|int}% while CNS readiness dropped to {cns.readiness|pct}%. More volume is only productive if you can actually recover from it."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/muscle-volume"
+    }
+  },
+  {
+    "id": "high-rpe-grinding-warning",
+    "domain": "recovery",
+    "priority": 79,
+    "cooldownDays": 4,
+    "when": [
+      {
+        "signal": "workout.lastSessionAvgRpe",
+        "op": ">=",
+        "value": 9.2
+      },
+      {
+        "signal": "cns.currentLoad",
+        "op": ">=",
+        "value": 0.6
+      }
+    ],
+    "copy": {
+      "normal": "Hercul sees your last session averaging RPE {workout.lastSessionAvgRpe|1dp} with elevated CNS load. Grinding every working set to failure multiplies neural recovery time \u2014 keep compounds around RPE 8 and save RPE 9.5+ for isolation finishers.",
+      "honest": "Averaging RPE {workout.lastSessionAvgRpe|1dp} across a whole session is not intensity, it is poor load selection. Leave 1\u20132 reps in reserve on compounds so your CNS survives the week."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/cns"
     }
   }
 ]

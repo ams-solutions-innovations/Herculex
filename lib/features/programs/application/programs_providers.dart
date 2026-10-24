@@ -1,10 +1,13 @@
+import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/health/data/health_service.dart';
 import 'package:herculex/features/programs/data/exercise_preferences_repository.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/data/rotations_repository.dart';
+import 'package:herculex/features/programs/data/weekly_adaptation_repository.dart';
 import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
@@ -13,6 +16,45 @@ import 'package:herculex/features/programs/domain/wave_label.dart';
 final programsRepositoryProvider = Provider<ProgramsRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
   return ProgramsRepository(db);
+});
+
+final weeklyAdaptationRepositoryProvider = Provider<WeeklyAdaptationRepository>(
+  (ref) {
+    return WeeklyAdaptationRepository(
+      ref.watch(appDatabaseProvider),
+      ref.watch(clockProvider),
+      health: HealthService(
+        ref.watch(appDatabaseProvider),
+        ref.watch(clockProvider),
+      ),
+    );
+  },
+);
+
+/// Reason shown beside a scheduled session that has a user-confirmed,
+/// week-scoped override. Keeping it separate from [ScheduledWorkoutRow]
+/// avoids making the normal calendar query heavier for every row.
+final acceptedAdaptationReasonProvider = StreamProvider.family<String?, int>((
+  ref,
+  scheduleId,
+) {
+  final db = ref.watch(appDatabaseProvider);
+  final query =
+      db.select(db.adaptationOverrides).join([
+          innerJoin(
+            db.adaptationProposals,
+            db.adaptationProposals.id.equalsExp(
+              db.adaptationOverrides.proposalId,
+            ),
+          ),
+        ])
+        ..where(db.adaptationOverrides.scheduleId.equals(scheduleId))
+        ..where(db.adaptationOverrides.deletedAt.isNull())
+        ..where(db.adaptationProposals.deletedAt.isNull())
+        ..where(db.adaptationProposals.decision.equals('accepted'));
+  return query.watchSingleOrNull().map(
+    (row) => row?.readTable(db.adaptationProposals).reason,
+  );
 });
 
 final exercisePreferencesRepositoryProvider =

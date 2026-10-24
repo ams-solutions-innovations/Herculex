@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/core/notifications/in_app_notification_controller.dart';
 import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/core/utils/units.dart';
@@ -16,15 +16,16 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/gamification/application/gamification_providers.dart';
-import 'package:herculex/features/physique/application/effective_goal_provider.dart';
-import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/workout_report/presentation/report_context_sheet.dart';
 import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
+import 'package:herculex/features/workouts/application/workout_target_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/data/workout_targets_repository.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
+import 'package:herculex/features/workouts/domain/calisthenics_progression.dart';
 import 'package:herculex/features/workouts/domain/drop_set_rounding.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
-import 'package:herculex/features/workouts/domain/progression_engine.dart';
 import 'package:herculex/features/workouts/domain/set_metric_format.dart';
 import 'package:herculex/features/workouts/domain/set_numbering.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
@@ -37,6 +38,7 @@ import 'package:herculex/features/workouts/presentation/sheets/plate_calculator_
 import 'package:herculex/features/workouts/presentation/sheets/progression_override_sheet.dart';
 import 'package:herculex/features/workouts/presentation/sheets/smart_substitution_sheet.dart';
 import 'package:herculex/features/workouts/presentation/sheets/workout_settings_sheet.dart';
+import 'package:herculex/features/workouts/presentation/widgets/calisthenics_progression_card.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 import 'package:herculex/features/workouts/presentation/widgets/set_type_menu.dart';
 
@@ -70,6 +72,10 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
   final GlobalKey _cardKey = GlobalKey();
   static const _collapsedSetLimit = 5;
   bool _setsExpanded = false;
+
+  /// Set whose weight field takes focus as soon as it is built, e.g. the first
+  /// drop set right after the user adds a chain of them.
+  Object? _focusSetId;
 
   @override
   Widget build(BuildContext context) {
@@ -167,71 +173,38 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
             ],
           ),
 
+          CalisthenicsProgressionCard(
+            exercise: exercise,
+            workoutExercise: workoutExercise,
+          ),
           lastPerformance.maybeWhen(
             data: (snapshot) {
               final allLastSets = snapshot?.sets ?? const <SetEntryData>[];
-              if (allLastSets.isEmpty) return const SizedBox.shrink();
-
               final currentRows = sets.asData?.value ?? const <SetEntryData>[];
               final isNextMode = hintMode == PerformanceHintMode.next;
 
               if (isNextMode) {
-                final nextTarget = _formatNextTarget(
-                  ref,
-                  currentRows,
-                  allLastSets,
-                  weightFmt,
-                  metric,
-                );
-                if (nextTarget == null || nextTarget.text.isEmpty) {
+                // The ghost values in the set rows already carry weight and
+                // reps, so the line above them only has to say how hard.
+                final rpeText = _formatTargetRpe(ref, currentRows, metric);
+                if (rpeText == null) {
                   return const SizedBox.shrink();
                 }
                 final nextLabel = _nextLabel(snapshot, currentRows);
                 return Padding(
                   padding: const EdgeInsets.only(top: 4, bottom: 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Tooltip(
-                          message: nextTarget.rationale ?? '',
-                          child: Text(
-                            '$nextLabel: ${nextTarget.text}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.secondary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (currentRows.any(
-                        (row) => !row.isCompleted && !row.isWarmup,
-                      ))
-                        TextButton(
-                          onPressed: () => _applyNumericTarget(
-                            context,
-                            repo,
-                            currentRows,
-                            weightKg: nextTarget.weightKg,
-                            reps: nextTarget.reps,
-                            rationale: nextTarget.rationale,
-                            perRowTarget: (i) {
-                              final t = _planTargetFor(
-                                ref,
-                                i,
-                                currentRows,
-                                allLastSets,
-                                metric,
-                              );
-                              return t == null
-                                  ? null
-                                  : (weightKg: t.weightKg, reps: t.reps);
-                            },
-                          ),
-                          child: const Text('Use'),
-                        ),
-                    ],
+                  child: Text(
+                    '$nextLabel: $rpeText',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 );
+              }
+
+              if (allLastSets.isEmpty) {
+                return const SizedBox.shrink();
               }
 
               final lastText = _formatLast(
@@ -282,6 +255,7 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
             theme: theme,
             metric: metric,
             isWeightedBodyweight: isWeightedBw,
+            isAssistance: isMachineAssistedPullup(exercise.slug),
           ),
           sets.when(
             data: (rows) {
@@ -323,8 +297,14 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                       index: setNumbers[i].ordinal,
                       set: rows[i],
                       metric: metric,
+                      isAssistance: isMachineAssistedPullup(exercise.slug),
                       downSetOrdinal: downSetOrdinals[i],
-                      priorSet: _findPriorSet(rows[i], i, rows, allLastSets),
+                      priorSet:
+                          lastPerformance.valueOrNull?.equipmentVariant ==
+                              (workoutExercise.equipmentVariant ??
+                                  exercise.modality)
+                          ? _findPriorSet(rows[i], i, rows, allLastSets)
+                          : null,
                       planTarget: _planTargetFor(
                         ref,
                         i,
@@ -344,6 +324,7 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         metric,
                       ),
                       weightFocusNode: i == 0 ? widget.firstSetFocusNode : null,
+                      autofocusWeight: rows[i].id == _focusSetId,
                       cardKey: _cardKey,
                       onUpdate: (values) => repo.updateSet(
                         setId: rows[i].id,
@@ -381,7 +362,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                                 .map((a) => a.name)
                                 .toList();
                             final effectiveKg =
-                                rows[i].weightKg +
+                                (isMachineAssistedPullup(exercise.slug)
+                                    ? -rows[i].weightKg
+                                    : rows[i].weightKg) +
                                 (rows[i].bodyweightKg ?? 0.0) +
                                 (rows[i].chainsKg ?? 0.0);
                             ref
@@ -416,7 +399,16 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         final accessories = await repo.accessoriesForSet(
                           setToRestore.id,
                         );
-                        await repo.deleteSet(setToRestore.id);
+                        if (!context.mounted) {
+                          return;
+                        }
+                        final reason = setToRestore.isWarmup
+                            ? null
+                            : await showReportReasonSheet(context);
+                        await repo.deleteSet(
+                          setToRestore.id,
+                          reason: reason?.name,
+                        );
                         if (context.mounted) {
                           ref
                               .read(
@@ -486,6 +478,21 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                               isWarmup: true,
                               setType: SetType.standard.id,
                               clearSetTypeMetaJson: true,
+                            );
+                          } else if (sel.type == SetType.drop &&
+                              SetType.fromId(rows[i].setType) != SetType.drop) {
+                            if (!context.mounted) {
+                              return;
+                            }
+                            final count = await _askDropSetCount(context);
+                            if (count == null) {
+                              return;
+                            }
+                            await _addDropSets(
+                              repo,
+                              rows[i],
+                              sel.metaJson,
+                              count,
                             );
                           } else {
                             await repo.updateSet(
@@ -614,7 +621,7 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                     workoutExerciseId: workoutExercise.id,
                     weightKg: nextWeight,
                     reps: nextReps,
-                    rpeX10: prev?.rpeX10,
+                    rpeX10: null,
                     isWarmup: prev?.isWarmup ?? false,
                     setType: prev?.setType ?? 'standard',
                     setTypeMetaJson: prev?.setTypeMetaJson,
@@ -658,7 +665,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     List<SetEntryData> allCurrentSets,
     List<SetEntryData> allLastSets,
   ) {
-    if (allLastSets.isEmpty) return null;
+    if (allLastSets.isEmpty) {
+      return null;
+    }
     final sameTypeCurrent = allCurrentSets
         .where(
           (s) =>
@@ -680,56 +689,73 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
       }
       return sameTypePrior.last;
     }
-    if (index < allLastSets.length) return allLastSets[index];
-    return allLastSets.lastOrNull;
+    return null;
   }
 
-  /// Progression goal + weekly-increase override to feed [ProgressionEngine],
-  /// shared by the card-level and per-row "Next" hints. Per-exercise override
-  /// takes priority over the profile goal.
-  ({
-    ProgressionGoal goal,
-    double? weeklyPctOverride,
-    String progressionModel,
-    int? targetSets,
-    int? targetRepsMin,
-    int? targetRepsMax,
-  })
-  _progressionGoal(WidgetRef ref) {
-    final override = ref
-        .watch(exerciseProgressionProvider(widget.exercise.id))
-        .asData
-        ?.value;
-    if (override != null && override.enabled) {
-      final goal = ProgressionGoal.values.firstWhere(
-        (g) => g.name == override.goal,
-        orElse: () => ProgressionGoal.muscleGain,
-      );
-      return (
-        goal: goal,
-        weeklyPctOverride: override.weeklyIncreasePct,
-        progressionModel: override.progressionModel,
-        targetSets: override.targetSets,
-        targetRepsMin: override.targetRepsMin,
-        targetRepsMax: override.targetRepsMax,
-      );
-    }
-    final fitnessGoal =
-        ref.watch(effectiveFitnessGoalProvider) ?? FitnessGoal.maintenance;
-    final goal = switch (fitnessGoal) {
-      FitnessGoal.weightLoss => ProgressionGoal.fatLoss,
-      FitnessGoal.muscleGain ||
-      FitnessGoal.maintenance => ProgressionGoal.muscleGain,
-      FitnessGoal.improveHealth => ProgressionGoal.endurance,
-    };
-    return (
-      goal: goal,
-      weeklyPctOverride: null,
-      progressionModel: 'linear',
-      targetSets: null,
-      targetRepsMin: null,
-      targetRepsMax: null,
+  Future<int?> _askDropSetCount(BuildContext context) {
+    return showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('How many drop sets?'),
+        content: Wrap(
+          spacing: 8,
+          children: [
+            for (final count in [1, 2, 3, 4, 5])
+              ActionChip(
+                label: Text('$count'),
+                onPressed: () => Navigator.of(ctx).pop(count),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
     );
+  }
+
+  /// Appends [count] drop sets after [from], each [metaJson]'s dropPercent
+  /// lighter than the one before, and moves focus to the first of them.
+  Future<void> _addDropSets(
+    WorkoutsRepository repo,
+    SetEntryData from,
+    String? metaJson,
+    int count,
+  ) async {
+    var pct = 20;
+    try {
+      pct = (jsonDecode(metaJson ?? '{}')['dropPercent'] as int?) ?? 20;
+    } catch (_) {}
+    final stepKg = dropSetRoundingStepKg(
+      widget.workoutExercise.equipmentVariant ?? widget.exercise.modality,
+    );
+    var weight = from.weightKg;
+    Object? firstId;
+    for (var n = 0; n < count; n++) {
+      weight = (weight * (1 - pct / 100) / stepKg).roundToDouble() * stepKg;
+      final id = await repo.addSet(
+        workoutExerciseId: widget.workoutExercise.id,
+        weightKg: weight,
+        reps: from.reps,
+        rpeX10: null,
+        isWarmup: false,
+        setType: SetType.drop.id,
+        setTypeMetaJson: metaJson,
+        bodyweightKg: from.bodyweightKg,
+        chainsKg: from.chainsKg,
+      );
+      firstId ??= id;
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _setsExpanded = true;
+      _focusSetId = firstId;
+    });
   }
 
   String _nextLabel(
@@ -778,56 +804,24 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     if (hasDifferentVariant) {
       final variantLabel = EquipmentVariantSheet.labelFor(priorVariant);
       if (setSpec.isNotEmpty) {
-        return 'Next on $variantLabel ($setSpec)';
+        return 'Target on $variantLabel ($setSpec)';
       }
-      return 'Next on $variantLabel';
+      return 'Target on $variantLabel';
     }
 
     if (setSpec.isNotEmpty) {
-      return 'Next $setSpec';
+      return 'Target $setSpec';
     }
-    return 'Next';
+    return 'Target';
   }
 
   /// Whether [set] came out of a program/template, i.e. carries a frozen plan.
   static bool _isPlanned(SetEntryData set) =>
-      set.plannedRepsMin != null || set.plannedWeightKg != null;
+      set.plannedRepsMin != null ||
+      set.plannedWeightKg != null ||
+      set.plannedPercentOf1Rm != null ||
+      set.plannedRpeX10 != null;
 
-  /// The progressive-overload suggestion for one set, from the matching set of
-  /// this exercise's own last session. Null when there is nothing to base it on.
-  SuggestedTarget? _suggestFor(
-    WidgetRef ref,
-    SetEntryData? prior,
-    List<SetEntryData> allLastSets,
-  ) {
-    if (prior == null || prior.isWarmup) return null;
-    final settings = _progressionGoal(ref);
-    return ProgressionEngine.suggestNext(
-      lastWeightKg: prior.weightKg,
-      lastReps: prior.reps,
-      goal: settings.goal,
-      equipmentVariant:
-          widget.workoutExercise.equipmentVariant ?? widget.exercise.modality,
-      weeklyIncreasePctOverride: settings.weeklyPctOverride,
-      allLastSets: [
-        for (final s in allLastSets)
-          if (!s.isWarmup) (weightKg: s.weightKg, reps: s.reps),
-      ],
-      progressionModel: settings.progressionModel,
-      targetSets: settings.targetSets,
-      targetRepsMin: settings.targetRepsMin,
-      targetRepsMax: settings.targetRepsMax,
-    );
-  }
-
-  /// The target for one set of a program/template workout — the single source
-  /// for the grey hints in the row AND the "Next" line on top of the card, so
-  /// the two can never disagree.
-  ///
-  /// The prescription owns reps and RPE. The load is the plan's own when it
-  /// names one, otherwise the progressive-overload step from this exercise's
-  /// last session, otherwise simply what was lifted last time. Null for sets
-  /// without a plan, which keep the plain "previous set" hint.
   ({double? weightKg, int? reps, int? rpeX10})? _planTargetFor(
     WidgetRef ref,
     int index,
@@ -835,166 +829,52 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     List<SetEntryData> allLastSets,
     LoggingMetric metric,
   ) {
-    final set = rows[index];
-    if (!_isPlanned(set) || !metric.isRepBased) return null;
-    final prior = _findPriorSet(set, index, rows, allLastSets);
-    final method = widget.workoutExercise.plannedTrainingMethod;
-    final progressable =
-        !set.isWarmup && method != 'max_effort' && method != 'dynamic_effort';
-    final suggested = progressable ? _suggestFor(ref, prior, allLastSets) : null;
-    final suggestedWeight = suggested != null && suggested.weightKg > 0
-        ? suggested.weightKg
-        : null;
-    final priorWeight = prior != null && prior.weightKg > 0
-        ? prior.weightKg
-        : null;
-    final priorReps = prior != null && prior.reps > 0 ? prior.reps : null;
-    return (
-      weightKg: set.plannedWeightKg ?? suggestedWeight ?? priorWeight,
-      reps: set.plannedRepsMin ?? suggested?.reps ?? priorReps,
-      rpeX10: set.plannedRpeX10,
-    );
-  }
-
-  ({String text, String? rationale, double weightKg, int reps})?
-  _formatNextTarget(
-    WidgetRef ref,
-    List<SetEntryData> currentRows,
-    List<SetEntryData> allLastSets,
-    WeightFormat fmt,
-    LoggingMetric metric,
-  ) {
-    if (allLastSets.isEmpty) return null;
-    if (!metric.isRepBased) return null;
-
-    // Following a program: show exactly what the row's grey hint shows.
-    if (currentRows.isNotEmpty) {
-      var activeIndex = currentRows.indexWhere((r) => !r.isCompleted);
-      if (activeIndex == -1) activeIndex = currentRows.length - 1;
-      final plan = _planTargetFor(
-        ref,
-        activeIndex,
-        currentRows,
-        allLastSets,
-        metric,
-      );
-      if (plan != null) {
-        final weight = plan.weightKg ?? 0;
-        final reps = plan.reps ?? 0;
-        if (weight <= 0 && reps <= 0) return null;
-        final isWeightedBw =
-            (widget.workoutExercise.equipmentVariant ??
-                widget.exercise.modality) ==
-            'weighted';
-        final prefix = isWeightedBw && weight > 0 ? '+' : '';
-        final loadText = weight > 0 ? '$prefix${fmt.format(weight)} × ' : '';
-        final rpeText = plan.rpeX10 == null
-            ? ''
-            : ' @ RPE ${(plan.rpeX10! / 10).toStringAsFixed(1)}';
-        return (
-          text: '$loadText$reps$rpeText',
-          rationale: widget.workoutExercise.plannedPrescriptionWhy,
-          weightKg: weight,
-          reps: reps,
-        );
-      }
-    }
-
-    if (widget.workoutExercise.plannedTrainingMethod == 'max_effort' ||
-        widget.workoutExercise.plannedTrainingMethod == 'dynamic_effort') {
+    if (!metric.isRepBased) {
       return null;
     }
-
-    SetEntryData? prior;
-    if (currentRows.isEmpty) {
-      prior =
-          allLastSets.where((s) => !s.isWarmup).firstOrNull ??
-          allLastSets.firstOrNull;
-    } else {
-      var activeIndex = currentRows.indexWhere((r) => !r.isCompleted);
-      if (activeIndex == -1) {
-        activeIndex = currentRows.length - 1;
-      }
-      if (activeIndex >= 0 && activeIndex < currentRows.length) {
-        prior = _findPriorSet(
-          currentRows[activeIndex],
-          activeIndex,
-          currentRows,
-          allLastSets,
-        );
-      } else {
-        prior = activeIndex < allLastSets.length
-            ? allLastSets[activeIndex]
-            : allLastSets.lastOrNull;
-      }
+    final set = rows[index];
+    if (!_isPlanned(set) &&
+        ref.watch(performanceHintModeProvider) != PerformanceHintMode.next) {
+      return null;
     }
-
-    final target = _suggestFor(ref, prior, allLastSets);
-    if (target == null || prior == null) return null;
-
-    if (target.weightKg <= 0 && prior.weightKg <= 0) return null;
-    final isWeightedBw =
-        (widget.workoutExercise.equipmentVariant ?? widget.exercise.modality) ==
-        'weighted';
-    final nextPrefix = isWeightedBw && target.weightKg > 0 ? '+' : '';
-    final text = '$nextPrefix${fmt.format(target.weightKg)} × ${target.reps}';
+    final target = ref
+        .watch(workoutTargetsProvider(widget.workoutExercise.id))
+        .valueOrNull?[set.id];
+    if (target == null) {
+      return null;
+    }
     return (
-      text: text,
-      rationale: target.rationale,
       weightKg: target.weightKg,
       reps: target.reps,
+      rpeX10: target.rpeX10,
     );
   }
 
-  Future<void> _applyNumericTarget(
-    BuildContext context,
-    WorkoutsRepository repo,
-    List<SetEntryData> rows, {
-    required double weightKg,
-    required int reps,
-    String? rationale,
-    ({double? weightKg, int? reps})? Function(int rowIndex)? perRowTarget,
-  }) async {
-    final targets = [
-      for (var i = 0; i < rows.length; i++)
-        if (!rows[i].isCompleted && !rows[i].isWarmup) i,
-    ];
-    if (targets.isEmpty) return;
-    final before = [
-      for (final i in targets)
-        (id: rows[i].id, weightKg: rows[i].weightKg, reps: rows[i].reps),
-    ];
-    for (final i in targets) {
-      // A program gives every set its own target; fall back to the single
-      // card-level one for sets without a plan.
-      final own = perRowTarget?.call(i);
-      await repo.updateSet(
-        setId: rows[i].id,
-        weightKg: own?.weightKg ?? weightKg,
-        reps: own?.reps ?? reps,
-      );
+  /// "@7 RPE" for the set the user is about to log, or null when the target
+  /// has no RPE.
+  String? _formatTargetRpe(
+    WidgetRef ref,
+    List<SetEntryData> currentRows,
+    LoggingMetric metric,
+  ) {
+    if (!metric.isRepBased || currentRows.isEmpty) {
+      return null;
     }
-    if (!context.mounted) return;
-    ref
-        .read(inAppNotificationControllerProvider.notifier)
-        .show(
-          InAppNotificationItem.workoutAction(
-            label: widget.exercise.name,
-            value: rationale == null || rationale.trim().isEmpty
-                ? 'Safe numeric target applied'
-                : 'Target applied: $rationale',
-            actionLabel: 'Undo',
-            onAction: () async {
-              for (final row in before) {
-                await repo.updateSet(
-                  setId: row.id,
-                  weightKg: row.weightKg,
-                  reps: row.reps,
-                );
-              }
-            },
-          ),
-        );
+    final active = currentRows.where((s) => !s.isCompleted).firstOrNull;
+    if (active == null) {
+      return null;
+    }
+    final target = ref
+        .watch(workoutTargetsProvider(widget.workoutExercise.id))
+        .valueOrNull?[active.id];
+    final rpeX10 = target?.rpeX10 ?? active.plannedRpeX10;
+    if (rpeX10 == null) {
+      return null;
+    }
+    final rpe = rpeX10 % 10 == 0
+        ? '${rpeX10 ~/ 10}'
+        : (rpeX10 / 10).toStringAsFixed(1);
+    return '@$rpe RPE';
   }
 
   /// Per-row micro-label under a set (item 1): a compact "Down: X-Y" once per
@@ -1011,7 +891,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     LoggingMetric metric,
   ) {
     if (downSetOrdinals[i] > 0) {
-      if (downSetOrdinals[i] != 1) return null;
+      if (downSetOrdinals[i] != 1) {
+        return null;
+      }
       var e = i;
       while (e + 1 < rows.length &&
           downSetOrdinals[e + 1] == downSetOrdinals[e] + 1) {
@@ -1099,7 +981,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     DistanceFormat distanceFmt,
     LoggingMetric metric,
   ) {
-    if (allLastSets.isEmpty) return '';
+    if (allLastSets.isEmpty) {
+      return '';
+    }
 
     SetEntryData? prior;
     if (currentRows.isEmpty) {
@@ -1123,7 +1007,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
       }
     }
 
-    if (prior == null) return '';
+    if (prior == null) {
+      return '';
+    }
 
     final rpe = prior.rpeX10 != null
         ? ' @${(prior.rpeX10! / 10).toStringAsFixed(1)}'
@@ -1258,21 +1144,23 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                     );
                   },
                 ),
-              ListTile(
-                leading: const Icon(Icons.trending_up),
-                title: const Text('Set progression goal'),
-                subtitle: const Text(
-                  'Override rep range & weekly load increase',
+              if (widget.exercise.isCustom ||
+                  calisthenicsPathFor(widget.exercise.slug) == null)
+                ListTile(
+                  leading: const Icon(Icons.trending_up),
+                  title: const Text('Set progression goal'),
+                  subtitle: const Text(
+                    'Override rep range & weekly load increase',
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ProgressionOverrideSheet.show(
+                      context,
+                      exerciseId: widget.exercise.id,
+                      exerciseName: widget.exercise.name,
+                    );
+                  },
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                  ProgressionOverrideSheet.show(
-                    context,
-                    exerciseId: widget.exercise.id,
-                    exerciseName: widget.exercise.name,
-                  );
-                },
-              ),
               ListTile(
                 leading: const Icon(Icons.swap_horiz_rounded),
                 title: const Text('Substitute exercise'),
@@ -1402,7 +1290,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                     sourceWorkoutExerciseId: widget.workoutExercise.id,
                     targetWorkoutExerciseId: candidate.id,
                   );
-              if (ctx.mounted) Navigator.pop(ctx);
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+              }
             },
     );
   }
@@ -1416,11 +1306,13 @@ class _HeaderRow extends ConsumerWidget {
   /// disagree (EXR-05).
   final LoggingMetric metric;
   final bool isWeightedBodyweight;
+  final bool isAssistance;
 
   const _HeaderRow({
     required this.theme,
     required this.metric,
     this.isWeightedBodyweight = false,
+    this.isAssistance = false,
   });
 
   @override
@@ -1446,7 +1338,9 @@ class _HeaderRow extends ConsumerWidget {
             Expanded(
               flex: 2,
               child: Text(
-                field == SetField.weight && isWeightedBodyweight
+                field == SetField.weight && isAssistance
+                    ? 'ASSIST ${weightFmt.suffix.toUpperCase()}'
+                    : field == SetField.weight && isWeightedBodyweight
                     ? '+${weightFmt.suffix.toUpperCase()}'
                     : SetMetricFormat.fieldLabel(
                         field,
@@ -1502,6 +1396,7 @@ class _SetRow extends ConsumerStatefulWidget {
   /// What this exercise is measured in — decides which inputs exist at all.
   final LoggingMetric metric;
   final int downSetOrdinal;
+  final bool isAssistance;
   final SetEntryData? priorSet;
 
   /// Resolved target when this set came from a program/template; drives the
@@ -1509,6 +1404,7 @@ class _SetRow extends ConsumerStatefulWidget {
   final ({double? weightKg, int? reps, int? rpeX10})? planTarget;
   final String? microLabelText;
   final FocusNode? weightFocusNode;
+  final bool autofocusWeight;
   final GlobalKey? cardKey;
   final Future<void> Function(SetFieldValues values) onUpdate;
   final Future<void> Function(bool completed) onComplete;
@@ -1522,10 +1418,12 @@ class _SetRow extends ConsumerStatefulWidget {
     required this.set,
     required this.metric,
     this.downSetOrdinal = 0,
+    this.isAssistance = false,
     this.priorSet,
     this.planTarget,
     this.microLabelText,
     this.weightFocusNode,
+    this.autofocusWeight = false,
     this.cardKey,
     required this.onUpdate,
     required this.onComplete,
@@ -1560,6 +1458,9 @@ class _SetRowState extends ConsumerState<_SetRow> {
   /// "done" or a tap outside (back gesture, app switch, the field scrolling
   /// away) — and so the watch sees the edit without waiting for a blur.
   Timer? _commitDebounce;
+  final Set<TextEditingController> _dirty = {};
+  Future<bool>? _commitInFlight;
+  late final StateController<bool> _inputFocus;
 
   /// Set the moment the user types in the reps field. A detected count never
   /// overwrites a number the user entered themselves — a proposal that
@@ -1568,7 +1469,12 @@ class _SetRowState extends ConsumerState<_SetRow> {
   @override
   void initState() {
     super.initState();
-    _weight = TextEditingController(text: _fmtWeight(widget.set.weightKg));
+    _inputFocus = ref.read(workoutInputFocusedProvider.notifier);
+    _weight = TextEditingController(
+      text: widget.set.hasEnteredWeight
+          ? _fmt.formatValue(widget.set.weightKg)
+          : '',
+    );
     _reps = TextEditingController(
       text: widget.set.reps == 0 ? '' : widget.set.reps.toString(),
     );
@@ -1588,6 +1494,13 @@ class _SetRowState extends ConsumerState<_SetRow> {
     _repsFocusNode = FocusNode();
     _weightFocusNode.addListener(_scrollWeightIntoViewOnFocus);
     _repsFocusNode.addListener(_scrollRepsIntoViewOnFocus);
+    if (widget.autofocusWeight) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _weightFocusNode.requestFocus();
+        }
+      });
+    }
   }
 
   @override
@@ -1603,10 +1516,15 @@ class _SetRowState extends ConsumerState<_SetRow> {
     // half-typed value echoing back from the database must not overwrite
     // what they have typed since.
     if (oldWidget.set.weightKg != widget.set.weightKg &&
-        !_weightFocusNode.hasFocus) {
-      _weight.text = _fmtWeight(widget.set.weightKg);
+        !_dirty.contains(_weight) &&
+        !(_commitInFlight != null && _weightFocusNode.hasFocus)) {
+      _weight.text = widget.set.hasEnteredWeight
+          ? _fmt.formatValue(widget.set.weightKg)
+          : '';
     }
-    if (oldWidget.set.reps != widget.set.reps && !_repsFocusNode.hasFocus) {
+    if (oldWidget.set.reps != widget.set.reps &&
+        !_dirty.contains(_reps) &&
+        !(_commitInFlight != null && _repsFocusNode.hasFocus)) {
       _reps.text = widget.set.reps == 0 ? '' : widget.set.reps.toString();
     }
     if (oldWidget.set.durationSeconds != widget.set.durationSeconds) {
@@ -1630,13 +1548,25 @@ class _SetRowState extends ConsumerState<_SetRow> {
   }
 
   @override
+  void deactivate() {
+    if (_dirty.isNotEmpty) {
+      unawaited(_commit());
+    }
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     _commitDebounce?.cancel();
     if (_weightFocusNode.hasFocus || _repsFocusNode.hasFocus) {
       // Deferred for the same reason as ActiveWorkoutView.deactivate: the
       // shell watches this flag and the tree is locked during disposal.
-      final focused = ref.read(workoutInputFocusedProvider.notifier);
-      Future.microtask(() => focused.state = false);
+      final focused = _inputFocus;
+      Future.microtask(() {
+        if (focused.mounted) {
+          focused.state = false;
+        }
+      });
     }
     _weightFocusNode.removeListener(_scrollWeightIntoViewOnFocus);
     _repsFocusNode.removeListener(_scrollRepsIntoViewOnFocus);
@@ -1683,14 +1613,18 @@ class _SetRowState extends ConsumerState<_SetRow> {
   void _scheduleCommit() {
     _commitDebounce?.cancel();
     _commitDebounce = Timer(const Duration(milliseconds: 600), () {
-      if (mounted) _commit();
+      if (mounted) {
+        _commit();
+      }
     });
   }
 
   void _scrollFieldIntoView(GlobalKey fieldKey) {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Future<void>.delayed(const Duration(milliseconds: 250));
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       final cardContext = widget.cardKey?.currentContext;
       final fieldContext = fieldKey.currentContext;
@@ -1743,7 +1677,9 @@ class _SetRowState extends ConsumerState<_SetRow> {
     return switch (field) {
       SetField.weight =>
         plan != null
-            ? _fmtWeight(plan.weightKg ?? 0)
+            ? plan.weightKg == null
+                  ? ''
+                  : _fmt.formatValue(plan.weightKg!)
             : widget.set.plannedWeightKg != null
             ? _fmtWeight(widget.set.plannedWeightKg!)
             : prior == null
@@ -1772,24 +1708,40 @@ class _SetRowState extends ConsumerState<_SetRow> {
   /// current chain ('D1', 'D2', …), other non-standard types show their
   /// badge ('D' drop, 'RP' rest-pause, …), plain sets show the number.
   String _indexLabel() {
-    if (widget.set.isWarmup) return 'W';
+    if (widget.set.isWarmup) {
+      return 'W';
+    }
     final type = SetType.fromId(widget.set.setType);
-    if (type == SetType.downSets) return 'D${widget.downSetOrdinal}';
+    if (type == SetType.downSets) {
+      return 'D${widget.downSetOrdinal}';
+    }
     final badge = SetTypeMenu.badge(type);
     return badge.isEmpty ? '${widget.index}' : badge;
   }
 
   Color _indexColor() {
-    if (widget.set.isWarmup) return AppColors.outline;
+    if (widget.set.isWarmup) {
+      return AppColors.outline;
+    }
     if (SetType.fromId(widget.set.setType) != SetType.standard) {
       return AppColors.primary;
     }
     return AppColors.onSurface;
   }
 
-  void _commit() {
+  Future<bool> _commit() async {
     _commitDebounce?.cancel();
     _commitDebounce = null;
+    while (_commitInFlight != null) {
+      if (!await _commitInFlight!) {
+        return false;
+      }
+    }
+    if (_dirty.isEmpty) {
+      return true;
+    }
+    final dirty = {..._dirty};
+    _dirty.removeAll(dirty);
     final metric = widget.metric;
     final rpe = double.tryParse(_rpe.text);
     // Only the fields this exercise actually declares are sent. A field the
@@ -1798,29 +1750,51 @@ class _SetRowState extends ConsumerState<_SetRow> {
     // an exercise's metric never silently blanks what was already logged.
     // Typed display values are converted back to metric first; storage is
     // always kilograms and metres.
-    final enteredWeight = metric.has(SetField.weight)
+    final enteredWeight = dirty.contains(_weight) && metric.has(SetField.weight)
         ? double.tryParse(_weight.text)
         : null;
-    final enteredDistance = metric.has(SetField.distance)
+    final enteredDistance =
+        dirty.contains(_distance) && metric.has(SetField.distance)
         ? double.tryParse(_distance.text)
         : null;
-    widget.onUpdate(
-      SetFieldValues(
-        weightKg: enteredWeight == null ? null : _fmt.toKg(enteredWeight),
-        reps: metric.has(SetField.reps) ? int.tryParse(_reps.text) : null,
-        durationSeconds: metric.has(SetField.duration)
-            ? SetMetricFormat.parseDuration(_duration.text)
-            : null,
-        distanceM: enteredDistance == null
-            ? null
-            : _distFmt.toM(enteredDistance),
-        calories: metric.has(SetField.calories)
-            ? int.tryParse(_calories.text)
-            : null,
-        rpeX10: rpe == null ? null : (rpe * 10).round(),
-        clearRpe: rpe == null,
-      ),
+    final values = SetFieldValues(
+      weightKg: enteredWeight == null ? null : _fmt.toKg(enteredWeight),
+      reps: dirty.contains(_reps) && metric.has(SetField.reps)
+          ? int.tryParse(_reps.text)
+          : null,
+      durationSeconds:
+          dirty.contains(_duration) && metric.has(SetField.duration)
+          ? SetMetricFormat.parseDuration(_duration.text)
+          : null,
+      distanceM: enteredDistance == null ? null : _distFmt.toM(enteredDistance),
+      calories: dirty.contains(_calories) && metric.has(SetField.calories)
+          ? int.tryParse(_calories.text)
+          : null,
+      rpeX10: !dirty.contains(_rpe) || rpe == null ? null : (rpe * 10).round(),
+      clearRpe: dirty.contains(_rpe) && rpe == null,
     );
+    final operation = () async {
+      try {
+        await widget.onUpdate(values);
+        return true;
+      } on Object {
+        _dirty.addAll(dirty);
+        if (mounted) {
+          AppNotice.show(
+            context,
+            'Could not save this set. Your edits are kept; try again.',
+            kind: AppNoticeKind.error,
+          );
+        }
+        return false;
+      }
+    }();
+    _commitInFlight = operation;
+    try {
+      return await operation;
+    } finally {
+      _commitInFlight = null;
+    }
   }
 
   @override
@@ -2018,7 +1992,7 @@ class _SetRowState extends ConsumerState<_SetRow> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () {
+                  onTap: () async {
                     Haptics.medium();
                     // Completing a set the user did not fill in adopts the
                     // previous set's numbers — for every field the metric
@@ -2029,11 +2003,14 @@ class _SetRowState extends ConsumerState<_SetRow> {
                         final hint = _hintFor(field);
                         if (ctrl.text.trim().isEmpty && hint.isNotEmpty) {
                           ctrl.text = hint;
+                          _dirty.add(ctrl);
                         }
                       }
                     }
-                    _commit();
-                    widget.onComplete(!isCompleted);
+                    if (!await _commit()) {
+                      return;
+                    }
+                    await widget.onComplete(!isCompleted);
                   },
                   behavior: HitTestBehavior.opaque,
                   child: Padding(
@@ -2102,9 +2079,13 @@ class _SetRowState extends ConsumerState<_SetRow> {
                       buttonLabel = 'Mini Set';
                       chipSuffix = 'reps';
                       accentColor = AppColors.primary;
-                      extraItems =
-                          (meta['miniSets'] as List<dynamic>?)?.cast<int>() ??
-                          [];
+                      final rawMiniSets = meta['miniSets'];
+                      extraItems = rawMiniSets is List
+                          ? rawMiniSets
+                                .whereType<num>()
+                                .map((n) => n.toInt())
+                                .toList()
+                          : [];
                     } else if (setType == SetType.forced) {
                       metaKey = 'extraReps';
                       buttonLabel = 'Forced';
@@ -2131,6 +2112,13 @@ class _SetRowState extends ConsumerState<_SetRow> {
                       runSpacing: 6,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
+                        if (setType == SetType.myoReps &&
+                            (meta['plannedMiniSets'] ?? meta['miniSets'])
+                                is num)
+                          Text(
+                            '${extraItems.length}/${meta['plannedMiniSets'] ?? meta['miniSets']} mini-sets',
+                            style: theme.textTheme.labelSmall,
+                          ),
                         for (int i = 0; i < extraItems.length; i++)
                           InkWell(
                             onTap: () async {
@@ -2323,6 +2311,9 @@ class _SetRowState extends ConsumerState<_SetRow> {
       case SetField.weight:
         return GestureDetector(
           onLongPress: () {
+            if (widget.isAssistance) {
+              return;
+            }
             Haptics.medium();
             final entered = double.tryParse(_weight.text);
             final weightKg = entered != null ? _fmt.toKg(entered) : null;
@@ -2359,6 +2350,7 @@ class _SetRowState extends ConsumerState<_SetRow> {
             );
             if (selected != null) {
               _duration.text = SetMetricFormat.durationFieldText(selected);
+              _dirty.add(_rpe);
               _commit();
             }
           },
@@ -2405,7 +2397,11 @@ class _SetRowState extends ConsumerState<_SetRow> {
       key: fieldKey,
       controller: ctrl,
       focusNode: focusNode,
-      onChanged: onChanged ?? (_) => _scheduleCommit(),
+      onChanged: (value) {
+        _dirty.add(ctrl);
+        onChanged?.call(value);
+        _scheduleCommit();
+      },
       textInputAction: TextInputAction.done,
       onTap: fieldKey == null ? null : () => _scrollFieldIntoView(fieldKey),
       onEditingComplete: _commit,
@@ -2459,6 +2455,7 @@ class _SetRowState extends ConsumerState<_SetRow> {
   Widget _rpeField(BuildContext context) {
     final theme = Theme.of(context);
     final val = _rpe.text.isEmpty ? null : double.tryParse(_rpe.text);
+    final plannedX10 = widget.set.plannedRpeX10;
     return InkWell(
       key: _rpeFieldKey,
       onTap: () {
@@ -2476,12 +2473,20 @@ class _SetRowState extends ConsumerState<_SetRow> {
         child: Text(
           val != null
               ? val.toStringAsFixed(1)
-              : widget.set.plannedRpeX10 != null
-              ? '→ ${(widget.set.plannedRpeX10! / 10).toStringAsFixed(1)}'
+              : plannedX10 != null
+              ? (plannedX10 % 10 == 0
+                    ? '@${plannedX10 ~/ 10} RPE'
+                    : '@${(plannedX10 / 10).toStringAsFixed(1)} RPE')
               : 'RPE',
           style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: val != null ? FontWeight.bold : FontWeight.normal,
-            color: val != null ? Colors.purple : AppColors.secondary,
+            fontWeight: val != null || plannedX10 != null
+                ? FontWeight.bold
+                : FontWeight.normal,
+            color: val != null
+                ? Colors.purple
+                : (plannedX10 != null
+                      ? Colors.purple.withValues(alpha: 0.7)
+                      : AppColors.secondary),
           ),
         ),
       ),
@@ -2489,7 +2494,10 @@ class _SetRowState extends ConsumerState<_SetRow> {
   }
 
   Future<void> _showRpeGrid(BuildContext context) async {
-    var selected = double.tryParse(_rpe.text) ?? 8.0;
+    final targetRpeX10 = widget.set.plannedRpeX10 ?? widget.planTarget?.rpeX10;
+    final defaultRpe = targetRpeX10 != null ? targetRpeX10 / 10.0 : 8.0;
+    var selected = double.tryParse(_rpe.text) ?? defaultRpe;
+    selected = selected.clamp(5.0, 10.0);
     final res = await showModalBottomSheet<double?>(
       context: context,
       builder: (ctx) {
@@ -2554,6 +2562,7 @@ class _SetRowState extends ConsumerState<_SetRow> {
       } else {
         _rpe.text = res.toStringAsFixed(1);
       }
+      _dirty.add(_rpe);
       _commit();
     }
   }

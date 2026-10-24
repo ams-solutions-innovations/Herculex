@@ -7,10 +7,9 @@ import 'package:drift/drift.dart' hide isNull;
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
-
 import 'generated_migrations/schema.dart';
 import 'generated_migrations/schema_v28.dart' as v28;
-import 'generated_migrations/schema_v48.dart' as v48;
+import 'generated_migrations/schema_v51.dart' as v51;
 
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
@@ -27,9 +26,9 @@ void main() {
         // `schema_v26_test.dart` for why `Migrator.createTable` makes any
         // other target wrong. Every assertion below is about the v29 step
         // and survives the retarget.
-        newVersion: 48,
+        newVersion: 51,
         createOld: v28.DatabaseAtV28.new,
-        createNew: v48.DatabaseAtV48.new,
+        createNew: v51.DatabaseAtV51.new,
         openTestedDatabase: AppDatabase.forTesting,
         createItems: (batch, oldDb) {
           // `gyms` is untouched by v29; the canary proving the migration is

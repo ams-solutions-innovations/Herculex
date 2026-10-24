@@ -104,13 +104,16 @@ class _TrendCardsRowState extends ConsumerState<TrendCardsRow> {
       children: [
         SizedBox(
           height: 146,
-          child: PageView(
+          child: StackedEdgeFadeMask(
             controller: _controller,
-            onPageChanged: (i) {
-              Haptics.selection();
-              setState(() => _page = i);
-            },
-            children: pages,
+            child: PageView(
+              controller: _controller,
+              onPageChanged: (i) {
+                Haptics.selection();
+                setState(() => _page = i);
+              },
+              children: pages,
+            ),
           ),
         ),
         const SizedBox(height: HxSpace.x2),

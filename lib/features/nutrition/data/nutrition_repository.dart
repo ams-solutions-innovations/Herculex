@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:drift/drift.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
@@ -57,7 +56,9 @@ class NutritionRepository {
   /// at once. Unfiltered by `deletedAt` for the same reason.
   Future<Map<int, FoodData>> foodsByIds(Iterable<int> ids) async {
     final idList = ids.toSet().toList();
-    if (idList.isEmpty) return {};
+    if (idList.isEmpty) {
+      return {};
+    }
     final foods = await (_db.select(
       _db.foods,
     )..where((t) => t.id.isIn(idList))).get();
@@ -75,7 +76,9 @@ class NutritionRepository {
   /// Local-only exact lookup. Barcode identifiers remain strings.
   Future<FoodData?> lookupBarcode(String barcode) async {
     final normalized = normalizeBarcode(barcode);
-    if (normalized == null) return null;
+    if (normalized == null) {
+      return null;
+    }
     return _findByBarcode(normalized.lookupCandidates);
   }
 
@@ -86,7 +89,9 @@ class NutritionRepository {
                 ..where((t) => t.barcode.equals(barcode))
                 ..where((t) => t.deletedAt.isNull()))
               .getSingleOrNull();
-      if (exact != null) return exact;
+      if (exact != null) {
+        return exact;
+      }
     }
     return null;
   }
@@ -99,6 +104,7 @@ class NutritionRepository {
     double proteinPer100g = 0,
     double carbsPer100g = 0,
     double fatPer100g = 0,
+    double? fiberPer100g,
     double? servingGrams,
     String? servingLabel,
     String referenceBasis = '100 g',
@@ -123,6 +129,7 @@ class NutritionRepository {
             proteinPer100g: Value(proteinPer100g),
             carbsPer100g: Value(carbsPer100g),
             fatPer100g: Value(fatPer100g),
+            fiberPer100g: Value(fiberPer100g),
             servingGrams: Value(servingGrams),
             servingLabel: Value(servingLabel),
             referenceBasis: Value(referenceBasis),
@@ -170,6 +177,7 @@ class NutritionRepository {
     double proteinPer100g = 0,
     double carbsPer100g = 0,
     double fatPer100g = 0,
+    double? fiberPer100g,
     double? servingGrams,
     String? servingLabel,
     String referenceBasis = '100 g',
@@ -191,6 +199,7 @@ class NutritionRepository {
         proteinPer100g: Value(proteinPer100g),
         carbsPer100g: Value(carbsPer100g),
         fatPer100g: Value(fatPer100g),
+        fiberPer100g: Value(fiberPer100g),
         servingGrams: Value(servingGrams),
         servingLabel: Value(servingLabel),
         referenceBasis: Value(referenceBasis),
@@ -319,19 +328,25 @@ class NutritionRepository {
   /// Macros per serving for a recipe.
   Future<DailyTotals> recipeMacrosPerServing(int recipeId) async {
     final recipe = await recipeById(recipeId);
-    if (recipe == null) return DailyTotals.empty;
+    if (recipe == null) {
+      return DailyTotals.empty;
+    }
 
     final ings = await (_db.select(
       _db.recipeIngredients,
     )..where((t) => t.recipeId.equals(recipeId))).get();
-    if (ings.isEmpty) return DailyTotals.empty;
+    if (ings.isEmpty) {
+      return DailyTotals.empty;
+    }
 
     final byId = await foodsByIds(ings.map((i) => i.foodId));
 
     var totals = DailyTotals.empty;
     for (final ing in ings) {
       final food = byId[ing.foodId];
-      if (food == null) continue;
+      if (food == null) {
+        continue;
+      }
       final factor = ing.grams / 100.0;
       totals = totals.plus(
         kcal: food.kcalPer100g * factor,
@@ -383,7 +398,9 @@ class NutritionRepository {
   }) async {
     final resolvedMeal = mealKey ?? meal?.name ?? Meal.snack.name;
     final amount = portionAmount ?? grams;
-    if (amount == null || amount <= 0) return;
+    if (amount == null || amount <= 0) {
+      return;
+    }
     final unit = portionUnit ?? 'g';
     // Total consumed = servings × portion size, so a "2 × 30 g" entry stores
     // the 60 g the macros are actually computed from.
@@ -587,6 +604,34 @@ class NutritionRepository {
     );
   }
 
+  /// Refreshes a single logged food entry's nutrition snapshot from an updated
+  /// [FoodData] when the user explicitly edits the original food from that entry.
+  Future<void> refreshEntrySnapshotFromFood(int entryId, FoodData food) async {
+    await (_db.update(
+      _db.foodEntries,
+    )..where((t) => t.id.equals(entryId))).write(
+      FoodEntriesCompanion(
+        snapshotBasis: Value(food.referenceBasis),
+        snapshotName: Value(food.name),
+        snapshotBrand: Value(food.brand),
+        snapshotKcal: Value(food.kcalPer100g),
+        snapshotProteinG: Value(food.proteinPer100g),
+        snapshotCarbsG: Value(food.carbsPer100g),
+        snapshotFatG: Value(food.fatPer100g),
+        snapshotFiberG: Value(food.fiberPer100g),
+        snapshotSodiumMg: Value(food.sodiumMgPer100g),
+        snapshotPotassiumMg: Value(food.potassiumMgPer100g),
+        snapshotCholesterolMg: Value(food.cholesterolMgPer100g),
+        snapshotServingGrams: Value(food.servingGrams),
+        snapshotServingAmount: Value(food.servingAmount),
+        snapshotServingUnit: Value(food.servingUnit),
+        snapshotMicrosJson: Value(
+          _encodeMicrosOrNull(_microsForFood(food, 1.0)),
+        ),
+      ),
+    );
+  }
+
   /// Resolves an entry's macro contribution, handling both food and recipe.
   ///
   /// RB-05: snapshot-first. A non-null `snapshotBasis` means the entry froze
@@ -599,13 +644,19 @@ class NutritionRepository {
   /// primitives.
   Future<DailyTotals> macrosForEntry(FoodEntryData entry) async {
     if (entry.foodId != null) {
-      if (entry.snapshotBasis != null) return _totalsForFoodSnapshot(entry);
+      if (entry.snapshotBasis != null) {
+        return _totalsForFoodSnapshot(entry);
+      }
       final food = await foodById(entry.foodId!);
-      if (food == null) return DailyTotals.empty;
+      if (food == null) {
+        return DailyTotals.empty;
+      }
       return _totalsForFood(food, entry: entry);
     }
     if (entry.recipeId != null) {
-      if (entry.snapshotBasis != null) return _totalsForRecipeSnapshot(entry);
+      if (entry.snapshotBasis != null) {
+        return _totalsForRecipeSnapshot(entry);
+      }
       final per = await recipeMacrosPerServing(entry.recipeId!);
       return _scaleTotals(per, entry.servings);
     }
@@ -770,7 +821,9 @@ class NutritionRepository {
       // named quantity ("1 scoop", "4 nuggets") must therefore scale by its
       // own default amount; if it is weighed instead, scale by the verified
       // mass when there is one.
-      if (isNativeServing) return amount / defaultAmount;
+      if (isNativeServing) {
+        return amount / defaultAmount;
+      }
       if ((normalizedUnit == 'g' || normalizedUnit == 'ml') &&
           servingGrams != null &&
           servingGrams > 0) {
@@ -921,12 +974,17 @@ class NutritionRepository {
   // ── Nutrition targets, diet schedules, carb plans (v12, §19) ────────────
 
   Stream<List<NutritionTargetData>> watchTargets() {
-    return _db.select(_db.nutritionTargets).watch();
+    return (_db.select(_db.nutritionTargets)
+          ..where((t) => t.deletedAt.isNull())
+          ..orderBy([
+            (t) => OrderingTerm.asc(t.appliesTo),
+            (t) => OrderingTerm.asc(t.effectiveFromDateIso),
+          ]))
+        .watch();
   }
 
-  /// Upserts the target for a scope key (one row per [appliesTo]). Conflict
-  /// target is the [appliesTo] unique key, not the primary key, so re-saving
-  /// the same scope updates rather than throwing.
+  /// Saves a dated version. Re-saving the same scope/start replaces that
+  /// version only; earlier and separately scheduled future versions survive.
   Future<void> upsertTarget({
     required String label,
     required String appliesTo,
@@ -935,13 +993,26 @@ class NutritionRepository {
     required int carbsG,
     required int fatG,
     int? fiberG,
+    DateTime? effectiveFrom,
   }) async {
+    if (kcal <= 0 ||
+        proteinG < 0 ||
+        carbsG < 0 ||
+        fatG < 0 ||
+        (fiberG != null && fiberG < 0)) {
+      throw ArgumentError(
+        'Calories must be positive and macros cannot be negative.',
+      );
+    }
+    final from = effectiveFrom ?? _clock.now();
+    final fromIso = dateIso(from);
     await _db
         .into(_db.nutritionTargets)
         .insert(
           NutritionTargetsCompanion.insert(
             label: label,
             appliesTo: Value(appliesTo),
+            effectiveFromDateIso: Value(fromIso),
             kcal: kcal,
             proteinG: proteinG,
             carbsG: carbsG,
@@ -951,21 +1022,31 @@ class NutritionRepository {
           onConflict: DoUpdate(
             (old) => NutritionTargetsCompanion.custom(
               label: Constant(label),
+              updatedAt: Constant(_clock.now()),
+              deletedAt: const Constant(null),
               kcal: Constant(kcal),
               proteinG: Constant(proteinG),
               carbsG: Constant(carbsG),
               fatG: Constant(fatG),
               fiberG: fiberG == null ? const Constant(null) : Constant(fiberG),
             ),
-            target: [_db.nutritionTargets.appliesTo],
+            target: [
+              _db.nutritionTargets.appliesTo,
+              _db.nutritionTargets.effectiveFromDateIso,
+            ],
           ),
         );
   }
 
   Future<void> deleteTarget(int id) async {
-    await (_db.delete(
+    await (_db.update(
       _db.nutritionTargets,
-    )..where((t) => t.id.equals(id))).go();
+    )..where((t) => t.id.equals(id))).write(
+      NutritionTargetsCompanion(
+        deletedAt: Value(_clock.now()),
+        updatedAt: Value(_clock.now()),
+      ),
+    );
   }
 
   Stream<DietScheduleData?> watchActiveDietSchedule() {
@@ -1068,10 +1149,14 @@ class NutritionRepository {
     final counts = <int, int>{};
     for (final e in entries) {
       final id = e.foodId;
-      if (id == null) continue;
+      if (id == null) {
+        continue;
+      }
       counts[id] = (counts[id] ?? 0) + 1;
     }
-    if (counts.isEmpty) return const [];
+    if (counts.isEmpty) {
+      return const [];
+    }
 
     final topIds = counts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -1102,10 +1187,14 @@ class NutritionRepository {
         final id = e.foodId;
         if (id != null && seenIds.add(id)) {
           orderedIds.add(id);
-          if (limit != null && orderedIds.length >= limit) break;
+          if (limit != null && orderedIds.length >= limit) {
+            break;
+          }
         }
       }
-      if (orderedIds.isEmpty) return <FoodData>[];
+      if (orderedIds.isEmpty) {
+        return <FoodData>[];
+      }
       final foodsMap = await foodsByIds(orderedIds);
       return orderedIds
           .map((id) => foodsMap[id])
@@ -1139,22 +1228,32 @@ class NutritionRepository {
       for (final entry in entries)
         if (entry.foodId == foodId) '${entry.dateIso}|${entry.meal}',
     };
-    if (targetMeals.isEmpty) return const [];
+    if (targetMeals.isEmpty) {
+      return const [];
+    }
 
     final seenInMeal = <String, Set<int>>{};
     final scores = <int, double>{};
     for (final entry in entries) {
       final pairedId = entry.foodId;
-      if (pairedId == null || pairedId == foodId) continue;
+      if (pairedId == null || pairedId == foodId) {
+        continue;
+      }
       final mealId = '${entry.dateIso}|${entry.meal}';
-      if (!targetMeals.contains(mealId)) continue;
+      if (!targetMeals.contains(mealId)) {
+        continue;
+      }
       final seen = seenInMeal.putIfAbsent(mealId, () => <int>{});
-      if (!seen.add(pairedId)) continue;
+      if (!seen.add(pairedId)) {
+        continue;
+      }
       scores[pairedId] =
           (scores[pairedId] ?? 0) +
           (mealKey != null && entry.meal == mealKey ? 2 : 1);
     }
-    if (scores.isEmpty) return const [];
+    if (scores.isEmpty) {
+      return const [];
+    }
 
     final rankedIds = scores.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -1184,14 +1283,18 @@ class NutritionRepository {
       ]);
 
     return q.watch().asyncMap((entries) async {
-      if (entries.isEmpty) return <FoodData>[];
+      if (entries.isEmpty) {
+        return <FoodData>[];
+      }
 
       final scores = <int, double>{};
       final now = _clock.now();
 
       for (final e in entries) {
         final id = e.foodId;
-        if (id == null) continue;
+        if (id == null) {
+          continue;
+        }
 
         double matchScore = 0.0;
 
@@ -1230,14 +1333,18 @@ class NutritionRepository {
         }
       }
 
-      if (scores.isEmpty) return <FoodData>[];
+      if (scores.isEmpty) {
+        return <FoodData>[];
+      }
 
       // Minimum score threshold to qualify as a relevant suggestion
       final candidateEntries =
           scores.entries.where((entry) => entry.value >= 3.0).toList()
             ..sort((a, b) => b.value.compareTo(a.value));
 
-      if (candidateEntries.isEmpty) return <FoodData>[];
+      if (candidateEntries.isEmpty) {
+        return <FoodData>[];
+      }
 
       final topIds = candidateEntries.take(limit).map((e) => e.key).toList();
       final foodsMap = await foodsByIds(topIds);
@@ -1264,11 +1371,112 @@ class NutritionRepository {
     ];
   }
 
+  /// Suggested foods for the watch's Log Food screen: combines time-of-day
+  /// suggestions for the current hour with top frequently-logged foods so the
+  /// Suggested section is always relevant and populated.
+  Future<List<QuickAddFoodItem>> suggestedQuickAddFoods({int limit = 8}) async {
+    final nowHour = _clock.now().hour;
+    final timeSuggested = await watchSuggestedFoods(
+      hour: nowHour,
+      limit: limit,
+    ).first;
+    final frequent = await recentFoods(limit: limit);
+
+    final merged = <FoodData>[];
+    final seenIds = <int>{};
+    for (final f in [...timeSuggested, ...frequent]) {
+      if (seenIds.add(f.id)) {
+        merged.add(f);
+        if (merged.length >= limit) {
+          break;
+        }
+      }
+    }
+
+    if (merged.isEmpty) {
+      final fallbackRecent = await watchRecentlyLoggedFoods(limit: limit).first;
+      for (final f in fallbackRecent) {
+        if (seenIds.add(f.id)) {
+          merged.add(f);
+          if (merged.length >= limit) {
+            break;
+          }
+        }
+      }
+    }
+
+    final lastMealByFoodId = await _lastMealKeysForFoodIds(
+      merged.map((f) => f.id).toList(),
+    );
+    return [
+      for (final food in merged)
+        _quickAddItemForFood(food, lastMealByFoodId[food.id]),
+    ];
+  }
+
+  /// Chronologically most recently logged unique foods (newest first) for the
+  /// watch's Recent section.
+  Future<List<QuickAddFoodItem>> recentQuickAddFoods({int limit = 12}) async {
+    final foods = await watchRecentlyLoggedFoods(limit: limit).first;
+    final lastMealByFoodId = await _lastMealKeysForFoodIds(
+      foods.map((f) => f.id).toList(),
+    );
+    return [
+      for (final food in foods)
+        _quickAddItemForFood(food, lastMealByFoodId[food.id]),
+    ];
+  }
+
+  /// User's saved recipes resolved to per-serving macro totals for the watch's
+  /// My Recipes section.
+  Future<List<QuickAddFoodItem>> quickAddRecipes({int limit = 20}) async {
+    final recipes =
+        await (_db.select(_db.recipes)
+              ..where((t) => t.deletedAt.isNull())
+              ..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.createdAt,
+                  mode: OrderingMode.desc,
+                ),
+              ])
+              ..limit(limit))
+            .get();
+    if (recipes.isEmpty) {
+      return const [];
+    }
+
+    final lastMealByRecipeId = await _lastMealKeysForRecipeIds(
+      recipes.map((r) => r.id).toList(),
+    );
+    final result = <QuickAddFoodItem>[];
+    for (final recipe in recipes) {
+      final per = await recipeMacrosPerServing(recipe.id);
+      result.add(
+        QuickAddFoodItem(
+          foodId: 0,
+          recipeId: recipe.id,
+          name: recipe.name,
+          kcal: per.kcal,
+          proteinG: per.proteinG,
+          carbsG: per.carbsG,
+          fatG: per.fatG,
+          portionAmount: 1.0,
+          portionUnit: 'serving',
+          portionLabel: '1 serving',
+          lastMealKey: lastMealByRecipeId[recipe.id],
+        ),
+      );
+    }
+    return result;
+  }
+
   /// Most recent [FoodEntryData.meal] logged for each food id — lets a
   /// tap-to-log quick-add surface (the watch) offer a one-tap "add exactly
   /// what I logged last time" action without asking which meal again.
   Future<Map<int, String>> _lastMealKeysForFoodIds(List<int> foodIds) async {
-    if (foodIds.isEmpty) return const {};
+    if (foodIds.isEmpty) {
+      return const {};
+    }
     final entries =
         await (_db.select(_db.foodEntries)
               ..where((t) => t.foodId.isIn(foodIds))
@@ -1282,7 +1490,36 @@ class NutritionRepository {
     final result = <int, String>{};
     for (final e in entries) {
       final id = e.foodId;
-      if (id == null || result.containsKey(id)) continue;
+      if (id == null || result.containsKey(id)) {
+        continue;
+      }
+      result[id] = e.meal;
+    }
+    return result;
+  }
+
+  Future<Map<int, String>> _lastMealKeysForRecipeIds(
+    List<int> recipeIds,
+  ) async {
+    if (recipeIds.isEmpty) {
+      return const {};
+    }
+    final entries =
+        await (_db.select(_db.foodEntries)
+              ..where((t) => t.recipeId.isIn(recipeIds))
+              ..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.loggedAt,
+                  mode: OrderingMode.desc,
+                ),
+              ]))
+            .get();
+    final result = <int, String>{};
+    for (final e in entries) {
+      final id = e.recipeId;
+      if (id == null || result.containsKey(id)) {
+        continue;
+      }
       result[id] = e.meal;
     }
     return result;
@@ -1304,6 +1541,7 @@ class NutritionRepository {
       portionUnit: unit,
       portionLabel: label,
       lastMealKey: lastMealKey,
+      kcalPer100g: food.kcalPer100g,
     );
   }
 
@@ -1314,10 +1552,11 @@ class NutritionRepository {
   }
 }
 
-/// A recent/frequently-logged food resolved to a single default-portion
-/// macro snapshot, for a tap-to-log quick-add surface.
+/// A recent/frequently-logged food or recipe resolved to a single
+/// default-portion macro snapshot, for a tap-to-log quick-add surface.
 class QuickAddFoodItem {
   final int foodId;
+  final int? recipeId;
   final String name;
   final double kcal;
   final double proteinG;
@@ -1327,9 +1566,11 @@ class QuickAddFoodItem {
   final String portionUnit;
   final String portionLabel;
   final String? lastMealKey;
+  final double? kcalPer100g;
 
   const QuickAddFoodItem({
     required this.foodId,
+    this.recipeId,
     required this.name,
     required this.kcal,
     required this.proteinG,
@@ -1339,5 +1580,21 @@ class QuickAddFoodItem {
     required this.portionUnit,
     required this.portionLabel,
     this.lastMealKey,
+    this.kcalPer100g,
   });
+
+  Map<String, dynamic> toJson() => {
+    'foodId': foodId,
+    if (recipeId != null) 'recipeId': recipeId,
+    'name': name,
+    'kcal': kcal.round(),
+    'protein': proteinG.round(),
+    'carbs': carbsG.round(),
+    'fat': fatG.round(),
+    'portionAmount': portionAmount,
+    'portionUnit': portionUnit,
+    'portionLabel': portionLabel,
+    if (lastMealKey != null) 'lastMealKey': lastMealKey,
+    if (kcalPer100g != null) 'kcalPer100g': kcalPer100g,
+  };
 }

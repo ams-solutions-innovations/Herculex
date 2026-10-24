@@ -3,39 +3,75 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/design_system/components/hx_card.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/application/phase_targets_applier.dart';
+import 'package:herculex/features/nutrition/presentation/dialogs/target_start_date_dialog.dart';
 import 'package:herculex/features/physique/application/phase_targets_offer_provider.dart';
 import 'package:herculex/features/physique/presentation/physique_text.dart';
 
 /// Offers the calories and macros for the roadmap's running phase when the
 /// member's calorie plan is for another phase (or none). Applying is always a
 /// tap: the roadmap never changes nutrition targets by itself.
-class PhaseTargetsOfferCard extends ConsumerWidget {
+class PhaseTargetsOfferCard extends ConsumerStatefulWidget {
   const PhaseTargetsOfferCard({super.key, required this.goalId});
 
   final int goalId;
 
-  Future<void> _apply(
-    BuildContext context,
-    WidgetRef ref,
-    PhaseTargetsOffer offer,
-  ) async {
+  @override
+  ConsumerState<PhaseTargetsOfferCard> createState() =>
+      _PhaseTargetsOfferCardState();
+}
+
+class _PhaseTargetsOfferCardState extends ConsumerState<PhaseTargetsOfferCard> {
+  bool _saving = false;
+  Future<void> _apply(PhaseTargetsOffer offer) async {
+    if (_saving) {
+      return;
+    }
+    setState(() => _saving = true);
     final notices = AppNotice.of(context);
-    await ref
-        .read(phaseTargetsApplierProvider)
-        .apply(phase: offer.phase, pace: offer.pace, targets: offer.targets);
-    notices.show(
-      '${offer.phase.label} • ${offer.targets.kcal} kcal',
-      title: 'Targets updated',
-    );
+    try {
+      final start = await chooseTargetStartDate(
+        context,
+        now: ref.read(clockProvider).now(),
+      );
+      if (start == null || !mounted) {
+        return;
+      }
+      await ref
+          .read(phaseTargetsApplierProvider)
+          .apply(
+            phase: offer.phase,
+            pace: offer.pace,
+            targets: offer.targets,
+            effectiveFrom: start,
+          );
+      notices.show(
+        '${offer.phase.label} • ${offer.targets.kcal} kcal',
+        title: 'Targets updated',
+      );
+    } on Object {
+      if (mounted) {
+        notices.show(
+          'Could not save targets. Try again.',
+          kind: AppNoticeKind.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final offer = ref.watch(phaseTargetsOfferProvider(goalId));
-    if (offer == null) return const SizedBox.shrink();
+  Widget build(BuildContext context) {
+    final offer = ref.watch(phaseTargetsOfferProvider(widget.goalId));
+    if (offer == null) {
+      return const SizedBox.shrink();
+    }
     final hx = context.hx;
     final t = offer.targets;
     final current = offer.currentPlan;
@@ -66,7 +102,7 @@ class PhaseTargetsOfferCard extends ConsumerWidget {
               children: [
                 FilledButton(
                   key: const Key('phase-offer-apply'),
-                  onPressed: () => _apply(context, ref, offer),
+                  onPressed: _saving ? null : () => _apply(offer),
                   child: const Text('Apply targets'),
                 ),
                 TextButton(
@@ -81,7 +117,7 @@ class PhaseTargetsOfferCard extends ConsumerWidget {
                   key: const Key('phase-offer-dismiss'),
                   onPressed: () => ref
                       .read(phaseTargetsOfferDismissalsProvider.notifier)
-                      .dismiss(goalId, offer.phase),
+                      .dismiss(widget.goalId, offer.phase),
                   child: const Text('Not now'),
                 ),
               ],

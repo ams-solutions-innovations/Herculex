@@ -46,11 +46,13 @@ class HerculexAiBriefException implements Exception {
   final String message;
   final bool recoverable;
   final bool isQuotaExhausted;
+  final bool isProfileConflict;
 
   const HerculexAiBriefException(
     this.message, {
     this.recoverable = true,
     this.isQuotaExhausted = false,
+    this.isProfileConflict = false,
   });
 
   @override
@@ -75,12 +77,21 @@ class HerculexAiBriefService {
   }) async {
     try {
       final (result, provenance) = await _backend.generateProgramBrief(
-        profileInputs: profileInputs,
+        profileInputs: {...await _generationContext(), ...profileInputs},
         userNote: userNote,
       );
 
       try {
-        return (ProgramBrief.fromJson(result), provenance);
+        final brief = ProgramBrief.fromJson(result);
+        try {
+          brief.validateForProfile(profileInputs);
+        } on FormatException catch (error) {
+          throw HerculexAiBriefException(
+            error.message,
+            isProfileConflict: true,
+          );
+        }
+        return (brief, provenance);
       } on FormatException {
         throw const HerculexAiBriefException(
           'Herculex AI returned an incomplete brief. Try generating again.',
@@ -101,6 +112,56 @@ class HerculexAiBriefService {
     }
   }
 
+  Future<Map<String, dynamic>> _generationContext() async {
+    final gym =
+        await (_db.select(_db.gyms)
+              ..where((t) => t.isDefault.equals(true) & t.deletedAt.isNull())
+              ..limit(1))
+            .getSingleOrNull();
+    final equipment = gym == null || gym.allEquipment
+        ? <String>[]
+        : (await (_db.select(_db.gymEquipment)..where(
+                    (t) =>
+                        t.gymId.equals(gym.id) &
+                        t.available.equals(true) &
+                        t.deletedAt.isNull(),
+                  ))
+                  .get())
+              .map((e) => e.equipmentKey)
+              .toList();
+    final sessions =
+        await (_db.select(_db.workoutSessions)
+              ..where(
+                (t) =>
+                    t.endedAt.isNotNull() &
+                    t.microWorkoutId.isNull() &
+                    t.deletedAt.isNull() &
+                    t.startedAt.isSmallerOrEqualValue(_clock.now()) &
+                    t.endedAt.isSmallerOrEqualValue(_clock.now()) &
+                    t.startedAt.isBiggerOrEqualValue(
+                      _clock.now().subtract(const Duration(days: 56)),
+                    ),
+              )
+              ..orderBy([(t) => OrderingTerm.desc(t.startedAt)])
+              ..limit(12))
+            .get();
+    final minutes = sessions
+        .map((s) => s.endedAt!.difference(s.startedAt).inMinutes)
+        .where((m) => m >= 10 && m <= 180)
+        .take(8)
+        .toList();
+    return {
+      'equipmentContext': {
+        'known': gym != null,
+        'allEquipment': gym?.allEquipment,
+        'availableKeys': equipment,
+      },
+      if (minutes.length >= 3)
+        'averageSessionMinutes':
+            (minutes.reduce((a, b) => a + b) / minutes.length).round(),
+    };
+  }
+
   /// Writes exactly one row to `HerculexAiProgramBriefs`. This is the only
   /// write path to that table in this phase (T-27-14). [confirmedAt] is
   /// stamped from the injected [Clock], never `DateTime.now()` directly.
@@ -114,7 +175,14 @@ class HerculexAiBriefService {
         .insert(
           HerculexAiProgramBriefsCompanion.insert(
             programId: programId,
-            briefJson: jsonEncode(brief.toJson()),
+            briefJson: jsonEncode({
+              ...brief.toJson(),
+              if (provenance['programmingSkillsVersion'] is String)
+                'programmingSkillsVersion':
+                    provenance['programmingSkillsVersion'],
+              if (provenance['programmingSkills'] is List)
+                'programmingSkills': provenance['programmingSkills'],
+            }),
             source: const Value('herculex_ai'),
             knowledgeVersion: Value(provenance['knowledgeVersion'] as String?),
             modelVersion: Value(provenance['modelVersion'] as String?),

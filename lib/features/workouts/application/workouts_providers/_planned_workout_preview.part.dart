@@ -7,6 +7,7 @@ class PlannedWorkoutPreviewData {
   final PlannedSessionSnapshot plan;
   final Map<int, ExerciseCatalogData> exercises;
   final String status;
+  final String? adaptationReason;
 
   /// The schedule row, program day and (if any) template behind the plan —
   /// what the preview's Edit action needs to open or create a template.
@@ -16,6 +17,7 @@ class PlannedWorkoutPreviewData {
     required this.plan,
     required this.exercises,
     required this.status,
+    this.adaptationReason,
     required this.scheduled,
   });
 }
@@ -34,10 +36,25 @@ final plannedWorkoutPreviewProvider = FutureProvider.autoDispose
       final db = ref.watch(appDatabaseProvider);
       final catalog = await db.select(db.exerciseCatalog).get();
       final exercises = {for (final e in catalog) e.id: e};
+      final adaptation =
+          await (db.select(db.adaptationOverrides).join([
+                  drift.innerJoin(
+                    db.adaptationProposals,
+                    db.adaptationProposals.id.equalsExp(
+                      db.adaptationOverrides.proposalId,
+                    ),
+                  ),
+                ])
+                ..where(db.adaptationOverrides.scheduleId.equals(scheduleId))
+                ..where(db.adaptationOverrides.deletedAt.isNull())
+                ..where(db.adaptationProposals.deletedAt.isNull())
+                ..where(db.adaptationProposals.decision.equals('accepted')))
+              .getSingleOrNull();
       return PlannedWorkoutPreviewData(
         plan: plan,
         exercises: exercises,
         status: today.schedule.status,
+        adaptationReason: adaptation?.readTable(db.adaptationProposals).reason,
         scheduled: today,
       );
     });

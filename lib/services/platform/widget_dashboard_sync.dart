@@ -13,6 +13,8 @@ import 'package:herculex/features/nutrition/presentation/widgets/macro_chart.dar
 import 'package:herculex/features/physique/application/goal_target_provider.dart';
 import 'package:herculex/features/recovery/application/recovery_providers.dart';
 import 'package:herculex/features/recovery/domain/training_suggestion.dart';
+import 'package:herculex/features/sleep/application/sleep_providers.dart';
+import 'package:herculex/features/steps/application/steps_providers.dart';
 import 'package:herculex/features/supplements/application/supplement_providers.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
@@ -41,6 +43,55 @@ final widgetDashboardSyncControllerProvider = Provider<void>((ref) {
   ref.watch(_miniWorkoutSync);
   ref.watch(_intakeSync);
   ref.watch(_cycleSync);
+  ref.watch(_sleepSync);
+  ref.watch(_stepsSync);
+});
+
+int _localEpochDay(DateTime date) =>
+    DateTime.utc(date.year, date.month, date.day).millisecondsSinceEpoch ~/
+    Duration.millisecondsPerDay;
+
+final _sleepSync = Provider<void>((ref) {
+  final sleepAsync = ref.watch(todaySleepProvider);
+  if (!sleepAsync.hasValue) {
+    return;
+  }
+  final record = sleepAsync.value;
+  if (record == null) {
+    ref.read(_widgetSyncProvider).syncWidgetData('sleep', null);
+    return;
+  }
+  final now = ref.watch(clockProvider).now();
+  final target = ref.watch(sleepTargetHoursProvider);
+  final hoursFormat = NumberFormat('0.#');
+  ref.read(_widgetSyncProvider).syncWidgetData('sleep', {
+    'epochDay': _localEpochDay(now),
+    'value': NumberFormat('0.0').format(record.totalHours),
+    'unit': 'h / ${hoursFormat.format(target)} h',
+    'description':
+        '${NumberFormat('0.0').format(record.totalHours)} hours of ${hoursFormat.format(target)} hour goal',
+  });
+});
+
+final _stepsSync = Provider<void>((ref) {
+  final stepsAsync = ref.watch(todayStepsProvider);
+  if (!stepsAsync.hasValue) {
+    return;
+  }
+  final record = stepsAsync.value;
+  if (record == null) {
+    ref.read(_widgetSyncProvider).syncWidgetData('steps', null);
+    return;
+  }
+  final now = ref.watch(clockProvider).now();
+  final countFormat = NumberFormat.decimalPattern();
+  ref.read(_widgetSyncProvider).syncWidgetData('steps', {
+    'epochDay': _localEpochDay(now),
+    'value': countFormat.format(record.stepCount),
+    'unit': 'of ${NumberFormat.compact().format(record.goal)}',
+    'description':
+        '${countFormat.format(record.stepCount)} steps of ${countFormat.format(record.goal)} goal',
+  });
 });
 
 String _categoryLabel(MuscleCategory c) => switch (c) {
@@ -54,16 +105,26 @@ String _categoryLabel(MuscleCategory c) => switch (c) {
 /// "Push A"), so its readiness can be badged. Null when the name says nothing.
 MuscleCategory? _categoryForDay(String name) {
   final n = name.toLowerCase();
-  if (n.contains('leg') || n.contains('lower')) return MuscleCategory.legs;
-  if (n.contains('push')) return MuscleCategory.push;
-  if (n.contains('pull')) return MuscleCategory.pull;
-  if (n.contains('core') || n.contains('abs')) return MuscleCategory.core;
+  if (n.contains('leg') || n.contains('lower')) {
+    return MuscleCategory.legs;
+  }
+  if (n.contains('push')) {
+    return MuscleCategory.push;
+  }
+  if (n.contains('pull')) {
+    return MuscleCategory.pull;
+  }
+  if (n.contains('core') || n.contains('abs')) {
+    return MuscleCategory.core;
+  }
   return null;
 }
 
 final _planSync = Provider<void>((ref) {
   final async = ref.watch(todaysScheduledWorkoutProvider);
-  if (!async.hasValue) return;
+  if (!async.hasValue) {
+    return;
+  }
   final workout = async.value;
   final suggestion = ref
       .watch(nextWorkoutTrainingSuggestionProvider)
@@ -79,7 +140,7 @@ final _planSync = Provider<void>((ref) {
       'button': 'Open workouts',
     };
   } else {
-    final name = workout.programDay.name;
+    final name = workout.title;
     final count = workout.exerciseCount;
     final exercises = '$count ${count == 1 ? 'exercise' : 'exercises'}';
     final category = _categoryForDay(name);
@@ -119,7 +180,9 @@ final _weekSync = Provider<void>((ref) {
   final now = ref.watch(clockProvider).now();
   final today = DateTime(now.year, now.month, now.day);
   final days = ref.watch(weekCalendarSummaryProvider(today)).valueOrNull;
-  if (days == null) return;
+  if (days == null) {
+    return;
+  }
   const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   ref.read(_widgetSyncProvider).syncWidgetData('week', {
     'days': [
@@ -137,7 +200,9 @@ final _weekSync = Provider<void>((ref) {
 
 final _bodyweightSync = Provider<void>((ref) {
   final history = ref.watch(bodyweightHistoryProvider).valueOrNull;
-  if (history == null) return;
+  if (history == null) {
+    return;
+  }
   final fmt = ref.watch(weightFormatProvider);
   final targetKg = ref.watch(goalTargetProvider).targetKg;
   if (history.isEmpty) {
@@ -178,7 +243,9 @@ final _streakSync = Provider<void>((ref) {
 
 final _prsSync = Provider<void>((ref) {
   final prs = ref.watch(topOneRmsProvider).valueOrNull;
-  if (prs == null) return;
+  if (prs == null) {
+    return;
+  }
   final fmt = ref.watch(weightFormatProvider);
   ref.read(_widgetSyncProvider).syncWidgetData('prs', {
     'unit': fmt.suffix,
@@ -194,7 +261,9 @@ final _prsSync = Provider<void>((ref) {
 
 final _volumeSync = Provider<void>((ref) {
   final volume = ref.watch(weeklyMuscleVolumeProvider).valueOrNull;
-  if (volume == null) return;
+  if (volume == null) {
+    return;
+  }
   ref.read(_widgetSyncProvider).syncWidgetData('volume', {
     'sets': volume.totalSets,
   });
@@ -202,7 +271,9 @@ final _volumeSync = Provider<void>((ref) {
 
 final _nextFocusSync = Provider<void>((ref) {
   final s = ref.watch(nextWorkoutTrainingSuggestionProvider).valueOrNull;
-  if (s == null) return;
+  if (s == null) {
+    return;
+  }
   // No logged training yet: every category scores 0, so there's no focus.
   final hasData = s.allCategoryScores.values.any((v) => v > 0);
   ref.read(_widgetSyncProvider).syncWidgetData('next_focus', {
@@ -213,7 +284,9 @@ final _nextFocusSync = Provider<void>((ref) {
 
 final _supplementsSync = Provider<void>((ref) {
   final state = ref.watch(supplementDayStateProvider).valueOrNull;
-  if (state == null) return;
+  if (state == null) {
+    return;
+  }
   String detail(Supplement s) => switch (s.schedule) {
     SupplementSchedule.time => s.timeHHMM ?? '',
     SupplementSchedule.postWorkout => 'Post-wo',
@@ -231,7 +304,9 @@ final _supplementsSync = Provider<void>((ref) {
 
 final _miniWorkoutSync = Provider<void>((ref) {
   final today = ref.watch(microWorkoutsTodayProvider).valueOrNull;
-  if (today == null) return;
+  if (today == null) {
+    return;
+  }
   if (today.isEmpty) {
     ref.read(_widgetSyncProvider).syncWidgetData('mini', null);
     return;
@@ -248,7 +323,9 @@ final _miniWorkoutSync = Provider<void>((ref) {
 
 final _intakeSync = Provider<void>((ref) {
   final history = ref.watch(nutritionHistoryProvider).valueOrNull;
-  if (history == null) return;
+  if (history == null) {
+    return;
+  }
   final avg = ref.watch(averageWeeklyCaloriesProvider);
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
@@ -277,13 +354,17 @@ final _intakeSync = Provider<void>((ref) {
 
 final _cycleSync = Provider<void>((ref) {
   final settings = ref.watch(cycleSettingsStreamProvider);
-  if (!settings.hasValue) return;
+  if (!settings.hasValue) {
+    return;
+  }
   if (settings.value == null) {
     ref.read(_widgetSyncProvider).syncWidgetData('cycle', null);
     return;
   }
   final a = ref.watch(cycleAdjustmentProvider).valueOrNull;
-  if (a == null) return;
+  if (a == null) {
+    return;
+  }
   // Same phase colours as CycleFocusCard.
   final Color color = switch (a.phase) {
     CyclePhase.menstrual => Colors.redAccent,

@@ -54,7 +54,14 @@ class MainActivity : FlutterFragmentActivity() {
                     val fatGoal     = call.argument<Int>("fat_goal") ?: 65
                     val waterGoal   = call.argument<Int>("water_goal") ?: 2000
                     val waterMl     = call.argument<Int>("water_ml") ?: 0
-                    syncMacrosToWear(calories, protein, carbs, fats, fasting, weeklyTonnage, weeklySets, weeklyVolumeJson, nutrientTrendsJson, calorieGoal, proteinGoal, carbsGoal, fatGoal, waterGoal, waterMl)
+                    val day         = call.argument<String>("day")
+                    syncMacrosToWear(calories, protein, carbs, fats, fasting, weeklyTonnage, weeklySets, weeklyVolumeJson, nutrientTrendsJson, calorieGoal, proteinGoal, carbsGoal, fatGoal, waterGoal, waterMl, day)
+                    result.success(null)
+                }
+                "syncCnsToWear" -> {
+                    val readinessPct = call.argument<Int>("readiness_pct") ?: 100
+                    val status = call.argument<String>("status") ?: "FRESH"
+                    syncCnsToWear(readinessPct, status)
                     result.success(null)
                 }
                 "syncFastingSnapshot" -> {
@@ -220,52 +227,42 @@ class MainActivity : FlutterFragmentActivity() {
                 // Stamp the day the payload belongs to (Dart derives it from
                 // Clock). Providers compare it against today and fall back to
                 // their placeholder rather than showing yesterday's numbers.
-                call.argument<Int>("epochDay")?.let {
+                call.argument<Number>("epochDay")?.let {
                     editor.putLong(KEY_SYNCED_EPOCH_DAY, it.toLong())
                 }
 
                 when (call.method) {
                     "syncNutrition", "syncMacros" -> {
-                        editor.putInt(
-                            TodayCaloriesSmallWidgetProvider.KEY_CALORIES_BASE_GOAL,
-                            call.argument<Int>("baseGoalKcal") ?: 0
-                        )
-                        editor.putInt(
-                            TodayCaloriesSmallWidgetProvider.KEY_CALORIES_FOOD,
-                            call.argument<Int>("foodKcal") ?: 0
-                        )
-                        editor.putInt(
-                            TodayCaloriesSmallWidgetProvider.KEY_CALORIES_EXERCISE,
-                            call.argument<Int>("exerciseKcal") ?: 0
-                        )
-                        editor.putInt(
-                            TodayCaloriesSmallWidgetProvider.KEY_CALORIES_REMAINING,
-                            call.argument<Int>("remainingKcal") ?: 0
-                        )
-                        editor.putInt(
-                            CarbsWidgetProvider.KEY_CARBS_CURRENT,
-                            call.argument<Int>("carbsCurrent") ?: 0
-                        )
-                        editor.putInt(
-                            CarbsWidgetProvider.KEY_CARBS_TARGET,
-                            call.argument<Int>("carbsTarget") ?: 0
-                        )
-                        editor.putInt(
-                            FatWidgetProvider.KEY_FAT_CURRENT,
-                            call.argument<Int>("fatCurrent") ?: 0
-                        )
-                        editor.putInt(
-                            FatWidgetProvider.KEY_FAT_TARGET,
-                            call.argument<Int>("fatTarget") ?: 0
-                        )
-                        editor.putInt(
-                            ProteinWidgetProvider.KEY_PROTEIN_CURRENT,
-                            call.argument<Int>("proteinCurrent") ?: 0
-                        )
-                        editor.putInt(
-                            ProteinWidgetProvider.KEY_PROTEIN_TARGET,
-                            call.argument<Int>("proteinTarget") ?: 0
-                        )
+                        call.argument<Int>("baseGoalKcal")?.let {
+                            editor.putInt(TodayCaloriesSmallWidgetProvider.KEY_CALORIES_BASE_GOAL, it)
+                        }
+                        call.argument<Int>("foodKcal")?.let {
+                            editor.putInt(TodayCaloriesSmallWidgetProvider.KEY_CALORIES_FOOD, it)
+                        }
+                        call.argument<Int>("exerciseKcal")?.let {
+                            editor.putInt(TodayCaloriesSmallWidgetProvider.KEY_CALORIES_EXERCISE, it)
+                        }
+                        call.argument<Int>("remainingKcal")?.let {
+                            editor.putInt(TodayCaloriesSmallWidgetProvider.KEY_CALORIES_REMAINING, it)
+                        }
+                        call.argument<Int>("carbsCurrent")?.let {
+                            editor.putInt(CarbsWidgetProvider.KEY_CARBS_CURRENT, it)
+                        }
+                        call.argument<Int>("carbsTarget")?.let {
+                            editor.putInt(CarbsWidgetProvider.KEY_CARBS_TARGET, it)
+                        }
+                        call.argument<Int>("fatCurrent")?.let {
+                            editor.putInt(FatWidgetProvider.KEY_FAT_CURRENT, it)
+                        }
+                        call.argument<Int>("fatTarget")?.let {
+                            editor.putInt(FatWidgetProvider.KEY_FAT_TARGET, it)
+                        }
+                        call.argument<Int>("proteinCurrent")?.let {
+                            editor.putInt(ProteinWidgetProvider.KEY_PROTEIN_CURRENT, it)
+                        }
+                        call.argument<Int>("proteinTarget")?.let {
+                            editor.putInt(ProteinWidgetProvider.KEY_PROTEIN_TARGET, it)
+                        }
                         editor.apply()
                         refreshWidgets(
                             TodayCaloriesSmallWidgetProvider::class.java,
@@ -279,16 +276,19 @@ class MainActivity : FlutterFragmentActivity() {
                     }
 
                     "syncCns" -> {
+                        val readinessPct = call.argument<Int>("readinessPct") ?: 0
+                        val status = call.argument<String>("status") ?: "—"
                         editor.putInt(
                             CnsWidgetProvider.KEY_CNS_READINESS,
-                            call.argument<Int>("readinessPct") ?: 0
+                            readinessPct
                         )
                         editor.putString(
                             CnsWidgetProvider.KEY_CNS_STATUS,
-                            call.argument<String>("status") ?: "—"
+                            status
                         )
                         editor.apply()
                         refreshWidgets(CnsWidgetProvider::class.java)
+                        syncCnsToWear(readinessPct, status)
                         result.success(null)
                     }
 
@@ -359,6 +359,12 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                         call.argument<Map<String, Number>>("light")?.let {
                             editor.putString(HxWidgetPalette.KEY_THEME_LIGHT, JSONObject(it).toString())
+                        }
+                        call.argument<Int>("transparency")?.let {
+                            editor.putInt(HxWidgetPalette.KEY_TRANSPARENCY, it)
+                        }
+                        call.argument<String>("shape")?.let {
+                            editor.putString(HxWidgetPalette.KEY_SHAPE, it)
                         }
                         editor.apply()
                         refreshWidgets(*HxWidgetProvider.ALL_PROVIDERS)
@@ -665,6 +671,7 @@ class MainActivity : FlutterFragmentActivity() {
         fatGoal: Int = 65,
         waterGoal: Int = 2000,
         waterMl: Int = 0,
+        day: String? = null,
     ) {
         val putDataMapReq = PutDataMapRequest.create("/herculex_sync_data")
         putDataMapReq.dataMap.putInt("calories", calories)
@@ -682,11 +689,25 @@ class MainActivity : FlutterFragmentActivity() {
         putDataMapReq.dataMap.putInt("fat_goal", fatGoal)
         putDataMapReq.dataMap.putInt("water_goal", waterGoal)
         putDataMapReq.dataMap.putInt("water_ml", waterMl)
+        if (!day.isNullOrBlank()) {
+            putDataMapReq.dataMap.putString("day", day)
+        }
         putDataMapReq.dataMap.putLong("timestamp", System.currentTimeMillis())
         val putDataReq = putDataMapReq.asPutDataRequest().setUrgent()
         Wearable.getDataClient(this).putDataItem(putDataReq)
             .addOnSuccessListener { Log.d("WearSync", "Synced macros & volume to wear") }
             .addOnFailureListener { e -> Log.e("WearSync", "Failed to sync macros & volume", e) }
+    }
+
+    private fun syncCnsToWear(readinessPct: Int, status: String) {
+        val putDataMapReq = PutDataMapRequest.create("/herculex_cns_data")
+        putDataMapReq.dataMap.putInt("readiness_pct", readinessPct)
+        putDataMapReq.dataMap.putString("status", status)
+        putDataMapReq.dataMap.putLong("timestamp", System.currentTimeMillis())
+        val putDataReq = putDataMapReq.asPutDataRequest().setUrgent()
+        Wearable.getDataClient(this).putDataItem(putDataReq)
+            .addOnSuccessListener { Log.d("WearSync", "Synced CNS to wear: $readinessPct% $status") }
+            .addOnFailureListener { e -> Log.e("WearSync", "Failed to sync CNS to wear", e) }
     }
 
     private fun syncFastingSnapshotToWear(fastingJson: String) {

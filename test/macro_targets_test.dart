@@ -12,6 +12,7 @@ MacroTargets _legacy(Profile p) {
   final offset = (p.sex == BiologicalSex.female) ? -161 : 5;
   final bmr = 10 * w + 6.25 * h - 5 * a + offset;
   final multiplier = switch (p.activityLevel) {
+    ActivityLevel.autocalibrator => 1.375,
     ActivityLevel.sedentary => 1.2,
     ActivityLevel.lightlyActive => 1.375,
     ActivityLevel.active => 1.55,
@@ -88,7 +89,8 @@ void main() {
   });
 
   group('shared maintenance pieces', () {
-    test('multiplierFor returns the four activity multipliers', () {
+    test('multiplierFor returns the activity multipliers', () {
+      expect(MacroTargets.multiplierFor(ActivityLevel.autocalibrator), 1.375);
       expect(MacroTargets.multiplierFor(ActivityLevel.sedentary), 1.2);
       expect(MacroTargets.multiplierFor(ActivityLevel.lightlyActive), 1.375);
       expect(MacroTargets.multiplierFor(ActivityLevel.active), 1.55);

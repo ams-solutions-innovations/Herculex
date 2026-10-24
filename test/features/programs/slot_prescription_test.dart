@@ -76,13 +76,13 @@ void main() {
   });
 
   group('SlotPrescription', () {
-    test('"2 to failure" is a primer plus two all-out sets', () {
+    test('"2 to failure" counts only the two working sets', () {
       final p = SlotPrescription.builtIns.firstWhere(
         (p) => p.name == '2 to failure',
       );
       expect(p.hasFailureWork, isTrue);
-      expect(p.totalSets, 3);
-      expect(p.format(), '1x6-8 @RIR2 + 2x6-12→F');
+      expect(p.totalSets, 2);
+      expect(p.format(), '2x6-12→F');
     });
 
     test('failure composes with an advanced set type', () {

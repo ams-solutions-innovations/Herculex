@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/physique/data/physique_checkin_service.dart';
@@ -20,15 +19,17 @@ class _FakeBackend implements PhysiqueCheckInBackend {
   @override
   Future<(Map<String, dynamic>, Map<String, dynamic>)> analyzePhysiqueCheckIn({
     required List<Map<String, dynamic>> baselineImages,
-    required Map<String, dynamic> currentImage,
+    required List<Map<String, dynamic>> currentImages,
     required Map<String, dynamic> context,
     String? userNote,
   }) async {
     calls++;
     baselines = baselineImages;
-    current = currentImage;
+    current = currentImages.first;
     this.context = context;
-    if (error != null) throw error!;
+    if (error != null) {
+      throw error!;
+    }
     return (
       result ??
           {

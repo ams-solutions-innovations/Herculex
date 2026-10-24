@@ -11,6 +11,7 @@ import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart'
     as slot_prescription;
 import 'package:herculex/features/programs/presentation/sheets/template_scope_sheet.dart';
+import 'package:herculex/features/programs/presentation/sheets/start_workout_adaptation.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
@@ -82,13 +83,6 @@ Future<void> _edit(
   PlannedWorkoutPreviewData data,
 ) async {
   final scheduleId = data.scheduled.schedule.id;
-  final existing = data.scheduled.template;
-  if (existing != null) {
-    await TemplateBuilderView.show(context, existing: existing);
-    ref.invalidate(plannedWorkoutPreviewProvider(scheduleId));
-    return;
-  }
-
   final templates = ref.read(templatesRepositoryProvider);
   final copy = await templates.createFromPlannedSession(
     data.plan,
@@ -139,6 +133,8 @@ class _PlanBody extends StatelessWidget {
 
   Future<void> _start(BuildContext context, WidgetRef ref) async {
     try {
+      await offerStartWorkoutAdaptation(context, ref, scheduleId: scheduleId);
+      if (!context.mounted) return;
       await ref
           .read(scheduledWorkoutServiceProvider)
           .startScheduledWorkoutById(scheduleId);
@@ -167,6 +163,28 @@ class _PlanBody extends StatelessWidget {
             color: AppColors.secondary,
           ),
         ),
+        if (data.adaptationReason != null) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.tune_rounded, color: AppColors.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Adapted for this week: ${data.adaptationReason}',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         for (final (index, plannedExercise) in plan.exercises.indexed) ...[
           Builder(

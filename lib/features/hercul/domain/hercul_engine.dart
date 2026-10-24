@@ -22,6 +22,7 @@ abstract final class HerculEngine {
     HerculTone tone = HerculTone.normal,
     Map<String, DateTime> lastFiredAt = const {},
     int limit = defaultLimit,
+    bool onePerDomain = true,
   }) {
     final fired = <HerculRule>[];
 
@@ -52,7 +53,7 @@ abstract final class HerculEngine {
     final seenDomains = <HerculDomain>{};
     final out = <HerculMessage>[];
     for (final rule in fired) {
-      if (!seenDomains.add(rule.domain)) continue;
+      if (onePerDomain && !seenDomains.add(rule.domain)) continue;
       out.add(
         HerculMessage(
           ruleId: rule.id,

@@ -15,6 +15,7 @@ export 'widgets/quick_scan_card.dart';
 export 'widgets/recovery_cards.dart';
 export 'widgets/remaining_calories_card.dart';
 export 'widgets/smart_workout_launcher_card.dart';
+export 'widgets/sleep_steps_cards.dart';
 export 'widgets/streak_cards.dart';
 export 'widgets/trend_cards.dart';
 export 'widgets/weekly_volume_card.dart';

@@ -177,7 +177,7 @@ class WorkoutNotificationService {
   Timer? _ticker;
 
   Future<void> init() async {
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const android = AndroidInitializationSettings('@mipmap/launcher_icon');
     final iOS = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -411,8 +411,8 @@ class WorkoutNotificationService {
       // `showWhen` is on without it, Android instead renders `when` as a
       // static wall-clock timestamp that looks like a broken duration.
       showWhen: false,
-      icon: '@mipmap/ic_launcher',
-      largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+      icon: '@mipmap/launcher_icon',
+      largeIcon: const DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
       category: AndroidNotificationCategory.workout,
       visibility: NotificationVisibility.private,
       additionalFlags: Int32List.fromList(<int>[_flagOngoingEvent]),

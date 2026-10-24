@@ -69,6 +69,25 @@ class WeeklyReportInputsRepository {
   /// precisely by date itself.
   static const int trailingDays = 56;
 
+  /// Program sessions scheduled inside [week], whatever happened to them.
+  /// Lets the report say "3 of 4 workouts" rather than just "3".
+  Stream<int> watchPlannedSessions(IsoWeek week) {
+    final count = _db.scheduledWorkouts.id.count();
+    return (_db.selectOnly(_db.scheduledWorkouts)
+          ..addColumns([count])
+          ..where(
+            _db.scheduledWorkouts.deletedAt.isNull() &
+                _db.scheduledWorkouts.dateIso.isBiggerOrEqualValue(
+                  week.startIso,
+                ) &
+                _db.scheduledWorkouts.dateIso.isSmallerOrEqualValue(
+                  week.endIso,
+                ),
+          ))
+        .map((row) => row.read(count) ?? 0)
+        .watchSingle();
+  }
+
   Future<WeeklyReportInputs> load({
     required IsoWeek week,
     required DateTime windowEnd,

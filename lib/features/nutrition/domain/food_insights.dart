@@ -12,6 +12,13 @@ class FoodInsight {
 
 enum InsightTone { positive, neutral, caution }
 
+/// Overall nutrition grade determining background gradient highlights:
+/// - [gold]: High protein efficiency (≥ 10g protein / 100 kcal)
+/// - [green]: Low calories (≤ 50 kcal / 100g or low calorie portion ≤ 60 kcal)
+/// - [red]: Bad macros (unfavourable ratio dominated by fat/carbs with negligible protein)
+/// - [normal]: Balanced / normal macros (no special highlight)
+enum FoodNutritionGrade { gold, green, red, normal }
+
 /// Derives composition badges from per-100 g macros.
 ///
 /// Thresholds follow EU Regulation 1924/2006 nutrition claims where one
@@ -83,6 +90,72 @@ class FoodInsights {
     }
 
     return out.take(limit).toList();
+  }
+
+  /// Evaluates food macros to determine its nutrition highlight grade:
+  /// - [FoodNutritionGrade.gold]: High protein efficiency (≥ 10g protein per 100 kcal)
+  /// - [FoodNutritionGrade.green]: Low calorie density or low calorie portion
+  /// - [FoodNutritionGrade.red]: Bad macros (unfavourable ratio dominated by fat/carbs with negligible protein)
+  /// - [FoodNutritionGrade.normal]: Balanced macros / neutral
+  static FoodNutritionGrade gradeFor({
+    String? name,
+    required double kcal,
+    required double proteinG,
+    required double carbsG,
+    required double fatG,
+    double? kcalPer100g,
+  }) {
+    if (name == '—' ||
+        (kcal <= 0 && proteinG <= 0 && carbsG <= 0 && fatG <= 0)) {
+      return FoodNutritionGrade.normal;
+    }
+
+    // 1. Gold gradient: ≥ 10g protein per 100 kcal
+    // "ce ima hrana 10g beljakovin na 100kcal je to zlat gradient"
+    if (kcal > 0 &&
+        ((proteinG / kcal) * 100 >= 10.0 || proteinG * 10 >= kcal)) {
+      return FoodNutritionGrade.gold;
+    }
+
+    final totalMacroKcal = proteinG * 4 + carbsG * 4 + fatG * 9;
+    final totalEnergyKcal = kcal > 0 ? kcal : totalMacroKcal;
+    final proteinShare = totalEnergyKcal > 0
+        ? (proteinG * 4) / totalEnergyKcal
+        : 0.0;
+    final carbsShare = totalEnergyKcal > 0
+        ? (carbsG * 4) / totalEnergyKcal
+        : 0.0;
+    final fatShare = totalEnergyKcal > 0 ? (fatG * 9) / totalEnergyKcal : 0.0;
+
+    // Bad macros detection:
+    // "ce so slabi makroti je rdec dragient"
+    // Unfavourable macronutrient balance: fat-dominant with very low protein,
+    // combined high fat + high carbs with negligible protein (junk food), or pure sugar.
+    final isBadMacros =
+        totalEnergyKcal > 0 &&
+        ((fatShare >= 0.55 && proteinShare < 0.08) ||
+            (fatShare >= 0.38 && carbsShare >= 0.40 && proteinShare < 0.08) ||
+            (carbsShare >= 0.85 && proteinShare < 0.04 && kcal >= 80));
+
+    // 2. Green gradient: Low calories
+    // "ce so nizke kalorije je zelen"
+    final isLowCalorie =
+        !isBadMacros &&
+        ((kcalPer100g != null && kcalPer100g > 0 && kcalPer100g <= 50) ||
+            (kcal <= 60 && fatShare < 0.45));
+
+    if (isLowCalorie) {
+      return FoodNutritionGrade.green;
+    }
+
+    // 3. Red gradient: Bad macros
+    if (isBadMacros) {
+      return FoodNutritionGrade.red;
+    }
+
+    // 4. Normal: No gradient
+    // "pa ce je normalno pa ga ni"
+    return FoodNutritionGrade.normal;
   }
 }
 

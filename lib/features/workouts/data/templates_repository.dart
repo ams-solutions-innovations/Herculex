@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
+import 'package:herculex/features/workouts/domain/calisthenics_set_plan.dart';
+import 'package:herculex/features/workouts/domain/set_prescription_metadata.dart';
 import 'package:uuid/uuid.dart';
 
 class TemplatesRepository {
@@ -111,7 +113,16 @@ class TemplatesRepository {
                   templateExerciseId: templateExerciseId,
                   setOrder: setIndex + 1,
                   setType: Value(set.setType),
-                  setTypeMetaJson: Value(set.setTypeMetaJson),
+                  setTypeMetaJson: Value(
+                    SetPrescriptionMetadata.encode(set.setTypeMetaJson, {
+                      'rpeX10': set.rpeX10,
+                      'rir': set.rir,
+                      'percentOf1Rm': set.percentOf1Rm,
+                      'intent': set.intent,
+                      'equipmentVariant': exercise.equipmentVariant,
+                      'trainingMethod': exercise.trainingMethod,
+                    }),
+                  ),
                   targetReps: Value(set.repsMin),
                   targetRepsMin: Value(set.repsMin),
                   targetRepsMax: Value(set.repsMax),
@@ -227,6 +238,9 @@ class TemplatesRepository {
     int? targetRepsMin,
     int? targetRepsMax,
     int? targetRestSeconds,
+    String? equipmentVariant,
+    double? targetWeightKg,
+    int? targetDurationSeconds,
   }) async {
     final existing = await (_db.select(
       _db.templateExercises,
@@ -255,6 +269,15 @@ class TemplatesRepository {
               setOrder: i + 1,
               setType: const Value('standard'),
               targetReps: Value(reps),
+              targetWeightKg: Value(targetWeightKg),
+              setTypeMetaJson: Value(
+                equipmentVariant == null
+                    ? null
+                    : CalisthenicsSetPlan(
+                        equipmentVariant,
+                        targetDurationSeconds,
+                      ).encode(),
+              ),
               isWarmup: const Value(false),
             ),
           );
@@ -405,6 +428,11 @@ class TemplatesRepository {
       ),
     );
   }
+
+  Future<void> replaceTemplateExercise(int id, int exerciseId) =>
+      (_db.update(_db.templateExercises)..where((t) => t.id.equals(id))).write(
+        TemplateExercisesCompanion(exerciseId: Value(exerciseId)),
+      );
 
   /// Starts a live workout session pre-populated from a template.
   /// Returns the new session id.

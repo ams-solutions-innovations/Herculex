@@ -311,6 +311,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
                 ),
               ),
               PremiumButton(
+                expand: true,
                 text: _index == 2 ? 'Complete' : 'Next',
                 onTap: _canAdvance(authSession)
                     ? () => _next(authSession)
@@ -536,6 +537,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
             ),
             const SizedBox(height: 16),
             PremiumButton(
+              expand: true,
               text: _authBusy ? 'Please wait...' : 'Sign Out',
               isPrimary: false,
               onTap: _authBusy ? () {} : _signOut,
@@ -612,24 +614,19 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
             ],
           ),
           const SizedBox(height: 8),
-          Row(
+          // Wrap, not Row: on a phone both links don't fit on one line, and
+          // ellipsising "Need an account? Re…" hid the action itself.
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: _authBusy
-                        ? null
-                        : () => setState(
-                            () => _isRegisterMode = !_isRegisterMode,
-                          ),
-                    child: Text(
-                      _isRegisterMode
-                          ? 'Already have an account? Sign in'
-                          : 'Need an account? Register',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+              TextButton(
+                onPressed: _authBusy
+                    ? null
+                    : () => setState(() => _isRegisterMode = !_isRegisterMode),
+                child: Text(
+                  _isRegisterMode
+                      ? 'Already have an account? Sign in'
+                      : 'Need an account? Register',
                 ),
               ),
               TextButton(

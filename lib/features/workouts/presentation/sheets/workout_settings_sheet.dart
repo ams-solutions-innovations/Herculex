@@ -5,10 +5,13 @@ import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/buddy/presentation/buddy_share_sheet.dart';
 import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
+import 'package:herculex/features/workouts/application/performance_hint_mode_provider.dart';
 import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
 import 'package:herculex/features/workouts/data/workout_quick_action_settings.dart';
 import 'package:herculex/features/workouts/presentation/sheets/plate_calculator_sheet.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+
+export 'package:herculex/features/workouts/application/performance_hint_mode_provider.dart';
 
 // ── Default Rest Timer preference ──────────────────────────────────────────
 
@@ -56,30 +59,6 @@ final keepAwakeProvider = NotifierProvider<KeepAwakeNotifier, bool>(
 );
 
 // ── Performance hint mode (Last vs Next) ────────────────────────────────────
-
-/// Whether the exercise card's performance hint shows last session's numbers
-/// or a forward-looking suggested target (item 2). Mutually exclusive.
-enum PerformanceHintMode { last, next }
-
-class PerformanceHintModeNotifier extends Notifier<PerformanceHintMode> {
-  static const prefsKey = 'performance_hint_mode';
-
-  @override
-  PerformanceHintMode build() {
-    final raw = ref.watch(sharedPreferencesProvider).getString(prefsKey);
-    return raw == 'next' ? PerformanceHintMode.next : PerformanceHintMode.last;
-  }
-
-  Future<void> set(PerformanceHintMode mode) async {
-    await ref.read(sharedPreferencesProvider).setString(prefsKey, mode.name);
-    state = mode;
-  }
-}
-
-final performanceHintModeProvider =
-    NotifierProvider<PerformanceHintModeNotifier, PerformanceHintMode>(
-      PerformanceHintModeNotifier.new,
-    );
 
 // ── Sheet ───────────────────────────────────────────────────────────────────
 

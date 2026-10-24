@@ -571,7 +571,7 @@ internal fun ExtraRestScreen(
             } else {
                 Text("REST", color = HxAmber, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Text(formatClock(kotlin.math.ceil(leftSec).toInt()), color = Color.White, fontSize = 50.sp, fontWeight = FontWeight.Bold, letterSpacing = (-2).sp)
-                Text("Next · $nextReps $kind reps", color = Color(0xFFA0AABF), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                Text("$nextReps $kind reps", color = Color(0xFFA0AABF), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 Box(
                     Modifier

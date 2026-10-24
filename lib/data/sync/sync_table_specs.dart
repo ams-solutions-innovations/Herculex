@@ -409,8 +409,30 @@ final List<SyncTableSpec> syncTableSpecs = [
       ),
     ],
   ),
+  const SyncTableSpec(
+    'adaptation_proposals',
+    fkFields: [
+      SimpleFk(localColumn: 'program_id', parentTable: 'programs'),
+      SimpleFk(
+        localColumn: 'source_schedule_id',
+        parentTable: 'scheduled_workouts',
+      ),
+      SimpleFk(
+        localColumn: 'source_session_id',
+        parentTable: 'workout_sessions',
+      ),
+    ],
+    dateTimeColumns: ['decided_at'],
+  ),
 
   // ── Level 5 ───────────────────────────────────────────────────────────
+  const SyncTableSpec(
+    'adaptation_overrides',
+    fkFields: [
+      SimpleFk(localColumn: 'proposal_id', parentTable: 'adaptation_proposals'),
+      SimpleFk(localColumn: 'schedule_id', parentTable: 'scheduled_workouts'),
+    ],
+  ),
   const SyncTableSpec(
     'set_accessories',
     fkFields: [

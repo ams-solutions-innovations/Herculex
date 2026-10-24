@@ -815,5 +815,80 @@ void main() {
       expect(per.micros['potassium'], 550);
       expect(per.hasMicros, isTrue);
     });
+
+    test(
+      'refreshEntrySnapshotFromFood updates the target entry snapshot when editing original food from an entry',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final repo = NutritionRepository(
+          db,
+          OpenFoodFactsClient(),
+          _FixedClock(DateTime(2026, 6, 15, 12)),
+        );
+
+        final food = await repo.createCustomFood(
+          name: 'Skyr',
+          kcalPer100g: 62,
+          proteinPer100g: 11,
+          carbsPer100g: 4,
+          fatPer100g: 0.2,
+          fiberPer100g: 0,
+        );
+
+        await repo.logFood(
+          date: DateTime(2026, 6, 14),
+          meal: Meal.breakfast,
+          foodId: food.id,
+          grams: 200,
+        );
+        await repo.logFood(
+          date: DateTime(2026, 6, 15),
+          meal: Meal.breakfast,
+          foodId: food.id,
+          grams: 200,
+        );
+
+        final entriesBefore = await db.select(db.foodEntries).get();
+        final yesterdayEntry = entriesBefore.firstWhere(
+          (e) => e.dateIso == '2026-06-14',
+        );
+        final todayEntry = entriesBefore.firstWhere(
+          (e) => e.dateIso == '2026-06-15',
+        );
+
+        final updatedFood = await repo.updateCustomFood(
+          id: food.id,
+          name: 'Skyr Vanilla',
+          kcalPer100g: 85,
+          proteinPer100g: 10,
+          carbsPer100g: 9,
+          fatPer100g: 0.5,
+          fiberPer100g: 1.2,
+        );
+        await repo.refreshEntrySnapshotFromFood(todayEntry.id, updatedFood);
+
+        final entriesAfter = await db.select(db.foodEntries).get();
+        final refreshedToday = entriesAfter.firstWhere(
+          (e) => e.id == todayEntry.id,
+        );
+        final untouchedYesterday = entriesAfter.firstWhere(
+          (e) => e.id == yesterdayEntry.id,
+        );
+
+        final todayTotals = await repo.macrosForEntry(refreshedToday);
+        final yesterdayTotals = await repo.macrosForEntry(untouchedYesterday);
+
+        expect(refreshedToday.snapshotName, 'Skyr Vanilla');
+        expect(todayTotals.kcal, closeTo(170, 0.01));
+        expect(todayTotals.proteinG, closeTo(20, 0.01));
+        expect(todayTotals.carbsG, closeTo(18, 0.01));
+        expect(todayTotals.fiberG, closeTo(2.4, 0.01));
+
+        // Yesterday's snapshot remains insulated.
+        expect(untouchedYesterday.snapshotName, 'Skyr');
+        expect(yesterdayTotals.kcal, closeTo(124, 0.01));
+      },
+    );
   });
 }

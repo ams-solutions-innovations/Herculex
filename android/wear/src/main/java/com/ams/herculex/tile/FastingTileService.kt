@@ -4,6 +4,7 @@ import androidx.wear.protolayout.DimensionBuilders
 import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
 import androidx.wear.protolayout.ModifiersBuilders
 import androidx.wear.tiles.RequestBuilders
+import com.ams.herculex.nutrition.FastingStages
 import com.ams.herculex.sync.FastingStore
 import com.ams.herculex.tile.kit.HxTile
 import com.ams.herculex.tile.kit.HxTile.enter
@@ -59,7 +60,8 @@ class FastingTileService : HxTileService("4") {
             HxTile.text(hero, if (scheduled) 37f else 42f, HxTile.White, bold = true, tabular = true).enter(1),
             HxTile.text(caption, 11f, captionColor, bold = scheduled).enter(2),
         )
-        if (active) snap.currentStageMessage?.let { stage ->
+        if (active) {
+            val stage = FastingStages.formatShortEnglish(snap.currentStageMessage, el)
             items += HxTile.spacer(5f)
             items += stageChip(stage).enter(3)
         }

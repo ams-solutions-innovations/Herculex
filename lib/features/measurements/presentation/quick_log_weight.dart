@@ -4,6 +4,7 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/measurements/presentation/weight_picker_sheet.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:intl/intl.dart';
 
@@ -15,41 +16,11 @@ Future<void> quickLogWeight(BuildContext context, WidgetRef ref) async {
   final profile = ref.read(profileProvider).valueOrNull;
   final initialKg = latestKg ?? profile?.weightKg;
 
-  final initialText = initialKg != null ? fmt.formatValue(initialKg) : '';
-  final ctrl = TextEditingController(text: initialText);
-  if (initialText.isNotEmpty) {
-    ctrl.selection = TextSelection(
-      baseOffset: 0,
-      extentOffset: initialText.length,
-    );
-  }
   if (!context.mounted) return;
-  final value = await showDialog<double>(
-    context: context,
-    builder: (dialogCtx) => AlertDialog(
-      title: const Text('Quick Log Bodyweight'),
-      content: TextField(
-        controller: ctrl,
-        autofocus: true,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(
-          labelText: 'Weight',
-          suffixText: fmt.suffix,
-          hintText: fmt.isMetric ? 'e.g. 75.5' : 'e.g. 166',
-        ),
-        onSubmitted: (v) => Navigator.pop(dialogCtx, double.tryParse(v)),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(dialogCtx),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(dialogCtx, double.tryParse(ctrl.text)),
-          child: const Text('Save'),
-        ),
-      ],
-    ),
+  final value = await WeightPickerSheet.show(
+    context,
+    initialKg: initialKg,
+    previousKg: latestKg,
   );
 
   if (value != null && value > 0) {
@@ -57,16 +28,11 @@ Future<void> quickLogWeight(BuildContext context, WidgetRef ref) async {
     final dateIso = DateFormat('yyyy-MM-dd').format(DateTime.now());
     await ref
         .read(measurementsRepositoryProvider)
-        .logMeasurement(
-          dateIso: dateIso,
-          metric: 'bodyweight',
-          // Measurements are stored in kilograms regardless of display unit.
-          value: fmt.toKg(value),
-        );
+        .logMeasurement(dateIso: dateIso, metric: 'bodyweight', value: value);
     ref.invalidate(latestBodyweightProvider);
     AppNotice.showWith(
       ref,
-      fmt.format(fmt.toKg(value)),
+      fmt.format(value),
       title: 'Weight logged',
       kind: AppNoticeKind.info,
     );

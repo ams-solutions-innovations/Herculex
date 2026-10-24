@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ── Active diet plan (Cut / Bulk / Maingain / Maintain & pace) ───────────────
 
@@ -43,45 +46,125 @@ class ActiveDietPlanNotifier extends Notifier<ActiveDietPlan> {
   static const _rateKey = 'diet_weekly_rate_kg';
   static const _deltaKey = 'diet_kcal_delta';
   static const _labelKey = 'diet_pace_label';
+  static const _historyKey = 'diet_plan_history_v1';
 
   @override
-  ActiveDietPlan build() {
-    final p = ref.watch(sharedPreferencesProvider);
-    final phaseStr = p.getString(_phaseKey) ?? 'cut';
-    final phase = DietPhase.values.firstWhere(
-      (e) => e.name == phaseStr,
-      orElse: () => DietPhase.cut,
-    );
-    final rate = p.getDouble(_rateKey) ?? 0.5;
-    final delta = p.getInt(_deltaKey) ?? -500;
-    final label = p.getString(_labelKey) ?? '0.50 kg/w (Normalno)';
+  ActiveDietPlan build() => _current(
+    ref.watch(sharedPreferencesProvider),
+    ref.watch(localDayProvider),
+  );
 
+  static ActiveDietPlan _legacy(SharedPreferences p) {
+    final phaseStr = p.getString(_phaseKey) ?? 'cut';
     return ActiveDietPlan(
-      phase: phase,
-      weeklyRateKg: rate,
-      kcalDelta: delta,
-      paceLabel: label,
+      phase: DietPhase.values.firstWhere(
+        (e) => e.name == phaseStr,
+        orElse: () => DietPhase.cut,
+      ),
+      weeklyRateKg: p.getDouble(_rateKey) ?? 0.5,
+      kcalDelta: p.getInt(_deltaKey) ?? -500,
+      paceLabel: p.getString(_labelKey) ?? '0.50 kg/w (Normalno)',
       isSet: p.containsKey(_phaseKey),
     );
   }
+
+  static List<Map<String, dynamic>> _history(SharedPreferences p) {
+    try {
+      final decoded = jsonDecode(p.getString(_historyKey) ?? '[]');
+      if (decoded is! List) {
+        return [];
+      }
+      return decoded
+          .whereType<Map>()
+          .map((m) => Map<String, dynamic>.from(m))
+          .where(
+            (m) =>
+                m['from'] is String &&
+                m['phase'] is String &&
+                m['rate'] is num &&
+                m['delta'] is num &&
+                m['label'] is String,
+          )
+          .toList();
+    } on Object {
+      return [];
+    }
+  }
+
+  static ActiveDietPlan _current(SharedPreferences p, DateTime day) {
+    final history = _history(p);
+    if (history.isEmpty) {
+      return _legacy(p);
+    }
+    final iso = _dayKey(day);
+    final matching =
+        history.where((m) => (m['from'] as String).compareTo(iso) <= 0).toList()
+          ..sort(
+            (a, b) => (b['from'] as String).compareTo(a['from'] as String),
+          );
+    if (matching.isEmpty) {
+      return const ActiveDietPlan(
+        phase: DietPhase.cut,
+        weeklyRateKg: 0.5,
+        kcalDelta: -500,
+        paceLabel: '0.50 kg/w (Normalno)',
+        isSet: false,
+      );
+    }
+    final m = matching.first;
+    return ActiveDietPlan(
+      phase: DietPhase.values.firstWhere(
+        (e) => e.name == m['phase'],
+        orElse: () => DietPhase.maintain,
+      ),
+      weeklyRateKg: (m['rate'] as num).toDouble(),
+      kcalDelta: (m['delta'] as num).toInt(),
+      paceLabel: m['label'] as String,
+    );
+  }
+
+  static String _dayKey(DateTime day) =>
+      '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
 
   Future<void> setPlan({
     required DietPhase phase,
     required double weeklyRateKg,
     required int kcalDelta,
     required String paceLabel,
+    DateTime? effectiveFrom,
   }) async {
     final p = ref.read(sharedPreferencesProvider);
-    await p.setString(_phaseKey, phase.name);
-    await p.setDouble(_rateKey, weeklyRateKg);
-    await p.setInt(_deltaKey, kcalDelta);
-    await p.setString(_labelKey, paceLabel);
-    state = ActiveDietPlan(
-      phase: phase,
-      weeklyRateKg: weeklyRateKg,
-      kcalDelta: kcalDelta,
-      paceLabel: paceLabel,
-    );
+    final history = _history(p);
+    if (history.isEmpty) {
+      final old = _legacy(p);
+      if (old.isSet) {
+        history.add({
+          'from': '0001-01-01',
+          'phase': old.phase.name,
+          'rate': old.weeklyRateKg,
+          'delta': old.kcalDelta,
+          'label': old.paceLabel,
+        });
+      }
+    }
+    final from = _dayKey(effectiveFrom ?? ref.read(clockProvider).now());
+    history.removeWhere((m) => m['from'] == from);
+    history.add({
+      'from': from,
+      'phase': phase.name,
+      'rate': weeklyRateKg,
+      'delta': kcalDelta,
+      'label': paceLabel,
+    });
+    await p.setString(_historyKey, jsonEncode(history));
+    final current = _current(p, ref.read(localDayProvider));
+    if (current.isSet) {
+      await p.setString(_phaseKey, current.phase.name);
+      await p.setDouble(_rateKey, current.weeklyRateKg);
+      await p.setInt(_deltaKey, current.kcalDelta);
+      await p.setString(_labelKey, current.paceLabel);
+    }
+    state = current;
   }
 }
 
@@ -103,7 +186,9 @@ class StartingWeightNotifier extends Notifier<StartingWeightData?> {
     final p = ref.watch(sharedPreferencesProvider);
     final kg = p.getDouble(_kgKey);
     final date = p.getString(_dateKey);
-    if (kg == null || date == null) return null;
+    if (kg == null || date == null) {
+      return null;
+    }
     return (kg: kg, dateIso: date);
   }
 
@@ -342,15 +427,21 @@ final mealGoalKcalProvider = Provider.autoDispose.family<int?, MealGoalKey>((
   key,
 ) {
   final goals = ref.watch(mealGoalsProvider);
-  if (!goals.enabled) return null;
+  if (!goals.enabled) {
+    return null;
+  }
 
   final pct = goals.pctForSlot(key.mealKey);
-  if (pct == null) return null;
+  if (pct == null) {
+    return null;
+  }
 
   final targets =
       ref.watch(effectiveTargetsProvider(key.date)).asData?.value ??
       ref.watch(baselineTargetsProvider);
-  if (targets == null) return null;
+  if (targets == null) {
+    return null;
+  }
 
   return goals.mealCalories(targets.kcal, pct);
 });
@@ -394,14 +485,20 @@ class MinimumTargetsState {
   );
 
   int? resolvedMinProteinG(double? weightKg) {
-    if (!enabled) return null;
+    if (!enabled) {
+      return null;
+    }
     switch (mode) {
       case MinProteinMode.perLb:
-        if (weightKg == null || weightKg <= 0) return null;
+        if (weightKg == null || weightKg <= 0) {
+          return null;
+        }
         final weightLb = weightKg * 2.20462;
         return (weightLb * proteinValue).round();
       case MinProteinMode.perKg:
-        if (weightKg == null || weightKg <= 0) return null;
+        if (weightKg == null || weightKg <= 0) {
+          return null;
+        }
         return (weightKg * proteinValue).round();
       case MinProteinMode.fixed:
         return proteinValue.round();

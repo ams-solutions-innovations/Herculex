@@ -6,7 +6,7 @@ import android.widget.RemoteViews
 /** 2×1 Protein widget: today's grams against target. Tapping opens Nutrition. */
 class ProteinWidgetProvider : HxWidgetProvider() {
 
-    override val defaultSize = 182f to 80f
+    override val defaultSize = 182f to 86f
 
     override fun render(context: Context, renderer: HxWidgetRenderer, w: Float, h: Float): HxRendered {
         val n = nutrition(CnsWidgetProvider.getPrefs(context))

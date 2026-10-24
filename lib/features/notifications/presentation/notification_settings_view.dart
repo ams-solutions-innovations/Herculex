@@ -4,6 +4,7 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
 import 'package:herculex/features/nutrition/application/meal_slots_provider.dart';
+import 'package:herculex/features/settings/presentation/widgets/appearance_toggles.dart';
 
 /// Consent disclosure for the weekly report. Names the processor on purpose:
 /// consent to send health aggregates to a third party needs it (an exception
@@ -101,6 +102,21 @@ class NotificationSettingsView extends ConsumerWidget {
             color: context.hx.onSurfaceVariant,
             height: 1.4,
           ),
+        ),
+        const SizedBox(height: 24),
+
+        // ── Appearance Section ─────────────────────────────────────────────
+        const HxSectionHeader('Appearance'),
+        const SizedBox(height: 10),
+        const HxSettingsCard(
+          children: [
+            HxSettingsTile(
+              icon: Icons.notifications_active_outlined,
+              label: 'Notification Theme',
+              subtitle: 'In-app banner color theme (Dark, Light, App theme)',
+              trailing: NotificationStyleToggle(),
+            ),
+          ],
         ),
         const SizedBox(height: 24),
 

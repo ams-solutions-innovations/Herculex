@@ -150,6 +150,47 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
     }
   }
 
+  Future<void> _pickRestTime() async {
+    const durations = [30, 45, 60, 90, 120, 180];
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Pause between rounds',
+                style: Theme.of(
+                  sheetContext,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              ...durations.map((seconds) {
+                final isSelected = _restSeconds == seconds;
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(_formatSeconds(seconds)),
+                  trailing: isSelected
+                      ? Icon(Icons.check, color: AppColors.primary)
+                      : null,
+                  selected: isSelected,
+                  onTap: () => Navigator.pop(sheetContext, seconds),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selected != null && mounted) {
+      setState(() => _restSeconds = selected);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -205,25 +246,29 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'CIRCUIT ROUNDS',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.secondary,
-                            letterSpacing: 1.2,
-                            fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'CIRCUIT ROUNDS',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: AppColors.secondary,
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Number of times all exercises are performed',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.secondary,
+                          const SizedBox(height: 2),
+                          Text(
+                            'Number of times all exercises are performed',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.secondary,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     Row(
                       children: [
@@ -274,73 +319,66 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'PAUSE BETWEEN ROUNDS',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.secondary,
-                            letterSpacing: 1.2,
-                            fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'PAUSE BETWEEN ROUNDS',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: AppColors.secondary,
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Rest time after completing all exercises in round',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.secondary,
+                          const SizedBox(height: 2),
+                          Text(
+                            'Rest time after completing all exercises in round',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.secondary,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryContainer.withValues(
-                          alpha: 0.35,
+                    const SizedBox(width: 8),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: _pickRestTime,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
                         ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        _formatSeconds(_restSeconds),
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer.withValues(
+                            alpha: 0.35,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _formatSeconds(_restSeconds),
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_drop_down,
+                              color: AppColors.primary,
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [30, 45, 60, 90, 120, 180].map((sec) {
-                    final isSelected = _restSeconds == sec;
-                    return ChoiceChip(
-                      label: Text(_formatSeconds(sec)),
-                      selected: isSelected,
-                      onSelected: (_) => setState(() => _restSeconds = sec),
-                      selectedColor: AppColors.primary,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : AppColors.secondary,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        fontSize: 12,
-                      ),
-                      backgroundColor: AppColors.surfaceContainer,
-                      side: BorderSide.none,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    );
-                  }).toList(),
                 ),
               ],
             ),

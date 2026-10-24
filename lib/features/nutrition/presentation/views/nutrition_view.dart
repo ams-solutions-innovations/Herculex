@@ -13,10 +13,13 @@ import 'package:herculex/features/nutrition/application/meal_slots_provider.dart
 import 'package:herculex/features/nutrition/application/nutrient_settings_provider.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/nutrition/domain/food_insights.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/custom_food_form_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/food_picker_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/log_entry_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/food_nutrition_gradient.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/macro_rings.dart';
 import 'package:intl/intl.dart';
 
@@ -114,7 +117,7 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
             Positioned(
               left: 0,
               right: 0,
-              bottom: HxNavBar.clearance,
+              bottom: HxNavBar.clearance + 12,
               child: Center(
                 child: IgnorePointer(
                   ignoring: isToday,
@@ -276,6 +279,7 @@ class _DayPage extends ConsumerWidget {
     final entriesByMeal = ref.watch(entriesByMealProvider(date));
     final configuredSlots = ref.watch(mealSlotsProvider);
     final visibleNutrients = ref.watch(visibleNutrientIdsProvider);
+    final showMicronutrients = ref.watch(micronutrientsVisibleProvider);
     final targets =
         ref.watch(effectiveTargetsProvider(date)).asData?.value ??
         ref.watch(baselineTargetsProvider);
@@ -297,7 +301,7 @@ class _DayPage extends ConsumerWidget {
               ),
             ),
           ),
-        if (totals.hasMicros)
+        if (showMicronutrients && totals.hasMicros)
           Padding(
             padding: const EdgeInsets.only(top: 16),
             child: _MineralsRow(
@@ -761,17 +765,24 @@ final entryDisplayProvider = FutureProvider.autoDispose
 
       String name = entry.snapshotName ?? '—';
       bool isDeleted = false;
+      double? kcalPer100g;
 
       if (entry.foodId != null) {
         final food = await ref.watch(foodByIdProvider(entry.foodId!).future);
         name = entry.snapshotName ?? (food ?? _placeholderFood()).name;
         isDeleted = food?.deletedAt != null;
+        kcalPer100g = food?.kcalPer100g;
       } else if (entry.recipeId != null) {
         final recipe = await ref.watch(
           recipeByIdProvider(entry.recipeId!).future,
         );
         name = entry.snapshotName ?? (recipe ?? _placeholderRecipe()).name;
         isDeleted = recipe?.deletedAt != null;
+      }
+
+      if (kcalPer100g == null &&
+          (entry.snapshotBasis == '100 g' || entry.snapshotBasis == '100 ml')) {
+        kcalPer100g = entry.snapshotKcal;
       }
 
       final portionText = entry.foodId != null
@@ -789,6 +800,7 @@ final entryDisplayProvider = FutureProvider.autoDispose
         sodiumMg: macros.sodiumMg,
         potassiumMg: macros.potassiumMg,
         cholesterolMg: macros.cholesterolMg,
+        kcalPer100g: kcalPer100g,
       );
     });
 
@@ -824,107 +836,410 @@ FoodData _placeholderFood() => FoodData(
 RecipeData _placeholderRecipe() =>
     RecipeData(id: 0, name: '—', servings: 1, createdAt: DateTime.now());
 
+enum _EntryTileAction {
+  editEntry,
+  moveToMeal,
+  editOriginalFood,
+  scanNutritionAi,
+  deleteEntry,
+}
+
 class _EntryTile extends ConsumerWidget {
   final FoodEntryData entry;
   const _EntryTile({required this.entry});
 
+  Future<void> _openEditPortion(BuildContext context, WidgetRef ref) async {
+    final repo = ref.read(nutritionRepositoryProvider);
+    FoodData? food;
+    RecipeData? recipe;
+    if (entry.foodId != null) {
+      food = await repo.foodById(entry.foodId!);
+    } else if (entry.recipeId != null) {
+      recipe = await repo.recipeById(entry.recipeId!);
+    }
+    if (!context.mounted) return;
+    await LogEntrySheet.forEntry(
+      context,
+      entry: entry,
+      food: food,
+      recipe: recipe,
+      date: DateTime.tryParse(entry.dateIso) ?? DateTime.now(),
+    );
+  }
+
+  Future<void> _openEditOriginalFood(
+    BuildContext context,
+    WidgetRef ref, {
+    bool autoStartAiScan = false,
+  }) async {
+    final foodId = entry.foodId;
+    if (foodId == null) return;
+    final repo = ref.read(nutritionRepositoryProvider);
+    final food = await repo.foodById(foodId);
+    if (food == null || !context.mounted) return;
+    final updated = await CustomFoodFormSheet.show(
+      context,
+      existingFood: food,
+      autoStartAiScan: autoStartAiScan,
+    );
+    if (updated == null) return;
+    await repo.refreshEntrySnapshotFromFood(entry.id, updated);
+    final entryDate = DateTime.tryParse(entry.dateIso);
+    ref.invalidate(foodByIdProvider(updated.id));
+    ref.invalidate(foodSearchProvider);
+    ref.invalidate(customFoodsProvider);
+    ref.invalidate(entryDisplayProvider);
+    if (entryDate != null) {
+      ref.invalidate(entriesForDateProvider(entryDate));
+      ref.invalidate(dailyTotalsProvider(entryDate));
+    }
+    if (context.mounted) {
+      AppNotice.show(
+        context,
+        'Original food "${updated.name}" updated',
+        kind: AppNoticeKind.success,
+      );
+    }
+  }
+
+  Future<void> _deleteWithUndo(
+    BuildContext context,
+    WidgetRef ref,
+    String itemName,
+  ) async {
+    final repo = ref.read(nutritionRepositoryProvider);
+    final entryToRestore = entry;
+    await repo.deleteEntry(entry.id);
+    if (context.mounted) {
+      AppNotice.show(
+        context,
+        'Deleted "$itemName"',
+        actionLabel: 'Undo',
+        onAction: () async {
+          await repo.restoreEntry(entryToRestore);
+        },
+      );
+    }
+  }
+
+  Future<bool> _showMoveToMealSheet(
+    BuildContext context,
+    WidgetRef ref, {
+    required String itemName,
+  }) async {
+    final mealSlots = ref.read(mealSlotsProvider);
+    final repo = ref.read(nutritionRepositoryProvider);
+    final theme = Theme.of(context);
+
+    final selectedSlot = await showModalBottomSheet<MealSlot>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+            decoration: BoxDecoration(
+              color:
+                  theme.bottomSheetTheme.backgroundColor ??
+                  AppColors.surfaceContainer,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(32),
+              ),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Move to Meal',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (itemName.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      itemName,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  for (final slot in mealSlots)
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      leading: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: slot.key == entry.meal
+                              ? AppColors.primary.withValues(alpha: 0.15)
+                              : AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          slot.icon,
+                          size: 20,
+                          color: slot.key == entry.meal
+                              ? AppColors.primary
+                              : AppColors.secondary,
+                        ),
+                      ),
+                      title: Text(
+                        slot.label,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: slot.key == entry.meal
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: slot.key == entry.meal
+                              ? AppColors.primary
+                              : AppColors.onSurface,
+                        ),
+                      ),
+                      trailing: slot.key == entry.meal
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.15,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'Current',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            )
+                          : Icon(
+                              Icons.arrow_forward_ios,
+                              size: 14,
+                              color: AppColors.secondary,
+                            ),
+                      onTap: slot.key == entry.meal
+                          ? null
+                          : () => Navigator.of(sheetContext).pop(slot),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selectedSlot == null || selectedSlot.key == entry.meal) {
+      return false;
+    }
+
+    Haptics.selection();
+    await repo.updateEntry(id: entry.id, mealKey: selectedSlot.key);
+    AppNotice.showWith(ref, 'Moved to ${selectedSlot.label}', title: itemName);
+    return true;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final repo = ref.watch(nutritionRepositoryProvider);
     final asyncDisplay = ref.watch(entryDisplayProvider(entry));
 
     return asyncDisplay.when(
       data: (display) {
+        final style = FoodNutritionStyle.resolve(
+          context,
+          display.nutritionGrade,
+        );
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: HxStickyDismissible(
             key: ValueKey('entry_${entry.id}'),
             borderRadius: BorderRadius.circular(18),
-            onDismissed: () async {
-              final entryToRestore = entry;
-              final itemName = display.name;
-              await repo.deleteEntry(entry.id);
-              if (context.mounted) {
-                AppNotice.show(
-                  context,
-                  'Deleted "$itemName"',
-                  actionLabel: 'Undo',
-                  onAction: () async {
-                    await repo.restoreEntry(entryToRestore);
-                  },
-                );
-              }
-            },
+            onDismissed: () => _deleteWithUndo(context, ref, display.name),
             child: Material(
-              color: AppColors.surfaceContainer,
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(18),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(18),
-                onTap: () => _showEntryDetail(context, theme, display, ref),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: AppColors.outlineVariant.withValues(alpha: 0.3),
+              clipBehavior: Clip.antiAlias,
+              child: Ink(
+                decoration: BoxDecoration(
+                  color: style.gradient == null ? style.color : null,
+                  gradient: style.gradient,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: style.borderColor),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => _showEntryDetail(context, theme, display, ref),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: AppColors.macroKcal.withValues(alpha: 0.7),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    display.name,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      display.name,
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
                                     ),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
                                   ),
-                                ),
-                                if (display.isDeleted) ...[
-                                  const SizedBox(width: 6),
-                                  const _DeletedBadge(),
+                                  if (display.isDeleted) ...[
+                                    const SizedBox(width: 6),
+                                    const _DeletedBadge(),
+                                  ],
                                 ],
-                              ],
-                            ),
-                            Text(
-                              display.subtitleWithMacros,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.secondary,
                               ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
+                              Text(
+                                display.subtitleWithMacros,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppColors.secondary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${display.kcal.toStringAsFixed(0)} kcal',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        PopupMenuButton<_EntryTileAction>(
+                          tooltip: 'Entry options',
+                          icon: Icon(
+                            Icons.more_vert,
+                            size: 20,
+                            color: AppColors.secondary,
+                          ),
+                          padding: EdgeInsets.zero,
+                          onSelected: (action) {
+                            switch (action) {
+                              case _EntryTileAction.editEntry:
+                                _openEditPortion(context, ref);
+                              case _EntryTileAction.moveToMeal:
+                                _showMoveToMealSheet(
+                                  context,
+                                  ref,
+                                  itemName: display.name,
+                                );
+                              case _EntryTileAction.editOriginalFood:
+                                _openEditOriginalFood(context, ref);
+                              case _EntryTileAction.scanNutritionAi:
+                                _openEditOriginalFood(
+                                  context,
+                                  ref,
+                                  autoStartAiScan: true,
+                                );
+                              case _EntryTileAction.deleteEntry:
+                                _deleteWithUndo(context, ref, display.name);
+                            }
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(
+                              value: _EntryTileAction.editEntry,
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                dense: true,
+                                leading: Icon(Icons.tune_outlined, size: 20),
+                                title: Text('Edit logged portion'),
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: _EntryTileAction.moveToMeal,
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                dense: true,
+                                leading: Icon(
+                                  Icons.drive_file_move_outlined,
+                                  size: 20,
+                                ),
+                                title: Text('Move to another meal'),
+                              ),
+                            ),
+                            if (entry.foodId != null) ...[
+                              const PopupMenuItem(
+                                value: _EntryTileAction.editOriginalFood,
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                  leading: Icon(Icons.edit_outlined, size: 20),
+                                  title: Text('Edit original food'),
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: _EntryTileAction.scanNutritionAi,
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                  leading: Icon(
+                                    Icons.document_scanner_outlined,
+                                    size: 20,
+                                  ),
+                                  title: Text('Scan nutrition values (AI)'),
+                                ),
+                              ),
+                            ],
+                            const PopupMenuItem(
+                              value: _EntryTileAction.deleteEntry,
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                dense: true,
+                                leading: Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                  color: Colors.redAccent,
+                                ),
+                                title: Text(
+                                  'Delete entry',
+                                  style: TextStyle(color: Colors.redAccent),
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${display.kcal.toStringAsFixed(0)} kcal',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -955,6 +1270,10 @@ class _EntryTile extends ConsumerWidget {
       builder: (modalContext) {
         final repo = ref.read(nutritionRepositoryProvider);
         final mealSlots = ref.read(mealSlotsProvider);
+        final currentSlot = mealSlots.firstWhere(
+          (s) => s.key == entry.meal,
+          orElse: () => MealSlot(key: entry.meal, label: entry.meal),
+        );
         final hasMicros =
             display.sodiumMg > 0 ||
             display.potassiumMg > 0 ||
@@ -1014,82 +1333,12 @@ class _EntryTile extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.drive_file_move_outlined),
-                      tooltip: 'Move to meal',
-                      onSelected: (targetMealKey) async {
-                        Haptics.selection();
-                        Navigator.of(modalContext).pop();
-                        await repo.updateEntry(
-                          id: entry.id,
-                          mealKey: targetMealKey,
-                        );
-                        if (!context.mounted) return;
-                        final targetLabel = mealSlots
-                            .firstWhere(
-                              (s) => s.key == targetMealKey,
-                              orElse: () => MealSlot(
-                                key: targetMealKey,
-                                label: targetMealKey,
-                              ),
-                            )
-                            .label;
-                        AppNotice.showWith(
-                          ref,
-                          'Moved to $targetLabel',
-                          title: display.name,
-                        );
-                      },
-                      itemBuilder: (context) => [
-                        for (final slot in mealSlots)
-                          PopupMenuItem(
-                            value: slot.key,
-                            enabled: slot.key != entry.meal,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  slot.icon,
-                                  size: 18,
-                                  color: slot.key == entry.meal
-                                      ? AppColors.secondary
-                                      : AppColors.primary,
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  slot.label,
-                                  style: TextStyle(
-                                    fontWeight: slot.key == entry.meal
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
                     IconButton(
                       icon: Icon(Icons.edit, color: AppColors.primary),
                       tooltip: 'Edit entry',
-                      onPressed: () async {
+                      onPressed: () {
                         Navigator.of(modalContext).pop();
-                        FoodData? food;
-                        RecipeData? recipe;
-                        if (entry.foodId != null) {
-                          food = await repo.foodById(entry.foodId!);
-                        } else if (entry.recipeId != null) {
-                          recipe = await repo.recipeById(entry.recipeId!);
-                        }
-                        if (!context.mounted) return;
-                        LogEntrySheet.forEntry(
-                          context,
-                          entry: entry,
-                          food: food,
-                          recipe: recipe,
-                          date:
-                              DateTime.tryParse(entry.dateIso) ??
-                              DateTime.now(),
-                        );
+                        _openEditPortion(context, ref);
                       },
                     ),
                     IconButton(
@@ -1098,21 +1347,9 @@ class _EntryTile extends ConsumerWidget {
                         color: Colors.redAccent,
                       ),
                       tooltip: 'Delete entry',
-                      onPressed: () async {
-                        final entryToRestore = entry;
-                        final itemName = display.name;
+                      onPressed: () {
                         Navigator.of(modalContext).pop();
-                        await repo.deleteEntry(entry.id);
-                        if (context.mounted) {
-                          AppNotice.show(
-                            context,
-                            'Deleted "$itemName"',
-                            actionLabel: 'Undo',
-                            onAction: () async {
-                              await repo.restoreEntry(entryToRestore);
-                            },
-                          );
-                        }
+                        _deleteWithUndo(context, ref, display.name);
                       },
                     ),
                   ],
@@ -1126,56 +1363,63 @@ class _EntryTile extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  'MOVE TO MEAL',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.secondary,
-                    letterSpacing: 1.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final slot in mealSlots)
-                      ChoiceChip(
-                        avatar: Icon(
-                          slot.icon,
-                          size: 16,
-                          color: slot.key == entry.meal
-                              ? Colors.white
-                              : AppColors.primary,
-                        ),
-                        label: Text(slot.label),
-                        selected: slot.key == entry.meal,
-                        selectedColor: AppColors.primary,
-                        labelStyle: TextStyle(
-                          color: slot.key == entry.meal
-                              ? Colors.white
-                              : AppColors.onSurface,
-                          fontWeight: slot.key == entry.meal
-                              ? FontWeight.bold
-                              : FontWeight.w500,
-                        ),
-                        onSelected: (selected) async {
-                          if (slot.key == entry.meal) return;
-                          Haptics.selection();
-                          Navigator.of(modalContext).pop();
-                          await repo.updateEntry(
-                            id: entry.id,
-                            mealKey: slot.key,
-                          );
-                          if (!context.mounted) return;
-                          AppNotice.showWith(
-                            ref,
-                            'Moved to ${slot.label}',
-                            title: display.name,
-                          );
-                        },
+                InkWell(
+                  onTap: () async {
+                    final moved = await _showMoveToMealSheet(
+                      modalContext,
+                      ref,
+                      itemName: display.name,
+                    );
+                    if (moved && modalContext.mounted) {
+                      Navigator.of(modalContext).pop();
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.outlineVariant.withValues(alpha: 0.5),
                       ),
-                  ],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          currentSlot.icon,
+                          size: 20,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Meal',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          currentSlot.label,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.onSurface,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: AppColors.secondary,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 if (hasMicros) ...[
                   const SizedBox(height: 16),
@@ -1264,6 +1508,7 @@ class _EntryDisplay {
   final double sodiumMg;
   final double potassiumMg;
   final double cholesterolMg;
+  final double? kcalPer100g;
 
   _EntryDisplay({
     required this.name,
@@ -1276,7 +1521,17 @@ class _EntryDisplay {
     this.sodiumMg = 0,
     this.potassiumMg = 0,
     this.cholesterolMg = 0,
+    this.kcalPer100g,
   });
+
+  FoodNutritionGrade get nutritionGrade => FoodInsights.gradeFor(
+    name: name,
+    kcal: kcal,
+    proteinG: proteinG,
+    carbsG: carbsG,
+    fatG: fatG,
+    kcalPer100g: kcalPer100g,
+  );
 
   String get subtitleWithMacros {
     final p = proteinG.toStringAsFixed(0);
@@ -1354,20 +1609,31 @@ class _MineralsRowState extends State<_MineralsRow> {
                 ),
               ),
             ),
-            if (_expanded) ...[
-              const SizedBox(height: 12),
-              for (final definition in trackedNutrients)
-                if (widget.visibleIds.contains(definition.id)) ...[
-                  _NutrientProgressBar(
-                    definition: definition,
-                    value:
-                        t.nutrient(definition.id) ??
-                        _fallbackValue(t, definition.id),
-                    theme: widget.theme,
-                  ),
-                  const SizedBox(height: 10),
-                ],
-            ],
+            AnimatedSize(
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeInOutCubic,
+              alignment: Alignment.topCenter,
+              child: !_expanded
+                  ? const SizedBox(width: double.infinity, height: 0)
+                  : Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Column(
+                        children: [
+                          for (final definition in trackedNutrients)
+                            if (widget.visibleIds.contains(definition.id)) ...[
+                              _NutrientProgressBar(
+                                definition: definition,
+                                value:
+                                    t.nutrient(definition.id) ??
+                                    _fallbackValue(t, definition.id),
+                                theme: widget.theme,
+                              ),
+                              const SizedBox(height: 10),
+                            ],
+                        ],
+                      ),
+                    ),
+            ),
           ],
         ),
       ),

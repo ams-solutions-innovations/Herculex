@@ -302,6 +302,7 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
           if (syncState.syncMessage != null) ...[
             const SizedBox(height: 10),
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: AppColors.surfaceVariant,

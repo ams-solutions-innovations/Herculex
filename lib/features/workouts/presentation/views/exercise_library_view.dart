@@ -11,6 +11,7 @@ import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/presentation/sheets/exercise_affinity_sheet.dart';
 import 'package:herculex/features/workouts/presentation/views/custom_exercise_builder_view.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 
@@ -352,7 +353,14 @@ class _ExerciseLibraryTile extends ConsumerWidget {
                       Wrap(
                         spacing: 6,
                         children: [
-                          _AffinityBadge(affinity: affinity),
+                          _AffinityBadge(
+                            affinity: affinity,
+                            onTap: () => ExerciseAffinitySheet.show(
+                              context,
+                              exercise: exercise,
+                              currentAffinity: affinity,
+                            ),
+                          ),
                           if (exercise.isCustom)
                             const _SmallBadge(label: 'Custom'),
                         ],
@@ -376,23 +384,20 @@ class _ExerciseLibraryTile extends ConsumerWidget {
 }
 
 class _AffinityBadge extends StatelessWidget {
-  const _AffinityBadge({required this.affinity});
+  const _AffinityBadge({required this.affinity, this.onTap});
 
   final ExerciseAffinity affinity;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final (color, icon) = switch (affinity) {
-      ExerciseAffinity.never => (Colors.redAccent, Icons.block_rounded),
-      ExerciseAffinity.okay => (AppColors.secondary, Icons.check_rounded),
-      ExerciseAffinity.liked => (Colors.pinkAccent, Icons.favorite_rounded),
-      ExerciseAffinity.core => (Colors.amber.shade800, Icons.star_rounded),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    final (color, icon) = ExerciseAffinitySheet.visualFor(affinity);
+    final badge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: .13),
         borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: .25), width: 0.8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -407,7 +412,22 @@ class _AffinityBadge extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
+          if (onTap != null) ...[
+            const SizedBox(width: 2),
+            Icon(Icons.keyboard_arrow_down_rounded, size: 12, color: color),
+          ],
         ],
+      ),
+    );
+
+    if (onTap == null) return badge;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: badge,
       ),
     );
   }

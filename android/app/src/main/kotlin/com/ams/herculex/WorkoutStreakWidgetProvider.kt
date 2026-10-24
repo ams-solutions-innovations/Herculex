@@ -6,7 +6,7 @@ import android.widget.RemoteViews
 /** 2×1 Workout streak: consecutive training weeks. Data arrives through `syncWidgetData("streak_workouts")`. */
 class WorkoutStreakWidgetProvider : HxWidgetProvider() {
 
-    override val defaultSize = 182f to 80f
+    override val defaultSize = 182f to 86f
 
     override fun render(context: Context, renderer: HxWidgetRenderer, w: Float, h: Float): HxRendered =
         renderer.streak(w, h, HxStreakKind.WORKOUTS, streak(data(context, "streak_workouts"), "weeks"))

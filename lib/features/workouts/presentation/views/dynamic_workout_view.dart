@@ -6,6 +6,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/core/utils/units.dart';
@@ -15,15 +16,22 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/gamification/application/gamification_providers.dart';
+import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/presentation/sheets/weekly_adaptation_sheet.dart';
 import 'package:herculex/features/workouts/application/finish_workout_action.dart';
 import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
+import 'package:herculex/features/workouts/application/workout_target_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/data/workout_targets_repository.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
 import 'package:herculex/features/workouts/domain/set_numbering.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/domain/set_type_meta.dart';
+import 'package:herculex/features/workouts/presentation/dialogs/full_screen_rpe_picker.dart';
 import 'package:herculex/features/workouts/presentation/views/workout_finish_view.dart';
+import 'package:herculex/features/workouts/presentation/widgets/calisthenics_progression_card.dart';
+import 'package:herculex/features/workouts/presentation/widgets/full_screen_rest_timer_view.dart';
 
 /// Dynamic workout mode (§14): full-screen, distraction-free view with
 /// horizontal exercise swipe, automated active set & exercise tracking,
@@ -44,9 +52,10 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
   // Track user-selected set index override per exercise ID (if user manually taps a set dot)
   final Map<int, int> _selectedSetIndexByExercise = {};
 
-  /// The set just completed with COMPLETE SET, whose RPE the quick strip
-  /// above the button is asking for. Null once answered or skipped.
-  int? _rpePromptSetId;
+  /// The set and exercise catalog data most recently completed.
+  int? _lastCompletedSetId;
+  SetEntryData? _lastCompletedSet;
+  ExerciseCatalogData? _lastCompletedExerciseCatalog;
 
   @override
   void initState() {
@@ -72,9 +81,20 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
     final finish = FinishWorkoutAction.resolve(ref);
     final rootNavigator = Navigator.of(context, rootNavigator: true);
     final session = widget.session;
+    final adaptation = ref.read(weeklyAdaptationRepositoryProvider);
 
     await finish.run(session: session);
 
+    if (!rootNavigator.mounted) return;
+    final proposal = await adaptation.proposeForIncompleteSession(session.id);
+    if (proposal != null && rootNavigator.mounted) {
+      await showWeeklyAdaptationSheet(
+        rootNavigator.context,
+        repository: adaptation,
+        proposal: proposal,
+        skipOnDecline: false,
+      );
+    }
     if (!rootNavigator.mounted) return;
     // ignore: use_build_context_synchronously
     await WorkoutFinishView.show(rootNavigator.context, session.id);
@@ -202,289 +222,346 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
         ? 'SUPERSET'
         : (linkedCount == 3 ? 'TRI-SET' : 'GIANT SET');
 
-    return SafeArea(
-      child: Column(
-        children: [
-          // ── Top Header: Exit Fullscreen + Exercise Index & Superset indicator ──
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.fullscreen_exit, size: 28),
-                  tooltip: 'Classic mode',
-                  onPressed: () =>
-                      ref.read(dynamicWorkoutModeProvider.notifier).state =
-                          false,
+    final lastCompletedSet = _lastCompletedSetId != null
+        ? currentSets.firstWhereOrNull((s) => s.id == _lastCompletedSetId)
+        : (currentSets.reversed.firstWhereOrNull((s) => s.isCompleted));
+
+    final isRestTimerMinimized = ref.watch(dynamicRestTimerMinimizedProvider);
+    if (!restTimer.isRunning && isRestTimerMinimized) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(dynamicRestTimerMinimizedProvider.notifier).state = false;
+        }
+      });
+    }
+
+    return Stack(
+      children: [
+        SafeArea(
+          child: Column(
+            children: [
+              // ── Top Header: Exit Fullscreen + Exercise Index & Superset indicator ──
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
                 ),
-                const Spacer(),
-                if (isSuperset) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.fullscreen_exit, size: 28),
+                      tooltip: 'Classic mode',
+                      onPressed: () {
+                        ref
+                                .read(
+                                  dynamicRestTimerMinimizedProvider.notifier,
+                                )
+                                .state =
+                            false;
+                        ref.read(dynamicWorkoutModeProvider.notifier).state =
+                            false;
+                      },
                     ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF26C6DA).withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFF26C6DA),
-                        width: 1.2,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.link,
-                          size: 14,
-                          color: Color(0xFF26C6DA),
+                    const Spacer(),
+                    if (isSuperset) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          linkedLabel,
-                          style: const TextStyle(
-                            color: Color(0xFF26C6DA),
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.8,
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0xFF26C6DA,
+                          ).withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF26C6DA),
+                            width: 1.2,
                           ),
                         ),
-                      ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.link,
+                              size: 14,
+                              color: Color(0xFF26C6DA),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              linkedLabel,
+                              style: const TextStyle(
+                                color: Color(0xFF26C6DA),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Text(
+                      '${_exerciseIndex + 1}/${exercises.length}',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: AppColors.secondary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                Text(
-                  '${_exerciseIndex + 1}/${exercises.length}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: AppColors.secondary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                    const SizedBox(width: 8),
+                  ],
                 ),
-                const SizedBox(width: 8),
-              ],
-            ),
-          ),
+              ),
 
-          // ── Central Body: PageView for horizontal exercise swiping ──
-          Expanded(
-            child: PageView.builder(
-              controller: _pageController,
-              onPageChanged: (idx) {
-                setState(() {
-                  _exerciseIndex = idx;
-                });
+              // ── Minimized Rest Pill (when user minimized full-screen rest countdown) ──
+              if (restTimer.isRunning && isRestTimerMinimized)
+                _buildMinimizedRestPill(context, restTimer),
+
+              // ── Central Body: PageView for horizontal exercise swiping ──
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  onPageChanged: (idx) {
+                    setState(() {
+                      _exerciseIndex = idx;
+                    });
+                  },
+                  itemCount: exercises.length,
+                  itemBuilder: (context, exIdx) {
+                    final we = exercises[exIdx];
+                    final catalogEx = catalog.firstWhereOrNull(
+                      (e) => e.id == we.exerciseId,
+                    );
+                    final sets =
+                        ref
+                            .watch(setsForWorkoutExerciseProvider(we.id))
+                            .asData
+                            ?.value ??
+                        const <SetEntryData>[];
+                    final setIdxForThisEx = _selectedSetIndexByExercise[we.id];
+                    final nextUncomp = sets.indexWhere((s) => !s.isCompleted);
+                    final activeIdx =
+                        setIdxForThisEx != null && setIdxForThisEx < sets.length
+                        ? setIdxForThisEx
+                        : (nextUncomp >= 0
+                              ? nextUncomp
+                              : (sets.isNotEmpty ? sets.length - 1 : 0));
+                    final selectedSet = sets.elementAtOrNull(activeIdx);
+
+                    return _buildExerciseScreen(
+                      context,
+                      we: we,
+                      catalogExercise: catalogEx,
+                      sets: sets,
+                      activeSet: selectedSet,
+                      activeSetIndex: activeIdx,
+                    );
+                  },
+                ),
+              ),
+
+              // ── Bottom Action Area: Complete Set / Next Exercise / Finish ──
+              _buildActionArea(
+                context,
+                exercises: exercises,
+                currentWe: currentWe,
+                currentExercise: currentExercise,
+                currentSets: currentSets,
+                activeSet: activeSet,
+                effectiveSetIdx: effectiveSetIdx,
+              ),
+
+              // ── Bottom Navigation Bar: Exercise stepping < > ──
+              _buildBottomExerciseNav(context, exercises),
+
+              // The app's floating nav bar overlays this screen; keep the
+              // Complete Set button clear of it.
+              const SizedBox(
+                height: HxNavBar.clearance - HxSpace.x2 - HxSpace.x3,
+              ),
+            ],
+          ),
+        ),
+
+        // ── Full-Screen Rest Countdown View Overlay ──
+        if (restTimer.isRunning && !isRestTimerMinimized)
+          Positioned.fill(
+            child: FullScreenRestTimerView(
+              session: widget.session,
+              restTimer: restTimer,
+              currentExercise: currentExercise,
+              currentWe: currentWe,
+              exercises: exercises,
+              currentSets: currentSets,
+              activeSetIndex: effectiveSetIdx,
+              lastCompletedSet: lastCompletedSet ?? _lastCompletedSet,
+              onMinimize: () {
+                ref.read(dynamicRestTimerMinimizedProvider.notifier).state =
+                    true;
               },
-              itemCount: exercises.length,
-              itemBuilder: (context, exIdx) {
-                final we = exercises[exIdx];
-                final catalogEx = catalog.firstWhereOrNull(
-                  (e) => e.id == we.exerciseId,
+              onFinishWorkout: _finishWorkout,
+              onOpenRpe: (set) async {
+                final setIdx = currentSets.indexOf(set);
+                await _promptFullScreenRpe(
+                  targetSet: set,
+                  catalogExercise:
+                      _lastCompletedExerciseCatalog ?? currentExercise,
+                  sets: currentSets,
+                  setIndex: setIdx >= 0 ? setIdx : effectiveSetIdx,
                 );
-                final sets =
-                    ref
-                        .watch(setsForWorkoutExerciseProvider(we.id))
-                        .asData
-                        ?.value ??
-                    const <SetEntryData>[];
-                final setIdxForThisEx = _selectedSetIndexByExercise[we.id];
-                final nextUncomp = sets.indexWhere((s) => !s.isCompleted);
-                final activeIdx =
-                    setIdxForThisEx != null && setIdxForThisEx < sets.length
-                    ? setIdxForThisEx
-                    : (nextUncomp >= 0
-                          ? nextUncomp
-                          : (sets.isNotEmpty ? sets.length - 1 : 0));
-                final selectedSet = sets.elementAtOrNull(activeIdx);
-
-                return _buildExerciseScreen(
-                  context,
-                  we: we,
-                  catalogExercise: catalogEx,
-                  sets: sets,
-                  activeSet: selectedSet,
-                  activeSetIndex: activeIdx,
-                );
               },
             ),
           ),
+      ],
+    );
+  }
 
-          // ── Rest Countdown Bar (between reps and complete set) ──
-          if (restTimer.isRunning) _buildRestCountdownBar(context, restTimer),
+  /// Sleek floating pill shown when the full-screen rest countdown is minimized
+  Widget _buildMinimizedRestPill(
+    BuildContext context,
+    RestTimerState restTimer,
+  ) {
+    final now = ref.watch(clockProvider).now();
+    final remaining = restTimer.remainingSecondsFrom(now);
+    final formattedTime = _fmtSeconds(remaining);
 
-          // ── RPE for the set just completed ──
-          if (_rpePromptSetId != null)
-            _RpeQuickPicker(
-              key: ValueKey('rpe_$_rpePromptSetId'),
-              onPicked: (rpeX10) {
-                final setId = _rpePromptSetId;
-                setState(() => _rpePromptSetId = null);
-                if (setId == null) return;
-                Haptics.selection();
-                ref
-                    .read(workoutsRepositoryProvider)
-                    .updateSet(setId: setId, rpeX10: rpeX10);
-              },
-              onSkip: () => setState(() => _rpePromptSetId = null),
-            ),
-
-          // ── Bottom Action Area: Complete Set / Next Exercise / Finish ──
-          _buildActionArea(
-            context,
-            exercises: exercises,
-            currentWe: currentWe,
-            currentExercise: currentExercise,
-            currentSets: currentSets,
-            activeSet: activeSet,
+    return GestureDetector(
+      onTap: () {
+        Haptics.selection();
+        ref.read(dynamicRestTimerMinimizedProvider.notifier).state = false;
+      },
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainer,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.4),
+            width: 1.2,
           ),
-
-          // ── Bottom Navigation Bar: Exercise stepping < > ──
-          _buildBottomExerciseNav(context, exercises),
-
-          // The app's floating nav bar overlays this screen; keep the
-          // Complete Set button, rest countdown and RPE strip clear of it.
-          // The exercise strip sits one step lower than the bare clearance so
-          // the gap above it and the gap to the nav bar read as even.
-          const SizedBox(height: HxNavBar.clearance - HxSpace.x2 - HxSpace.x3),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.timer_outlined, color: AppColors.primary, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'Rest: $formattedTime',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w900,
+                fontSize: 15,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Tap for full screen',
+                style: TextStyle(
+                  color: AppColors.secondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            FilledButton.tonal(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                foregroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                minimumSize: const Size(0, 28),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () {
+                Haptics.light();
+                ref.read(restTimerProvider.notifier).addSeconds(30);
+              },
+              child: const Text(
+                '+30s',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ),
+            const SizedBox(width: 6),
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              icon: Icon(
+                Icons.close_rounded,
+                size: 18,
+                color: AppColors.secondary,
+              ),
+              tooltip: 'Skip rest',
+              onPressed: () {
+                Haptics.light();
+                ref.read(restTimerProvider.notifier).cancel();
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  /// Sleek Rest Countdown Bar placed between reps and complete set
-  Widget _buildRestCountdownBar(
-    BuildContext context,
-    RestTimerState restTimer,
-  ) {
-    final theme = Theme.of(context);
-    final now = ref.watch(clockProvider).now();
-    final remaining = restTimer.remainingSecondsFrom(now);
-    final progress = restTimer.progressFrom(now).clamp(0.0, 1.0);
-    final formattedTime = _fmtSeconds(remaining);
+  /// Prompts the full-screen RPE selector view for a completed set.
+  Future<void> _promptFullScreenRpe({
+    required SetEntryData targetSet,
+    required ExerciseCatalogData? catalogExercise,
+    required List<SetEntryData> sets,
+    required int setIndex,
+  }) async {
+    final weightFmt = ref.read(weightFormatProvider);
+    final numbers = numberSets(sets);
+    final setNumber = setIndex >= 0 && setIndex < numbers.length
+        ? numbers[setIndex]
+        : null;
+    final setLabel = setNumber?.isWarmup == true
+        ? 'WARMUP SET ${setNumber?.ordinal ?? 1}'
+        : 'SET ${setNumber?.withTotal ?? (setIndex + 1)}';
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(24, 2, 24, 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.35),
-          width: 1.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.timer_outlined,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      restTimer.exerciseName != null
-                          ? 'REST • ${restTimer.exerciseName!.toUpperCase()}'
-                          : 'REST TIMER',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.secondary,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                        fontSize: 10,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      formattedTime,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 26,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        height: 1.1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              FilledButton.tonal(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                  foregroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  minimumSize: const Size(0, 34),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () {
-                  Haptics.light();
-                  ref.read(restTimerProvider.notifier).addSeconds(30);
-                },
-                child: const Text(
-                  '+30s',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                style: IconButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.all(6),
-                ),
-                tooltip: 'Skip rest',
-                onPressed: () {
-                  Haptics.light();
-                  ref.read(restTimerProvider.notifier).cancel();
-                },
-                icon: Icon(
-                  Icons.close_rounded,
-                  size: 20,
-                  color: AppColors.secondary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 4,
-              backgroundColor: AppColors.outlineVariant.withValues(alpha: 0.25),
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-            ),
-          ),
-        ],
-      ),
+    final targetWeight = targetSet.weightKg;
+    final performanceSubtitle = targetWeight > 0
+        ? '${weightFmt.formatValue(targetWeight)} × ${targetSet.reps} reps'
+        : (targetSet.reps > 0 ? '${targetSet.reps} reps' : null);
+
+    final target = ref
+        .read(workoutTargetsProvider(targetSet.workoutExerciseId))
+        .valueOrNull?[targetSet.id];
+    final defaultRpeX10 =
+        targetSet.rpeX10 ?? targetSet.plannedRpeX10 ?? target?.rpeX10;
+
+    final chosenRpe = await FullScreenRpePicker.show(
+      context,
+      exerciseName: catalogExercise?.name ?? 'Exercise',
+      setLabel: setLabel,
+      performanceSubtitle: performanceSubtitle,
+      initialRpeX10: defaultRpeX10,
     );
+
+    if (chosenRpe != null && mounted) {
+      final repo = ref.read(workoutsRepositoryProvider);
+      if (chosenRpe < 0) {
+        await repo.updateSet(setId: targetSet.id, rpeX10: null);
+      } else {
+        await repo.updateSet(setId: targetSet.id, rpeX10: chosenRpe);
+      }
+    }
   }
 
   /// Full exercise screen for a given exercise in the PageView
@@ -504,6 +581,9 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
           )
         : LoggingMetric.weightReps;
 
+    final target = activeSet == null
+        ? null
+        : ref.watch(workoutTargetsProvider(we.id)).valueOrNull?[activeSet.id];
     final weightFmt = ref.watch(weightFormatProvider);
     final allDone = sets.isNotEmpty && sets.every((s) => s.isCompleted);
 
@@ -580,12 +660,21 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                       ),
                     )
                   else ...[
+                    if (catalogExercise != null)
+                      CalisthenicsProgressionCard(
+                        exercise: catalogExercise,
+                        workoutExercise: we,
+                      ),
                     // Set Badge & Number (e.g. SET 2/4)
                     if (activeSet != null) ...[
                       _buildSetHeaderBadge(
                         context,
                         set: activeSet,
                         number: numberSets(sets)[activeSetIndex],
+                        catalogExercise: catalogExercise,
+                        sets: sets,
+                        activeSetIndex: activeSetIndex,
+                        targetRpeX10: activeSet.plannedRpeX10 ?? target?.rpeX10,
                       ),
                       const SizedBox(height: 10),
                     ],
@@ -615,8 +704,15 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                                 key: ValueKey(
                                   'w_${activeSet.id}_${activeSet.weightKg}',
                                 ),
-                                label: weightFmt.suffix.toUpperCase(),
-                                value: activeSet.weightKg,
+                                label:
+                                    isMachineAssistedPullup(
+                                      catalogExercise?.slug,
+                                    )
+                                    ? 'ASSISTANCE ${weightFmt.suffix.toUpperCase()}'
+                                    : weightFmt.suffix.toUpperCase(),
+                                value: activeSet.hasEnteredWeight
+                                    ? activeSet.weightKg
+                                    : target?.weightKg ?? 0,
                                 step: 0.5,
                                 min: 0.0,
                                 max: 999.0,
@@ -655,7 +751,11 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                                   'r_${activeSet.id}_${activeSet.reps}',
                                 ),
                                 label: 'REPS',
-                                value: activeSet.reps.toDouble(),
+                                value:
+                                    (activeSet.reps > 0
+                                            ? activeSet.reps
+                                            : target?.reps ?? 0)
+                                        .toDouble(),
                                 step: 1.0,
                                 min: 1.0,
                                 max: 999.0,
@@ -780,70 +880,133 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
     BuildContext context, {
     required SetEntryData set,
     required SetNumber number,
+    required ExerciseCatalogData? catalogExercise,
+    required List<SetEntryData> sets,
+    required int activeSetIndex,
+    int? targetRpeX10,
   }) {
     final setType = SetType.fromId(set.setType);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: set.isCompleted
-                ? AppColors.primary.withValues(alpha: 0.15)
-                : AppColors.surfaceContainer,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: set.isCompleted
-                  ? AppColors.primary
-                  : AppColors.outlineVariant.withValues(alpha: 0.4),
-              width: 1.2,
-            ),
+        GestureDetector(
+          onTap: () => _promptFullScreenRpe(
+            targetSet: set,
+            catalogExercise: catalogExercise,
+            sets: sets,
+            setIndex: activeSetIndex,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (set.isWarmup) ...[
-                const Icon(
-                  Icons.local_fire_department,
-                  size: 16,
-                  color: Colors.orange,
-                ),
-                const SizedBox(width: 4),
-                const Text(
-                  'WARMUP • ',
-                  style: TextStyle(
-                    color: Colors.orange,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ] else if (setType != SetType.standard) ...[
-                Text(
-                  '${setType.label.toUpperCase()} • ',
-                  style: TextStyle(
-                    color: _colorForSetType(setType),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-              Text(
-                number.isWarmup
-                    ? 'SET ${number.ordinal}/${number.ofKind}'
-                    : 'SET ${number.withTotal}',
-                style: TextStyle(
-                  color: set.isCompleted
-                      ? AppColors.primary
-                      : AppColors.onSurface,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: set.isCompleted
+                  ? AppColors.primary.withValues(alpha: 0.15)
+                  : AppColors.surfaceContainer,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: set.isCompleted
+                    ? AppColors.primary
+                    : AppColors.outlineVariant.withValues(alpha: 0.4),
+                width: 1.2,
               ),
-              if (set.isCompleted) ...[
-                const SizedBox(width: 6),
-                Icon(Icons.check_circle, size: 16, color: AppColors.primary),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (set.isWarmup) ...[
+                  const Icon(
+                    Icons.local_fire_department,
+                    size: 16,
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(width: 4),
+                  const Text(
+                    'WARMUP • ',
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ] else if (setType != SetType.standard) ...[
+                  Text(
+                    '${setType.label.toUpperCase()} • ',
+                    style: TextStyle(
+                      color: _colorForSetType(setType),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+                Text(
+                  number.isWarmup
+                      ? 'SET ${number.ordinal}/${number.ofKind}'
+                      : 'SET ${number.withTotal}',
+                  style: TextStyle(
+                    color: set.isCompleted
+                        ? AppColors.primary
+                        : AppColors.onSurface,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
+                ),
+                if (set.isCompleted) ...[
+                  const SizedBox(width: 6),
+                  Icon(Icons.check_circle, size: 16, color: AppColors.primary),
+                ],
+                if (set.isCompleted && set.rpeX10 != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.purple.withValues(alpha: 0.45),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Text(
+                      'RPE ${(set.rpeX10! / 10).toStringAsFixed(1)}',
+                      style: const TextStyle(
+                        color: Colors.purple,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ] else if (!set.isCompleted && targetRpeX10 != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.purple.withValues(alpha: 0.35),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Text(
+                      targetRpeX10 % 10 == 0
+                          ? '@${targetRpeX10 ~/ 10} RPE'
+                          : '@${(targetRpeX10 / 10).toStringAsFixed(1)} RPE',
+                      style: const TextStyle(
+                        color: Colors.purple,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ],
@@ -1114,6 +1277,7 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
     required ExerciseCatalogData? currentExercise,
     required List<SetEntryData> currentSets,
     required SetEntryData? activeSet,
+    int effectiveSetIdx = 0,
   }) {
     final targetSet =
         activeSet ?? currentSets.firstWhereOrNull((s) => !s.isCompleted);
@@ -1145,7 +1309,7 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
               }
             },
             child: Text(
-              hasNextExercise ? 'NEXT EXERCISE →' : 'FINISH WORKOUT 🏆',
+              hasNextExercise ? 'CONTINUE →' : 'FINISH WORKOUT 🏆',
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
@@ -1170,16 +1334,30 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
             Haptics.medium();
             final repo = ref.read(workoutsRepositoryProvider);
             final ex = currentExercise;
-            // Ask for the effort while the user rests; re-logging an
-            // already-completed set keeps whatever RPE it has.
-            if (!targetSet.isCompleted) {
-              setState(() => _rpePromptSetId = targetSet.id);
-            }
-            await repo.updateSet(setId: targetSet.id, isCompleted: true);
+
+            ref.read(dynamicRestTimerMinimizedProvider.notifier).state = false;
+            setState(() {
+              _lastCompletedSet = targetSet;
+              _lastCompletedSetId = targetSet.id;
+              _lastCompletedExerciseCatalog = ex;
+            });
+
+            final target = await ref.read(
+              workoutTargetsProvider(currentWe.id).future,
+            );
+            final suggested = target[targetSet.id];
+            await repo.updateSet(
+              setId: targetSet.id,
+              isCompleted: true,
+              weightKg: targetSet.hasEnteredWeight ? null : suggested?.weightKg,
+              reps: targetSet.reps > 0 ? null : suggested?.reps,
+            );
 
             if (ex != null && !targetSet.isWarmup) {
               final effectiveKg =
-                  targetSet.weightKg +
+                  (isMachineAssistedPullup(ex.slug)
+                      ? -targetSet.weightKg
+                      : targetSet.weightKg) +
                   (targetSet.bodyweightKg ?? 0.0) +
                   (targetSet.chainsKg ?? 0.0);
               ref
@@ -1235,7 +1413,17 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                     }
                   }
                 }
-                if (foundNextInSuperset) return;
+                if (foundNextInSuperset) {
+                  if (mounted) {
+                    await _promptFullScreenRpe(
+                      targetSet: targetSet,
+                      catalogExercise: ex,
+                      sets: currentSets,
+                      setIndex: effectiveSetIdx,
+                    );
+                  }
+                  return;
+                }
               }
             }
 
@@ -1250,6 +1438,15 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                 mounted) {
               // Automatically navigate to next exercise if this one is done
               _goToExercise(_exerciseIndex + 1, exercises);
+            }
+
+            if (mounted) {
+              await _promptFullScreenRpe(
+                targetSet: targetSet,
+                catalogExercise: ex,
+                sets: currentSets,
+                setIndex: effectiveSetIdx,
+              );
             }
           },
           child: Text(
@@ -1784,69 +1981,6 @@ class _DynamicSetAccessoryPills extends ConsumerWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-/// One-row RPE prompt shown after COMPLETE SET in full-screen mode: tap a
-/// value (6–10 in half steps) or skip. Logging effort should cost one tap
-/// during the rest, not a trip back to the classic list.
-class _RpeQuickPicker extends StatelessWidget {
-  const _RpeQuickPicker({
-    super.key,
-    required this.onPicked,
-    required this.onSkip,
-  });
-
-  /// Receives the chosen RPE ×10 (e.g. 85 for 8.5), as stored.
-  final ValueChanged<int> onPicked;
-  final VoidCallback onSkip;
-
-  static const _values = [60, 65, 70, 75, 80, 85, 90, 95, 100];
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 2, 12, 4),
-      child: Row(
-        children: [
-          Text(
-            'RPE',
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              fontWeight: FontWeight.w800,
-              fontSize: 12,
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final value in _values)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: ActionChip(
-                        visualDensity: VisualDensity.compact,
-                        label: Text(
-                          value % 10 == 0
-                              ? '${value ~/ 10}'
-                              : (value / 10).toStringAsFixed(1),
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        onPressed: () => onPicked(value),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          TextButton(onPressed: onSkip, child: const Text('Skip')),
-        ],
-      ),
     );
   }
 }

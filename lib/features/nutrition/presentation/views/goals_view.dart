@@ -336,9 +336,14 @@ class _GoalValueRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            Text(
-              value,
-              style: TextStyle(color: AppColors.primary, fontSize: 16),
+            // Values like "82.5 kg on Sep 12, 2026" are long; unflexed they
+            // pushed the label into a narrow wrapped column.
+            Flexible(
+              child: Text(
+                value,
+                textAlign: TextAlign.end,
+                style: TextStyle(color: AppColors.primary, fontSize: 16),
+              ),
             ),
           ],
         ),

@@ -26,6 +26,7 @@ import 'package:herculex/features/physique/presentation/widgets/roadmap_timeline
 import 'package:herculex/features/physique/presentation/widgets/strength_chart_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/training_level_chart_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/weight_chart_card.dart';
+import 'package:herculex/features/programs/presentation/widgets/block_adjustment_card.dart';
 
 /// S1: the Physique progress screen. [goalId] null means the active goal.
 class PhysiqueProgressView extends ConsumerStatefulWidget {
@@ -121,6 +122,9 @@ class _PhysiqueProgressViewState extends ConsumerState<PhysiqueProgressView> {
         gap,
         ActivePhaseCard(goalId: id),
         if (hasTargetsOffer) ...[gap, PhaseTargetsOfferCard(goalId: id)],
+        // The training side of the goal: rebuild the block when life or
+        // recovery no longer matches it.
+        if (!archived) ...[gap, const BlockAdjustmentCard()],
         gap,
         RoadmapTimelineCard(goalId: id),
         gap,

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
+import 'package:herculex/features/workouts/presentation/dialogs/full_screen_rpe_picker.dart';
 import 'package:herculex/features/workouts/presentation/widgets/set_type_menu.dart';
 
 void main() {
@@ -195,6 +196,57 @@ void main() {
         reps -= 1;
       }
       expect(reps, equals(5));
+    });
+  });
+
+  group('Full-Screen RPE picker options tests', () {
+    test('FullScreenRpePicker defines valid scale from 10.0 to 5.0 (<6)', () {
+      final values = FullScreenRpePicker.options
+          .map((o) => o.valueX10)
+          .toList();
+      expect(values, equals([100, 95, 90, 85, 80, 75, 70, 65, 60, 50]));
+      expect(FullScreenRpePicker.options.first.label, equals('10'));
+      expect(FullScreenRpePicker.options.first.rir, equals('0 RIR'));
+      expect(FullScreenRpePicker.options.last.label, equals('<6'));
+    });
+
+    test('RPE scale provides clear RIR descriptions for all options', () {
+      for (final option in FullScreenRpePicker.options) {
+        expect(option.label, isNotEmpty);
+        expect(option.rir, contains('RIR'));
+        expect(option.description, isNotEmpty);
+      }
+    });
+  });
+
+  group('Full-Screen Rest Timer Countdown tests', () {
+    test('Seconds formatting formats mm:ss correctly', () {
+      String fmt(int totalSeconds) {
+        if (totalSeconds < 0) totalSeconds = 0;
+        final minutes = totalSeconds ~/ 60;
+        final seconds = totalSeconds % 60;
+        return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+      }
+
+      expect(fmt(120), equals('02:00'));
+      expect(fmt(95), equals('01:35'));
+      expect(fmt(9), equals('00:09'));
+      expect(fmt(0), equals('00:00'));
+      expect(fmt(-5), equals('00:00'));
+    });
+
+    test('Progress calculation remains clamped between 0.0 and 1.0', () {
+      double calcProgress(int remaining, int target) {
+        if (target <= 0) return 0.0;
+        final raw = 1.0 - (remaining / target);
+        return raw.clamp(0.0, 1.0);
+      }
+
+      expect(calcProgress(120, 120), equals(0.0));
+      expect(calcProgress(60, 120), equals(0.5));
+      expect(calcProgress(0, 120), equals(1.0));
+      expect(calcProgress(150, 120), equals(0.0)); // Over target
+      expect(calcProgress(-10, 120), equals(1.0)); // Past expiry
     });
   });
 }

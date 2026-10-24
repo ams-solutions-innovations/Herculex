@@ -1,7 +1,8 @@
 import 'package:herculex/features/programs/domain/slot_role.dart';
 
-/// A single warmup ramp step: a percentage of the working set's target
-/// intensity (`%1RM`) paired with the reps performed at that percentage.
+/// A single warmup ramp step: a fraction of the exercise's reference 1RM,
+/// paired with repetitions. The target resolver translates it into equipment
+/// loads and removes rounded steps at or above the first working load.
 class WarmupStep {
   const WarmupStep(this.percentOf1Rm, this.reps);
 
@@ -49,7 +50,20 @@ abstract final class WarmupResolver {
     required String modality,
     double? targetPercentOf1Rm,
     required bool isFirstHeavyLiftInSession,
+    bool singleIsolationPrimer = false,
   }) {
+    // A primer is separate from working volume. Heavy compounds still use
+    // their full intensity-dependent ramp, even in a short workout.
+    if (singleIsolationPrimer &&
+        mechanics == 'isolation' &&
+        {
+          'cable',
+          'machine_selectorized',
+          'machine_plate',
+          'machine_plate_loaded',
+        }.contains(modality)) {
+      return const [WarmupStep(0.40, 8)];
+    }
     final eligible =
         role.isHeavy &&
         mechanics == 'compound' &&

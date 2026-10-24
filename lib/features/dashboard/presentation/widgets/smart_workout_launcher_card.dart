@@ -7,6 +7,7 @@ import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
 import 'package:herculex/features/gyms/presentation/gym_picker_sheet.dart';
+import 'package:herculex/features/programs/presentation/sheets/start_workout_adaptation.dart';
 
 /// Smart workout launcher (§18): reads the day's scheduled workout and offers
 /// to start it pre-populated. "Start Leg Day?" → Yes starts a real session.
@@ -46,7 +47,7 @@ class SmartWorkoutLauncherCard extends ConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${workout.programDay.name} complete',
+                      '${workout.title} complete',
                       style: theme.textTheme.titleSmall,
                     ),
                   ],
@@ -56,7 +57,7 @@ class SmartWorkoutLauncherCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    workout.programDay.name,
+                    workout.title,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -74,6 +75,11 @@ class SmartWorkoutLauncherCard extends ConsumerWidget {
                       OutlinedButton.icon(
                         icon: const Icon(Icons.visibility_outlined, size: 18),
                         label: const Text('View'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: HxSpace.x4,
+                          ),
+                        ),
                         onPressed: () => context.push(
                           AppPaths.plannedWorkoutPreview(workout.schedule.id),
                         ),
@@ -83,15 +89,38 @@ class SmartWorkoutLauncherCard extends ConsumerWidget {
                         child: FilledButton.icon(
                           icon: const Icon(Icons.play_arrow),
                           label: Text(
-                            'Start ${workout.programDay.name}?',
+                            workout.isInProgress
+                                ? 'Resume workout'
+                                : 'Start ${workout.title}?',
                             overflow: TextOverflow.ellipsis,
+                          ),
+                          // Theme padding (24) left ~100 dp for the day name.
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: HxSpace.x4,
+                            ),
                           ),
                           onPressed: () async {
                             final gym = await GymPickerSheet.resolve(
                               context,
                               ref,
                             );
-                            if (gym.cancelled) return;
+                            if (gym.cancelled) {
+                              return;
+                            }
+                            if (!context.mounted) {
+                              return;
+                            }
+                            if (!workout.isStarted) {
+                              await offerStartWorkoutAdaptation(
+                                context,
+                                ref,
+                                scheduleId: workout.schedule.id,
+                              );
+                            }
+                            if (!context.mounted) {
+                              return;
+                            }
                             await ref
                                 .read(scheduledWorkoutServiceProvider)
                                 .startScheduledWorkout(

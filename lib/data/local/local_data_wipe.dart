@@ -29,6 +29,7 @@ Future<void> wipeAllLocalUserData(
 }) async {
   await _deleteProgressPhotoFiles(db);
   await _deletePhysiquePhotoFiles(documentsDirectory);
+  await _deleteLabsFiles(documentsDirectory);
 
   await db.transaction(() async {
     // Ordinary `DELETE`s in an order that does not follow the FK graph, so
@@ -107,6 +108,9 @@ const _catalogueTables = ['exercise_catalog', 'foods', 'accessories', 'bands'];
 /// deletes that write to them. `food_catalogue_meta` is absent because the
 /// catalogue it marks is being kept.
 const _fullyClearedTables = [
+  'workout_reports',
+  'workout_report_events',
+  'workout_report_plans',
   // Training
   'workout_sessions',
   'workout_exercises',
@@ -167,3 +171,14 @@ const _fullyClearedTables = [
   // deletion must clear them.
   'weekly_reports',
 ];
+
+/// Device-only PDF exports must not outlive account deletion.
+Future<void> _deleteLabsFiles(Directory? override) async {
+  try {
+    final docs = override ?? await getApplicationDocumentsDirectory();
+    final dir = Directory('${docs.path}${Platform.pathSeparator}labs');
+    if (await dir.exists()) await dir.delete(recursive: true);
+  } catch (_) {
+    /* Private storage can be unavailable in headless tests. */
+  }
+}

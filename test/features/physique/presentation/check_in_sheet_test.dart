@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,7 +23,6 @@ import 'package:herculex/services/ai/gemini_backend_service.dart';
 import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../support/exif_jpeg_fixture.dart';
 import '../../../support/fake_clock.dart';
 import '../../../support/fake_face_detector.dart';
@@ -34,17 +32,23 @@ class _FakeBackend implements PhysiqueCheckInBackend {
   Object? error;
   Completer<void>? gate;
   int calls = 0;
+  int currentCount = 0;
 
   @override
   Future<(Map<String, dynamic>, Map<String, dynamic>)> analyzePhysiqueCheckIn({
     required List<Map<String, dynamic>> baselineImages,
-    required Map<String, dynamic> currentImage,
+    required List<Map<String, dynamic>> currentImages,
     required Map<String, dynamic> context,
     String? userNote,
   }) async {
     calls++;
-    if (gate != null) await gate!.future;
-    if (error != null) throw error!;
+    currentCount = currentImages.length;
+    if (gate != null) {
+      await gate!.future;
+    }
+    if (error != null) {
+      throw error!;
+    }
     return (
       {
         'directionBand': {'low': 0.3, 'high': 0.6},
@@ -106,7 +110,9 @@ class _Harness {
     addTearDown(() {
       for (final d in [docs, staging, pick]) {
         try {
-          if (d.existsSync()) d.deleteSync(recursive: true);
+          if (d.existsSync()) {
+            d.deleteSync(recursive: true);
+          }
         } on FileSystemException {
           // Windows keeps the decoded fixture open until the image is GC'd.
         }
@@ -225,13 +231,33 @@ class _Harness {
         () => Future<void>.delayed(const Duration(milliseconds: 20)),
       );
       await tester.pump(const Duration(milliseconds: 50));
-      if (until != null && until.evaluate().isNotEmpty) return;
+      if (until != null && until.evaluate().isNotEmpty) {
+        return;
+      }
     }
-    if (until != null) fail('never found $until');
+    if (until != null) {
+      fail('never found $until');
+    }
   }
 
   Future<void> tapText(String text) async {
+    await tester.ensureVisible(find.text(text));
     await tester.tap(find.text(text));
+    await tester.pump();
+  }
+
+  Future<void> captureAndContinue() async {
+    final callsBefore = backend.calls;
+    await tapText('Take photo');
+    await settle(until: find.byKey(const Key('check-in-photos-continue')));
+    expect(
+      backend.calls,
+      callsBefore,
+      reason: 'Picking a photo must not start analysis.',
+    );
+    final button = find.byKey(const Key('check-in-photos-continue'));
+    await tester.ensureVisible(button);
+    await tester.tap(button);
     await tester.pump();
   }
 
@@ -251,6 +277,31 @@ class _Harness {
 }
 
 void main() {
+  testWidgets(
+    'three poses remain editable and produce one analysis and check-in',
+    (tester) async {
+      final h = await _Harness.create(tester, consent: true);
+      await h.open(h.host());
+      for (final pose in ['Front', 'Side', 'Back']) {
+        await h.tapText(pose);
+        await h.tapText('Take photo');
+        await h.settle(until: find.text('✓ $pose'));
+        expect(h.backend.calls, 0);
+      }
+      await tester.ensureVisible(
+        find.byKey(const Key('check-in-photos-continue')),
+      );
+      await tester.tap(find.byKey(const Key('check-in-photos-continue')));
+      await h.settle(until: find.text('Blur my face'));
+      await h.tapText('Continue');
+      await h.settle(until: find.text('Done'));
+      expect(h.backend.calls, 1);
+      expect(h.backend.currentCount, 3);
+      expect(await h.checkIns(), hasLength(1));
+      expect(await h.checkInPhotos(), hasLength(3));
+    },
+  );
+
   testWidgets('step 1 shows poses and the two capture buttons', (tester) async {
     final h = await _Harness.create(tester);
     await h.open(h.host());
@@ -270,12 +321,17 @@ void main() {
     await h.open(h.host());
 
     await h.tapText('Side');
-    await h.tapText('Take photo');
+    await h.captureAndContinue();
     await h.settle(until: find.text('Blur my face'));
 
     final ctx = h.captured.single!;
     expect(ctx.type, AiScanContextType.physiqueCheckin);
-    expect(ctx.extra, {'goalId': h.goal.id, 'pose': 'side'});
+    expect(ctx.extra, {
+      'goalId': h.goal.id,
+      'pose': 'side',
+      'photos': <String, String>{},
+      'updateRoadmap': false,
+    });
     expect(ctx.createdAt, h.clock.now());
     expect(PendingAiScanService(h.prefs).getPendingContext(), isNull);
 
@@ -305,7 +361,9 @@ void main() {
     expect(PendingAiScanService(h.prefs).getPendingContext(), isNull);
   });
 
-  testWidgets('a resumed capture opens at the privacy step', (tester) async {
+  testWidgets('a resumed capture keeps the collection step editable', (
+    tester,
+  ) async {
     final h = await _Harness.create(tester);
     await h.open(
       h.host(
@@ -317,7 +375,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Step 2 of 4'), findsOneWidget);
+    expect(find.text('Step 1 of 4'), findsOneWidget);
+    await h.tapText('Continue (1/3 photos)');
     expect(find.text('Blur my face'), findsOneWidget);
     expect(h.captureCalls, 0);
   });
@@ -330,7 +389,7 @@ void main() {
 
     expect(find.text('Add baseline photo'), findsOneWidget);
     expect(find.text('Step 1 of 2'), findsOneWidget);
-    await h.tapText('Take photo');
+    await h.captureAndContinue();
     await h.settle(until: find.text('Blur my face'));
     expect(find.text('Step 2 of 2'), findsOneWidget);
 
@@ -350,7 +409,7 @@ void main() {
   ) async {
     final h = await _Harness.create(tester);
     await h.open(h.host());
-    await h.tapText('Take photo');
+    await h.captureAndContinue();
     await h.settle(until: find.text('Blur my face'));
 
     await tester.tap(find.byType(SwitchListTile));
@@ -371,7 +430,7 @@ void main() {
   ) async {
     final h = await _Harness.create(tester);
     await h.open(h.host());
-    await h.tapText('Take photo');
+    await h.captureAndContinue();
     await h.settle(until: find.text('Blur my face'));
     await tester.tap(find.byType(SwitchListTile));
     await tester.pump();
@@ -394,7 +453,7 @@ void main() {
   ) async {
     final h = await _Harness.create(tester);
     await h.open(h.host());
-    await h.tapText('Take photo');
+    await h.captureAndContinue();
     await h.settle(until: find.text('Blur my face'));
     await h.tapText('Continue');
     await h.settle(until: find.text('Analyze my progress'));
@@ -430,7 +489,7 @@ void main() {
   testWidgets('consent already accepted skips step 3', (tester) async {
     final h = await _Harness.create(tester, consent: true);
     await h.open(h.host());
-    await h.tapText('Take photo');
+    await h.captureAndContinue();
     await h.settle(until: find.text('Blur my face'));
     await h.tapText('Continue');
     await h.settle(until: find.text('Done'));
@@ -445,7 +504,7 @@ void main() {
   ) async {
     final h = await _Harness.create(tester);
     await h.open(h.host());
-    await h.tapText('Take photo');
+    await h.captureAndContinue();
     await h.settle(until: find.text('Blur my face'));
     await h.tapText('Continue');
     await h.settle(until: find.text('Analyze my progress'));
@@ -469,7 +528,7 @@ void main() {
     final h = await _Harness.create(tester, consent: true);
     h.backend.error = Exception('network down');
     await h.open(h.host());
-    await h.tapText('Take photo');
+    await h.captureAndContinue();
     await h.settle(until: find.text('Blur my face'));
     await h.tapText('Continue');
     await h.settle(until: find.text('Save without analysis'));
@@ -489,7 +548,7 @@ void main() {
     final h = await _Harness.create(tester, consent: true);
     h.backend.error = Exception('Daily checks are used up');
     await h.open(h.host());
-    await h.tapText('Take photo');
+    await h.captureAndContinue();
     await h.settle(until: find.text('Blur my face'));
     await h.tapText('Continue');
     await h.settle(until: find.text('Save without analysis'));
@@ -518,7 +577,7 @@ void main() {
       ),
     );
     await h.open(h.host());
-    await h.tapText('Take photo');
+    await h.captureAndContinue();
     await h.settle(until: find.text('Blur my face'));
     await h.tapText('Continue');
     await h.settle(until: find.textContaining("You've already checked in"));
@@ -540,7 +599,7 @@ void main() {
     final h = await _Harness.create(tester, consent: true);
     h.backend.gate = Completer<void>();
     await h.open(h.host());
-    await h.tapText('Take photo');
+    await h.captureAndContinue();
     await h.settle(until: find.text('Blur my face'));
     await h.tapText('Continue');
     await h.settle(until: find.text('Comparing with your baseline...'));
@@ -562,7 +621,7 @@ void main() {
     final h = await _Harness.create(tester);
     await h.open(h.host(textScale: 2), size: const Size(320, 700));
     expect(tester.takeException(), isNull);
-    await h.tapText('Take photo');
+    await h.captureAndContinue();
     await h.settle(until: find.text('Blur my face'));
     expect(tester.takeException(), isNull);
   });
@@ -571,7 +630,7 @@ void main() {
     final h = await _Harness.create(tester);
     await h.open(h.host(theme: AppTheme.darkTheme));
     expect(find.text('Take photo'), findsOneWidget);
-    await h.tapText('Take photo');
+    await h.captureAndContinue();
     await h.settle(until: find.text('Blur my face'));
     expect(tester.takeException(), isNull);
   });

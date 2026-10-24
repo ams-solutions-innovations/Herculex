@@ -42,6 +42,8 @@ abstract final class AppRoutes {
 
   // Analytics
   static const insights = '/insights';
+  static const labs = '/labs';
+  static const herculInsights = '/hercul-insights';
   static const cns = '/cns';
   static const recovery = '/recovery';
   static const personalRecords = '/personal-records';
@@ -53,6 +55,8 @@ abstract final class AppRoutes {
 
   // Health
   static const health = '/health';
+  static const steps = '/steps';
+  static const sleep = '/sleep';
   static const cycle = '/cycle';
   static const healthSamsung = '/health/samsung';
   static const healthApple = '/health/apple';
@@ -61,6 +65,7 @@ abstract final class AppRoutes {
   // Profile
   static const profile = '/profile';
   static const trainingLevel = '/training-level';
+  static const levelSystem = '/training-level/how-it-works';
   static const notifications = '/notifications';
   static const settings = '/settings';
   static const settingsAppearance = '/settings/appearance';
@@ -83,6 +88,7 @@ abstract final class AppRoutes {
   static const nutritionWeeklyStats = '/nutrition/weekly-stats';
   static const macroTrends = '/macro-trends/:macro';
   static const goals = '/goals';
+  static const activityCalibration = '/activity-calibration';
   static const calorieMacroGoals = '/calorie-macro-goals';
   static const calorieMealGoals = '/calorie-meal-goals';
 
@@ -90,6 +96,7 @@ abstract final class AppRoutes {
   static const rotationPools = '/rotation-pools';
 
   // Buddy
+  static const gymBuddy = '/gym-buddy';
   static const buddyJoin = '/buddy/join';
 
   // Admin / diagnostics

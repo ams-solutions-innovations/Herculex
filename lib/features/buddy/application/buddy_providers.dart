@@ -65,7 +65,7 @@ final buddySessionControllerProvider =
         resolver: ref.watch(syncIdResolverProvider),
         currentUserId: auth?.uid ?? '',
         currentDisplayName: profile?.name,
-        currentAvatarUrl: null,
+        currentAvatarUrl: profile?.avatarId,
       );
 
       // No `ref.onDispose(controller.dispose)`: StateNotifierProvider already

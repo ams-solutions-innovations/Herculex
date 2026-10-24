@@ -7,6 +7,8 @@ import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/features/programs/domain/session_completion.dart';
+import 'package:herculex/features/workout_report/application/workout_report_providers.dart';
 import 'package:intl/intl.dart';
 
 /// Interactive Workout Calendar widget on the dashboard (§18).
@@ -326,27 +328,42 @@ class WorkoutCalendarCard extends ConsumerWidget {
             ),
           if (summary.hasScheduled) ...[
             for (final sched in summary.scheduledWorkouts) ...[
-              Row(
-                children: [
-                  Icon(
-                    sched.status == 'done'
-                        ? Icons.check_circle
-                        : Icons.schedule,
-                    color: sched.status == 'done'
-                        ? Colors.green
-                        : AppColors.primary,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Scheduled Workout (${sched.status.toUpperCase()})',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+              Builder(
+                builder: (context) {
+                  final done = sched.status == 'done';
+                  final completion = done
+                      ? (ref.watch(scheduleCompletionProvider).value?[sched.id])
+                      : null;
+                  final partial = SessionCompletion.isPartial(completion);
+                  return Row(
+                    children: [
+                      Icon(
+                        partial
+                            ? Icons.timelapse_rounded
+                            : done
+                            ? Icons.check_circle
+                            : Icons.schedule,
+                        color: partial
+                            ? const Color(0xFFFFCC00)
+                            : done
+                            ? Colors.green
+                            : AppColors.primary,
+                        size: 16,
                       ),
-                    ),
-                  ),
-                ],
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          partial
+                              ? 'Scheduled Workout (DONE · ${SessionCompletion.label(completion!)})'
+                              : 'Scheduled Workout (${sched.status.toUpperCase()})',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ],

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/target_resolver.dart';
 
@@ -16,8 +16,7 @@ final savedTargetForTodayProvider = FutureProvider.autoDispose<TargetRule?>((
   ref,
 ) async {
   final rows = await ref.watch(nutritionTargetsProvider.future);
-  final at = ref.watch(clockProvider).now();
-  final today = DateTime(at.year, at.month, at.day);
+  final today = ref.watch(localDayProvider);
   final isTrainingDay = await ref
       .watch(nutritionRepositoryProvider)
       .trainedOn(today);
@@ -31,6 +30,7 @@ final savedTargetForTodayProvider = FutureProvider.autoDispose<TargetRule?>((
           fatG: r.fatG,
           fiberG: r.fiberG,
           appliesTo: r.appliesTo,
+          effectiveFromDateIso: r.effectiveFromDateIso,
         ),
     ],
     date: today,

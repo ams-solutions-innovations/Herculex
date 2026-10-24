@@ -1,5 +1,4 @@
 import 'dart:developer' show log;
-
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:herculex/data/local/accessory_seed.dart';
@@ -14,6 +13,7 @@ import 'package:herculex/data/local/tables.dart';
 import 'package:herculex/features/fasting/data/fasting_stage_importer.dart';
 import 'package:herculex/features/hercul/data/hercul_rule_importer.dart';
 import 'package:herculex/features/nutrition/data/food_catalogue_importer.dart';
+import 'package:herculex/features/nutrition/data/watch_command_inbox.dart';
 import 'package:uuid/uuid.dart';
 
 part 'database.g.dart';
@@ -46,6 +46,9 @@ part 'database.g.dart';
     ExercisePreferences,
     ProgramDayExercises,
     ScheduledWorkouts,
+    // Deterministic, user-confirmed current-week schedule adaptations (v49)
+    AdaptationProposals,
+    AdaptationOverrides,
     ExternalEvents,
     HealthSamples,
     CycleLogs,
@@ -99,6 +102,9 @@ part 'database.g.dart';
     PhysiquePhotos,
     // Weekly report (v48)
     WeeklyReports,
+    WorkoutReportPlans,
+    WorkoutReportEvents,
+    WorkoutReports,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -108,12 +114,13 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 48;
+  int get schemaVersion => 52;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
+      await WatchCommandInbox.createTables(this);
       await ExerciseImporter.runFromAsset(this);
       await AccessorySeed.run(this);
       await HerculRuleImporter.runFromAsset(this);
@@ -141,6 +148,9 @@ class AppDatabase extends _$AppDatabase {
       await installSyncTriggers(this);
     },
     onUpgrade: (m, from, to) async {
+      if (from < 52 && to >= 52) {
+        await WatchCommandInbox.createTables(this);
+      }
       if (from < 2) {
         await m.createTable(foods);
         await m.createTable(recipes);
@@ -945,7 +955,9 @@ class AppDatabase extends _$AppDatabase {
           final existing = await customSelect(
             "SELECT name FROM pragma_table_info('$tableName')",
           ).get();
-          if (existing.isEmpty) return;
+          if (existing.isEmpty) {
+            return;
+          }
           final names = existing.map((row) => row.read<String>('name')).toSet();
           if (!names.contains(column.$name)) {
             await m.addColumn(table, column);
@@ -1027,7 +1039,9 @@ class AppDatabase extends _$AppDatabase {
             "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
             variables: [Variable(table.actualTableName)],
           ).getSingleOrNull();
-          if (exists == null) await m.createTable(table);
+          if (exists == null) {
+            await m.createTable(table);
+          }
         }
 
         // Parent-first so SQLite foreign-key validation also succeeds on
@@ -1068,7 +1082,9 @@ class AppDatabase extends _$AppDatabase {
           final existing = await customSelect(
             "SELECT name FROM pragma_table_info('${table.actualTableName}')",
           ).get();
-          if (existing.isEmpty) return;
+          if (existing.isEmpty) {
+            return;
+          }
           final names = existing.map((row) => row.read<String>('name')).toSet();
           if (!names.contains(column.$name)) {
             await m.addColumn(table, column);
@@ -1140,7 +1156,9 @@ class AppDatabase extends _$AppDatabase {
           final existing = await customSelect(
             "SELECT name FROM pragma_table_info('${table.actualTableName}')",
           ).get();
-          if (existing.isEmpty) return;
+          if (existing.isEmpty) {
+            return;
+          }
           final names = existing.map((row) => row.read<String>('name')).toSet();
           if (!names.contains(column.$name)) {
             await m.addColumn(table, column);
@@ -1165,7 +1183,9 @@ class AppDatabase extends _$AppDatabase {
           final existing = await customSelect(
             "SELECT name FROM pragma_table_info('${table.actualTableName}')",
           ).get();
-          if (existing.isEmpty) return;
+          if (existing.isEmpty) {
+            return;
+          }
           final names = existing.map((row) => row.read<String>('name')).toSet();
           if (!names.contains(column.$name)) {
             await m.addColumn(table, column);
@@ -1275,6 +1295,63 @@ class AppDatabase extends _$AppDatabase {
         );
         await installSyncTriggers(this);
       }
+      if (from < 49 && to >= 49) {
+        // Weekly adaptations are synced because a confirmed plan must resolve
+        // identically on every device.  Keep the proposal before its override
+        // to honour the FK during pull as well as local creation.
+        final tables = <String, TableInfo>{
+          'adaptation_proposals': adaptationProposals,
+          'adaptation_overrides': adaptationOverrides,
+        };
+        for (final entry in tables.entries) {
+          final exists = await customSelect(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+            "AND name = '${entry.key}'",
+          ).getSingleOrNull();
+          if (exists == null) {
+            await m.createTable(entry.value);
+          }
+          await customStatement(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_${entry.key} '
+            'ON ${entry.key}(sync_uuid)',
+          );
+        }
+        await installSyncTriggers(this);
+      }
+      if (from < 50 && to >= 50) {
+        final tables = <String, TableInfo>{
+          'workout_report_plans': workoutReportPlans,
+          'workout_report_events': workoutReportEvents,
+          'workout_reports': workoutReports,
+        };
+        for (final entry in tables.entries) {
+          final exists = await customSelect(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+            "AND name = '${entry.key}'",
+          ).getSingleOrNull();
+          if (exists == null) {
+            await m.createTable(entry.value);
+          }
+        }
+      }
+      if (from < 51 && to >= 51) {
+        final columns = await customSelect(
+          "PRAGMA table_info('nutrition_targets')",
+        ).get();
+        if (columns.isNotEmpty &&
+            !columns.any((r) => r.data['name'] == 'effective_from_date_iso')) {
+          await m.alterTable(
+            TableMigration(
+              nutritionTargets,
+              newColumns: [nutritionTargets.effectiveFromDateIso],
+            ),
+          );
+          await customStatement(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_nutrition_targets ON nutrition_targets(sync_uuid)',
+          );
+          await installSyncTriggers(this);
+        }
+      }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is
     // issued. It cannot live in onCreate/onUpgrade — those run inside a
@@ -1314,6 +1391,26 @@ class AppDatabase extends _$AppDatabase {
       ).getSingleOrNull();
       if (fastingStagesExists != null) {
         await FastingStageImporter.runFromAsset(this);
+      }
+      final herculRulesExists = await customSelect(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+        "AND name = 'hercul_rules'",
+      ).getSingleOrNull();
+      if (herculRulesExists != null) {
+        await HerculRuleImporter.runFromAsset(this);
+      }
+      // Declining a post-workout adaptation used to flip the session the user
+      // had just trained from `done` to `skipped`. A row that has a completed
+      // session was trained, so put those back. Idempotent and cheap.
+      final scheduleExists = await customSelect(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+        "AND name = 'scheduled_workouts'",
+      ).getSingleOrNull();
+      if (scheduleExists != null) {
+        await customStatement(
+          "UPDATE scheduled_workouts SET status = 'done' "
+          "WHERE status = 'skipped' AND completed_session_id IS NOT NULL",
+        );
       }
     },
   );

@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
@@ -6,7 +6,6 @@ import 'package:herculex/features/physique/data/physique_date_keys.dart';
 import 'package:herculex/features/physique/data/physique_goal_repository.dart';
 import 'package:herculex/features/physique/domain/physique_guardrails.dart';
 import 'package:herculex/features/physique/domain/physique_roadmap.dart';
-
 import '../../support/fake_clock.dart';
 import '../../support/test_database.dart';
 
@@ -68,6 +67,39 @@ void main() {
     status: status,
     archiveExisting: false,
     baselinePhotos: photos,
+  );
+
+  test(
+    'deleting a past goal tombstones its whole graph and preserves the active goal',
+    () async {
+      final oldId = await repo.startGoal(
+        live(uuid: 'old-goal', photos: [photo('front'), photo('back')]),
+      );
+      final activeId = await repo.startGoal(live(uuid: 'active-goal'));
+      final uuid = await repo.deleteArchivedGoal(oldId);
+      expect(uuid, 'old-goal');
+      expect(await repo.getGoal(oldId), isNull);
+      expect((await repo.getGoal(activeId))!.status, 'active');
+      final assessments = await (db.select(
+        db.physiqueAssessments,
+      )..where((a) => a.goalId.equals(oldId))).get();
+      final phases = await (db.select(
+        db.physiqueRoadmapPhases,
+      )..where((p) => p.goalId.equals(oldId))).get();
+      final photos = await (db.select(
+        db.physiquePhotos,
+      )..where((p) => p.goalId.equals(oldId))).get();
+      expect(assessments, isNotEmpty);
+      expect(phases, isNotEmpty);
+      expect(photos, hasLength(2));
+      expect([
+        ...assessments.map((a) => a.deletedAt),
+        ...phases.map((p) => p.deletedAt),
+        ...photos.map((p) => p.deletedAt),
+      ], everyElement(isNotNull));
+      expect(await repo.deleteArchivedGoal(oldId), uuid);
+      await expectLater(repo.deleteArchivedGoal(activeId), throwsStateError);
+    },
   );
 
   test('physiqueDayKey zero-pads', () {

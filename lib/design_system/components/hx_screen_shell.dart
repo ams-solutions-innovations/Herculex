@@ -119,6 +119,7 @@ class _HxScreenShellState extends State<HxScreenShell>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final titleIcon = widget.titleIcon ?? _iconForTitle(widget.title);
     final topInset = MediaQuery.paddingOf(context).top;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     // Each header action occupies a 48 px button plus its 8 px gap.  The
@@ -204,14 +205,12 @@ class _HxScreenShellState extends State<HxScreenShell>
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  if (widget.titleIcon != null) ...[
-                                    Icon(
-                                      widget.titleIcon,
-                                      size: 20,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                    const SizedBox(width: HxSpace.x2),
-                                  ],
+                                  Icon(
+                                    titleIcon,
+                                    size: 20,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: HxSpace.x2),
                                   Flexible(
                                     child: Text(
                                       widget.title,
@@ -238,18 +237,26 @@ class _HxScreenShellState extends State<HxScreenShell>
                         alignment: Alignment.centerLeft,
                         child: HxBackButton(),
                       ),
-                    // Actions on the right
+                    // Actions on the right: visible ONLY when at the top
                     if (widget.actions.isNotEmpty)
                       Align(
                         alignment: Alignment.centerRight,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            for (final action in widget.actions) ...[
-                              action,
-                              const SizedBox(width: HxSpace.x2),
-                            ],
-                          ],
+                        child: AnimatedOpacity(
+                          opacity: _isAtTop ? 1.0 : 0.0,
+                          duration: HxMotion.base,
+                          curve: Curves.easeInOut,
+                          child: IgnorePointer(
+                            ignoring: !_isAtTop,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (final action in widget.actions) ...[
+                                  action,
+                                  const SizedBox(width: HxSpace.x2),
+                                ],
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                   ],
@@ -268,5 +275,33 @@ class _HxScreenShellState extends State<HxScreenShell>
         ],
       ),
     );
+  }
+
+  IconData _iconForTitle(String title) {
+    final value = title.toLowerCase();
+    if (value.contains('protein')) return Icons.fitness_center_rounded;
+    if (value.contains('volume')) return Icons.bar_chart_rounded;
+    if (value.contains('trend') || value.contains('insight')) {
+      return Icons.show_chart_rounded;
+    }
+    if (value.contains('account') || value.contains('profile')) {
+      return Icons.person_outline_rounded;
+    }
+    if (value.contains('setting') || value.contains('preference')) {
+      return Icons.settings_outlined;
+    }
+    if (value.contains('workout') || value.contains('exercise')) {
+      return Icons.fitness_center_rounded;
+    }
+    if (value.contains('food') || value.contains('nutrition')) {
+      return Icons.restaurant_menu_rounded;
+    }
+    if (value.contains('calendar') || value.contains('schedule')) {
+      return Icons.calendar_month_rounded;
+    }
+    if (value.contains('health') || value.contains('recovery')) {
+      return Icons.favorite_border_rounded;
+    }
+    return Icons.grid_view_rounded;
   }
 }

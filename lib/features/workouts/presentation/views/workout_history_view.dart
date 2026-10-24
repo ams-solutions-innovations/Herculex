@@ -10,6 +10,7 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/health/application/health_providers.dart';
+import 'package:herculex/features/workout_report/presentation/workout_report_card.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
@@ -73,6 +74,7 @@ class WorkoutHistoryView extends ConsumerWidget {
     final success = await ref
         .read(healthServiceProvider)
         .writeWorkoutToHealth(
+          workoutSessionId: session.id,
           activityName: _titleFor(session),
           startTime: session.startedAt,
           endTime: end,
@@ -173,6 +175,11 @@ class WorkoutHistoryView extends ConsumerWidget {
         ),
       ],
       children: [
+        if (sessionAsync.valueOrNull?.endedAt != null)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: WorkoutReportCard(sessionId: sessionId),
+          ),
         exercises.when(
           data: (rows) {
             if (rows.isEmpty) {

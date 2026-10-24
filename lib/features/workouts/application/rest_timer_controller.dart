@@ -156,3 +156,17 @@ class RestTimerController extends Notifier<RestTimerState> {
 final restTimerProvider = NotifierProvider<RestTimerController, RestTimerState>(
   RestTimerController.new,
 );
+
+/// In dynamic workout mode, whether the full-screen rest countdown view
+/// is currently minimized into a compact top pill.
+final dynamicRestTimerMinimizedProvider = StateProvider<bool>((_) => false);
+
+/// Whether the dynamic workout full-screen rest countdown is actively covering the screen.
+final isDynamicRestTimerOverlayVisibleProvider = Provider<bool>((ref) {
+  final isDynamic = ref.watch(dynamicWorkoutModeProvider);
+  if (!isDynamic) return false;
+  final restTimer = ref.watch(restTimerProvider);
+  if (!restTimer.isRunning) return false;
+  final isMinimized = ref.watch(dynamicRestTimerMinimizedProvider);
+  return !isMinimized;
+});

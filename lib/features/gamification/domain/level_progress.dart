@@ -1,156 +1,105 @@
-/// A deterministic, training-only progression ladder.
+/// A deterministic progression ladder.
 ///
-/// Levels reflect app activity and logged training signals, not a judgement of
-/// someone's physique, health, or athletic potential.
-enum LevelBand { novice, intermediate, advanced }
+/// The band comes from benchmark lifts (`strength_tier_evaluator.dart`) and
+/// is both floor and ceiling; XP earned by training only moves the rank
+/// within it, I to V. It is a game rank, not a judgement of someone's
+/// physique, health or athletic potential, and not the programming
+/// `ExperienceLevel`.
+enum LevelBand {
+  novice('Novice'),
+  intermediate('Intermediate'),
+  advanced('Advanced'),
+  elite('Elite');
+
+  const LevelBand(this.label);
+  final String label;
+
+  LevelBand? get next => index + 1 < values.length ? values[index + 1] : null;
+}
 
 class TrainingLevel {
   const TrainingLevel({
     required this.number,
     required this.band,
     required this.bandRank,
-    required this.xpAtLevel,
+    required this.xpIntoBand,
     required this.title,
   });
 
   final int number;
   final LevelBand band;
   final int bandRank;
-  final int xpAtLevel;
+
+  /// XP earned since entering [band] needed to hold this rank.
+  final int xpIntoBand;
   final String title;
 }
 
-/// Kept in one immutable list so progress never changes based on locale,
-/// profile fields, or an opaque recommendation model.
-const trainingLevels = <TrainingLevel>[
-  TrainingLevel(
-    number: 1,
-    band: LevelBand.novice,
-    bandRank: 1,
-    xpAtLevel: 0,
-    title: 'Novice I',
-  ),
-  TrainingLevel(
-    number: 2,
-    band: LevelBand.novice,
-    bandRank: 2,
-    xpAtLevel: 100,
-    title: 'Novice II',
-  ),
-  TrainingLevel(
-    number: 3,
-    band: LevelBand.novice,
-    bandRank: 3,
-    xpAtLevel: 250,
-    title: 'Novice III',
-  ),
-  TrainingLevel(
-    number: 4,
-    band: LevelBand.novice,
-    bandRank: 4,
-    xpAtLevel: 450,
-    title: 'Novice IV',
-  ),
-  TrainingLevel(
-    number: 5,
-    band: LevelBand.novice,
-    bandRank: 5,
-    xpAtLevel: 700,
-    title: 'Novice V',
-  ),
-  TrainingLevel(
-    number: 6,
-    band: LevelBand.intermediate,
-    bandRank: 1,
-    xpAtLevel: 1000,
-    title: 'Intermediate I',
-  ),
-  TrainingLevel(
-    number: 7,
-    band: LevelBand.intermediate,
-    bandRank: 2,
-    xpAtLevel: 1400,
-    title: 'Intermediate II',
-  ),
-  TrainingLevel(
-    number: 8,
-    band: LevelBand.intermediate,
-    bandRank: 3,
-    xpAtLevel: 1900,
-    title: 'Intermediate III',
-  ),
-  TrainingLevel(
-    number: 9,
-    band: LevelBand.intermediate,
-    bandRank: 4,
-    xpAtLevel: 2500,
-    title: 'Intermediate IV',
-  ),
-  TrainingLevel(
-    number: 10,
-    band: LevelBand.intermediate,
-    bandRank: 5,
-    xpAtLevel: 3200,
-    title: 'Intermediate V',
-  ),
-  TrainingLevel(
-    number: 11,
-    band: LevelBand.advanced,
-    bandRank: 1,
-    xpAtLevel: 4000,
-    title: 'Advanced I',
-  ),
-  TrainingLevel(
-    number: 12,
-    band: LevelBand.advanced,
-    bandRank: 2,
-    xpAtLevel: 5000,
-    title: 'Advanced II',
-  ),
-  TrainingLevel(
-    number: 13,
-    band: LevelBand.advanced,
-    bandRank: 3,
-    xpAtLevel: 6200,
-    title: 'Advanced III',
-  ),
-  TrainingLevel(
-    number: 14,
-    band: LevelBand.advanced,
-    bandRank: 4,
-    xpAtLevel: 7600,
-    title: 'Advanced IV',
-  ),
-  TrainingLevel(
-    number: 15,
-    band: LevelBand.advanced,
-    bandRank: 5,
-    xpAtLevel: 9200,
-    title: 'Advanced V',
-  ),
-];
+const _rankNumerals = ['I', 'II', 'III', 'IV', 'V'];
+
+/// XP into the band for ranks I–V. Higher bands take longer per rank.
+const _bandRankXp = <LevelBand, List<int>>{
+  LevelBand.novice: [0, 100, 250, 450, 700],
+  LevelBand.intermediate: [0, 200, 450, 750, 1100],
+  LevelBand.advanced: [0, 300, 650, 1050, 1500],
+  LevelBand.elite: [0, 400, 900, 1500, 2200],
+};
+
+/// Kept in one immutable list so progress never changes based on locale or
+/// an opaque recommendation model.
+final List<TrainingLevel> trainingLevels = List.unmodifiable([
+  for (final band in LevelBand.values)
+    for (var rank = 1; rank <= _rankNumerals.length; rank++)
+      TrainingLevel(
+        number: band.index * _rankNumerals.length + rank,
+        band: band,
+        bandRank: rank,
+        xpIntoBand: _bandRankXp[band]![rank - 1],
+        title: '${band.label} ${_rankNumerals[rank - 1]}',
+      ),
+]);
+
+/// Raw ledger totals, before a band is applied.
+class XpTotals {
+  const XpTotals({required this.totalXp, required this.completedWorkouts});
+
+  final int totalXp;
+  final int completedWorkouts;
+}
 
 class LevelProgress {
-  const LevelProgress({required this.totalXp, required this.completedWorkouts});
+  const LevelProgress({
+    required this.band,
+    required this.xpInBand,
+    this.totalXp = 0,
+    this.completedWorkouts = 0,
+  });
 
+  final LevelBand band;
+  final int xpInBand;
   final int totalXp;
   final int completedWorkouts;
 
   TrainingLevel get level => trainingLevels.lastWhere(
-    (candidate) => candidate.xpAtLevel <= totalXp,
-    orElse: () => trainingLevels.first,
+    (candidate) => candidate.band == band && candidate.xpIntoBand <= xpInBand,
   );
 
+  /// The next rank inside the band; null at V, where only strength moves on.
   TrainingLevel? get nextLevel {
     final index = trainingLevels.indexOf(level);
-    return index + 1 < trainingLevels.length ? trainingLevels[index + 1] : null;
+    final candidate = index + 1 < trainingLevels.length
+        ? trainingLevels[index + 1]
+        : null;
+    return candidate?.band == band ? candidate : null;
   }
 
-  int get xpIntoLevel => totalXp - level.xpAtLevel;
+  bool get isBandMaxed => nextLevel == null;
+
+  int get xpIntoLevel => xpInBand - level.xpIntoBand;
   int? get xpForNextLevel =>
-      nextLevel == null ? null : nextLevel!.xpAtLevel - level.xpAtLevel;
+      nextLevel == null ? null : nextLevel!.xpIntoBand - level.xpIntoBand;
   int? get xpRemaining =>
-      nextLevel == null ? null : nextLevel!.xpAtLevel - totalXp;
+      nextLevel == null ? null : nextLevel!.xpIntoBand - xpInBand;
   double get progressToNext =>
       nextLevel == null ? 1 : (xpIntoLevel / xpForNextLevel!).clamp(0.0, 1.0);
 }

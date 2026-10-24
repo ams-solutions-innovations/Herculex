@@ -41,6 +41,9 @@ class _Notice extends StatelessWidget {
 class _PoseStep extends StatelessWidget {
   const _PoseStep({
     required this.pose,
+    required this.photos,
+    required this.onRemove,
+    required this.onContinue,
     required this.notice,
     required this.onPose,
     required this.onCamera,
@@ -48,6 +51,9 @@ class _PoseStep extends StatelessWidget {
   });
 
   final String pose;
+  final Map<String, File> photos;
+  final ValueChanged<String> onRemove;
+  final VoidCallback? onContinue;
   final String? notice;
   final ValueChanged<String> onPose;
   final VoidCallback onCamera;
@@ -74,13 +80,29 @@ class _PoseStep extends StatelessWidget {
                   child: HxPill(
                     selected: pose == id,
                     onTap: () => onPose(id),
-                    child: Text(id[0].toUpperCase() + id.substring(1)),
+                    child: Text(
+                      '${photos.containsKey(id) ? '✓ ' : ''}${id[0].toUpperCase()}${id.substring(1)}',
+                    ),
                   ),
                 ),
               ),
           ],
         ),
-        const SizedBox(height: HxSpace.x6),
+        const SizedBox(height: HxSpace.x4),
+        Text(
+          'Add 1–3 photos. Analysis starts only after you continue.',
+          style: PhysiqueText.label(context, color: context.hx.secondary),
+        ),
+        if (photos[pose] case final file?) ...[
+          const SizedBox(height: HxSpace.x3),
+          _PhotoPreview(file: file),
+          TextButton.icon(
+            onPressed: () => onRemove(pose),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Remove photo'),
+          ),
+        ],
+        const SizedBox(height: HxSpace.x4),
         SizedBox(
           width: double.infinity,
           child: FilledButton(
@@ -96,6 +118,15 @@ class _PoseStep extends StatelessWidget {
             child: const Text('Choose from library'),
           ),
         ),
+        const SizedBox(height: HxSpace.x4),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            key: const Key('check-in-photos-continue'),
+            onPressed: onContinue,
+            child: Text('Continue (${photos.length}/3 photos)'),
+          ),
+        ),
       ],
     );
   }
@@ -103,7 +134,8 @@ class _PoseStep extends StatelessWidget {
 
 class _PrivacyStep extends StatelessWidget {
   const _PrivacyStep({
-    required this.file,
+    required this.files,
+    required this.onEdit,
     required this.blur,
     required this.notice,
     required this.busy,
@@ -112,7 +144,8 @@ class _PrivacyStep extends StatelessWidget {
     required this.onContinue,
   });
 
-  final File file;
+  final Map<String, File> files;
+  final VoidCallback onEdit;
   final bool blur;
   final String? notice;
   final bool busy;
@@ -123,7 +156,9 @@ class _PrivacyStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hx = context.hx;
-    if (busy) return _ProcessingView(labels: progress);
+    if (busy) {
+      return _ProcessingView(labels: progress);
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -131,27 +166,27 @@ class _PrivacyStep extends StatelessWidget {
           _Notice(text: notice!),
           const SizedBox(height: HxSpace.x4),
         ],
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 320),
-          child: ClipRRect(
-            borderRadius: HxRadius.mdAll,
-            child: Image.file(
-              file,
-              fit: BoxFit.contain,
-              cacheWidth: 960,
-              errorBuilder: (context, _, _) => Container(
-                height: 160,
-                color: hx.surfaceVariant,
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.image_not_supported_outlined,
-                  size: 24,
-                  color: hx.tertiary,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final p in files.entries)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: HxSpace.x1),
+                  child: Column(
+                    children: [
+                      _PhotoPreview(file: p.value),
+                      Text(
+                        p.key,
+                        style: PhysiqueText.label(context, color: hx.secondary),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ),
+          ],
         ),
+        TextButton(onPressed: onEdit, child: const Text('Edit photos')),
         const SizedBox(height: HxSpace.x4),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
@@ -354,4 +389,25 @@ class _ResultStep extends StatelessWidget {
       ],
     );
   }
+}
+
+class _PhotoPreview extends StatelessWidget {
+  const _PhotoPreview({required this.file});
+  final File file;
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(maxHeight: 240),
+    child: ClipRRect(
+      borderRadius: HxRadius.mdAll,
+      child: Image.file(
+        file,
+        fit: BoxFit.contain,
+        cacheWidth: 640,
+        errorBuilder: (context, _, _) => const SizedBox(
+          height: 120,
+          child: Center(child: Icon(Icons.image_not_supported_outlined)),
+        ),
+      ),
+    ),
+  );
 }

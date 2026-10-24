@@ -200,6 +200,12 @@ class WearRevisionAllocator {
   final SharedPreferences _prefs;
   final String _key;
 
+  void observe(int revision) {
+    if (revision > (_prefs.getInt(_key) ?? 0)) {
+      unawaited(_prefs.setInt(_key, revision));
+    }
+  }
+
   int next() {
     final persistedLast = _prefs.getInt(_key) ?? 0;
     final now = DateTime.now().millisecondsSinceEpoch;

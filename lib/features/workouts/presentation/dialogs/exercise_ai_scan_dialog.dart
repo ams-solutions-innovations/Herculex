@@ -76,7 +76,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error = 'Napaka pri izbiri slike: $e');
+        setState(() => _error = 'Failed to pick image: $e');
       }
     }
   }
@@ -98,7 +98,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
         setState(() {
           _analyzing = false;
           _error =
-              'Herculex AI na sliki ni zaznal fitnes naprave ali vaje. Poskusite znova z bolj jasnega kota.';
+              'Herculex AI could not detect a gym machine or exercise in the photo. Please try again from a clearer angle.';
         });
       } else {
         setState(() {
@@ -111,7 +111,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
       if (!mounted) return;
       setState(() {
         _analyzing = false;
-        _error = 'Napaka pri analizi: ';
+        _error = 'Analysis failed: $e';
       });
     }
   }
@@ -168,13 +168,13 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Prepoznavanje fitnes naprave',
+                          'Gym Equipment Recognition',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
-                          'Herculex AI Vision analiza opreme in vaj',
+                          'Herculex AI Vision equipment & exercise analysis',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.secondary,
                           ),
@@ -243,7 +243,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Slikajte fitnes napravo ali opremo',
+                'Take a photo of gym machine or equipment',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -251,7 +251,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Herculex AI bo samodejno prepoznal napravo, določil ciljne mišične skupine in poiskal ustrezno vajo v Herculex katalogu.',
+                'Herculex AI will automatically identify the equipment, target muscle groups, and find the matching exercise in the Herculex catalog.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.secondary,
                   height: 1.35,
@@ -265,7 +265,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
                     child: OutlinedButton.icon(
                       onPressed: () => _pickImage(ImageSource.gallery),
                       icon: const Icon(Icons.photo_library_outlined),
-                      label: const Text('Galerija'),
+                      label: const Text('Gallery'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -279,7 +279,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
                     child: FilledButton.icon(
                       onPressed: () => _pickImage(ImageSource.camera),
                       icon: const Icon(Icons.camera_alt),
-                      label: const Text('Kamera'),
+                      label: const Text('Camera'),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -328,7 +328,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
                   Icon(Icons.refresh, size: 14, color: Colors.white),
                   SizedBox(width: 4),
                   Text(
-                    'Nova slika',
+                    'New photo',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 11,
@@ -353,7 +353,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
             const CircularProgressIndicator(),
             const SizedBox(height: 18),
             Text(
-              'Herculex AI analizira fitnes napravo in opremo...',
+              'Herculex AI is analyzing the gym machine & equipment...',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -361,7 +361,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Prepoznavanje biomehanike gibanja, opreme in iskanje vaje v bazi',
+              'Identifying movement biomechanics, equipment, and matching catalog exercises',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: AppColors.secondary,
               ),
@@ -416,7 +416,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
                         Icon(Icons.auto_awesome, size: 12, color: Colors.white),
                         SizedBox(width: 4),
                         Text(
-                          'Prepoznano',
+                          'Identified',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 10.5,
@@ -454,7 +454,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
 
         if (best != null) ...[
           Text(
-            'Ujemajoča vaja v katalogu',
+            'Best catalog match',
             style: theme.textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: AppColors.secondary,
@@ -475,7 +475,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
 
         if (res.alternativeMatches.isNotEmpty) ...[
           Text(
-            'Podobne različice in opcije',
+            'Similar variations & options',
             style: theme.textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: AppColors.secondary,
@@ -506,7 +506,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
               borderRadius: BorderRadius.circular(14),
             ),
             child: Text(
-              'Naprava je bila prepoznana kot "", vendar v katalogu ni bilo najdenega natančnega ujemanja.',
+              'Equipment was identified as "${res.identifiedName}", but no exact match was found in the catalog.',
               style: theme.textTheme.bodySmall,
             ),
           ),
@@ -525,7 +525,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
           child: OutlinedButton.icon(
             onPressed: () => _pickImage(ImageSource.camera),
             icon: const Icon(Icons.camera_alt_outlined, size: 18),
-            label: const Text('Ponovno slikaj'),
+            label: const Text('Retake photo'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
@@ -636,7 +636,7 @@ class _ExerciseCard extends StatelessWidget {
                 ),
               ),
               child: Text(
-                isPrimary ? 'Dodaj' : 'Izberi',
+                isPrimary ? 'Add' : 'Select',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 12,

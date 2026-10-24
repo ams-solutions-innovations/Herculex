@@ -12,15 +12,7 @@ class LocalProfileRepository {
   final _controller = StreamController<Profile?>.broadcast();
   MeasurementsRepository? _measurementsRepo;
 
-  LocalProfileRepository(this._prefs) {
-    _controller.onListen = () {
-      scheduleMicrotask(() {
-        if (!_controller.isClosed) {
-          _controller.add(currentProfile);
-        }
-      });
-    };
-  }
+  LocalProfileRepository(this._prefs);
 
   void setMeasurementsRepository(MeasurementsRepository repo) {
     _measurementsRepo = repo;
@@ -36,12 +28,28 @@ class LocalProfileRepository {
     }
   }
 
-  Stream<Profile?> watch() => _controller.stream;
+  Stream<Profile?> watch() {
+    return Stream<Profile?>.multi((multi) {
+      scheduleMicrotask(() {
+        if (!multi.isClosed) {
+          multi.add(currentProfile);
+        }
+      });
+      final sub = _controller.stream.listen(
+        multi.add,
+        onError: multi.addError,
+        onDone: multi.close,
+      );
+      multi.onCancel = sub.cancel;
+    });
+  }
 
   Future<void> save(Profile profile, {bool syncToLog = true}) async {
     final oldWeight = currentProfile?.weightKg;
     await _prefs.setString(_kProfileKey, profile.encode());
-    _controller.add(profile);
+    if (!_controller.isClosed) {
+      _controller.add(profile);
+    }
 
     if (syncToLog && profile.weightKg != null && _measurementsRepo != null) {
       if (oldWeight != profile.weightKg) {
@@ -57,7 +65,9 @@ class LocalProfileRepository {
 
   Future<void> clear() async {
     await _prefs.remove(_kProfileKey);
-    _controller.add(null);
+    if (!_controller.isClosed) {
+      _controller.add(null);
+    }
   }
 
   void dispose() => _controller.close();

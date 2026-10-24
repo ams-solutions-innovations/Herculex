@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.wear.ongoing.OngoingActivity
 import androidx.wear.ongoing.Status
@@ -16,7 +17,7 @@ import com.ams.herculex.R
 
 /**
  * Foreground service that keeps the active workout alive while the app is backgrounded.
- * Registers a Wear OS Ongoing Activity surface so a dumbbell ongoing indicator chip appears
+ * Registers a Wear OS Ongoing Activity surface so the Herculex brand mark ongoing indicator chip appears
  * at the bottom (6 o'clock) of watch faces and in system recents/launcher, allowing
  * one-tap return to the active workout screen.
  */
@@ -111,9 +112,17 @@ class WorkoutOngoingService : Service() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOnlyAlertOnce(true)
             .setSilent(!isNewStart)
+            .setWhen(startEpochMs)
+            .setShowWhen(true)
+            .setUsesChronometer(true)
 
-        // Status.StopwatchPart renders a live count-up timer from startEpochMs —
-        // the system refreshes it on its own without requiring periodic polling.
+        // Status.StopwatchPart expects timeZero based on SystemClock.elapsedRealtime()
+        // (monotonic milliseconds since device boot), NOT unix epoch milliseconds.
+        // Convert startEpochMs to elapsedRealtime timeZero so the live count-up timer
+        // reflects the exact elapsed workout duration.
+        val elapsedMs = (System.currentTimeMillis() - startEpochMs).coerceAtLeast(0L)
+        val timeZero = SystemClock.elapsedRealtime() - elapsedMs
+
         val statusText = if (!exerciseName.isNullOrBlank()) {
             "$exerciseName • #elapsed#"
         } else {
@@ -122,7 +131,7 @@ class WorkoutOngoingService : Service() {
 
         val status = Status.Builder()
             .addTemplate(statusText)
-            .addPart("elapsed", Status.StopwatchPart(startEpochMs))
+            .addPart("elapsed", Status.StopwatchPart(timeZero))
             .build()
 
         OngoingActivity.Builder(this, NOTIFICATION_ID, notificationBuilder)

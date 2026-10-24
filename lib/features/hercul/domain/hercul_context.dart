@@ -128,13 +128,95 @@ abstract final class HerculSignals {
   /// Days in the last 7 with any food logged — the honesty check on the above.
   static const daysLogged7d = 'nutrition.daysLogged7d';
 
+  /// Grams of carbohydrates logged in late meals (dinner / evening snack / ≥20:00) yesterday.
+  static const carbsBeforeBedYesterdayG = 'nutrition.carbsBeforeBedYesterdayG';
+
+  /// Fraction (0–1) of yesterday's total carbs eaten before bed / late evening.
+  static const carbsBeforeBedPctYesterday =
+      'nutrition.carbsBeforeBedPctYesterday';
+
+  /// Total carbohydrates (g) logged yesterday.
+  static const carbsYesterdayG = 'nutrition.carbsYesterdayG';
+
+  /// Yesterday's carbohydrates divided by carb target (1.0 = on target).
+  static const carbsPctYesterday = 'nutrition.carbsPctYesterday';
+
+  /// Total sodium (mg) logged yesterday.
+  static const sodiumYesterdayMg = 'nutrition.sodiumYesterdayMg';
+
+  /// Total water (ml) logged yesterday.
+  static const waterYesterdayMl = 'nutrition.waterYesterdayMl';
+
+  /// Estimated ethanol (g) consumed yesterday from beverages or alcohol entries.
+  static const alcoholYesterdayG = 'nutrition.alcoholYesterdayG';
+
+  /// Estimated standard drinks (~14 g alcohol each) consumed yesterday.
+  static const alcoholYesterdayDrinks = 'nutrition.alcoholYesterdayDrinks';
+
+  /// Days in the trailing 7 days with alcohol intake detected.
+  static const alcoholDays7d = 'nutrition.alcoholDays7d';
+
+  // ── fasting ──────────────────────────────────────────────────────────────
+  /// Duration in hours of yesterday's / most recent completed fast (within 36h).
+  static const fastingYesterdayHours = 'fasting.yesterdayHours';
+
+  /// Elapsed hours in the currently active fast.
+  static const fastingActiveHours = 'fasting.activeHours';
+
+  /// 1 when an active fast is currently running, else 0.
+  static const fastingIsFasting = 'fasting.isFasting';
+
+  /// Number of completed fasts in the trailing 7 days.
+  static const fastingCompleted7d = 'fasting.completed7d';
+
+  /// Mean fast duration in hours across the trailing 7 days.
+  static const fastingAvgHours7d = 'fasting.avgHours7d';
+
+  // ── supplements (creatine) ───────────────────────────────────────────────
+  /// 1 if creatine was taken yesterday (or today), 0 if configured and missed.
+  static const creatineTakenYesterday = 'supplements.creatineTakenYesterday';
+
+  /// Days creatine was taken in the trailing 7 days (0–7).
+  static const creatineDays7d = 'supplements.creatineDays7d';
+
+  /// Days creatine was taken in the trailing 14 days (0–14).
+  static const creatineDays14d = 'supplements.creatineDays14d';
+
+  /// 1 when creatine intake started recently (saturating intracellular water), else 0.
+  static const creatineLoadingPhase = 'supplements.creatineLoadingPhase';
+
   // ── bodyweight ───────────────────────────────────────────────────────────
   /// Signed change over the window. Negative = lost. Argument: day count.
   static const weightDeltaKg = 'body.weightDeltaKg';
 
-  // ── biometrics ───────────────────────────────────────────────────────────
+  // ── biometrics, water retention & regeneration ───────────────────────────
   /// R² correlation between sleep hours and RPE over recent sessions.
   static const sleepVsRpeR2 = 'biometrics.sleepVsRpeR2';
+
+  /// Hours slept last night / yesterday.
+  static const sleepYesterdayHours = 'biometrics.sleepYesterdayHours';
+
+  /// Mean nightly sleep hours over the trailing 7 days.
+  static const sleepAvg7dHours = 'biometrics.sleepAvg7dHours';
+
+  /// Composite water retention index (-100 depleted to +100 high retention).
+  static const waterRetentionIndex = 'biometrics.waterRetentionIndex';
+
+  /// Composite systemic and muscular regeneration score (0–100).
+  static const regenerationScore = 'biometrics.regenerationScore';
+
+  // ── workout & lifting load fluctuations ──────────────────────────────────
+  /// Percentage change in working e1RM / load over the last 7 days vs prior baseline.
+  static const liftingDeltaPct7d = 'workout.liftingDeltaPct7d';
+
+  /// Percentage change in working load / e1RM in the most recent session vs baseline.
+  static const lastSessionLoadDeltaPct = 'workout.lastSessionLoadDeltaPct';
+
+  /// Average RPE across working sets in the most recent session.
+  static const lastSessionAvgRpe = 'workout.lastSessionAvgRpe';
+
+  /// Percentage change in 7-day tonnage vs 4-week rolling weekly average.
+  static const tonnageDeltaPct7d = 'workout.tonnageDeltaPct7d';
 
   // ── training history ─────────────────────────────────────────────────────
   /// Sessions containing this exercise in the last 30 days. Argument: slug.
@@ -213,8 +295,34 @@ abstract final class HerculSignals {
     kcalPct7d,
     kcalPct14d,
     daysLogged7d,
+    carbsBeforeBedYesterdayG,
+    carbsBeforeBedPctYesterday,
+    carbsYesterdayG,
+    carbsPctYesterday,
+    sodiumYesterdayMg,
+    waterYesterdayMl,
+    alcoholYesterdayG,
+    alcoholYesterdayDrinks,
+    alcoholDays7d,
+    fastingYesterdayHours,
+    fastingActiveHours,
+    fastingIsFasting,
+    fastingCompleted7d,
+    fastingAvgHours7d,
+    creatineTakenYesterday,
+    creatineDays7d,
+    creatineDays14d,
+    creatineLoadingPhase,
     weightDeltaKg,
     sleepVsRpeR2,
+    sleepYesterdayHours,
+    sleepAvg7dHours,
+    waterRetentionIndex,
+    regenerationScore,
+    liftingDeltaPct7d,
+    lastSessionLoadDeltaPct,
+    lastSessionAvgRpe,
+    tonnageDeltaPct7d,
     performedLast30d,
     lastPerformedDays,
     e1rmKg,

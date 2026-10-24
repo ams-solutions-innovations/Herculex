@@ -5,7 +5,7 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/settings/presentation/widgets/appearance_toggles.dart';
 
-/// Theme, accent colour and measurement system.
+/// Theme, accent colour, notification theme, measurement system, and widget appearance.
 class AppearanceSettingsView extends ConsumerWidget {
   const AppearanceSettingsView({super.key});
 
@@ -32,6 +32,12 @@ class AppearanceSettingsView extends ConsumerWidget {
               icon: Icons.palette_outlined,
               label: 'App Colors',
               trailing: AppColorThemeToggle(),
+            ),
+            HxSettingsDivider(),
+            HxSettingsTile(
+              icon: Icons.notifications_active_outlined,
+              label: 'Notification Theme',
+              trailing: NotificationStyleToggle(),
             ),
           ],
         ),
@@ -60,6 +66,22 @@ class AppearanceSettingsView extends ConsumerWidget {
                 ],
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        const HxSectionHeader('Widgets'),
+        const SizedBox(height: 10),
+        const HxSettingsCard(
+          children: [
+            HxSettingsTile(
+              icon: Icons.widgets_outlined,
+              label: 'Widget Theme',
+              trailing: WidgetThemeModeToggle(),
+            ),
+            HxSettingsDivider(),
+            WidgetTransparencyTile(),
+            HxSettingsDivider(),
+            WidgetShapeTile(),
           ],
         ),
       ],

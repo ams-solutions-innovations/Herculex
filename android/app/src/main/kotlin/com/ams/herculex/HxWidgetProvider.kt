@@ -24,7 +24,14 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
     /** Design size in dp, used until the launcher reports real bounds. */
     protected abstract val defaultSize: Pair<Float, Float>
 
-    protected open val layoutId: Int get() = R.layout.widget_hx_card
+    protected open val layoutId: Int get() = if (pillEligible) R.layout.widget_hx_pill else R.layout.widget_hx_card
+
+    /**
+     * Whether the user's pill setting applies: the one-row widgets two cells
+     * wide. Taken from the design size, not the live bounds, because a 4x1 is
+     * as tall as a 2x1 and a launcher can stretch either.
+     */
+    protected val pillEligible: Boolean get() = defaultSize.first < 250f && defaultSize.second < 100f
 
     protected abstract fun render(context: Context, renderer: HxWidgetRenderer, w: Float, h: Float): HxRendered
 
@@ -34,7 +41,7 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         val renderer = HxWidgetRenderer(
             HxFonts.fromAssets(context.assets),
-            HxWidgetPalette.load(context),
+            HxWidgetPalette.load(context).forWidget(pillEligible),
             context.resources.displayMetrics.density,
         )
         for (id in appWidgetIds) update(context, appWidgetManager, id, renderer)
@@ -51,7 +58,8 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
 
     private fun update(context: Context, manager: AppWidgetManager, id: Int, renderer: HxWidgetRenderer) {
         val (w, h) = sizeOf(context, manager.getAppWidgetOptions(id))
-        val rendered = render(context, renderer, w, h)
+        val targetH = if (pillEligible) defaultSize.second else h
+        val rendered = render(context, renderer, w, targetH)
         val views = RemoteViews(context.packageName, layoutId)
         views.setImageViewBitmap(R.id.widget_canvas, rendered.bitmap)
         // Drop the pre-draw placeholder so it can't show at the bitmap's edges.
@@ -59,9 +67,60 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
         views.setContentDescription(R.id.widget_canvas, rendered.description)
         bindClicks(context, views)
         manager.updateAppWidget(id, views)
+
+        updatePickerPreview(context, manager, renderer)
+    }
+
+    /**
+     * Generated previews are rate-limited by Android. Build them at the
+     * widget's design size, rather than reusing an arbitrarily resized live
+     * instance, and keep click PendingIntents out of the picker preview.
+     */
+    private fun updatePickerPreview(
+        context: Context,
+        manager: AppWidgetManager,
+        renderer: HxWidgetRenderer,
+    ) {
+        if (android.os.Build.VERSION.SDK_INT < 35) return
+
+        val prefs = CnsWidgetProvider.getPrefs(context)
+        val key = PREVIEW_ATTEMPT_PREFIX + javaClass.name
+        val now = System.currentTimeMillis()
+        if (now - prefs.getLong(key, 0L) < PREVIEW_REFRESH_INTERVAL_MS) return
+
+        // Record attempts too, so a rate-limited or unsupported response does
+        // not turn each ordinary widget update into another API call.
+        prefs.edit().putLong(key, now).apply()
+        try {
+            val preview = render(context, renderer, defaultSize.first, defaultSize.second)
+            val previewViews = RemoteViews(context.packageName, layoutId).apply {
+                setImageViewBitmap(R.id.widget_canvas, preview.bitmap)
+                setInt(R.id.widget_canvas, "setBackgroundResource", 0)
+                setContentDescription(R.id.widget_canvas, preview.description)
+            }
+            manager.setWidgetPreview(
+                android.content.ComponentName(context, this::class.java),
+                android.appwidget.AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN,
+                previewViews,
+            )
+        } catch (_: Throwable) {
+            // Static previewLayout remains available if generated previews fail.
+        }
     }
 
     private fun sizeOf(context: Context, options: Bundle?): Pair<Float, Float> {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S && options != null) {
+            @Suppress("DEPRECATION")
+            val sizes = options.getParcelableArrayList<android.util.SizeF>(AppWidgetManager.OPTION_APPWIDGET_SIZES)
+            if (!sizes.isNullOrEmpty()) {
+                val portrait = context.resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE
+                val size = if (portrait) sizes.minByOrNull { it.width } ?: sizes.first()
+                else sizes.maxByOrNull { it.width } ?: sizes.first()
+                if (size.width > 0 && size.height > 0) {
+                    return size.width to size.height
+                }
+            }
+        }
         val portrait = context.resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE
         val w = options?.getInt(
             if (portrait) AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH else AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,
@@ -73,6 +132,9 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
+        private const val PREVIEW_ATTEMPT_PREFIX = "widget_preview_attempt_"
+        private const val PREVIEW_REFRESH_INTERVAL_MS = 31L * 60L * 1000L
+
         const val ACTION_OPEN_ROUTE = "com.ams.herculex.ACTION_OPEN_ROUTE"
         const val EXTRA_ROUTE = "route"
         const val ACTION_WIDGET_COMMAND = "com.ams.herculex.ACTION_WIDGET_COMMAND"
@@ -96,6 +158,8 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
             "mini" to arrayOf(MiniWorkoutWidgetProvider::class.java),
             "intake" to arrayOf(IntakeTrendWidgetProvider::class.java),
             "cycle" to arrayOf(CycleWidgetProvider::class.java),
+            "sleep" to arrayOf(SleepWidgetProvider::class.java),
+            "steps" to arrayOf(StepsWidgetProvider::class.java),
         )
 
         /** Every widget, for redraws that affect all of them (theme changes). */

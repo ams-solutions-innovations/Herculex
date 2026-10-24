@@ -32,6 +32,7 @@ class _FakeNutritionRepository implements NutritionRepository {
 
 NutritionTargetData _target(int id, int kcal, String appliesTo) =>
     NutritionTargetData(
+      effectiveFromDateIso: '0001-01-01',
       id: id,
       label: 'T$id',
       kcal: kcal,

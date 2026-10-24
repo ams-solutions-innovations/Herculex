@@ -74,10 +74,23 @@ class TilesRenderTest {
         WorkoutStore.saveJson(
             context,
             """[{"id":"1","name":"Pull Day","exercises":[]},
-               {"id":"scheduled_9","name":"Push A","scheduledToday":true,"scheduleTitle":"Push A","exercises":[]}]""",
+               {"id":"scheduled_9","name":"Push A","scheduledToday":true,"scheduleTitle":"Push A","exercises":[]},
+               {"id":"2","name":"LBW I.","exercises":[]}]""",
         )
         assertEquals("scheduled_9", WorkoutStore.getWorkoutsScheduledFirst(context).first().id)
+        val tile = Robolectric.buildService(WorkoutTileService::class.java).create().get()
+        val result = runBlocking { tile.tileRequest(request()) }
+        val protoText = result.toProto().toString()
+        assertTrue(protoText.contains("hx_pill_shimmer"))
+        assertTrue(protoText.contains("Push A"))
+        assertTrue(protoText.contains("Today"))
+        assertTrue(protoText.contains("0 exercises"))
+        assertTrue(protoText.contains("workout_detail/scheduled_9"))
+
+        // Also verify active session (Resume Workout) mode renders cleanly
+        WorkoutStore.saveActiveSession(context, """{"template":{"id":"1","name":"Pull Day","exercises":[]}}""", System.currentTimeMillis() - 125_000L)
         render(WorkoutTileService::class.java)
+        WorkoutStore.clearActiveSession(context)
     }
 
     @Test fun waterTapIsCountedOnceEvenIfTheHostResendsIt() {

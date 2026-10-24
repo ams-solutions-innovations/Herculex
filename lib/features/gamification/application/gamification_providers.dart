@@ -1,12 +1,19 @@
+import 'dart:math' as math;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/in_app_notification_controller.dart';
 import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
+import 'package:herculex/features/gamification/data/level_band_repository.dart';
 import 'package:herculex/features/gamification/data/xp_ledger_repository.dart';
 import 'package:herculex/features/gamification/domain/achievement_evaluator.dart';
+import 'package:herculex/features/gamification/domain/fun_facts/fun_fact_generator.dart';
 import 'package:herculex/features/gamification/domain/level_progress.dart';
+import 'package:herculex/features/gamification/domain/lift_best_extractor.dart';
+import 'package:herculex/features/gamification/domain/strength_percentiles.dart';
+import 'package:herculex/features/gamification/domain/strength_tier_evaluator.dart';
 import 'package:herculex/features/gamification/domain/workout_xp_evaluator.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
@@ -22,11 +29,56 @@ final xpLedgerRepositoryProvider = Provider<XpLedgerRepository>((ref) {
   return repository;
 });
 
+final levelBandRepositoryProvider = Provider<LevelBandRepository>((ref) {
+  return LevelBandRepository(ref.watch(sharedPreferencesProvider));
+});
+
+/// Where the user's benchmark lifts place them, from logged sets plus the
+/// onboarding strength check. Works without a program: any logged squat,
+/// pull-up, etc. counts.
+final strengthAssessmentProvider = FutureProvider<StrengthAssessment>((
+  ref,
+) async {
+  final snapshot = await ref.watch(trainingSnapshotProvider.future);
+  final profile = await ref.watch(profileProvider.future);
+  final bests = const LiftBestExtractor().extract(
+    samples: snapshot.sets.map(LiftSetSample.fromResolved).nonNulls,
+    profileBodyweightKg: profile?.weightKg,
+    survey: profile?.strengthSurvey,
+  );
+  return const StrengthTierEvaluator().evaluate(
+    bests: bests,
+    sex: profile?.sex,
+  );
+});
+
+/// "Top X %" per logged benchmark lift, best first.
+final strengthPercentilesProvider = FutureProvider<List<LiftPercentile>>((
+  ref,
+) async {
+  final assessment = await ref.watch(strengthAssessmentProvider.future);
+  return StrengthPercentiles.evaluate(assessment);
+});
+
+/// One real-world comparison for the profile ("today you squatted 3 cars"),
+/// or null when nothing is worth saying yet.
+final funFactProvider = FutureProvider<FunFact?>((ref) async {
+  final snapshot = await ref.watch(trainingSnapshotProvider.future);
+  final clock = ref.watch(clockProvider);
+  return const FunFactGenerator().generate(
+    snapshot: snapshot,
+    asOf: clock.now(),
+  );
+});
+
 final levelProgressProvider = StreamProvider<LevelProgress>((ref) async* {
   final ledger = ref.watch(xpLedgerRepositoryProvider);
+  final bands = ref.watch(levelBandRepositoryProvider);
+  final clock = ref.watch(clockProvider);
   final completedSessionsAsync = ref.watch(completedSessionsProvider);
   final snapshotAsync = ref.watch(trainingSnapshotProvider);
   final profile = ref.watch(profileProvider).valueOrNull;
+  final strengthFuture = ref.watch(strengthAssessmentProvider.future);
 
   final sessions = completedSessionsAsync.valueOrNull;
   if (sessions != null && sessions.isNotEmpty) {
@@ -38,10 +90,34 @@ final levelProgressProvider = StreamProvider<LevelProgress>((ref) async* {
     );
   }
 
-  final activeIds = sessions?.map((s) => s.id).toList();
-  yield ledger.getProgressForActiveSessions(activeIds);
+  StrengthAssessment strength;
+  try {
+    strength = await strengthFuture;
+  } catch (_) {
+    // A failed snapshot keeps the stored band rather than blanking the rank.
+    strength = StrengthAssessment.empty;
+  }
 
-  yield* ledger.watch();
+  final activeIds = sessions?.map((s) => s.id).toList();
+  Future<LevelProgress> resolve() async {
+    final xp = ledger.getProgressForActiveSessions(activeIds);
+    final entry = await bands.promoteIfHigher(
+      band: strength.tier,
+      totalXp: xp.totalXp,
+      at: clock.now(),
+    );
+    return LevelProgress(
+      band: entry.band,
+      xpInBand: math.max(0, xp.totalXp - entry.xpAtEntry),
+      totalXp: xp.totalXp,
+      completedWorkouts: xp.completedWorkouts,
+    );
+  }
+
+  yield await resolve();
+  await for (final _ in ledger.watch().skip(1)) {
+    yield await resolve();
+  }
 });
 
 final xpLedgerEntriesProvider = Provider<List<XpLedgerEntry>>((ref) {

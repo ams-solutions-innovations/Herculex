@@ -9,4 +9,18 @@
     <!-- Home-screen widget placeholder, before the first draw. -->
     <color name="widget_hx_surface">#111824</color>
     <color name="widget_hx_outline">#4D2B374E</color>
+    <color name="widget_hx_primary">#0A84FF</color>
+    <color name="widget_hx_on_primary">#FFFFFF</color>
+    <color name="widget_hx_on_surface">#FFFFFF</color>
+    <color name="widget_hx_secondary">#94A3B8</color>
+    <color name="widget_hx_surface_variant">#202A3C</color>
+    <color name="widget_hx_kcal">#FF453A</color>
+    <color name="widget_hx_protein">#4DA3FF</color>
+    <color name="widget_hx_carbs">#34C759</color>
+    <color name="widget_hx_fat">#FFD60A</color>
+    <color name="widget_hx_success">#30D158</color>
+    <color name="widget_hx_warning">#FF9F0A</color>
+    <color name="widget_hx_danger">#FF453A</color>
+    <color name="widget_hx_recovery">#BF5AF2</color>
+    <color name="widget_hx_fasting">#64D2FF</color>
 </resources>

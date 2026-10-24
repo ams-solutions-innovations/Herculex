@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:herculex/core/utils/units.dart';
+import 'package:herculex/features/gamification/domain/strength_survey.dart';
 
 enum FitnessGoal {
   weightLoss,
@@ -21,23 +22,27 @@ enum FitnessGoal {
 }
 
 enum ActivityLevel {
+  autocalibrator,
   sedentary,
   lightlyActive,
   active,
   veryActive;
 
   String get label => switch (this) {
+    ActivityLevel.autocalibrator => 'Auto-calibrator',
     ActivityLevel.sedentary => 'Sedentary',
     ActivityLevel.lightlyActive => 'Lightly Active',
     ActivityLevel.active => 'Active',
     ActivityLevel.veryActive => 'Very Active',
   };
 
-  static ActivityLevel fromLabel(String label) =>
-      ActivityLevel.values.firstWhere(
-        (a) => a.label == label,
-        orElse: () => ActivityLevel.lightlyActive,
-      );
+  static ActivityLevel fromLabel(String label) => switch (label) {
+    'Auto-calibrator' || 'Autocalibrator' => ActivityLevel.autocalibrator,
+    _ => ActivityLevel.values.firstWhere(
+      (a) => a.label == label,
+      orElse: () => ActivityLevel.lightlyActive,
+    ),
+  };
 }
 
 enum BiologicalSex {
@@ -52,6 +57,7 @@ enum BiologicalSex {
 
 class Profile {
   final String? name;
+  final String? avatarId;
   final FitnessGoal goal;
   final ActivityLevel activityLevel;
   final int? ageYears;
@@ -68,8 +74,12 @@ class Profile {
   final double? armSpanCm;
   final double? torsoCm;
 
+  /// Optional onboarding strength check; seeds the Herculex rank band.
+  final StrengthSurvey? strengthSurvey;
+
   const Profile({
     this.name,
+    this.avatarId,
     required this.goal,
     required this.activityLevel,
     this.ageYears,
@@ -83,6 +93,7 @@ class Profile {
     this.inseamCm,
     this.armSpanCm,
     this.torsoCm,
+    this.strengthSurvey,
   });
 
   bool get isComplete =>
@@ -90,6 +101,8 @@ class Profile {
 
   Profile copyWith({
     String? name,
+    String? avatarId,
+    bool clearAvatarId = false,
     FitnessGoal? goal,
     ActivityLevel? activityLevel,
     int? ageYears,
@@ -103,10 +116,12 @@ class Profile {
     double? inseamCm,
     double? armSpanCm,
     double? torsoCm,
+    StrengthSurvey? strengthSurvey,
     bool clearTargetWeight = false,
   }) {
     return Profile(
       name: name ?? this.name,
+      avatarId: clearAvatarId ? null : (avatarId ?? this.avatarId),
       goal: goal ?? this.goal,
       activityLevel: activityLevel ?? this.activityLevel,
       ageYears: ageYears ?? this.ageYears,
@@ -123,11 +138,13 @@ class Profile {
       inseamCm: inseamCm ?? this.inseamCm,
       armSpanCm: armSpanCm ?? this.armSpanCm,
       torsoCm: torsoCm ?? this.torsoCm,
+      strengthSurvey: strengthSurvey ?? this.strengthSurvey,
     );
   }
 
   Map<String, dynamic> toJson() => {
     'name': name,
+    'avatarId': avatarId,
     'goal': goal.name,
     'activityLevel': activityLevel.name,
     'ageYears': ageYears,
@@ -141,14 +158,22 @@ class Profile {
     'inseamCm': inseamCm,
     'armSpanCm': armSpanCm,
     'torsoCm': torsoCm,
+    'strengthSurvey': strengthSurvey?.toJson(),
   };
 
   factory Profile.fromJson(Map<String, dynamic> json) => Profile(
     name: (json['name'] as String?)?.trim().isEmpty ?? true
         ? null
         : (json['name'] as String).trim(),
+    avatarId: (json['avatarId'] as String?)?.trim().isEmpty ?? true
+        ? null
+        : (json['avatarId'] as String).trim(),
     goal: FitnessGoal.values.byName(json['goal'] as String),
-    activityLevel: ActivityLevel.values.byName(json['activityLevel'] as String),
+    activityLevel:
+        ActivityLevel.values
+            .where((a) => a.name == json['activityLevel'])
+            .firstOrNull ??
+        ActivityLevel.fromLabel(json['activityLevel'] as String? ?? ''),
     ageYears: json['ageYears'] as int?,
     weightKg:
         (json['weightKg'] as num?)?.toDouble() ??
@@ -170,6 +195,11 @@ class Profile {
     inseamCm: (json['inseamCm'] as num?)?.toDouble(),
     armSpanCm: (json['armSpanCm'] as num?)?.toDouble(),
     torsoCm: (json['torsoCm'] as num?)?.toDouble(),
+    strengthSurvey: json['strengthSurvey'] is Map<String, dynamic>
+        ? StrengthSurvey.fromJson(
+            json['strengthSurvey'] as Map<String, dynamic>,
+          )
+        : null,
   );
 
   String encode() => jsonEncode(toJson());

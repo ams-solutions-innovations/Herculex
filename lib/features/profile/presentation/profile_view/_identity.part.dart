@@ -2,59 +2,54 @@ part of '../profile_view.dart';
 
 class _AvatarHeader extends StatelessWidget {
   final Profile? profile;
+  final String? avatarId;
   final VoidCallback onEdit;
+  final VoidCallback onPickAvatar;
 
-  const _AvatarHeader({required this.profile, required this.onEdit});
+  const _AvatarHeader({
+    required this.profile,
+    required this.avatarId,
+    required this.onEdit,
+    required this.onPickAvatar,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final name = profile?.name?.trim() ?? '';
+    final avatar = GreekAvatars.findById(avatarId ?? profile?.avatarId);
+    final accent = avatar?.accentColor ?? context.hx.primary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         GestureDetector(
-          onTap: onEdit,
+          onTap: onPickAvatar,
           child: Stack(
             alignment: Alignment.bottomRight,
             children: [
-              Container(
-                width: 96,
-                height: 96,
-                decoration: BoxDecoration(
-                  color: context.hx.primary.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: context.hx.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: name.isEmpty
-                    ? Icon(
-                        Icons.person_rounded,
-                        size: 48,
-                        color: context.hx.primary,
-                      )
-                    : Text(
-                        name[0].toUpperCase(),
-                        style: theme.textTheme.displayMedium?.copyWith(
-                          color: context.hx.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+              GreekAvatarBadge(
+                avatarId: avatar?.id,
+                name: name,
+                size: 108,
+                showGlow: true,
+                borderWidth: 2.5,
               ),
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: context.hx.primary,
+                  color: accent,
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: theme.colorScheme.surface,
-                    width: 2,
+                    width: 2.2,
                   ),
                 ),
-                child: const Icon(Icons.edit, size: 14, color: Colors.white),
+                child: Icon(
+                  avatar != null ? Icons.auto_awesome_rounded : Icons.edit,
+                  size: 15,
+                  color: Colors.black,
+                ),
               ),
             ],
           ),
@@ -62,13 +57,88 @@ class _AvatarHeader extends StatelessWidget {
         const SizedBox(height: 14),
         GestureDetector(
           onTap: onEdit,
-          child: Text(
-            name.isEmpty ? 'My Profile' : name,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.displayMedium,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  name.isEmpty ? 'My Profile' : name,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.displayMedium,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                Icons.edit_outlined,
+                size: 18,
+                color: context.hx.onSurfaceVariant,
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 4),
+        if (avatar != null) ...[
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: onPickAvatar,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(99),
+                border: Border.all(color: accent.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.bolt_rounded, size: 14, color: accent),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${avatar.name} · ${avatar.title}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: accent,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ] else ...[
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: onPickAvatar,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: context.hx.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(99),
+                border: Border.all(
+                  color: context.hx.primary.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 14,
+                    color: context.hx.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Choose Greek god / titan',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: context.hx.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 6),
         Text(
           profile != null ? profile!.activityLevel.label : 'Set your stats',
           textAlign: TextAlign.center,
@@ -81,12 +151,17 @@ class _AvatarHeader extends StatelessWidget {
   }
 }
 
-/// Name editor reached by tapping the avatar. Picture selection is offered
-/// here too; it is currently a placeholder because the profile model stores no
-/// image path yet.
+class _IdentityResult {
+  final String name;
+  final String? avatarId;
+  const _IdentityResult({required this.name, required this.avatarId});
+}
+
+/// Name & Greek avatar editor reached by tapping the name or edit button.
 class _IdentitySheet extends StatefulWidget {
   final String initialName;
-  const _IdentitySheet({required this.initialName});
+  final String? initialAvatarId;
+  const _IdentitySheet({required this.initialName, this.initialAvatarId});
 
   @override
   State<_IdentitySheet> createState() => _IdentitySheetState();
@@ -96,6 +171,7 @@ class _IdentitySheetState extends State<_IdentitySheet> {
   late final TextEditingController _ctrl = TextEditingController(
     text: widget.initialName,
   );
+  late String? _avatarId = widget.initialAvatarId;
 
   @override
   void dispose() {
@@ -103,8 +179,27 @@ class _IdentitySheetState extends State<_IdentitySheet> {
     super.dispose();
   }
 
+  Future<void> _openAvatarPicker() async {
+    final res = await GreekAvatarPickerSheet.show(
+      context,
+      currentAvatarId: _avatarId,
+      userName: _ctrl.text,
+    );
+    if (res == null || !mounted) return;
+    setState(() => _avatarId = res.avatarId);
+  }
+
+  void _submit() {
+    Navigator.of(
+      context,
+    ).pop(_IdentityResult(name: _ctrl.text.trim(), avatarId: _avatarId));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final avatar = GreekAvatars.findById(_avatarId);
+    final theme = Theme.of(context);
+
     return HxSheet(
       scrollable: false,
       title: 'Edit profile',
@@ -118,6 +213,33 @@ class _IdentitySheetState extends State<_IdentitySheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Center(
+            child: GestureDetector(
+              onTap: _openAvatarPicker,
+              child: Column(
+                children: [
+                  GreekAvatarBadge(
+                    avatarId: _avatarId,
+                    name: _ctrl.text,
+                    size: 76,
+                    showGlow: true,
+                    borderWidth: 2,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    avatar != null
+                        ? '${avatar.name} · Change avatar'
+                        : 'Choose profile picture (Greek gods & titans)',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: avatar?.accentColor ?? context.hx.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           TextField(
             controller: _ctrl,
             autofocus: true,
@@ -129,11 +251,12 @@ class _IdentitySheetState extends State<_IdentitySheet> {
               ),
               filled: true,
             ),
-            onSubmitted: (v) => Navigator.of(context).pop(v.trim()),
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 16),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(_ctrl.text.trim()),
+            onPressed: _submit,
             style: FilledButton.styleFrom(
               backgroundColor: context.hx.primary,
               foregroundColor: Colors.white,
@@ -341,45 +464,78 @@ class _StatField extends StatelessWidget {
 
 // ── Pill toggle button ────────────────────────────────────────────────────────
 
-class _PillToggle extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _PillToggle({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+/// Biological sex as a row that opens a menu, styled like the activity-level
+/// row, with a male / female icon on each option.
+class _SexDropdown extends StatelessWidget {
+  final BiologicalSex? selected;
+  final ValueChanged<BiologicalSex> onChanged;
+  const _SexDropdown({required this.selected, required this.onChanged});
+
+  static IconData _icon(BiologicalSex sex) => switch (sex) {
+    BiologicalSex.male => Icons.male_rounded,
+    BiologicalSex.female => Icons.female_rounded,
+  };
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        decoration: BoxDecoration(
-          color: selected ? context.hx.primary : context.hx.surfaceContainer,
-          borderRadius: BorderRadius.circular(32),
-          border: Border.all(
-            color: selected
-                ? context.hx.primary
-                : context.hx.outlineVariant.withValues(alpha: 0.5),
-          ),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? Colors.white : context.hx.onSurfaceVariant,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-              fontSize: 14,
+    final hx = context.hx;
+    final current = selected;
+    return PopupMenuButton<BiologicalSex>(
+      tooltip: 'Biological sex',
+      position: PopupMenuPosition.under,
+      onSelected: onChanged,
+      itemBuilder: (_) => [
+        for (final sex in BiologicalSex.values)
+          PopupMenuItem(
+            value: sex,
+            child: Row(
+              children: [
+                Icon(_icon(sex), size: 20, color: hx.primary),
+                const SizedBox(width: 10),
+                Text(
+                  sex.label,
+                  style: TextStyle(
+                    fontWeight: sex == current
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
+              ],
             ),
           ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: hx.surfaceContainer,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              current == null ? Icons.person_outline_rounded : _icon(current),
+              color: hx.primary,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                'Biological sex',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ),
+            Text(
+              current?.label ?? 'Select',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: hx.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.expand_more_rounded, color: hx.onSurfaceVariant),
+          ],
         ),
       ),
     );
   }
 }
-
-// ── Settings card / tile helpers ──────────────────────────────────────────────

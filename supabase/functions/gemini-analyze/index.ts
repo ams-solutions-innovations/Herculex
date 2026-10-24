@@ -19,8 +19,8 @@ import {
   exerciseIdentificationPrompt,
   foodPhotoPrompt,
   nutritionLabelPrompt,
-  programBriefPrompt,
   physiqueCheckinPrompt,
+  programBriefPrompt,
   ramblerFoodPrompt,
   supplementPhotoPrompt,
   weeklyReportPrompt,
@@ -32,9 +32,14 @@ import {
   core as coachingCore,
   KNOWLEDGE_VERSION,
   nutrition,
-  programming,
   recovery,
 } from "./knowledge_base.ts";
+import {
+  PROGRAMMING_SKILLS_VERSION,
+  programmingSkillInstruction,
+  selectProgrammingSkills,
+  validateBriefAgainstProfile,
+} from "./programming_skills.ts";
 import {
   assertNumbersInFacts,
   sanitizeWeeklyReportFacts,
@@ -560,6 +565,7 @@ Deno.serve(async (req) => {
         ) {
           return json({ error: "profileInputs is required." }, 400);
         }
+        const skills = selectProgrammingSkills(payload.profileInputs);
         const generated = await generateJson({
           images: [],
           promptText: programBriefPrompt(
@@ -567,16 +573,18 @@ Deno.serve(async (req) => {
             payload.userNote,
           ),
           temperature: 0.2,
-          // First real consumer of buildSystemInstruction()/knowledge_base.ts's
-          // programming segment — built in Phase 26, unused until now.
-          systemInstruction: programming,
+          systemInstruction: [coachingCore, programmingSkillInstruction(skills)]
+            .join("\n\n"),
         });
         const result = normalizeProgramBriefResult(generated.result);
+        validateBriefAgainstProfile(result, payload.profileInputs);
         return json({
           result,
           provenance: {
             modelVersion: generated.modelVersion,
             knowledgeVersion: KNOWLEDGE_VERSION,
+            programmingSkillsVersion: PROGRAMMING_SKILLS_VERSION,
+            programmingSkills: skills.map((skill) => skill.id),
           },
         });
       }
@@ -619,11 +627,10 @@ Deno.serve(async (req) => {
     // Gemini's HTTP error message contains actionable, non-secret causes
     // (invalid server key, exhausted quota, unavailable model). Returning it
     // lets the app distinguish a configuration problem from a retryable one.
-    const safeMessage =
-      errorMessage.startsWith("Gemini API request failed") ||
-      errorMessage.startsWith("Gemini server authorization failed")
-        ? errorMessage
-        : "Herculex AI analysis failed. Please try again.";
+    const safeMessage = errorMessage.startsWith("Gemini API request failed") ||
+        errorMessage.startsWith("Gemini server authorization failed")
+      ? errorMessage
+      : "Herculex AI analysis failed. Please try again.";
     return json({ error: safeMessage }, 502);
   }
 });
@@ -863,8 +870,14 @@ export function normalizeProgramBriefResult(
     if (!canonicalDayStressRoleIds.has(role)) {
       throw new Error(`Unknown dayRoles[].role: ${role}`);
     }
+    const dayIndex = requiredNumber(value.dayIndex, "dayRoles[].dayIndex");
+    if (!Number.isInteger(dayIndex) || dayIndex < 0 || dayIndex > 6) {
+      throw new Error(
+        "Program brief day indices must be whole numbers from 0 to 6.",
+      );
+    }
     return {
-      dayIndex: requiredNumber(value.dayIndex, "dayRoles[].dayIndex"),
+      dayIndex,
       role,
       focus: requiredString(value.focus, "dayRoles[].focus"),
       rationale: requiredString(value.rationale, "dayRoles[].rationale"),
@@ -875,6 +888,9 @@ export function normalizeProgramBriefResult(
     !Array.isArray(raw.musclePriorities) || raw.musclePriorities.length === 0
   ) {
     throw new Error("Program brief has no musclePriorities.");
+  }
+  if (new Set(dayRoles.map((day) => day.dayIndex)).size !== dayRoles.length) {
+    throw new Error("Program brief contains duplicate day indices.");
   }
   const musclePriorities = raw.musclePriorities.map((item) => {
     const value = objectValue(item, "program brief muscle priority");
@@ -1102,7 +1118,8 @@ export async function bumpUsage(
   }
 
   return {
-    error: "Herculex AI usage tracking is unavailable. Please try again shortly.",
+    error:
+      "Herculex AI usage tracking is unavailable. Please try again shortly.",
   };
 }
 
@@ -1193,7 +1210,9 @@ export async function generate({
   responseMimeType?: string;
   tools?: Record<string, unknown>[];
   systemInstruction?: string;
-}): Promise<{ text: string; groundingSources: string[]; modelVersion: string }> {
+}): Promise<
+  { text: string; groundingSources: string[]; modelVersion: string }
+> {
   const parts: Record<string, unknown>[] = [{ text: promptText }];
   for (const img of images) {
     parts.push({
@@ -1247,12 +1266,17 @@ export async function generate({
     } catch {
       // Non-JSON error pages must not replace the stable public message.
     }
-    if (response.status === 401 && /expected oauth|authentication credentials/i.test(detail)) {
+    if (
+      response.status === 401 &&
+      /expected oauth|authentication credentials/i.test(detail)
+    ) {
       throw new Error(
         "Gemini server authorization failed. Configure GEMINI_API_KEY with a valid Google AI Studio API key and redeploy the function.",
       );
     }
-    throw new Error(`Gemini API request failed (${response.status}): ${detail}`);
+    throw new Error(
+      `Gemini API request failed (${response.status}): ${detail}`,
+    );
   }
 
   const root = await response.json();
@@ -1333,7 +1357,11 @@ async function generateGroundedJson({
   image: ValidImage;
   promptText: string;
 }): Promise<
-  { result: Record<string, unknown>; groundingSources: string[]; modelVersion: string }
+  {
+    result: Record<string, unknown>;
+    groundingSources: string[];
+    modelVersion: string;
+  }
 > {
   try {
     const { text, groundingSources, modelVersion } = await generate({

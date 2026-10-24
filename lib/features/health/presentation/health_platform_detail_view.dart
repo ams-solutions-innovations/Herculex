@@ -2,6 +2,8 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
@@ -601,10 +603,34 @@ class _HealthPlatformDetailViewState
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(
-              item.label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
+            child: InkWell(
+              onTap: item.label.toLowerCase().contains('sleep')
+                  ? () => context.push(AppRoutes.sleep)
+                  : item.label.toLowerCase().contains('step')
+                  ? () => context.push(AppRoutes.steps)
+                  : null,
+              borderRadius: BorderRadius.circular(8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.label,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  if (item.label.toLowerCase().contains('sleep') ||
+                      item.label.toLowerCase().contains('step'))
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: _accentColor,
+                      ),
+                    ),
+                ],
               ),
             ),
           ),

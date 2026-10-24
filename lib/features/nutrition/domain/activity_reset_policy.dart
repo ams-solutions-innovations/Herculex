@@ -1,4 +1,5 @@
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
 
 /// What the Profile ActivityLevel picker should do when a tile is tapped.
 enum ActivityResetAction {
@@ -38,6 +39,8 @@ abstract final class ActivityResetPolicy {
   static const String _snackbarOther =
       "Saved. We'll use this as the starting point at the next "
       'recalibration.';
+  static const String _snackbarAutocalibrator =
+      'Saved. Herculex will calculate your TDEE automatically from your logs.';
 
   /// True once a non-coldStart estimate exists (classifier or observed,
   /// fresh or held).
@@ -54,8 +57,12 @@ abstract final class ActivityResetPolicy {
   static ActivityResetAction actionFor({
     required bool isSameLevel,
     required bool calibrated,
+    ActivityLevel? picked,
   }) {
     if (isSameLevel) return ActivityResetAction.none;
+    if (picked == ActivityLevel.autocalibrator) {
+      return ActivityResetAction.saveNow;
+    }
     return calibrated
         ? ActivityResetAction.confirm
         : ActivityResetAction.saveNow;
@@ -64,6 +71,10 @@ abstract final class ActivityResetPolicy {
   static String caption({required bool calibrated}) =>
       calibrated ? _captionCalibrated : _captionCalibrating;
 
-  static String snackbar({required bool measured}) =>
-      measured ? _snackbarMeasured : _snackbarOther;
+  static String snackbar({required bool measured, ActivityLevel? level}) {
+    if (level == ActivityLevel.autocalibrator) {
+      return _snackbarAutocalibrator;
+    }
+    return measured ? _snackbarMeasured : _snackbarOther;
+  }
 }

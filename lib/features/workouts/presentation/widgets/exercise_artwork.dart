@@ -38,7 +38,8 @@ String? exerciseArtworkAssetFor(Iterable<ExerciseCatalogData> exercises) {
 }
 
 class ExerciseArtwork extends StatelessWidget {
-  final ExerciseCatalogData exercise;
+  final ExerciseCatalogData? exercise;
+  final String? slug;
   final double size;
   final double radius;
   final Color? fallbackColor;
@@ -47,7 +48,18 @@ class ExerciseArtwork extends StatelessWidget {
 
   const ExerciseArtwork({
     super.key,
-    required this.exercise,
+    required ExerciseCatalogData this.exercise,
+    this.size = 48,
+    this.radius = 12,
+    this.fallbackColor,
+    this.glyphColor,
+    this.equipmentVariant,
+  }) : slug = null;
+
+  const ExerciseArtwork.fromSlug({
+    super.key,
+    required this.slug,
+    this.exercise,
     this.size = 48,
     this.radius = 12,
     this.fallbackColor,
@@ -57,9 +69,11 @@ class ExerciseArtwork extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final asset = exerciseArtworkAsset(exercise);
+    final asset = exercise != null
+        ? exerciseArtworkAsset(exercise!)
+        : exerciseArtworkAssetForSlug(slug);
     final theme = Theme.of(context);
-    final equipmentStr = equipmentVariant ?? exercise.equipment;
+    final equipmentStr = equipmentVariant ?? exercise?.equipment ?? 'barbell';
     final bg =
         fallbackColor ??
         (theme.brightness == Brightness.dark

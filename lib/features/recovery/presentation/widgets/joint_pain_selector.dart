@@ -138,6 +138,12 @@ class _JointPainSheetState extends ConsumerState<_JointPainSheet> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => _save(0),
+                    // Theme padding (24) wrapped the label next to Save.
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: HxSpace.x3,
+                      ),
+                    ),
                     child: const Text('Mark as resolved'),
                   ),
                 ),

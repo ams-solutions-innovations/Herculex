@@ -1,7 +1,14 @@
 package com.ams.herculex.workout
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -19,8 +27,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,10 +39,15 @@ import androidx.navigation.NavController
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.itemsIndexed
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.dialog.Dialog
+import com.ams.herculex.ui.HxIcons
 import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
+
+private val ActiveHeartColor = Color(0xFFFF453A)
+private val ActiveFlameColor = Color(0xFFFFA726)
 
 @Composable
 fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewModel) {
@@ -63,11 +78,42 @@ fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewMode
     val seconds = elapsed % 60
     val hrDisplay = if (heartRate > 0) "$heartRate" else "-"
 
+    val beat by rememberInfiniteTransition(label = "activeWorkoutBeat").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1070, easing = LinearEasing), RepeatMode.Reverse),
+        label = "activeWorkoutBeatValue",
+    )
+
+    var dragX by remember { mutableStateOf(0f) }
     ScalingLazyColumn(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            // Swipe right = back ("nazaj"); swipe left = jump into current exercise
+            // (the nav host's swipe-to-dismiss is disabled on this route, see MainActivity).
+            .pointerInput(s.currentExerciseIndex) {
+                detectHorizontalDragGestures(
+                    onDragStart = { dragX = 0f },
+                    onDragEnd = {
+                        if (dragX > 60f) {
+                            if (!navController.popBackStack()) {
+                                navController.navigate("home")
+                            }
+                        } else if (dragX < -60f) {
+                            val idx = s.currentExerciseIndex.coerceIn(0, (s.exercises.size - 1).coerceAtLeast(0))
+                            if (s.exercises.isNotEmpty()) {
+                                viewModel.selectExerciseInSession(idx)
+                                navController.navigate("set_logger/$idx")
+                            }
+                        }
+                        dragX = 0f
+                    },
+                    onDragCancel = { dragX = 0f },
+                    onHorizontalDrag = { _, delta -> dragX += delta },
+                )
+            }
             .attachRotaryScroll(listState),
         autoCentering = null,
         contentPadding = PaddingValues(top = 40.dp, bottom = 48.dp, start = 14.dp, end = 14.dp),
@@ -90,13 +136,23 @@ fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewMode
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text("❤️", fontSize = 13.sp)
-                        Text(hrDisplay, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(
+                            HxIcons.Heart,
+                            contentDescription = null,
+                            tint = ActiveHeartColor,
+                            modifier = Modifier.size(14.dp).scale(1f + 0.14f * beat),
+                        )
+                        Text(hrDisplay, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text("🔥", fontSize = 13.sp)
-                        Text("-", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(
+                            HxIcons.Flame,
+                            contentDescription = null,
+                            tint = ActiveFlameColor,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text("-", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -153,7 +209,7 @@ fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewMode
                     isTimeBased && durationStr != null && weight > 0 -> "$weightStr kg • $durationStr"
                     isTimeBased && durationStr != null -> durationStr
                     isBodyweight && reps > 0 -> "$reps reps"
-                    weight > 0 && reps > 0 -> "$weightStr kg × $reps"
+                    weight > 0 && reps > 0 -> "${if (exercise.template.isAssistanceLoad()) "Assist " else ""}$weightStr kg × $reps"
                     weight > 0 -> "$weightStr kg"
                     reps > 0 -> "$reps reps"
                     exercise.template.performanceHint != null -> exercise.template.performanceHint

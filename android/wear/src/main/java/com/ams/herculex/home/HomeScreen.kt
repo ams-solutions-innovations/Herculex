@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +28,7 @@ import androidx.navigation.NavController
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Text
+import com.ams.herculex.nutrition.FastingStages
 import com.ams.herculex.nutrition.NutritionViewModel
 import com.ams.herculex.sync.SyncService
 import com.ams.herculex.ui.HxIcons
@@ -53,6 +55,7 @@ fun HomeScreen(
     val elapsed by workoutViewModel.elapsedSeconds.collectAsState()
 
     LaunchedEffect(Unit) {
+        nutritionViewModel.refresh()
         SyncService.requestSyncFromPhone(context)
     }
 
@@ -136,6 +139,20 @@ fun HomeScreen(
             )
         }
 
+        // CNS Readiness Pill
+        item {
+            val cnsReadiness = remember { com.ams.herculex.sync.CnsStore.readinessPct(context) }
+            val cnsStatus = remember { com.ams.herculex.sync.CnsStore.status(context) }
+            OneUiPill(
+                title = "CNS Readiness",
+                statValue = "$cnsReadiness%",
+                statLabel = cnsStatus,
+                iconVector = HxIcons.Heart,
+                style = if (cnsReadiness >= 70) OneUiPillStyle.EmeraldGreen else if (cnsReadiness >= 40) OneUiPillStyle.RoyalBlue else OneUiPillStyle.Terracotta,
+                onClick = { navController.navigate("cns") },
+            )
+        }
+
         // Nutrition Pill Card (One UI Terracotta / Slate Card with Macro Breakdown)
         item {
             OneUiPillCard(onClick = { navController.navigate("nutrition") }) {
@@ -176,7 +193,7 @@ fun HomeScreen(
             val nowMs = System.currentTimeMillis()
             val (statVal, statLab, subtitleText) = when {
                 fastingSnap.hasActiveFast -> {
-                    val stage = fastingSnap.currentStageMessage
+                    val stage = FastingStages.formatShortEnglish(fastingSnap.currentStageMessage, fastingSnap.elapsedSeconds(nowMs))
                     Triple(fastingSnap.elapsedText(nowMs), "Elapsed", stage)
                 }
                 fastingSnap.nextFastEpochMs != null -> {

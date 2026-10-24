@@ -1,10 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/in_app_notification_controller.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/health/application/health_providers.dart';
 import 'package:herculex/features/health/data/health_service.dart';
 import 'package:herculex/features/workouts/application/calendar_providers.dart';
+import 'package:herculex/features/workouts/application/calisthenics_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/data/calisthenics_progression_repository.dart';
 import 'package:herculex/features/workouts/data/wear_workout_sync_service.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:herculex/features/workouts/domain/calendar_service.dart';
@@ -38,6 +42,8 @@ class FinishWorkoutAction {
     required DateTime now,
     required double bodyweightKg,
     required void Function(int sessionId) clearEditedEndedAt,
+    required CalisthenicsProgressionRepository calisthenics,
+    required InAppNotificationNotifier notices,
   }) : _repository = repository,
        _healthService = healthService,
        _wearSync = wearSync,
@@ -45,7 +51,9 @@ class FinishWorkoutAction {
        _isCalendarSyncEnabled = isCalendarSyncEnabled,
        _now = now,
        _bodyweightKg = bodyweightKg,
-       _clearEditedEndedAt = clearEditedEndedAt;
+       _clearEditedEndedAt = clearEditedEndedAt,
+       _calisthenics = calisthenics,
+       _notices = notices;
 
   /// Resolves every dependency eagerly. **Call this before the first `await`**
   /// in the handler that finishes a workout.
@@ -72,6 +80,8 @@ class FinishWorkoutAction {
         copy.remove(sessionId);
         return copy;
       }),
+      calisthenics: ref.read(calisthenicsProgressionRepositoryProvider),
+      notices: ref.read(inAppNotificationControllerProvider.notifier),
     );
   }
 
@@ -85,6 +95,8 @@ class FinishWorkoutAction {
   final DateTime _now;
   final double _bodyweightKg;
   final void Function(int sessionId) _clearEditedEndedAt;
+  final CalisthenicsProgressionRepository _calisthenics;
+  final InAppNotificationNotifier _notices;
 
   /// MET-based estimate: ~5 METs for general resistance training.
   int caloriesFor(Duration duration) {
@@ -118,8 +130,26 @@ class FinishWorkoutAction {
 
     // From here the calling widget is already disposed. Nothing below may
     // touch `ref` or a `BuildContext`.
+    if (endedAt == null && session.endedAt == null) {
+      try {
+        for (final recommendation in await _calisthenics.newlyReady(
+          session.id,
+        )) {
+          _notices.show(
+            InAppNotificationItem.info(
+              label: recommendation.path.label,
+              value: 'Ready to try ${recommendation.target.label}',
+              duration: const Duration(seconds: 6),
+            ),
+          );
+        }
+      } catch (_) {
+        // Optional coaching must never prevent a saved workout finishing.
+      }
+    }
     try {
       await _healthService.writeWorkoutToHealth(
+        workoutSessionId: session.id,
         activityName: finalName?.isNotEmpty == true
             ? finalName!
             : (session.name ?? 'Workout'),

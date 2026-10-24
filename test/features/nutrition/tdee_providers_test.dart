@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
@@ -11,7 +10,6 @@ import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
 import 'package:herculex/features/physique/application/effective_goal_provider.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
-
 import '../../support/test_database.dart';
 
 class _FixedClock implements Clock {
@@ -254,6 +252,7 @@ void main() {
       addTearDown(db.close);
 
       const saved = NutritionTargetData(
+        effectiveFromDateIso: '0001-01-01',
         id: 1,
         label: 'Manual',
         kcal: 2222,

@@ -380,7 +380,7 @@ class _FastingStageCard extends ConsumerWidget {
                     Row(
                       children: [
                         Text(
-                          "FAZA TELESA · ${stage.hour}. URA",
+                          "BODY STAGE · HOUR ${stage.hour}",
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: accent,
                             fontWeight: FontWeight.bold,
@@ -454,7 +454,7 @@ class _FastingStageCard extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "Prikaži vse faze posta (6h–72h)",
+                    "View all fasting stages (6h–72h)",
                     style: TextStyle(
                       color: accent,
                       fontWeight: FontWeight.bold,
@@ -515,13 +515,13 @@ class _FastingStageCard extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Faze in spremembe v telesu",
+                            "Fasting Stages & Body Changes",
                             style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
-                            "Kaj se dogaja v telesu od 1h do 72h posta",
+                            "What happens in your body from 1h to 72h of fasting",
                             style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
                               color: hx.secondary,
                             ),
@@ -634,7 +634,7 @@ class _FastingStageCard extends ConsumerWidget {
                                             ),
                                           ),
                                           child: const Text(
-                                            "ZDAJ",
+                                            "NOW",
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 9,

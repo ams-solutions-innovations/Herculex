@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
+import 'package:herculex/features/programs/domain/session_completion.dart';
+import 'package:herculex/features/workout_report/application/workout_report_providers.dart';
 
-/// Colour for a scheduled session's status chip and calendar dot.
-Color scheduleStatusColor(String status) => switch (status) {
-  ScheduleStatus.done => const Color(0xFF34C759),
-  ScheduleStatus.inProgress => const Color(0xFFFF9F0A),
-  ScheduleStatus.skipped => AppColors.outlineVariant,
-  ScheduleStatus.moved => const Color(0xFFAF52DE),
-  _ => AppColors.primary,
-};
+/// Colour of a session that was trained but not to the end.
+const partialSessionColor = Color(0xFFFFCC00);
+
+/// Colour for a scheduled session's status chip and calendar dot. [partial]
+/// is the trained-but-incomplete shade of done.
+Color scheduleStatusColor(String status, {bool partial = false}) =>
+    switch (status) {
+      ScheduleStatus.done when partial => partialSessionColor,
+      ScheduleStatus.done => const Color(0xFF34C759),
+      ScheduleStatus.inProgress => const Color(0xFFFF9F0A),
+      ScheduleStatus.skipped => AppColors.outlineVariant,
+      ScheduleStatus.moved => const Color(0xFFAF52DE),
+      _ => AppColors.primary,
+    };
 
 /// One scheduled session, as shown on the week board and in the day sheet.
 ///
@@ -19,7 +28,7 @@ Color scheduleStatusColor(String status) => switch (status) {
 /// the enclosing `ReorderableListView` (reorder within a day), while dragging
 /// the tile *body* long-press moves it to another day. Handle-vs-body keeps the
 /// two gestures from competing.
-class SessionTile extends StatelessWidget {
+class SessionTile extends ConsumerWidget {
   const SessionTile({
     super.key,
     required this.row,
@@ -37,9 +46,15 @@ class SessionTile extends StatelessWidget {
   final bool compact;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final color = scheduleStatusColor(row.status);
+    final completion = row.isDone
+        ? (ref.watch(scheduleCompletionProvider).value?[row.id])
+        : null;
+    final color = scheduleStatusColor(
+      row.status,
+      partial: SessionCompletion.isPartial(completion),
+    );
     final dimmed = row.isSkipped || row.isDone;
 
     return Opacity(
@@ -94,7 +109,7 @@ class SessionTile extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      _Subtitle(row: row),
+                      _Subtitle(row: row, completion: completion),
                     ],
                   ),
                 ),
@@ -129,9 +144,10 @@ class SessionTile extends StatelessWidget {
 }
 
 class _Subtitle extends StatelessWidget {
-  const _Subtitle({required this.row});
+  const _Subtitle({required this.row, this.completion});
 
   final ScheduledWorkoutRow row;
+  final double? completion;
 
   @override
   Widget build(BuildContext context) {
@@ -156,6 +172,9 @@ class _Subtitle extends StatelessWidget {
       );
     }
     if (row.status != ScheduleStatus.planned) parts.add(row.statusLabel);
+    if (SessionCompletion.isPartial(completion)) {
+      parts.add(SessionCompletion.label(completion!));
+    }
 
     return Row(
       children: [

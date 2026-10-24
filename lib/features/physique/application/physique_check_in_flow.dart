@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
@@ -87,7 +85,9 @@ class PhysiqueCheckInFlow {
     void Function(CheckInProgressStep step)? onProgress,
   }) {
     onProgress?.call(CheckInProgressStep.removingLocation);
-    if (blurFaces) onProgress?.call(CheckInProgressStep.checkingFaces);
+    if (blurFaces) {
+      onProgress?.call(CheckInProgressStep.checkingFaces);
+    }
     return _sanitizer.stage(source, blurFaces: blurFaces);
   }
 
@@ -101,34 +101,66 @@ class PhysiqueCheckInFlow {
     return uuid;
   }
 
-  /// Baseline photos need no cap and no AI call.
-  Future<CheckInOutcome> saveBaseline({
-    required PhysiqueGoalData goal,
-    required StagedPhoto staged,
-    required String pose,
-  }) async {
-    final relative = await _store.adopt(staged.file, goalUuid: _goalUuid(goal));
+  /// Copies first, then commits metadata atomically. Staging survives a failure.
+  Future<List<NewPhotoRow>> _copyPhotos(
+    PhysiqueGoalData goal,
+    List<StagedPosePhoto> photos,
+  ) async {
+    final rows = <NewPhotoRow>[];
     try {
-      final id = await _assessments.addBaselinePhoto(
-        goalId: goal.id,
-        photo: NewPhotoRow(
-          pose: pose,
-          relativePath: relative,
-          takenAt: _clock.now(),
-          blurred: staged.blurApplied,
-        ),
-      );
-      return BaselineSaved(id);
+      for (final p in photos) {
+        final relative = await _store.copyIntoGoal(
+          p.photo.file,
+          goalUuid: _goalUuid(goal),
+        );
+        rows.add(
+          NewPhotoRow(
+            pose: p.pose,
+            relativePath: relative,
+            takenAt: _clock.now(),
+            blurred: p.photo.blurApplied,
+          ),
+        );
+      }
+      return rows;
     } on Object {
-      await _store.delete(relative);
+      for (final row in rows) {
+        await _store.delete(row.relativePath);
+      }
       rethrow;
     }
   }
 
+  Future<CheckInOutcome> saveBaseline({
+    required PhysiqueGoalData goal,
+    StagedPhoto? staged,
+    String pose = 'front',
+    List<StagedPosePhoto> photos = const [],
+  }) async {
+    final batch = StagedPosePhoto.checked(
+      photos: photos,
+      staged: staged,
+      pose: pose,
+    );
+    final rows = await _copyPhotos(goal, batch);
+    late final List<int> ids;
+    try {
+      ids = await _assessments.addBaselinePhotos(goalId: goal.id, photos: rows);
+    } on Object {
+      for (final row in rows) {
+        await _store.delete(row.relativePath);
+      }
+      rethrow;
+    }
+    await _discardCommitted(batch);
+    return BaselineSaved(ids.first);
+  }
+
   Future<CheckInOutcome> completeCheckIn({
     required PhysiqueGoalData goal,
-    required StagedPhoto staged,
-    required String pose,
+    StagedPhoto? staged,
+    String pose = 'front',
+    List<StagedPosePhoto> photos = const [],
     required DietPhase phase,
     required int weeksInPhase,
     required bool analyze,
@@ -137,23 +169,21 @@ class PhysiqueCheckInFlow {
     double? weeklyTrendKg,
     void Function(CheckInProgressStep step)? onProgress,
   }) async {
-    final goalUuid = _goalUuid(goal);
-
-    // Pre-check only; recordCheckIn re-checks inside its transaction.
+    final batch = StagedPosePhoto.checked(
+      photos: photos,
+      staged: staged,
+      pose: pose,
+    );
     final last = await _assessments.lastCheckInAt(goal.id);
-    final now = _clock.now();
-    if (!CheckInCapPolicy.isEligible(now: now, lastCheckInAt: last)) {
+    if (!CheckInCapPolicy.isEligible(now: _clock.now(), lastCheckInAt: last)) {
       throw CheckInTooSoonException(
         nextEligibleDate: CheckInCapPolicy.nextEligibleDate(last)!,
       );
     }
-
     if (!analyze) {
       return _persist(
         goal: goal,
-        goalUuid: goalUuid,
-        staged: staged,
-        pose: pose,
+        photos: batch,
         weightKg: weightKg,
         verdict: CheckInVerdict.inconclusive,
         evidence: null,
@@ -162,14 +192,12 @@ class PhysiqueCheckInFlow {
         onProgress: onProgress,
       );
     }
-
     if (!consentGranted) {
       throw const PhysiqueCheckInException(
         PhysiqueCheckInFailure.consentRequired,
         'Confirm the photo privacy notice before starting the analysis.',
       );
     }
-
     final baselines = await _loadBaselines(goal.id);
     if (baselines.isEmpty) {
       return const CheckInAiUnavailable(
@@ -177,14 +205,21 @@ class PhysiqueCheckInFlow {
         _noBaselineMessage,
       );
     }
-
     onProgress?.call(CheckInProgressStep.comparing);
     final PhysiqueCheckInAnalysis analysis;
     try {
-      final current = await _sanitizer.analysisBytes(staged.file);
+      final current = <PhysiqueCheckInImage>[];
+      for (final p in batch) {
+        current.add(
+          PhysiqueCheckInImage(
+            pose: p.pose,
+            jpeg: await _sanitizer.analysisBytes(p.photo.file),
+          ),
+        );
+      }
       analysis = await _service.analyze(
-        baselineJpegs: baselines,
-        currentJpeg: current,
+        baselineImages: baselines,
+        currentImages: current,
         context: PhysiqueCheckInContext(
           phase: phase,
           weeksInPhase: weeksInPhase,
@@ -197,10 +232,9 @@ class PhysiqueCheckInFlow {
     } on PhotoSanitizeException {
       return const CheckInAiUnavailable(
         PhysiqueCheckInFailure.invalidInput,
-        'This photo could not be read. Try taking it again.',
+        'These photos could not be read. Try taking them again.',
       );
     }
-
     final verdict = CheckInVerdictClassifier.classify(
       evidence: analysis.evidence,
       phase: phase,
@@ -208,9 +242,7 @@ class PhysiqueCheckInFlow {
     );
     return _persist(
       goal: goal,
-      goalUuid: goalUuid,
-      staged: staged,
-      pose: pose,
+      photos: batch,
       weightKg: weightKg,
       verdict: verdict,
       evidence: analysis.evidence,
@@ -222,11 +254,113 @@ class PhysiqueCheckInFlow {
     );
   }
 
+  /// Retries AI on the photos from an existing `no_analysis` check-in.
+  /// This only updates its evidence; its original date and weekly slot stay
+  /// unchanged. A failed request leaves the saved check-in untouched.
+  Future<void> retrySavedCheckInAnalysis({
+    required PhysiqueGoalData goal,
+    required int assessmentId,
+    required DietPhase phase,
+    required int weeksInPhase,
+    required bool consentGranted,
+    double? weeklyTrendKg,
+  }) async {
+    if (!consentGranted) {
+      throw const PhysiqueCheckInException(
+        PhysiqueCheckInFailure.consentRequired,
+        'Confirm the photo privacy notice before starting the analysis.',
+      );
+    }
+    if (goal.status != 'active') {
+      throw const GoalNotActiveException();
+    }
+    final assessment = await _assessments.checkInForAnalysisRetry(
+      goalId: goal.id,
+      assessmentId: assessmentId,
+    );
+    if (assessment == null ||
+        assessment.source != 'no_analysis' ||
+        CheckInVerdict.fromWire(assessment.verdict) !=
+            CheckInVerdict.inconclusive) {
+      throw StateError('This check-in is no longer available for retry.');
+    }
+
+    final baselines = await _loadBaselines(goal.id);
+    if (baselines.isEmpty) {
+      throw const PhysiqueCheckInException(
+        PhysiqueCheckInFailure.invalidInput,
+        _noBaselineMessage,
+      );
+    }
+    final rows = await _assessments.checkInPhotosForAnalysisRetry(
+      goalId: goal.id,
+      assessmentId: assessmentId,
+    );
+    if (rows.isEmpty ||
+        rows.length > 3 ||
+        rows.map((p) => p.pose).toSet().length != rows.length) {
+      throw const PhysiqueCheckInException(
+        PhysiqueCheckInFailure.invalidInput,
+        'The saved check-in photos could not be loaded. The check-in is still saved.',
+      );
+    }
+
+    final current = <PhysiqueCheckInImage>[];
+    for (final row in rows) {
+      try {
+        final file = await _store.resolve(row.relativePath);
+        if (!await file.exists()) {
+          throw const PhysiqueCheckInException(
+            PhysiqueCheckInFailure.invalidInput,
+            'A saved check-in photo is missing. The check-in is still saved.',
+          );
+        }
+        current.add(
+          PhysiqueCheckInImage(
+            pose: row.pose,
+            jpeg: await _sanitizer.analysisBytes(file),
+          ),
+        );
+      } on PhysiqueCheckInException {
+        rethrow;
+      } on Object {
+        throw const PhysiqueCheckInException(
+          PhysiqueCheckInFailure.invalidInput,
+          'A saved check-in photo could not be read. The check-in is still saved.',
+        );
+      }
+    }
+
+    final analysis = await _service.analyze(
+      baselineImages: baselines,
+      currentImages: current,
+      context: PhysiqueCheckInContext(
+        phase: phase,
+        weeksInPhase: weeksInPhase,
+        weightTrendKgPerWeek: weeklyTrendKg,
+      ),
+      consentGranted: consentGranted,
+    );
+    final verdict = CheckInVerdictClassifier.classify(
+      evidence: analysis.evidence,
+      phase: phase,
+      measuredWeeklyTrendKg: weeklyTrendKg,
+    );
+    await _assessments.updateCheckInAnalysis(
+      assessmentId: assessmentId,
+      verdict: verdict,
+      band: analysis.evidence.band,
+      confidence: analysis.evidence.confidence,
+      reason: analysis.evidence.reason,
+      limitations: analysis.evidence.limitations,
+      modelVersion: analysis.modelVersion,
+      knowledgeVersion: analysis.knowledgeVersion,
+    );
+  }
+
   Future<CheckInOutcome> _persist({
     required PhysiqueGoalData goal,
-    required String goalUuid,
-    required StagedPhoto staged,
-    required String pose,
+    required List<StagedPosePhoto> photos,
     required CheckInVerdict verdict,
     required CheckInEvidence? evidence,
     required String reason,
@@ -236,15 +370,14 @@ class PhysiqueCheckInFlow {
     String? modelVersion,
     String? knowledgeVersion,
   }) async {
-    final relative = await _store.adopt(staged.file, goalUuid: goalUuid);
+    final rows = await _copyPhotos(goal, photos);
     onProgress?.call(CheckInProgressStep.saving);
+    late final int id;
     try {
-      final id = await _assessments.recordCheckIn(
+      id = await _assessments.recordCheckIn(
         CheckInRecord(
           goalId: goal.id,
-          pose: pose,
-          relativePath: relative,
-          blurred: staged.blurApplied,
+          photos: rows,
           weightKg: weightKg,
           verdict: verdict,
           band: evidence?.band,
@@ -256,33 +389,53 @@ class PhysiqueCheckInFlow {
           knowledgeVersion: knowledgeVersion,
         ),
       );
-      return CheckInRecorded(
-        assessmentId: id,
-        verdict: verdict,
-        evidence: evidence,
-        analyzed: source == 'ai',
-      );
     } on Object {
-      await _store.delete(relative);
+      for (final row in rows) {
+        await _store.delete(row.relativePath);
+      }
       rethrow;
+    }
+    await _discardCommitted(photos);
+    return CheckInRecorded(
+      assessmentId: id,
+      verdict: verdict,
+      evidence: evidence,
+      analyzed: source == 'ai',
+    );
+  }
+
+  Future<void> _discardCommitted(List<StagedPosePhoto> photos) async {
+    for (final p in photos) {
+      try {
+        await discardStaged(p.photo);
+      } on FileSystemException {
+        // The committed copy is durable; stale staging is cleaned next launch.
+      }
     }
   }
 
-  /// Up to three baseline images, front pose first. Missing or unreadable
-  /// files are skipped.
-  Future<List<Uint8List>> _loadBaselines(int goalId) async {
+  Future<List<PhysiqueCheckInImage>> _loadBaselines(int goalId) async {
     final rows = await _assessments.baselinePhotos(goalId);
     final ordered = [
       ...rows.where((r) => r.pose == 'front'),
       ...rows.where((r) => r.pose != 'front'),
     ];
-    final out = <Uint8List>[];
+    final out = <PhysiqueCheckInImage>[];
     for (final row in ordered) {
-      if (out.length >= PhysiqueTuning.maxCheckInBaselinePhotos) break;
+      if (out.length >= PhysiqueTuning.maxCheckInBaselinePhotos) {
+        break;
+      }
       try {
         final file = await _store.resolve(row.relativePath);
-        if (!await file.exists()) continue;
-        out.add(await _sanitizer.analysisBytes(file));
+        if (!await file.exists()) {
+          continue;
+        }
+        out.add(
+          PhysiqueCheckInImage(
+            pose: row.pose,
+            jpeg: await _sanitizer.analysisBytes(file),
+          ),
+        );
       } on Object {
         continue;
       }

@@ -1,0 +1,567 @@
+--- a/functions/gemini-analyze/gemini_transport.ts
++++ b/functions/gemini-analyze/gemini_transport.ts
+@@ -0,0 +1,103 @@
++export type AiErrorCode = "timeout" | "unavailable" | "quota" | "authorization" |
++  "invalid_input" | "invalid_response" | "configuration" | "provider_quota";
++
++export class GeminiFailure extends Error {
++  constructor(
++    readonly code: AiErrorCode,
++    message: string,
++    readonly status = 503,
++    readonly retryable = false,
++    readonly retryAfterSeconds?: number,
++  ) { super(message); this.name = "GeminiFailure"; }
++}
++
++/** One shared budget also bounds grounded -> structured fallback calls. */
++export class GenerationBudget {
++  attempts = 0;
++  readonly startedAt: number;
++  readonly deadline: number;
++  constructor(public kind = "unknown", readonly requestId: string = crypto.randomUUID(),
++    readonly now: () => number = Date.now, timeoutMs = 70_000) {
++    this.startedAt = now();
++    this.deadline = this.startedAt + timeoutMs;
++  }
++  remaining() { return this.deadline - this.now(); }
++}
++
++function transportFailure(error: unknown): GeminiFailure {
++  if (error instanceof GeminiFailure) return error;
++  if (error instanceof DOMException && ["TimeoutError", "AbortError"].includes(error.name)) {
++    return new GeminiFailure("timeout", "Herculex AI took too long. Your input is kept; please try again.", 504, true);
++  }
++  return new GeminiFailure("unavailable", "Herculex AI could not connect. Please try again shortly.", 503, true);
++}
++
++export async function requestGemini({
++  primaryModel, fallbackModel, bodyForModel, apiKey, budget = new GenerationBudget(),
++  fetcher = fetch,
++  wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
++}: {
++  primaryModel: string; fallbackModel: string; apiKey: string;
++  bodyForModel: (model: string) => string; budget?: GenerationBudget;
++  fetcher?: typeof fetch; wait?: (ms: number) => Promise<void>;
++}): Promise<{ root: Record<string, unknown>; modelVersion: string }> {
++  let failure = new GeminiFailure("timeout", "Herculex AI took too long. Please try again.", 504, true);
++  while (budget.attempts < 2 && budget.remaining() > 0) {
++    const model = budget.attempts === 0 ? primaryModel : fallbackModel || primaryModel;
++    const attempt = ++budget.attempts;
++    const started = budget.now();
++    let status: number | undefined;
++    try {
++      const response = await fetcher(
++        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
++          method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
++          body: bodyForModel(model),
++          signal: AbortSignal.timeout(Math.max(1, Math.min(attempt === 1 ? 45_000 : 20_000, budget.remaining()))),
++        });
++      status = response.status;
++      if (!response.ok) {
++        const retryable = [408, 429, 500, 502, 503, 504].includes(response.status);
++        const retryHeader = response.headers.get("retry-after");
++        const seconds = retryHeader == null ? NaN : Number(retryHeader);
++        const dateSeconds = retryHeader == null ? NaN : (Date.parse(retryHeader) - budget.now()) / 1000;
++        const retryAfter = Number.isFinite(seconds) ? Math.max(0, seconds)
++          : Number.isFinite(dateSeconds) ? Math.max(0, dateSeconds) : undefined;
++        await response.body?.cancel();
++        if ([401, 403, 404].includes(response.status)) {
++          throw new GeminiFailure("configuration", "Herculex AI is temporarily unavailable. Please try again later.");
++        }
++        if (response.status === 429) {
++          throw new GeminiFailure("provider_quota",
++            "Herculex AI is currently at capacity. Your input is kept; please try again later.",
++            503, true, retryAfter);
++        }
++        throw new GeminiFailure(retryable ? "unavailable" : "invalid_input",
++          retryable ? "Herculex AI is busy. Your input is kept; please try again shortly."
++            : "Herculex AI could not process this input. Please check it and try again.",
++          retryable ? 503 : 400, retryable, retryAfter);
++      }
++      let root: unknown;
++      try { root = await response.json(); }
++      catch (error) {
++        if (error instanceof DOMException) throw error;
++        throw new GeminiFailure("invalid_response", "Herculex AI returned an incomplete response. Please try again.", 502, true);
++      }
++      if (!root || typeof root !== "object" || Array.isArray(root)) {
++        throw new GeminiFailure("invalid_response", "Herculex AI returned an incomplete response. Please try again.", 502, true);
++      }
++      console.log("gemini attempt", { requestId: budget.requestId, kind: budget.kind,
++        model, attempt, status, durationMs: budget.now() - started, outcome: "success" });
++      return { root: root as Record<string, unknown>, modelVersion: model };
++    } catch (error) {
++      failure = transportFailure(error);
++      console.warn("gemini attempt", { requestId: budget.requestId, kind: budget.kind,
++        model, attempt, status, durationMs: budget.now() - started, outcome: failure.code });
++      if (!failure.retryable || failure.code === "invalid_response" || budget.attempts >= 2) throw failure;
++      const delay = failure.retryAfterSeconds == null ? 500 + Math.floor(Math.random() * 500)
++        : Math.ceil(failure.retryAfterSeconds * 1000);
++      if (delay >= budget.remaining()) throw failure;
++      await wait(delay);
++    }
++  }
++  throw failure;
++}
+--- a/functions/gemini-analyze/index.ts
++++ b/functions/gemini-analyze/index.ts
+@@ -1,3 +1,4 @@
++import { GenerationBudget, GeminiFailure, requestGemini } from "./gemini_transport.ts";
+ // Strezniski proxy za Gemini. Edini razlog, da ta funkcija obstaja, je
+ // `GEMINI_API_KEY` — klient ga ne sme nikoli imeti (RB-01,
+ // docs/rb01-gemini-secret-remediation.md).
+@@ -57,6 +58,7 @@
+   mimeType?: string;
+   data?: string;
+   label?: string;
++  pose?: string;
+ };
+ 
+ type GeminiRequest = {
+@@ -88,7 +90,7 @@
+ type ValidImage = { mimeType: string; data: string };
+ 
+ const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+-const geminiModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.7-flash";
++const geminiModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash";
+ 
+ /// Model, na katerega se zatecemo, ko primarni vrne 429 (kvota) ali 503
+ /// (preobremenjen). Razlika med "AI ne dela" in "AI je malo slabsi".
+@@ -259,7 +261,8 @@
+   "mixed",
+ ]);
+ 
+-Deno.serve(async (req) => {
++export async function handleRequest(req: Request): Promise<Response> {
++  const budget = new GenerationBudget();
+   if (req.method === "OPTIONS") {
+     return new Response("ok", { headers: corsHeaders });
+   }
+@@ -292,6 +295,12 @@
+     return json({ error: "Invalid JSON request." }, 400);
+   }
+ 
++  if (!payload || typeof payload !== "object" || !payload.kind || !Object.prototype.hasOwnProperty.call(kindLimits, payload.kind)) {
++    return json({ error: "Unknown AI request type.", code: "invalid_input", retryable: false }, 400);
++  }
++  budget.kind = payload.kind;
++  const inputError = validateRequestImages(payload);
++  if (inputError) return json({ error: inputError, code: "invalid_input", retryable: false }, 400);
+   const consentError = imageConsentError(payload);
+   if (consentError) {
+     return json({ error: consentError }, 400);
+@@ -328,6 +337,7 @@
+       {
+         error:
+           `Today's ${featureName} (${quota.limit}/day) are used up — try again tomorrow${manualFallback}.`,
++        code: "quota", retryable: false,
+         used: quota.used,
+         limit: quota.limit,
+       },
+@@ -341,6 +351,7 @@
+         const image = validateImage(payload.image);
+         if ("error" in image) return json({ error: image.error }, 400);
+         const { result, modelVersion } = await generateJson({
++          budget,
+           images: [image],
+           promptText: foodPhotoPrompt(payload.userNote),
+           temperature: 0.2,
+@@ -352,6 +363,7 @@
+         const scan = validateScanImages(payload);
+         if ("error" in scan) return json({ error: scan.error }, 400);
+         const { result, modelVersion } = await generateJson({
++          budget,
+           images: scan.images,
+           promptText: nutritionLabelPrompt(scan.images.length),
+           temperature: 0.1,
+@@ -363,6 +375,7 @@
+         const image = validateImage(payload.image);
+         if ("error" in image) return json({ error: image.error }, 400);
+         const { result, modelVersion } = await generateJson({
++          budget,
+           images: [image],
+           promptText: exerciseIdentificationPrompt(),
+           temperature: 0.1,
+@@ -381,6 +394,7 @@
+         const image = validateImage(payload.image);
+         if ("error" in image) return json({ error: image.error }, 400);
+         const { result, modelVersion } = await generateJson({
++          budget,
+           images: [image],
+           promptText: supplementPhotoPrompt(payload.userNote),
+           temperature: 0.1,
+@@ -396,6 +410,7 @@
+ 
+         const { result, groundingSources, modelVersion } =
+           await generateGroundedJson({
++          budget,
+             images: scan.images,
+             promptText: barcodeProductPrompt(
+               barcode,
+@@ -425,6 +440,7 @@
+         if ("error" in validated) return json({ error: validated.error }, 400);
+ 
+         const { result, modelVersion } = await generateJson({
++          budget,
+           images: validated.images,
+           promptText: bodyFatPrompt(payload.biometrics, payload.userNote),
+           temperature: 0.2,
+@@ -469,6 +485,7 @@
+         ];
+ 
+         const generated = await generateJson({
++          budget,
+           images: allImages,
+           promptText: dreamPhysiquePrompt(payload.biometrics, payload.userNote),
+           temperature: 0.2,
+@@ -496,9 +513,9 @@
+             400,
+           );
+         }
+-        if (currentRaw.length !== 1) {
++        if (currentRaw.length < 1 || currentRaw.length > 3) {
+           return json(
+-            { error: "Exactly one current image is required." },
++            { error: "Choose one to three current images." },
+             400,
+           );
+         }
+@@ -508,19 +525,23 @@
+         }
+         const validatedCurrent = validateImages(
+           currentRaw,
+-          maxImages - validatedBaseline.images.length,
++          3,
+         );
+         if ("error" in validatedCurrent) {
+           return json({ error: validatedCurrent.error }, 400);
+         }
+ 
+-        // Order matters: baseline first, then the single current photo.
++        // Order matters: baselines first, then all current poses.
+         const generated = await generateJson({
++          budget,
+           images: [...validatedBaseline.images, ...validatedCurrent.images],
+           promptText: physiqueCheckinPrompt(
+             {
+               ...(payload.checkinContext ?? {}),
+               baselineCount: validatedBaseline.images.length,
++              currentCount: validatedCurrent.images.length,
++              baselinePoses: baselineRaw.map((p) => p.pose ?? "unspecified"),
++              currentPoses: currentRaw.map((p) => p.pose ?? "unspecified"),
+             },
+             payload.userNote,
+           ),
+@@ -550,6 +571,7 @@
+           return json({ error: "Text description of food is required." }, 400);
+         }
+         const { result, modelVersion } = await generateJson({
++          budget,
+           images: [],
+           promptText: ramblerFoodPrompt(text, payload.mealKey),
+           temperature: 0.1,
+@@ -564,6 +586,7 @@
+           return json({ error: "profileInputs is required." }, 400);
+         }
+         const generated = await generateJson({
++          budget,
+           images: [],
+           promptText: programBriefPrompt(
+             payload.profileInputs,
+@@ -589,6 +612,7 @@
+           return json({ error: "facts is required." }, 400);
+         }
+         const generated = await generateJson({
++          budget,
+           images: [],
+           promptText: weeklyReportPrompt(weeklyFacts),
+           temperature: 0.3,
+@@ -614,22 +638,62 @@
+         );
+     }
+   } catch (error) {
+-    const errorMessage = error instanceof Error ? error.message : String(error);
+-    console.error("gemini-analyze failed", {
+-      kind: payload.kind,
+-      error: errorMessage,
+-    });
+-    // Gemini's HTTP error message contains actionable, non-secret causes
+-    // (invalid server key, exhausted quota, unavailable model). Returning it
+-    // lets the app distinguish a configuration problem from a retryable one.
+-    const safeMessage =
+-      errorMessage.startsWith("Gemini API request failed") ||
+-      errorMessage.startsWith("Gemini server authorization failed")
+-        ? errorMessage
+-        : "Herculex AI analysis failed. Please try again.";
+-    return json({ error: safeMessage }, 502);
+-  }
+-});
++    const failure = error instanceof GeminiFailure ? error
++      : new GeminiFailure("invalid_response", "Herculex AI returned an incomplete response. Your input is kept; please try again.", 502, true);
++    console.error("gemini-analyze failed", { requestId: budget.requestId, kind: payload.kind,
++      code: failure.code, attempts: budget.attempts, durationMs: Date.now() - budget.startedAt });
++    return json({ error: failure.message, code: failure.code, retryable: failure.retryable,
++      requestId: budget.requestId, retryAfterSeconds: failure.retryAfterSeconds }, failure.status);
++  }
++}
++
++if (import.meta.main) Deno.serve(handleRequest);
++
++/** Validate image counts and bytes before consuming a quota unit. */
++export function validateRequestImages(payload: GeminiRequest): string | null {
++  const check = (images: GeminiImage[], limit: number) => {
++    const result = validateImages(images, limit);
++    return "error" in result ? result.error : null;
++  };
++  if (payload.kind === "physique_checkin") {
++    const baseline = payload.baselineImages;
++    const current = payload.currentImages;
++    if (!Array.isArray(baseline) || baseline.length < 1 || !Array.isArray(current) || current.length < 1) {
++      return "Baseline and current photos are required.";
++    }
++    for (const images of [baseline, current]) {
++      const error = check(images, 3);
++      if (error) return error;
++      const poses = images.map((p) => p.pose).filter((p) => p !== undefined);
++      if (poses.some((p) => !["front", "side", "back"].includes(p!)) || new Set(poses).size !== poses.length) {
++        return "Each photo needs a different front, side or back pose.";
++      }
++    }
++    return null;
++  }
++  if (payload.kind === "dream_physique") {
++    const current = payload.currentImages?.length ? payload.currentImages : payload.images ?? [];
++    const target = payload.targetImages?.length ? payload.targetImages : payload.targetImage ? [payload.targetImage] : [];
++    if (!Array.isArray(current) || !Array.isArray(target) || !current.length || !target.length || current.length + target.length > maxImages) {
++      return "Choose current and target photos (at most four in total).";
++    }
++    return check([...current, ...target], maxImages);
++  }
++  if (payload.kind === "body_fat_estimate") {
++    const images = payload.images ?? (payload.image ? [payload.image] : []);
++    if (!Array.isArray(images) || !images.length) return "An image is required.";
++    return check(images, maxImages);
++  }
++  if (payload.kind === "nutrition_label" || payload.kind === "barcode_product") {
++    const scan = validateScanImages(payload);
++    return "error" in scan ? scan.error : null;
++  }
++  if (["food_photo", "exercise_identification", "supplement_photo"].includes(payload.kind ?? "")) {
++    const result = validateImage(payload.image);
++    return "error" in result ? result.error : null;
++  }
++  return null;
++}
+ 
+ // Dream Physique is the only image workflow whose output can later influence
+ // programming. Validate and whitelist its response here instead of trusting a
+@@ -1162,24 +1226,29 @@
+ // ── Gemini ─────────────────────────────────────────────────────────────
+ 
+ async function generateJson({
++  budget = new GenerationBudget(),
+   images,
+   promptText,
+   temperature,
+   systemInstruction,
+ }: {
++  budget?: GenerationBudget;
+   images: ValidImage[];
+   promptText: string;
+   temperature: number;
+   systemInstruction?: string;
+ }): Promise<{ result: Record<string, unknown>; modelVersion: string }> {
+   const { text, modelVersion } = await generate({
++    budget,
+     images,
+     promptText,
+     temperature,
+     responseMimeType: "application/json",
+     systemInstruction,
+   });
+-  const parsed = JSON.parse(text);
++  let parsed: unknown;
++  try { parsed = JSON.parse(text); }
++  catch { throw new GeminiFailure("invalid_response", "Herculex AI returned an incomplete response. Please try again.", 502, true); }
+   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+     throw new Error("Gemini returned non-object JSON.");
+   }
+@@ -1198,6 +1267,7 @@
+ }
+ 
+ export async function generate({
++  budget = new GenerationBudget(),
+   images,
+   promptText,
+   temperature,
+@@ -1205,6 +1275,7 @@
+   tools,
+   systemInstruction,
+ }: {
++  budget?: GenerationBudget;
+   images: ValidImage[];
+   promptText: string;
+   temperature: number;
+@@ -1219,63 +1290,26 @@
+     });
+   }
+ 
+-  const body = JSON.stringify({
+-    contents: [{ parts }],
+-    // `response_mime_type` (strukturirani JSON nacin) in search-grounding
+-    // `tools` se na tem API-ju izkljucujeta — klicatelji podajo eno ali
+-    // drugo, nikoli obojega (glej generateGroundedJson).
+-    ...(tools ? { tools } : {}),
+-    ...(systemInstruction
+-      ? { system_instruction: buildSystemInstruction(systemInstruction) }
+-      : {}),
+-    generationConfig: {
+-      temperature,
+-      ...(responseMimeType ? { response_mime_type: responseMimeType } : {}),
+-    },
++  const { root: rawRoot, modelVersion: usedModel } = await requestGemini({
++    primaryModel: geminiModel, fallbackModel: geminiFallbackModel,
++    apiKey: geminiApiKey ?? "", budget,
++    bodyForModel: (model) => JSON.stringify({
++      contents: [{ parts }], ...(tools ? { tools } : {}),
++      ...(systemInstruction ? { system_instruction: buildSystemInstruction(systemInstruction) } : {}),
++      generationConfig: { temperature,
++        // Low is supported on both configured stable models; minimal is not.
++        ...(model.startsWith("gemini-3.") ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
++        ...(responseMimeType ? { response_mime_type: responseMimeType } : {}),
++      },
++    }),
+   });
+-
+-  let usedModel = geminiModel;
+-  let response = await callGemini(geminiModel, body);
+-
+-  // 429 = kvota, 503 = preobremenjen. Oboje je stanje primarnega modela,
+-  // ne napaka zahtevka, zato en poskus na cenejsi varianti. Vsak drug
+-  // status je prava napaka in gre naprej kot taka.
+-  if (
+-    !response.ok &&
+-    (response.status === 429 || response.status === 503) &&
+-    geminiFallbackModel &&
+-    geminiFallbackModel !== geminiModel
+-  ) {
+-    console.warn(
+-      `Gemini ${response.status} on ${geminiModel}, retrying on ${geminiFallbackModel}`,
+-    );
+-    usedModel = geminiFallbackModel;
+-    response = await callGemini(geminiFallbackModel, body);
+-  }
+-
+-  if (!response.ok) {
+-    const bodyText = await response.text();
+-    let detail = "No additional detail from Gemini.";
+-    try {
+-      const parsed = JSON.parse(bodyText);
+-      const candidate = parsed?.error?.message;
+-      if (typeof candidate === "string" && candidate.trim()) {
+-        detail = candidate.trim();
+-      }
+-    } catch {
+-      // Non-JSON error pages must not replace the stable public message.
+-    }
+-    if (response.status === 401 && /expected oauth|authentication credentials/i.test(detail)) {
+-      throw new Error(
+-        "Gemini server authorization failed. Configure GEMINI_API_KEY with a valid Google AI Studio API key and redeploy the function.",
+-      );
+-    }
+-    throw new Error(`Gemini API request failed (${response.status}): ${detail}`);
+-  }
+-
+-  const root = await response.json();
++  // Provider JSON is checked below; never expose raw content in errors or logs.
++  // deno-lint-ignore no-explicit-any
++  const root = rawRoot as any;
+   const candidate = root?.candidates?.[0];
+-  const text = candidate?.content?.parts?.[0]?.text;
++  const text = candidate?.content?.parts
++    ?.filter((part: { text?: string; thought?: boolean }) => part.thought !== true && typeof part.text === "string")
++    .map((part: { text: string }) => part.text).join("");
+   if (typeof text !== "string" || text.trim().length === 0) {
+     // Prazen odgovor je skoraj vedno varnostni filter, ne okvara. Razlog
+     // je v `finishReason`, in brez njega v logu se ugiba.
+@@ -1303,21 +1337,6 @@
+     groundingSources: extractGroundingSources(candidate),
+     modelVersion: usedModel,
+   };
+-}
+-
+-function callGemini(model: string, body: string): Promise<Response> {
+-  return fetch(
+-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+-    {
+-      method: "POST",
+-      headers: {
+-        "Content-Type": "application/json",
+-        "x-goog-api-key": geminiApiKey!,
+-      },
+-      body,
+-      signal: AbortSignal.timeout(35000),
+-    },
+-  );
+ }
+ 
+ /// Izlusci URL-je, ki jih je grounded iskanje dejansko prebralo.
+@@ -1345,9 +1364,11 @@
+ /// ali besedilo ne vsebuje parsljivega JSON-a, pade nazaj na ungrounded
+ /// strukturiran klic, ki raje vrne `{"found": false}` kot ugiba.
+ async function generateGroundedJson({
++  budget = new GenerationBudget(),
+   images,
+   promptText,
+ }: {
++  budget?: GenerationBudget;
+   images: ValidImage[];
+   promptText: string;
+ }): Promise<
+@@ -1355,6 +1376,7 @@
+ > {
+   try {
+     const { text, groundingSources, modelVersion } = await generate({
++          budget,
+       images,
+       promptText,
+       temperature: 0.1,
+@@ -1364,11 +1386,13 @@
+     if (parsed) return { result: parsed, groundingSources, modelVersion };
+     throw new Error("Grounded response did not contain valid JSON.");
+   } catch (error) {
++    if (error instanceof GeminiFailure && (!error.retryable || budget.attempts >= 2)) throw error;
+     console.error(
+       "Grounded barcode lookup failed, falling back",
+       String(error),
+     );
+     const { result, modelVersion } = await generateJson({
++          budget,
+       images,
+       promptText:
+         `${promptText}\n\nIf you cannot identify this product, return exactly {"found": false} instead of guessing.`,
+--- a/functions/gemini-analyze/prompts.ts
++++ b/functions/gemini-analyze/prompts.ts
+@@ -430,6 +430,9 @@
+     weeksInPhase?: number;
+     weightTrendKgPerWeek?: number | null;
+     baselineCount: number;
++    currentCount?: number;
++    baselinePoses?: string[];
++    currentPoses?: string[];
+   },
+   userNote?: string | null,
+ ): string {
+@@ -455,7 +458,10 @@
+   return `
+ You are Herculex AI, comparing two physique photo sets for a progress check-in.
+ - The first ${baselineCount} image(s) are the BASELINE (where the user started this phase).
+-- The final image is the CURRENT photo.
++- The final ${context.currentCount ?? 1} image(s) are the CURRENT photos.
++- Baseline poses in order: ${(context.baselinePoses ?? []).join(", ") || "unspecified"}.
++- Current poses in order: ${(context.currentPoses ?? []).join(", ") || "unspecified"}.
++- Compare matching poses where possible; combine all current photos into one overall verdict.
+ 
+ Phase context:
+ - Nutrition phase: ${phase}

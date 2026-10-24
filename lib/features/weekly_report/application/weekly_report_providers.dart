@@ -63,6 +63,16 @@ final weeklyReportProvider =
       return ref.watch(weeklyReportRepositoryProvider).watchWeek(week);
     });
 
+/// Program sessions scheduled in a week, for "done of planned".
+final weeklyPlannedSessionsProvider = StreamProvider.family<int, IsoWeek>((
+  ref,
+  week,
+) {
+  return ref
+      .watch(weeklyReportInputsRepositoryProvider)
+      .watchPlannedSessions(week);
+});
+
 /// Every stored report, newest week first.
 final weeklyReportHistoryProvider = StreamProvider<List<WeeklyReportRecord>>((
   ref,

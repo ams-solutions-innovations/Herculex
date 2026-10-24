@@ -1,15 +1,29 @@
 import 'dart:convert';
-
 import 'package:drift/drift.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/measurements/data/measurements_repository.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/prescription_resolver.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
+import 'package:herculex/features/programs/domain/time_saving_policy.dart';
+import 'package:herculex/features/programs/domain/weekly_adaptation_engine.dart';
+import 'package:herculex/features/workout_report/data/workout_report_journal.dart';
+import 'package:herculex/features/workouts/data/calisthenics_progression_repository.dart';
+import 'package:herculex/features/workouts/data/workout_targets_repository.dart';
+import 'package:herculex/features/workouts/domain/calisthenics_progression.dart';
+import 'package:herculex/features/workouts/domain/calisthenics_set_plan.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
+import 'package:herculex/features/workouts/domain/set_prescription_metadata.dart';
 import 'package:herculex/features/workouts/domain/warmup_resolver.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+
+part 'planned_session_resolver/target_preparation.dart';
+part 'planned_session_resolver/time_saving_validation.dart';
 
 /// A set target frozen at the moment a workout starts.
 class PlannedSetSnapshot {
@@ -39,18 +53,26 @@ class PlannedSetSnapshot {
   final String intent;
   final String? setTypeMetaJson;
 
-  PlannedSetSnapshot copyWith({int? index}) => PlannedSetSnapshot(
+  PlannedSetSnapshot copyWith({
+    int? index,
+    int? repsMin,
+    int? repsMax,
+    double? weightKg,
+    int? rpeX10,
+    int? rir,
+    String? setTypeMetaJson,
+  }) => PlannedSetSnapshot(
     index: index ?? this.index,
-    repsMin: repsMin,
-    repsMax: repsMax,
+    repsMin: repsMin ?? this.repsMin,
+    repsMax: repsMax ?? this.repsMax,
     isWarmup: isWarmup,
     setType: setType,
     intent: intent,
-    weightKg: weightKg,
-    rpeX10: rpeX10,
-    rir: rir,
+    weightKg: weightKg ?? this.weightKg,
+    rpeX10: rpeX10 ?? this.rpeX10,
+    rir: rir ?? this.rir,
     percentOf1Rm: percentOf1Rm,
-    setTypeMetaJson: setTypeMetaJson,
+    setTypeMetaJson: setTypeMetaJson ?? this.setTypeMetaJson,
   );
 }
 
@@ -90,6 +112,40 @@ class PlannedExerciseSnapshot {
   final int? waveCount;
 }
 
+extension PlannedExerciseTargetRows on PlannedExerciseSnapshot {
+  WorkoutExerciseData get targetExercise => WorkoutExerciseData(
+    id: -1,
+    sessionId: -1,
+    exerciseId: exerciseId,
+    orderIndex: orderIndex,
+    equipmentVariant: equipmentVariant,
+    plannedTrainingMethod: trainingMethod,
+    plannedAllowsAdvancedTechniques: allowsAdvancedTechniques,
+  );
+
+  List<SetEntryData> get targetRows => [
+    for (final s in sets)
+      SetEntryData(
+        id: -s.index - 1,
+        workoutExerciseId: -1,
+        setIndex: s.index,
+        weightKg: 0,
+        reps: 0,
+        isWarmup: s.isWarmup,
+        isCompleted: false,
+        setType: s.setType,
+        setTypeMetaJson: s.setTypeMetaJson,
+        plannedWeightKg: s.weightKg,
+        plannedRepsMin: s.repsMin,
+        plannedRepsMax: s.repsMax,
+        plannedRpeX10: s.rpeX10,
+        plannedRir: s.rir,
+        plannedPercentOf1Rm: s.percentOf1Rm,
+        plannedIntent: s.intent,
+      ),
+  ];
+}
+
 class PlannedSessionSnapshot {
   const PlannedSessionSnapshot({
     required this.name,
@@ -112,6 +168,90 @@ class PlannedSessionResolver {
   PlannedSessionResolver(this._db);
 
   final AppDatabase _db;
+
+  /// Resolves an occurrence, preferring a user-confirmed current-week
+  /// adaptation over its mutable program/template source.
+  Future<PlannedSessionSnapshot> resolveScheduledWorkout(
+    ScheduledWorkoutData schedule,
+  ) async {
+    final override =
+        await (_db.select(_db.adaptationOverrides).join([
+                innerJoin(
+                  _db.adaptationProposals,
+                  _db.adaptationProposals.id.equalsExp(
+                    _db.adaptationOverrides.proposalId,
+                  ),
+                ),
+              ])
+              ..where(_db.adaptationOverrides.scheduleId.equals(schedule.id))
+              ..where(_db.adaptationProposals.decision.equals('accepted'))
+              ..where(_db.adaptationOverrides.deletedAt.isNull())
+              ..where(_db.adaptationProposals.deletedAt.isNull())
+              ..orderBy([
+                OrderingTerm.desc(_db.adaptationProposals.decidedAt),
+                OrderingTerm.desc(_db.adaptationProposals.id),
+              ])
+              ..limit(1))
+            .getSingleOrNull();
+    final proposal = override?.readTable(_db.adaptationProposals);
+    final planJson = override?.readTable(_db.adaptationOverrides).planJson;
+    final weekStart = proposal == null
+        ? null
+        : DateTime.tryParse(proposal.weekStartIso);
+    final scheduledDate = DateTime.tryParse(schedule.dateIso);
+    final isCurrentWeekOverride =
+        weekStart != null &&
+        scheduledDate != null &&
+        !scheduledDate.isBefore(weekStart) &&
+        !scheduledDate.isAfter(weekStart.add(const Duration(days: 6)));
+    if (planJson != null && isCurrentWeekOverride) {
+      return _fromAdapted(AdaptedSessionPlan.decode(planJson));
+    }
+    return resolveProgramDay(
+      schedule.programDayId,
+      templateOverride: schedule.templateIdOverride,
+    );
+  }
+
+  PlannedSessionSnapshot _fromAdapted(AdaptedSessionPlan plan) =>
+      PlannedSessionSnapshot(
+        name: plan.name,
+        exercises: [
+          for (final exercise in plan.exercises)
+            PlannedExerciseSnapshot(
+              exerciseId: exercise.exerciseId,
+              orderIndex: exercise.orderIndex,
+              restSeconds: exercise.restSeconds,
+              slotRole: exercise.slotRole,
+              trainingMethod: exercise.trainingMethod,
+              why: exercise.why,
+              programExerciseSlotId: exercise.programExerciseSlotId,
+              rotationAssignmentId: exercise.rotationAssignmentId,
+              equipmentVariant: exercise.equipmentVariant,
+              sessionSegment: exercise.sessionSegment,
+              supersetGroup: exercise.supersetGroup,
+              waveIndex: exercise.waveIndex,
+              waveCount: exercise.waveCount,
+              allowsAdvancedTechniques: exercise.allowsAdvancedTechniques,
+              sets: [
+                for (final set in exercise.sets)
+                  PlannedSetSnapshot(
+                    index: set.index,
+                    repsMin: set.repsMin,
+                    repsMax: set.repsMax,
+                    weightKg: set.weightKg,
+                    rpeX10: set.rpeX10,
+                    rir: set.rir,
+                    percentOf1Rm: set.percentOf1Rm,
+                    isWarmup: set.isWarmup,
+                    setType: set.setType,
+                    intent: set.intent,
+                    setTypeMetaJson: set.setTypeMetaJson,
+                  ),
+              ],
+            ),
+        ],
+      );
 
   Future<PlannedSessionSnapshot> resolveTemplate(
     int templateId, {
@@ -169,27 +309,26 @@ class PlannedSessionResolver {
           orderIndex: te.orderIndex,
           restSeconds: te.targetRestSeconds ?? 120,
           slotRole: SlotRole.accessory.id,
-          trainingMethod: SlotTrainingMethod.straightSets.id,
+          trainingMethod: selected.isEmpty
+              ? SlotTrainingMethod.straightSets.id
+              : SetPrescriptionMetadata.decode(
+                          selected.first.metaJson,
+                        )['trainingMethod']
+                        as String? ??
+                    SlotTrainingMethod.straightSets.id,
           why: 'Copied from the workout template when this session started.',
-          equipmentVariant: null,
+          equipmentVariant: selected.isEmpty
+              ? null
+              : CalisthenicsSetPlan.decode(selected.first.metaJson)?.variant ??
+                    SetPrescriptionMetadata.decode(
+                          selected.first.metaJson,
+                        )['equipmentVariant']
+                        as String?,
           supersetGroup: te.supersetGroup,
           allowsAdvancedTechniques: false,
           sets: [
             for (final (index, set) in selected.indexed)
-              PlannedSetSnapshot(
-                index: index + 1,
-                repsMin: set.repsMin ?? te.targetRepsMin,
-                repsMax: set.repsMax ?? te.targetRepsMax ?? te.targetRepsMin,
-                weightKg: set.weightKg,
-                isWarmup: set.isWarmup,
-                setType: set.setType,
-                intent: set.isWarmup ? Intent.technical.id : Intent.rir2.id,
-                rir: set.isWarmup ? Intent.technical.rir : Intent.rir2.rir,
-                rpeX10: set.isWarmup
-                    ? (Intent.technical.rpe * 10).round()
-                    : (Intent.rir2.rpe * 10).round(),
-                setTypeMetaJson: set.metaJson,
-              ),
+              _templateSetSnapshot(index, set, te),
           ],
         ),
       );
@@ -209,7 +348,9 @@ class PlannedSessionResolver {
       _db.programDays,
     )..where((t) => t.id.equals(programDayId))).getSingle();
     final templateId = templateOverride ?? day.templateId;
-    if (templateId != null) return resolveTemplate(templateId);
+    if (templateId != null) {
+      return resolveTemplate(templateId);
+    }
 
     final week = await (_db.select(
       _db.programWeeks,
@@ -275,29 +416,49 @@ class PlannedSessionResolver {
         mechanics: catalog.mechanics,
         modality: catalog.modality,
       );
-      final why =
+      var why =
           pde.prescriptionWhy ??
           (assignment?.reason == null
               ? prescription.why
               : '${assignment!.reason} ${prescription.why}');
       final isFirstHeavy = role.isHeavy && !sawHeavyLiftInSession;
-      if (role.isHeavy) sawHeavyLiftInSession = true;
+      if (role.isHeavy) {
+        sawHeavyLiftInSession = true;
+      }
       final decodedPrescription = SlotPrescriptionCodec.decode(
         pde.prescriptionCodecJson,
       );
+      final (
+        checkedPrescription,
+        isolationPrimer,
+        rejectedCompression,
+      ) = _checkedTimeSavingPrescription(
+        pde,
+        program,
+        catalog,
+        role,
+        weekPrescription,
+        decodedPrescription,
+      );
+      if (rejectedCompression) {
+        why =
+            'Time-saving work was replaced with controlled straight sets '
+            'because the current exercise or training week does not meet its requirements.';
+      }
       final workingSets = method == SlotTrainingMethod.maxEffort
           ? _maxEffortWorkingSets()
-          : decodedPrescription != null
-          ? _setsFromPrescription(decodedPrescription)
+          : checkedPrescription != null
+          ? _setsFromPrescription(checkedPrescription)
           : _setsFromPrescription(prescription.prescription);
       final warmupEligible =
           method == SlotTrainingMethod.maxEffort ||
-          _hasAutomaticWarmups(pde.variantConfigJson);
+          _hasAutomaticWarmups(pde.variantConfigJson) ||
+          isolationPrimer;
       final warmupTarget = method == SlotTrainingMethod.maxEffort
           ? 0.90
           : (prescription.prescription.segments.isEmpty
                 ? null
-                : prescription.prescription.segments.first.percentOf1Rm);
+                : workingSets.firstOrNull?.percentOf1Rm);
       final warmups = warmupEligible
           ? _warmupSnapshots(
               role: role,
@@ -305,6 +466,7 @@ class PlannedSessionResolver {
               modality: catalog.modality,
               targetPercentOf1Rm: warmupTarget,
               isFirstHeavyLiftInSession: isFirstHeavy,
+              singleIsolationPrimer: isolationPrimer,
             )
           : const <PlannedSetSnapshot>[];
       final sets = [...warmups, ...workingSets].indexed
@@ -315,7 +477,9 @@ class PlannedSessionResolver {
         PlannedExerciseSnapshot(
           exerciseId: exerciseId,
           orderIndex: pde.orderIndex,
-          restSeconds: pde.restSeconds ?? prescription.restSeconds,
+          restSeconds: rejectedCompression
+              ? checkedPrescription!.segments.first.restSeconds!
+              : pde.restSeconds ?? prescription.restSeconds,
           slotRole: role.id,
           trainingMethod: method.id,
           why: why,
@@ -334,13 +498,21 @@ class PlannedSessionResolver {
     return PlannedSessionSnapshot(name: day.name, exercises: exercises);
   }
 
+  /// Read-only preparation used by previews, phone starts and watch libraries.
+  Future<PlannedSessionSnapshot> prepare(
+    PlannedSessionSnapshot plan, {
+    DateTime? at,
+  }) => _prepareTargets(plan, at ?? const SystemClock().now());
+
   Future<int> materialize(
     PlannedSessionSnapshot plan, {
     DateTime? startedAt,
     int? gymId,
     String? notes,
     String? sessionUuid,
-  }) {
+  }) async {
+    plan = await _prepareTargets(plan, startedAt ?? const SystemClock().now());
+    final bodyweight = await MeasurementsRepository(_db).latestBodyweightKg();
     return _db.transaction(() async {
       final sessionId = await _db
           .into(_db.workoutSessions)
@@ -354,6 +526,12 @@ class PlannedSessionResolver {
             ),
           );
       for (final exercise in plan.exercises) {
+        final catalog = await (_db.select(
+          _db.exerciseCatalog,
+        )..where((t) => t.id.equals(exercise.exerciseId))).getSingle();
+        final includesBodyweight =
+            catalog.supportsWeightedBodyweight ||
+            isMachineAssistedPullup(catalog.slug);
         final workoutExerciseId = await _db
             .into(_db.workoutExercises)
             .insert(
@@ -388,11 +566,17 @@ class PlannedSessionResolver {
                   // immutable target lives only in planned_*.
                   reps: 0,
                   weightKg: 0,
+                  bodyweightKg: Value(includesBodyweight ? bodyweight : null),
                   isWarmup: Value(set.isWarmup),
                   isCompleted: const Value(false),
                   setType: Value(set.setType),
                   setTypeMetaJson: Value(set.setTypeMetaJson),
                   plannedRepsMin: Value(set.repsMin),
+                  durationSeconds: Value(
+                    CalisthenicsSetPlan.decode(
+                      set.setTypeMetaJson,
+                    )?.durationSeconds,
+                  ),
                   plannedRepsMax: Value(set.repsMax),
                   plannedWeightKg: Value(set.weightKg),
                   plannedRpeX10: Value(set.rpeX10),
@@ -410,6 +594,10 @@ class PlannedSessionResolver {
           WorkoutTemplatesCompanion(lastUsedAt: Value(DateTime.now())),
         );
       }
+      await WorkoutReportJournal(
+        _db,
+        const SystemClock(),
+      ).capture(sessionId, prescribed: true);
       return sessionId;
     });
   }
@@ -485,7 +673,12 @@ class PlannedSessionResolver {
             sets: explicit.targetSets,
             repsMin: explicit.targetRepsMin ?? 8,
             repsMax: explicit.targetRepsMax ?? explicit.targetRepsMin ?? 12,
-            intent: _intentFromRir(explicit.targetRir),
+            intent: _intentFromRir(
+              explicit.targetRir ??
+                  (explicit.targetRpe == null
+                      ? null
+                      : 10 - explicit.targetRpe!),
+            ),
             percentOf1Rm: explicit.percentOf1Rm,
             restSeconds: explicit.restSeconds,
           ),
@@ -510,11 +703,15 @@ class PlannedSessionResolver {
     1 => Intent.rir1,
     2 => Intent.rir2,
     3 => Intent.rir3,
+    4 => Intent.rir4,
+    5 => Intent.technical,
     _ => Intent.rir2,
   };
 
   static bool _hasAutomaticWarmups(String? raw) {
-    if (raw == null || raw.isEmpty) return false;
+    if (raw == null || raw.isEmpty) {
+      return false;
+    }
     try {
       return (jsonDecode(raw) as Map<String, dynamic>)['autoWarmups'] == true;
     } catch (_) {
@@ -528,6 +725,7 @@ class PlannedSessionResolver {
     required String modality,
     required double? targetPercentOf1Rm,
     required bool isFirstHeavyLiftInSession,
+    bool singleIsolationPrimer = false,
   }) {
     final steps = WarmupResolver.resolve(
       role: role,
@@ -535,6 +733,7 @@ class PlannedSessionResolver {
       modality: modality,
       targetPercentOf1Rm: targetPercentOf1Rm,
       isFirstHeavyLiftInSession: isFirstHeavyLiftInSession,
+      singleIsolationPrimer: singleIsolationPrimer,
     );
     return [
       for (final (index, step) in steps.indexed)
@@ -545,8 +744,7 @@ class PlannedSessionResolver {
           isWarmup: true,
           setType: 'standard',
           intent: Intent.technical.id,
-          rir: Intent.technical.rir,
-          rpeX10: (Intent.technical.rpe * 10).round(),
+          setTypeMetaJson: jsonEncode({'automaticWarmup': true}),
           percentOf1Rm: step.percentOf1Rm,
         ),
     ];
@@ -558,6 +756,11 @@ class PlannedSessionResolver {
     final out = <PlannedSetSnapshot>[];
     var index = 1;
     for (final segment in prescription.segments) {
+      final meta = {...segment.meta};
+      if (segment.setType.id == 'myo_reps' && meta['miniSets'] is num) {
+        meta['plannedMiniSets'] = meta['miniSets'];
+        meta['miniSets'] = <int>[];
+      }
       for (var i = 0; i < segment.sets; i++) {
         out.add(
           PlannedSetSnapshot(
@@ -570,9 +773,7 @@ class PlannedSessionResolver {
             rpeX10: (segment.intent.rpe * 10).round(),
             rir: segment.intent.rir,
             percentOf1Rm: segment.percentOf1Rm,
-            setTypeMetaJson: segment.meta.isEmpty
-                ? null
-                : jsonEncode(segment.meta),
+            setTypeMetaJson: meta.isEmpty ? null : jsonEncode(meta),
           ),
         );
       }

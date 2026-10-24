@@ -185,21 +185,23 @@ class ProgressionEngine {
       }
     }
 
+    final minReps = targetRepsMin ?? goal.repsMin;
+    final maxReps = targetRepsMax ?? goal.repsMax;
     // Default Linear Progression logic
     if (lastWeightKg <= 0) {
       return SuggestedTarget(
         weightKg: 0,
-        reps: lastReps < goal.repsMax ? lastReps + 1 : lastReps,
+        reps: lastReps < maxReps ? lastReps + 1 : lastReps,
         rationale: 'Add a rep — no load to progress yet.',
       );
     }
 
-    if (lastReps < goal.repsMax) {
+    if (lastReps < maxReps) {
       return SuggestedTarget(
         weightKg: lastWeightKg,
         reps: lastReps + 1,
         rationale:
-            'Same load, one more rep (${goal.label} range ${goal.repsMin}–${goal.repsMax}).',
+            'Same load, one more rep (${goal.label} range ${minReps}–${maxReps}).',
       );
     }
 
@@ -211,9 +213,9 @@ class ProgressionEngine {
 
     return SuggestedTarget(
       weightKg: next,
-      reps: goal.repsMin,
+      reps: minReps,
       rationale:
-          'Top of rep range hit — +${pct.toStringAsFixed(1)}% load, back to ${goal.repsMin} reps.',
+          'Top of rep range hit — +${pct.toStringAsFixed(1)}% load, back to ${minReps} reps.',
     );
   }
 }

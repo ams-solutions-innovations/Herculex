@@ -262,6 +262,7 @@ void main() {
       testApp(
         const TargetEditorView(
           initialTarget: NutritionTargetData(
+            effectiveFromDateIso: '0001-01-01',
             id: 1,
             label: 'Custom',
             kcal: 2100,

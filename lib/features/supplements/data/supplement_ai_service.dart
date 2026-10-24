@@ -12,6 +12,7 @@ final supplementAiServiceProvider = Provider<SupplementAiService>((ref) {
 class SupplementAiResult {
   final String name;
   final String? brand;
+  final String? barcode;
   final double? doseAmount;
   final String? doseUnit;
   final Map<String, double> nutrients;
@@ -23,6 +24,7 @@ class SupplementAiResult {
   const SupplementAiResult({
     required this.name,
     this.brand,
+    this.barcode,
     this.doseAmount,
     this.doseUnit,
     this.nutrients = const {},
@@ -32,12 +34,27 @@ class SupplementAiResult {
     this.confidence = 0.0,
   });
 
+  SupplementAiResult copyWith({String? barcode}) {
+    return SupplementAiResult(
+      name: name,
+      brand: brand,
+      barcode: barcode ?? this.barcode,
+      doseAmount: doseAmount,
+      doseUnit: doseUnit,
+      nutrients: nutrients,
+      schedule: schedule,
+      timeHHMM: timeHHMM,
+      description: description,
+      confidence: confidence,
+    );
+  }
+
   Supplement toSupplement({String? id, String? barcode}) {
     return Supplement(
       id: id ?? '',
       name: name,
       brand: brand,
-      barcode: barcode,
+      barcode: barcode ?? this.barcode,
       doseAmount: doseAmount,
       doseUnit: doseUnit,
       nutrients: nutrients,
@@ -69,7 +86,7 @@ class SupplementAiService {
   }
 
   SupplementAiResult _parseResult(Map<String, dynamic> data) {
-    final name = (data['name'] as String?)?.trim() ?? 'Neznano dopolnilo';
+    final name = (data['name'] as String?)?.trim() ?? 'Unknown Supplement';
     final brand = (data['brand'] as String?)?.trim();
     final doseAmount = (data['doseAmount'] as num?)?.toDouble();
     final doseUnit = data['doseUnit'] as String?;
@@ -120,8 +137,9 @@ class SupplementAiService {
         .trim()
         .replaceAll('-', '_')
         .replaceAll(' ', '_');
-    if (lower == 'vit_d' || lower == 'vitamind' || lower == 'vitamin_d3')
+    if (lower == 'vit_d' || lower == 'vitamind' || lower == 'vitamin_d3') {
       return 'vitamin_d';
+    }
     if (lower == 'vit_c' || lower == 'vitaminc') return 'vitamin_c';
     if (lower == 'vit_b12' || lower == 'b12') return 'vitamin_b12';
     if (lower == 'omega3' || lower == 'omega_3_fatty_acids') return 'omega_3';

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>CFBundleDisplayName</key><string>Herculex</string>
+    <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>WKApplication</key><true/>
+    <key>WKCompanionAppBundleIdentifier</key><string>com.ams.herculex</string>
+    <key>WKRunsIndependentlyOfCompanionApp</key><false/>
+    <key>NSHealthShareUsageDescription</key><string>Read heart rate and active energy during your Herculex workout.</string>
+    <key>NSHealthUpdateUsageDescription</key><string>Save your Herculex workouts in Apple Health and contribute to Activity rings.</string>
+    <key>WKBackgroundModes</key><array><string>workout-processing</string></array>
+    <key>CFBundleURLTypes</key><array><dict>
+        <key>CFBundleURLName</key><string>com.ams.herculex.watch</string>
+        <key>CFBundleURLSchemes</key><array><string>herculex</string></array>
+    </dict></array>
+</dict></plist>

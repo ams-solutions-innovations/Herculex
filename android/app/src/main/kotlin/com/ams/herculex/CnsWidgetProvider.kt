@@ -11,7 +11,7 @@ import android.widget.RemoteViews
  */
 class CnsWidgetProvider : HxWidgetProvider() {
 
-    override val defaultSize = 182f to 80f
+    override val defaultSize = 182f to 86f
 
     override fun render(context: Context, renderer: HxWidgetRenderer, w: Float, h: Float): HxRendered {
         val prefs = getPrefs(context)

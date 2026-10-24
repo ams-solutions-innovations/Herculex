@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,7 +15,6 @@ import 'package:herculex/features/weekly_report/domain/iso_week.dart';
 import 'package:herculex/features/weekly_report/domain/tdee_target_proposal.dart';
 import 'package:herculex/features/weekly_report/domain/weekly_report_sections.dart';
 import 'package:herculex/features/weekly_report/presentation/widgets/tdee_shift_card.dart';
-
 import '../../support/fake_clock.dart';
 
 const _section = TdeeSection(
@@ -74,7 +72,9 @@ class _FakeActions implements TdeeDecisionActions {
   Object? error;
 
   Future<TdeeActionResult> _answer() async {
-    if (error != null) throw error!;
+    if (error != null) {
+      throw error!;
+    }
     return gate?.future ?? result;
   }
 
@@ -84,6 +84,7 @@ class _FakeActions implements TdeeDecisionActions {
     required int oldEstimateKcal,
     required int newEstimateKcal,
     required TdeeTargetProposal displayed,
+    DateTime? effectiveFrom,
   }) {
     updates.add((
       week: week,
@@ -186,6 +187,9 @@ void main() {
       final actions = _FakeActions();
       await _pump(tester, record: _record(), actions: actions);
       await tester.tap(_updateButton);
+      await tester.pumpAndSettle();
+      expect(actions.updates, isEmpty);
+      await tester.tap(find.text('From today'));
       await tester.pump();
       await tester.pump();
       expect(actions.updates, hasLength(1));
@@ -214,6 +218,9 @@ void main() {
       final actions = _FakeActions()..gate = Completer<TdeeActionResult>();
       await _pump(tester, record: _record(), actions: actions);
       await tester.tap(_updateButton);
+      await tester.pumpAndSettle();
+      expect(actions.updates, isEmpty);
+      await tester.tap(find.text('From today'));
       await tester.pump();
       await tester.tap(_updateButton, warnIfMissed: false);
       await tester.tap(_keepButton, warnIfMissed: false);
@@ -227,6 +234,9 @@ void main() {
       Future<void> tapUpdate(WidgetTester tester, _FakeActions actions) async {
         await _pump(tester, record: _record(), actions: actions);
         await tester.tap(_updateButton);
+        await tester.pumpAndSettle();
+        expect(actions.updates, isEmpty);
+        await tester.tap(find.text('From today'));
         await tester.pump();
         await tester.pump();
         await tester.pump(_noticeReveal);

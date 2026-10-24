@@ -19,6 +19,7 @@ abstract final class WorkoutDurationEstimator {
     required SetType setType,
     List<WarmupStep> warmupSteps = const [],
     bool isUnilateral = false,
+    Map<String, Object?> setTypeMeta = const {},
   }) {
     final avgReps = (repsMin + repsMax) / 2;
 
@@ -35,11 +36,27 @@ abstract final class WorkoutDurationEstimator {
     );
 
     // (c) mini-set burst time for rest-pause/myo-reps style techniques.
+    final rawMiniSets =
+        setTypeMeta['plannedMiniSets'] ?? setTypeMeta['miniSets'];
+    final miniSets = rawMiniSets is num
+        ? rawMiniSets.toInt().clamp(0, 10)
+        : rawMiniSets is List
+        ? rawMiniSets.length.clamp(0, 10)
+        : 2;
     final miniSetSeconds = setType.metaKeys.contains('miniSets')
-        ? 2 * (avgReps * 0.4 * _secondsPerRep + 15)
+        ? workingSets *
+              miniSets *
+              (avgReps * 0.4 * _secondsPerRep * (isUnilateral ? 2 : 1) + 15)
         : 0;
 
-    final totalSeconds = workingSetSeconds + warmupSeconds + miniSetSeconds;
+    final drops = (setTypeMeta['drops'] as num?)?.toInt().clamp(0, 5) ?? 1;
+    final dropSeconds =
+        setType == SetType.drop && setTypeMeta['dropStep'] != true
+        ? workingSets * drops * (repPerformanceSeconds * 0.6 + 10)
+        : 0;
+
+    final totalSeconds =
+        workingSetSeconds + warmupSeconds + miniSetSeconds + dropSeconds;
     return Duration(seconds: totalSeconds.round());
   }
 

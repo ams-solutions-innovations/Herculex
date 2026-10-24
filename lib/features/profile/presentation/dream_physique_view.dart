@@ -957,7 +957,10 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                           ),
                         ),
                         const SizedBox(height: 6),
+                        // AI-written, so unbounded: capped so a long range
+                        // can't squeeze the two photo columns either side.
                         Container(
+                          constraints: const BoxConstraints(maxWidth: 96),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 3,
@@ -968,6 +971,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                           ),
                           child: Text(
                             r.timeframeRange,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,

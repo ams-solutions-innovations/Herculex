@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:drift/drift.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/workouts/domain/effective_load.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
@@ -37,7 +37,9 @@ class ResolvedSet {
     required this.accessoryNames,
     required this.forearmMultiplier,
   }) : effectiveKg = EffectiveLoad.computeKg(
-         weightKg: set.weightKg,
+         weightKg: isMachineAssistedPullup(exercise.slug)
+             ? -set.weightKg
+             : set.weightKg,
          bodyweightKg: set.bodyweightKg,
          includesBodyweight:
              exercise.supportsWeightedBodyweight ||
@@ -119,17 +121,64 @@ class TrainingSnapshot {
   const TrainingSnapshot({required this.sets, required this.exerciseMuscles});
 
   /// Loads every completed, non-warmup set with its attachments resolved.
-  static Future<TrainingSnapshot> load(AppDatabase db) async {
+  static Future<TrainingSnapshot> load(
+    AppDatabase db, {
+    DateTime? from,
+    DateTime? until,
+  }) async {
+    final bounded = from != null || until != null;
+    final sessions =
+        await (db.select(db.workoutSessions)..where(
+              (t) =>
+                  t.deletedAt.isNull() &
+                  (from == null
+                      ? const Constant(true)
+                      : t.startedAt.isBiggerOrEqualValue(from)) &
+                  (until == null
+                      ? const Constant(true)
+                      : t.startedAt.isSmallerOrEqualValue(until)),
+            ))
+            .get();
+    final exerciseRows =
+        await (db.select(db.workoutExercises)..where(
+              (t) =>
+                  t.deletedAt.isNull() &
+                  (bounded
+                      ? t.sessionId.isIn(sessions.map((s) => s.id))
+                      : const Constant(true)),
+            ))
+            .get();
+    final selectedSets =
+        await (db.select(db.setEntries)..where(
+              (t) =>
+                  t.deletedAt.isNull() &
+                  (bounded
+                      ? t.workoutExerciseId.isIn(exerciseRows.map((e) => e.id))
+                      : const Constant(true)),
+            ))
+            .get();
     final results = await Future.wait([
-      (db.select(db.setEntries)..where((t) => t.deletedAt.isNull())).get(),
-      (db.select(
-        db.workoutExercises,
-      )..where((t) => t.deletedAt.isNull())).get(),
-      (db.select(db.workoutSessions)..where((t) => t.deletedAt.isNull())).get(),
+      Future.value(selectedSets),
+      Future.value(exerciseRows),
+      Future.value(sessions),
       (db.select(db.exerciseCatalog)..where((t) => t.deletedAt.isNull())).get(),
       db.select(db.exerciseMuscles).get(),
-      (db.select(db.setAccessories)..where((t) => t.deletedAt.isNull())).get(),
-      (db.select(db.setBands)..where((t) => t.deletedAt.isNull())).get(),
+      (db.select(db.setAccessories)..where(
+            (t) =>
+                t.deletedAt.isNull() &
+                (bounded
+                    ? t.setEntryId.isIn(selectedSets.map((s) => s.id))
+                    : const Constant(true)),
+          ))
+          .get(),
+      (db.select(db.setBands)..where(
+            (t) =>
+                t.deletedAt.isNull() &
+                (bounded
+                    ? t.setEntryId.isIn(selectedSets.map((s) => s.id))
+                    : const Constant(true)),
+          ))
+          .get(),
       (db.select(db.accessories)..where((t) => t.deletedAt.isNull())).get(),
       (db.select(db.bands)..where((t) => t.deletedAt.isNull())).get(),
     ]);
@@ -152,8 +201,9 @@ class TrainingSnapshot {
     final accessoriesBySet = <int, List<AccessoryData>>{};
     for (final sa in setAccessories) {
       final a = accessoryById[sa.accessoryId];
-      if (a != null)
+      if (a != null) {
         accessoriesBySet.putIfAbsent(sa.setEntryId, () => []).add(a);
+      }
     }
     final bandsBySet = <int, List<BandContribution>>{};
     for (final sb in setBands) {

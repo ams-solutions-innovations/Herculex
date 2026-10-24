@@ -37,6 +37,10 @@ class BuddyChoreographySender {
 
   Future<void> addExercise({
     required int exerciseId,
+    int? targetSets,
+    int? targetReps,
+    double? targetWeightKg,
+    int? targetDurationSeconds,
     required BuddyScope scope,
     String? equipmentVariant,
     String? afterSlotId,
@@ -66,6 +70,10 @@ class BuddyChoreographySender {
       sessionId: _localWorkoutSessionId,
       exerciseId: exerciseId,
       equipmentVariant: equipmentVariant,
+      targetSets: targetSets,
+      targetReps: targetReps,
+      targetWeightKg: targetWeightKg,
+      targetDurationSeconds: targetDurationSeconds,
     );
 
     final slot = BuddySlot(

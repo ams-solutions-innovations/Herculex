@@ -7,7 +7,9 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/workouts/application/circuits_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/domain/calisthenics_progression.dart';
 import 'package:herculex/features/workouts/presentation/dialogs/exercise_ai_scan_dialog.dart';
+import 'package:herculex/features/workouts/presentation/sheets/calisthenics_level_sheet.dart';
 import 'package:herculex/features/workouts/presentation/views/circuit_builder_view.dart';
 import 'package:herculex/features/workouts/presentation/views/custom_exercise_builder_view.dart';
 import 'package:herculex/features/workouts/presentation/widgets/equipment_icon.dart';
@@ -26,6 +28,8 @@ class ExercisePickResult {
   final int? circuitRestSeconds;
   final int? targetReps;
   final double? targetWeightKg;
+  final int? targetSets;
+  final int? targetDurationSeconds;
 
   const ExercisePickResult({
     required this.exercise,
@@ -36,6 +40,8 @@ class ExercisePickResult {
     this.circuitRestSeconds,
     this.targetReps,
     this.targetWeightKg,
+    this.targetSets,
+    this.targetDurationSeconds,
   });
 }
 
@@ -175,7 +181,10 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
     for (final e in list) {
       // Authored movement first; the derived family remains the fallback for
       // rows the movement layer does not cover yet (and for custom rows).
-      final fam = e.movementSlug ?? e.movementFamily;
+      final path = e.isCustom ? null : calisthenicsPathFor(e.slug);
+      final fam = path == null
+          ? e.movementSlug ?? e.movementFamily
+          : 'calisthenics:${path.id}';
       if (fam == null) {
         groups.add([e]);
         continue;
@@ -286,7 +295,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                           Icons.camera_alt_outlined,
                           color: AppColors.primary,
                         ),
-                        tooltip: 'Herculex AI: Skeniraj napravo / vajo',
+                        tooltip: 'Herculex AI: Scan Machine / Exercise',
                         onPressed: () async {
                           final match = await ExerciseAiScanDialog.show(
                             context,
@@ -410,6 +419,83 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                               itemCount: groups.length,
                               itemBuilder: (_, i) {
                                 final g = groups[i];
+                                final path = g.first.isCustom
+                                    ? null
+                                    : calisthenicsPathFor(g.first.slug);
+                                if (path != null) {
+                                  return Card(
+                                    child: ListTile(
+                                      title: Text(path.label),
+                                      subtitle: const Text(
+                                        'Levels · reps, assistance and load',
+                                      ),
+                                      trailing: Icon(
+                                        g.any(
+                                              (e) => _selectedMap.containsKey(
+                                                e.id,
+                                              ),
+                                            )
+                                            ? Icons.check_circle
+                                            : Icons.chevron_right,
+                                      ),
+                                      onTap: () async {
+                                        final catalog =
+                                            ref
+                                                .read(
+                                                  exerciseCatalogProvider(
+                                                    const ExerciseCatalogFilter(),
+                                                  ),
+                                                )
+                                                .valueOrNull ??
+                                            g;
+                                        final picked =
+                                            await CalisthenicsLevelSheet.show(
+                                              context,
+                                              path,
+                                              catalog
+                                                  .where(
+                                                    (e) =>
+                                                        availableEquipment ==
+                                                            null ||
+                                                        _availableAtGym(
+                                                          e,
+                                                          availableEquipment,
+                                                        ),
+                                                  )
+                                                  .toList(),
+                                            );
+                                        if (picked == null || !mounted) return;
+                                        setState(() {
+                                          if (_selectedMap.containsKey(
+                                            picked.exercise.id,
+                                          )) {
+                                            _selectedMap.remove(
+                                              picked.exercise.id,
+                                            );
+                                          } else {
+                                            _selectedMap[picked
+                                                .exercise
+                                                .id] = ExercisePickResult(
+                                              exercise: picked.exercise,
+                                              equipmentAlreadyChosen: true,
+                                              equipmentVariant:
+                                                  picked.level.variant,
+                                              targetSets: 3,
+                                              targetReps: picked.level.seconds
+                                                  ? null
+                                                  : picked.value,
+                                              targetDurationSeconds:
+                                                  picked.level.seconds
+                                                  ? picked.value
+                                                  : null,
+                                              targetWeightKg: picked.load,
+                                            );
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  );
+                                }
                                 if (g.length == 1) {
                                   final isSelected = _selectedMap.containsKey(
                                     g.first.id,

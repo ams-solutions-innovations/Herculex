@@ -15,6 +15,23 @@
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		DC38F970ADDF87CF72A26EF7 = { isa = PBXBuildFile; fileRef = ACDBD5F0EA588413149C8D5A; };
+		5F06D7149F5063C237464CD5 = { isa = PBXBuildFile; fileRef = 3A95F9FEECBD3FBE5340E212; };
+		F630DECC76BCF14F1F99BC25 = { isa = PBXBuildFile; fileRef = D94E3AA126686AAE1DCACCBD; };
+		13D44ABB025E8F3476A56254 = { isa = PBXBuildFile; settings = { ATTRIBUTES = (RemoveHeadersOnCopy,); }; fileRef = D9F1E1EDA5680EEE874092F7; };
+		6A0134B6902DC061B01414FD = { isa = PBXBuildFile; settings = { ATTRIBUTES = (RemoveHeadersOnCopy,); }; fileRef = 7E266DE585376D5332EB56E7; };
+		50C7EF7A32C935755F794080 = { isa = PBXBuildFile; fileRef = 801EAF83ED910CB373D6DC36; };
+		9B5ABE5188C7F214445140C5 = { isa = PBXBuildFile; fileRef = 48BBD9EE23629E7EFA2D8BDA; };
+		2AF972AA3858ABDA39C0B4D4 = { isa = PBXBuildFile; fileRef = 7D576D0EAF26565E99E4BC5B; };
+		8C6D11ED1C2135CC863A97EF = { isa = PBXBuildFile; fileRef = 137E3B7E1661D05437D3FA32; };
+		C0B474487318E6283CA46B22 = { isa = PBXBuildFile; fileRef = ACDBD5F0EA588413149C8D5A; };
+		F7F0D05FBAC238F77DDE99C8 = { isa = PBXBuildFile; fileRef = 3A95F9FEECBD3FBE5340E212; };
+		BE9F01DC66FECCE50E024E45 = { isa = PBXBuildFile; fileRef = E91317770B8303064F80234C; };
+		6B083EB5ED82D08F4CD73B0A = { isa = PBXBuildFile; fileRef = 0AB218257D530F4D649687DD; };
+		7C199F2A50FF1823671F8102 = { isa = PBXBuildFile; fileRef = ACDBD5F0EA588413149C8D5A; };
+		DE0CC224F0C1F3B77CEF6B27 = { isa = PBXBuildFile; fileRef = 5D761DFE90FA95F634E1B804; };
+		B461E3375A3688366F9C8A13 = { isa = PBXBuildFile; fileRef = 54586B82788CA93634845C6E; };
+		7F05C7A95BA9DBB62B35059A = { isa = PBXBuildFile; fileRef = 418A299F1013FCE3F70D2E8D; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,6 +42,8 @@
 			remoteGlobalIDString = 97C146ED1CF9000F007C117D;
 			remoteInfo = Runner;
 		};
+		DA9128B19A388C70873FBE57 = { isa = PBXContainerItemProxy; containerPortal = 97C146E61CF9000F007C117D; proxyType = 1; remoteGlobalIDString = D0EEF3BA83B22278C0BD9D60; remoteInfo = HerculexWatch; };
+		F716A63C82174EC1DCEB7094 = { isa = PBXContainerItemProxy; containerPortal = 97C146E61CF9000F007C117D; proxyType = 1; remoteGlobalIDString = 4845B8C9476694C3E8ED1D15; remoteInfo = HerculexWatchWidgets; };
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -38,6 +57,8 @@
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4527489E7B797A3758A882C5 = { isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; files = (13D44ABB025E8F3476A56254,); runOnlyForDeploymentPostprocessing = 0; dstPath = ""; dstSubfolderSpec = 13; name = "Embed Watch Widgets"; };
+		63AFBC3BEB426B1D322F9A28 = { isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; files = (6A0134B6902DC061B01414FD,); runOnlyForDeploymentPostprocessing = 0; dstPath = "$(CONTENTS_FOLDER_PATH)/Watch"; dstSubfolderSpec = 16; name = "Embed Watch Content"; };
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -57,6 +78,26 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		ACDBD5F0EA588413149C8D5A = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchShared/WatchProtocol.swift"; sourceTree = SOURCE_ROOT; };
+		3A95F9FEECBD3FBE5340E212 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchShared/WatchTransport.swift"; sourceTree = SOURCE_ROOT; };
+		801EAF83ED910CB373D6DC36 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HerculexWatch/WatchStore.swift"; sourceTree = SOURCE_ROOT; };
+		48BBD9EE23629E7EFA2D8BDA = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HerculexWatch/WorkoutHealth.swift"; sourceTree = SOURCE_ROOT; };
+		7D576D0EAF26565E99E4BC5B = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HerculexWatch/WatchViews.swift"; sourceTree = SOURCE_ROOT; };
+		137E3B7E1661D05437D3FA32 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HerculexWatch/HerculexWatchApp.swift"; sourceTree = SOURCE_ROOT; };
+		5D761DFE90FA95F634E1B804 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HerculexWatchWidgets/HerculexWatchWidgets.swift"; sourceTree = SOURCE_ROOT; };
+		D94E3AA126686AAE1DCACCBD = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Runner/AppleWatchBridge.swift"; sourceTree = SOURCE_ROOT; };
+		556EB6131D66311C70D9A7A2 = { isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "WatchShared/Watch.xcconfig"; sourceTree = SOURCE_ROOT; };
+		E91317770B8303064F80234C = { isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "HerculexWatch/Assets.xcassets"; sourceTree = SOURCE_ROOT; };
+		0AB218257D530F4D649687DD = { isa = PBXFileReference; lastKnownFileType = text.json; path = "../assets/data/fasting_stages.json"; sourceTree = SOURCE_ROOT; };
+		254DF6E0F2F3924FD6966509 = { isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "HerculexWatch/Info.plist"; sourceTree = SOURCE_ROOT; };
+		DC5ADFD7C429FAFB59B2793C = { isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "HerculexWatch/HerculexWatch.entitlements"; sourceTree = SOURCE_ROOT; };
+		65DA7B8CDBC6DF0E2F7D1106 = { isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "HerculexWatchWidgets/Info.plist"; sourceTree = SOURCE_ROOT; };
+		4DA276EE87A6065B9F00E0C5 = { isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "HerculexWatchWidgets/HerculexWatchWidgets.entitlements"; sourceTree = SOURCE_ROOT; };
+		E792C3FB95B76F792AF30651 = { isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Runner/Runner.entitlements"; sourceTree = SOURCE_ROOT; };
+		7E266DE585376D5332EB56E7 = { isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HerculexWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D9F1E1EDA5680EEE874092F7 = { isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = HerculexWatchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		54586B82788CA93634845C6E = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RunnerTests/WatchProtocolTests.swift"; sourceTree = SOURCE_ROOT; };
+		418A299F1013FCE3F70D2E8D = { isa = PBXFileReference; lastKnownFileType = text.json; path = "../test/fixtures/watch_sync_v2.json"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -67,6 +108,8 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		1123E7B75F31ABE52B580670 = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;  };
+		94153F3E9982571E93A993AB = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;  };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -74,6 +117,8 @@
 			isa = PBXGroup;
 			children = (
 				331C807B294A618700263BE5 /* RunnerTests.swift */,
+				54586B82788CA93634845C6E,
+				418A299F1013FCE3F70D2E8D,
 			);
 			path = RunnerTests;
 			sourceTree = "<group>";
@@ -96,6 +141,9 @@
 				97C146F01CF9000F007C117D /* Runner */,
 				97C146EF1CF9000F007C117D /* Products */,
 				331C8082294A63A400263BE5 /* RunnerTests */,
+				EA5D47EBC854C0A0243F7E49,
+				97502DDBAA1F479CB067A4CC,
+				70E60227A02DB3A6E2B31640,
 			);
 			sourceTree = "<group>";
 		};
@@ -104,6 +152,8 @@
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
+				7E266DE585376D5332EB56E7,
+				D9F1E1EDA5680EEE874092F7,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -120,10 +170,15 @@
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
+				D94E3AA126686AAE1DCACCBD,
+				E792C3FB95B76F792AF30651,
 			);
 			path = Runner;
 			sourceTree = "<group>";
 		};
+		EA5D47EBC854C0A0243F7E49 = { isa = PBXGroup; children = (ACDBD5F0EA588413149C8D5A, 3A95F9FEECBD3FBE5340E212, 556EB6131D66311C70D9A7A2,); name = WatchShared; sourceTree = "<group>"; };
+		97502DDBAA1F479CB067A4CC = { isa = PBXGroup; children = (801EAF83ED910CB373D6DC36, 48BBD9EE23629E7EFA2D8BDA, 7D576D0EAF26565E99E4BC5B, 137E3B7E1661D05437D3FA32, E91317770B8303064F80234C, 0AB218257D530F4D649687DD, 254DF6E0F2F3924FD6966509, DC5ADFD7C429FAFB59B2793C,); name = HerculexWatch; sourceTree = "<group>"; };
+		70E60227A02DB3A6E2B31640 = { isa = PBXGroup; children = (5D761DFE90FA95F634E1B804, 65DA7B8CDBC6DF0E2F7D1106, 4DA276EE87A6065B9F00E0C5,); name = HerculexWatchWidgets; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -154,16 +209,20 @@
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
+				63AFBC3BEB426B1D322F9A28,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A19ECD8BFB711F3650E3DE01,
 			);
 			name = Runner;
 			productName = Runner;
 			productReference = 97C146EE1CF9000F007C117D /* Runner.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D0EEF3BA83B22278C0BD9D60 = { isa = PBXNativeTarget; buildConfigurationList = 2906A6C8A1EC2BA68539884F; buildPhases = (2A7D2965F73A4448BCD29F08, 1123E7B75F31ABE52B580670, 952942EC8BDA9D49B55D7BB9, 4527489E7B797A3758A882C5, 8AB051EED4F2F8BC613B5A3C,); buildRules = (); dependencies = (0A34068D29ED8B15E56FDF1B,); name = HerculexWatch; productName = HerculexWatch; productReference = 7E266DE585376D5332EB56E7; productType = "com.apple.product-type.application"; };
+		4845B8C9476694C3E8ED1D15 = { isa = PBXNativeTarget; buildConfigurationList = C70EB54A3B26D782489331B5; buildPhases = (2DAD0F376421A694A5BCDFE6, 94153F3E9982571E93A993AB, 932F962CEDD5BCBF8C50E1E5,); buildRules = (); dependencies = (); name = HerculexWatchWidgets; productName = HerculexWatchWidgets; productReference = D9F1E1EDA5680EEE874092F7; productType = "com.apple.product-type.app-extension"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -199,6 +258,8 @@
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
+				D0EEF3BA83B22278C0BD9D60,
+				4845B8C9476694C3E8ED1D15,
 			);
 		};
 /* End PBXProject section */
@@ -208,6 +269,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7F05C7A95BA9DBB62B35059A,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -222,6 +284,8 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		952942EC8BDA9D49B55D7BB9 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (BE9F01DC66FECCE50E024E45, 6B083EB5ED82D08F4CD73B0A,); runOnlyForDeploymentPostprocessing = 0;  };
+		932F962CEDD5BCBF8C50E1E5 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;  };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
@@ -256,6 +320,7 @@
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
 		};
+		8AB051EED4F2F8BC613B5A3C = { isa = PBXShellScriptBuildPhase; buildActionMask = 2147483647; files = (); inputPaths = (); outputPaths = (); name = "Prepare Exercise Artwork"; runOnlyForDeploymentPostprocessing = 0; alwaysOutOfDate = 1; shellPath = /bin/sh; shellScript = "set -eu\n/bin/sh \"$SRCROOT/../scripts/prepare_watch_artwork.sh\"\n"; };
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -264,6 +329,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */,
+				B461E3375A3688366F9C8A13,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -274,9 +340,14 @@
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
+				DC38F970ADDF87CF72A26EF7,
+				5F06D7149F5063C237464CD5,
+				F630DECC76BCF14F1F99BC25,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		2A7D2965F73A4448BCD29F08 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (50C7EF7A32C935755F794080, 9B5ABE5188C7F214445140C5, 2AF972AA3858ABDA39C0B4D4, 8C6D11ED1C2135CC863A97EF, C0B474487318E6283CA46B22, F7F0D05FBAC238F77DDE99C8,); runOnlyForDeploymentPostprocessing = 0;  };
+		2DAD0F376421A694A5BCDFE6 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (7C199F2A50FF1823671F8102, DE0CC224F0C1F3B77CEF6B27,); runOnlyForDeploymentPostprocessing = 0;  };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -285,6 +356,8 @@
 			target = 97C146ED1CF9000F007C117D /* Runner */;
 			targetProxy = 331C8085294A63A400263BE5 /* PBXContainerItemProxy */;
 		};
+		A19ECD8BFB711F3650E3DE01 = { isa = PBXTargetDependency; target = D0EEF3BA83B22278C0BD9D60; targetProxy = DA9128B19A388C70873FBE57; };
+		0A34068D29ED8B15E56FDF1B = { isa = PBXTargetDependency; target = 4845B8C9476694C3E8ED1D15; targetProxy = F716A63C82174EC1DCEB7094; };
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
@@ -368,6 +441,7 @@
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -547,6 +621,7 @@
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -569,6 +644,7 @@
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -581,6 +657,48 @@
 			};
 			name = Release;
 		};
+		EC794946BB3E0A6B77405690 = { isa = XCBuildConfiguration; baseConfigurationReference = 556EB6131D66311C70D9A7A2; buildSettings = { CLANG_ENABLE_MODULES = YES; CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = HerculexWatch/HerculexWatch.entitlements;
+CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+INFOPLIST_FILE = HerculexWatch/Info.plist; GENERATE_INFOPLIST_FILE = NO; SDKROOT = watchos;
+SUPPORTED_PLATFORMS = "watchos watchsimulator"; TARGETED_DEVICE_FAMILY = 4; WATCHOS_DEPLOYMENT_TARGET = 10.0;
+SWIFT_VERSION = 5.0; PRODUCT_BUNDLE_IDENTIFIER = com.ams.herculex.watchkitapp; PRODUCT_NAME = "$(TARGET_NAME)";
+SKIP_INSTALL = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; ENABLE_BITCODE = NO; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks",); ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; }; name = Debug; };
+		CB36308E1375EC0F67318F19 = { isa = XCBuildConfiguration; baseConfigurationReference = 556EB6131D66311C70D9A7A2; buildSettings = { CLANG_ENABLE_MODULES = YES; CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = HerculexWatch/HerculexWatch.entitlements;
+CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+INFOPLIST_FILE = HerculexWatch/Info.plist; GENERATE_INFOPLIST_FILE = NO; SDKROOT = watchos;
+SUPPORTED_PLATFORMS = "watchos watchsimulator"; TARGETED_DEVICE_FAMILY = 4; WATCHOS_DEPLOYMENT_TARGET = 10.0;
+SWIFT_VERSION = 5.0; PRODUCT_BUNDLE_IDENTIFIER = com.ams.herculex.watchkitapp; PRODUCT_NAME = "$(TARGET_NAME)";
+SKIP_INSTALL = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; ENABLE_BITCODE = NO; SWIFT_OPTIMIZATION_LEVEL = "-O";
+LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks",); ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; }; name = Release; };
+		CD2392B9FE362CD55EFB5D57 = { isa = XCBuildConfiguration; baseConfigurationReference = 556EB6131D66311C70D9A7A2; buildSettings = { CLANG_ENABLE_MODULES = YES; CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = HerculexWatch/HerculexWatch.entitlements;
+CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+INFOPLIST_FILE = HerculexWatch/Info.plist; GENERATE_INFOPLIST_FILE = NO; SDKROOT = watchos;
+SUPPORTED_PLATFORMS = "watchos watchsimulator"; TARGETED_DEVICE_FAMILY = 4; WATCHOS_DEPLOYMENT_TARGET = 10.0;
+SWIFT_VERSION = 5.0; PRODUCT_BUNDLE_IDENTIFIER = com.ams.herculex.watchkitapp; PRODUCT_NAME = "$(TARGET_NAME)";
+SKIP_INSTALL = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; ENABLE_BITCODE = NO; SWIFT_OPTIMIZATION_LEVEL = "-O";
+LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks",); ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; }; name = Profile; };
+		A3EEE94C7BA1F290C439AF85 = { isa = XCBuildConfiguration; baseConfigurationReference = 556EB6131D66311C70D9A7A2; buildSettings = { CLANG_ENABLE_MODULES = YES; CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = HerculexWatchWidgets/HerculexWatchWidgets.entitlements;
+CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+INFOPLIST_FILE = HerculexWatchWidgets/Info.plist; GENERATE_INFOPLIST_FILE = NO; SDKROOT = watchos;
+SUPPORTED_PLATFORMS = "watchos watchsimulator"; TARGETED_DEVICE_FAMILY = 4; WATCHOS_DEPLOYMENT_TARGET = 10.0;
+SWIFT_VERSION = 5.0; PRODUCT_BUNDLE_IDENTIFIER = com.ams.herculex.watchkitapp.widgets; PRODUCT_NAME = "$(TARGET_NAME)";
+SKIP_INSTALL = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; ENABLE_BITCODE = NO; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks",); APPLICATION_EXTENSION_API_ONLY = YES; }; name = Debug; };
+		1A068E0FA4AA21990B18D283 = { isa = XCBuildConfiguration; baseConfigurationReference = 556EB6131D66311C70D9A7A2; buildSettings = { CLANG_ENABLE_MODULES = YES; CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = HerculexWatchWidgets/HerculexWatchWidgets.entitlements;
+CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+INFOPLIST_FILE = HerculexWatchWidgets/Info.plist; GENERATE_INFOPLIST_FILE = NO; SDKROOT = watchos;
+SUPPORTED_PLATFORMS = "watchos watchsimulator"; TARGETED_DEVICE_FAMILY = 4; WATCHOS_DEPLOYMENT_TARGET = 10.0;
+SWIFT_VERSION = 5.0; PRODUCT_BUNDLE_IDENTIFIER = com.ams.herculex.watchkitapp.widgets; PRODUCT_NAME = "$(TARGET_NAME)";
+SKIP_INSTALL = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; ENABLE_BITCODE = NO; SWIFT_OPTIMIZATION_LEVEL = "-O";
+LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks",); APPLICATION_EXTENSION_API_ONLY = YES; }; name = Release; };
+		23AD6099F14AC0C641CBAF0C = { isa = XCBuildConfiguration; baseConfigurationReference = 556EB6131D66311C70D9A7A2; buildSettings = { CLANG_ENABLE_MODULES = YES; CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = HerculexWatchWidgets/HerculexWatchWidgets.entitlements;
+CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+INFOPLIST_FILE = HerculexWatchWidgets/Info.plist; GENERATE_INFOPLIST_FILE = NO; SDKROOT = watchos;
+SUPPORTED_PLATFORMS = "watchos watchsimulator"; TARGETED_DEVICE_FAMILY = 4; WATCHOS_DEPLOYMENT_TARGET = 10.0;
+SWIFT_VERSION = 5.0; PRODUCT_BUNDLE_IDENTIFIER = com.ams.herculex.watchkitapp.widgets; PRODUCT_NAME = "$(TARGET_NAME)";
+SKIP_INSTALL = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; ENABLE_BITCODE = NO; SWIFT_OPTIMIZATION_LEVEL = "-O";
+LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks",); APPLICATION_EXTENSION_API_ONLY = YES; }; name = Profile; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -614,6 +732,8 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		2906A6C8A1EC2BA68539884F = { isa = XCConfigurationList; buildConfigurations = (EC794946BB3E0A6B77405690, CB36308E1375EC0F67318F19, CD2392B9FE362CD55EFB5D57,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		C70EB54A3B26D782489331B5 = { isa = XCConfigurationList; buildConfigurations = (A3EEE94C7BA1F290C439AF85, 1A068E0FA4AA21990B18D283, 23AD6099F14AC0C641CBAF0C,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 	};
 	rootObject = 97C146E61CF9000F007C117D /* Project object */;

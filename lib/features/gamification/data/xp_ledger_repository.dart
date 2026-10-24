@@ -16,18 +16,18 @@ class XpLedgerRepository {
 
   static const _key = 'gamification_xp_ledger_v1';
   final SharedPreferences _preferences;
-  final _controller = StreamController<LevelProgress>.broadcast();
+  final _controller = StreamController<XpTotals>.broadcast();
   late List<XpLedgerEntry> _entries;
 
   List<XpLedgerEntry> get entries => List.unmodifiable(_entries);
-  LevelProgress get progress => LevelProgress(
+  XpTotals get progress => XpTotals(
     totalXp: _entries.fold(0, (sum, entry) => sum + entry.xp),
     completedWorkouts: _entries
         .where((entry) => entry.id.startsWith('workout:'))
         .length,
   );
 
-  LevelProgress getProgressForActiveSessions(List<int>? activeSessionIds) {
+  XpTotals getProgressForActiveSessions(List<int>? activeSessionIds) {
     if (activeSessionIds == null) return progress;
     final activeSet = activeSessionIds.toSet();
     final activeEntries = _entries.where((entry) {
@@ -35,7 +35,7 @@ class XpLedgerRepository {
       final sid = int.tryParse(entry.id.substring('workout:'.length));
       return sid == null || activeSet.contains(sid);
     }).toList();
-    return LevelProgress(
+    return XpTotals(
       totalXp: activeEntries.fold(0, (sum, entry) => sum + entry.xp),
       completedWorkouts: activeEntries
           .where((entry) => entry.id.startsWith('workout:'))
@@ -43,7 +43,7 @@ class XpLedgerRepository {
     );
   }
 
-  Stream<LevelProgress> watch() async* {
+  Stream<XpTotals> watch() async* {
     yield progress;
     yield* _controller.stream;
   }

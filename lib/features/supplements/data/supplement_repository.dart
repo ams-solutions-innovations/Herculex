@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:herculex/features/labs/data/labs_repository.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,6 +46,21 @@ class SupplementRepository {
   }
 
   Future<void> saveSupplements(List<Supplement> supplements) async {
+    final previous = loadSupplements();
+    final labs = LabsRepository(_prefs);
+    try {
+      if (labs.consent.enabled &&
+          labs.consent.categories.any((c) => c.name == 'supplements')) {
+        final now = DateTime.now();
+        await labs.put('definitions', now.microsecondsSinceEpoch.toString(), {
+          'at': now.toIso8601String(),
+          'before': previous.map((s) => s.toJson()).toList(),
+          'after': supplements.map((s) => s.toJson()).toList(),
+        });
+      }
+    } finally {
+      await labs.changes.close();
+    }
     await _prefs.setString(_configKey, Supplement.listToJson(supplements));
     _supplementsController.add(supplements);
   }
@@ -109,10 +125,14 @@ class SupplementRepository {
       takenKeyForDate(date ?? DateTime.now()),
       jsonEncode(set.toList()),
     );
+    await LabsRepository.recordIntake(prefs, id, taken, date ?? DateTime.now());
     return set;
   }
 
   Set<String> loadTakenToday() => loadTakenFromPrefs(_prefs);
+
+  Set<String> loadTakenForDate(DateTime date) =>
+      loadTakenFromPrefs(_prefs, date);
 
   Stream<Set<String>> watchTakenToday() {
     Future.microtask(() => _takenController.add(loadTakenToday()));
@@ -124,9 +144,57 @@ class SupplementRepository {
     _takenController.add(updated);
   }
 
-  /// Removes taken-set keys older than 7 days to avoid prefs bloat.
+  Future<void> markTakenForDate(String id, bool taken, DateTime date) async {
+    await markTakenInPrefs(_prefs, id, taken, date: date);
+    // Broadcast today's taken set so all listeners (including history providers
+    // that watch takenTodayProvider) refresh immediately.
+    _takenController.add(loadTakenToday());
+  }
+
+  /// Loads the taken supplement IDs for each day in the trailing [days] window
+  /// ending on [anchor] (defaults to today), keyed by `YYYY-MM-DD`.
+  Map<String, Set<String>> loadHistory({required int days, DateTime? anchor}) {
+    final now = anchor ?? DateTime.now();
+    final end = DateTime(now.year, now.month, now.day);
+    final out = <String, Set<String>>{};
+    for (int i = days - 1; i >= 0; i--) {
+      final d = end.subtract(Duration(days: i));
+      final iso = _isoDate(d);
+      out[iso] = loadTakenFromPrefs(_prefs, d);
+    }
+    return out;
+  }
+
+  /// Finds the earliest date on which at least one supplement was marked taken,
+  /// or null if no supplement has ever been logged.
+  DateTime? findEarliestTrackedDate() {
+    DateTime? earliest;
+    for (final key in _prefs.getKeys()) {
+      if (!key.startsWith('supplements_taken_')) continue;
+      final raw = _prefs.getString(key);
+      if (raw == null || raw.isEmpty || raw == '[]') continue;
+      final datePart = key.replaceFirst('supplements_taken_', '');
+      final parsed = DateTime.tryParse(datePart);
+      if (parsed == null) continue;
+      final dateOnly = DateTime(parsed.year, parsed.month, parsed.day);
+      if (earliest == null || dateOnly.isBefore(earliest)) {
+        earliest = dateOnly;
+      }
+    }
+    return earliest;
+  }
+
+  static String _isoDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  /// Removes taken-set keys older than 365 days to keep a full year of habit
+  /// tracking history while avoiding unbounded prefs growth.
   void clearOldDays() {
-    final cutoff = DateTime.now().subtract(const Duration(days: 7));
+    final cutoff = DateTime.now().subtract(const Duration(days: 365));
     for (final key in _prefs.getKeys()) {
       if (!key.startsWith('supplements_taken_')) continue;
       final datePart = key.replaceFirst('supplements_taken_', '');

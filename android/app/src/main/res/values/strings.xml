@@ -26,6 +26,8 @@
     <string name="widget_mini_workout_description">Mini Workout — your next round, one tap to log</string>
     <string name="widget_intake_trend_description">Intake Trend — average daily calories over 7 days</string>
     <string name="widget_cycle_description">Cycle — today\'s phase and how to train</string>
+    <string name="widget_sleep_description">Sleep — last night\'s sleep duration and goal</string>
+    <string name="widget_steps_description">Steps — today\'s step count and daily goal</string>
     <string name="widget_start_workout">Start workout</string>
     <string name="widget_log_weight">Log weight</string>
     <string name="widget_log_round">Log one round</string>

@@ -3,12 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/hx_card.dart';
 import 'package:herculex/design_system/components/hx_pill.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
+import 'package:herculex/features/physique/application/physique_capture_providers.dart';
+import 'package:herculex/features/physique/application/physique_check_in_flow.dart';
 import 'package:herculex/features/physique/application/physique_providers.dart';
+import 'package:herculex/features/physique/data/physique_checkin_service.dart';
 import 'package:herculex/features/physique/domain/check_in_policy.dart';
 import 'package:herculex/features/physique/domain/check_in_verdict.dart';
 import 'package:herculex/features/physique/domain/physique_guardrails.dart';
@@ -18,6 +22,7 @@ import 'package:herculex/features/physique/presentation/sheets/check_in_sheet.da
 import 'package:herculex/features/physique/presentation/widgets/load_state_views.dart';
 import 'package:herculex/features/physique/presentation/widgets/photo_thumbnail.dart';
 import 'package:herculex/features/physique/presentation/widgets/verdict_block.dart';
+import 'package:herculex/services/ai/gemini_backend_service.dart';
 import 'package:intl/intl.dart';
 
 const _aiUnavailableReason =
@@ -109,7 +114,7 @@ class _Content extends ConsumerWidget {
   final List<PhysiquePhotoData> photos;
   final bool advancePromptVisible;
 
-  VerdictBlock _verdict(
+  Widget _verdict(
     BuildContext context,
     WidgetRef ref,
     PhysiqueAssessmentData a,
@@ -128,24 +133,33 @@ class _Content extends ConsumerWidget {
       (p) => p.name == status?.current?.phaseType,
       orElse: () => DietPhase.maintain,
     );
-    return VerdictBlock(
-      verdict: verdict,
-      band: band,
-      confidence: AssessmentConfidence.fromWire(a.confidence),
-      reason: reason.isEmpty && verdict == CheckInVerdict.inconclusive
-          ? _aiUnavailableReason
-          : reason,
-      onReviewTargets: active
-          ? () => context.push(
-              AppRoutes.nutritionTargets,
-              extra: ref
-                  .read(physiqueRoadmapEligibilityProvider(goal.id))
-                  .coerce(phase),
-            )
-          : null,
-      onLogMeasurements: active
-          ? () => context.push(AppRoutes.measurements)
-          : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        VerdictBlock(
+          verdict: verdict,
+          band: band,
+          confidence: AssessmentConfidence.fromWire(a.confidence),
+          reason: reason.isEmpty && verdict == CheckInVerdict.inconclusive
+              ? _aiUnavailableReason
+              : reason,
+          onReviewTargets: active
+              ? () => context.push(
+                  AppRoutes.nutritionTargets,
+                  extra: ref
+                      .read(physiqueRoadmapEligibilityProvider(goal.id))
+                      .coerce(phase),
+                )
+              : null,
+          onLogMeasurements: active
+              ? () => context.push(AppRoutes.measurements)
+              : null,
+        ),
+        if (active &&
+            a.source == 'no_analysis' &&
+            verdict == CheckInVerdict.inconclusive)
+          _RetrySavedAnalysisButton(goal: goal, assessment: a),
+      ],
     );
   }
 
@@ -209,6 +223,127 @@ class _Content extends ConsumerWidget {
           TextButton(
             onPressed: () => CheckInHistorySheet.show(context, goalId: goal.id),
             child: const Text('See all check-ins'),
+          ),
+      ],
+    );
+  }
+}
+
+class _RetrySavedAnalysisButton extends ConsumerStatefulWidget {
+  const _RetrySavedAnalysisButton({
+    required this.goal,
+    required this.assessment,
+  });
+
+  final PhysiqueGoalData goal;
+  final PhysiqueAssessmentData assessment;
+
+  @override
+  ConsumerState<_RetrySavedAnalysisButton> createState() =>
+      _RetrySavedAnalysisButtonState();
+}
+
+class _RetrySavedAnalysisButtonState
+    extends ConsumerState<_RetrySavedAnalysisButton> {
+  bool _busy = false;
+  String? _error;
+
+  Future<void> _retry() async {
+    final notices = AppNotice.of(context);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Retry photo analysis?'),
+        content: const Text(
+          'This sends your saved photos to Herculex AI for one new review. '
+          'It updates this check-in only and does not change your next '
+          'check-in date.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Send and retry'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(physiquePrivacyPreferencesProvider)
+          .acceptConsent(dreamPhysiqueImageConsentVersion);
+      final flowContext = ref.read(
+        physiqueCheckInContextProvider(widget.goal.id),
+      );
+      await ref
+          .read(physiqueCheckInFlowProvider)
+          .retrySavedCheckInAnalysis(
+            goal: widget.goal,
+            assessmentId: widget.assessment.id,
+            phase: flowContext.phase,
+            weeksInPhase: flowContext.weeksInPhase,
+            weeklyTrendKg: flowContext.weeklyTrendKg,
+            consentGranted: true,
+          );
+      if (!mounted) return;
+      setState(() => _busy = false);
+      notices.show(
+        'AI analysis updated. Your next check-in date is unchanged.',
+      );
+    } on PhysiqueCheckInException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = switch (e.kind) {
+          PhysiqueCheckInFailure.quotaExhausted => e.message,
+          PhysiqueCheckInFailure.invalidInput => e.message,
+          _ =>
+            "Herculex AI couldn't review the saved photos. Your check-in "
+                'is unchanged; you can try again later.',
+        };
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = "We couldn't retry the analysis. Your check-in is unchanged.";
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hx = context.hx;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextButton.icon(
+          onPressed: _busy ? null : _retry,
+          icon: _busy
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.refresh_rounded, size: 18),
+          label: Text(_busy ? 'Retrying analysis...' : 'Retry AI analysis'),
+        ),
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: HxSpace.x2),
+            child: Text(
+              _error!,
+              style: PhysiqueText.label(context, color: hx.danger),
+            ),
           ),
       ],
     );

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/features/hercul/domain/hercul_assessment.dart';
 import 'package:herculex/features/hercul/domain/hercul_context.dart';
 import 'package:herculex/features/hercul/domain/hercul_engine.dart';
 import 'package:herculex/features/hercul/domain/hercul_rule.dart';
@@ -535,5 +536,120 @@ void main() {
       }
       expect(offenders, isEmpty);
     });
+
+    test(
+      'expanded library assesses fasting, alcohol, creatine, and late carbs',
+      () {
+        expect(rules.length, greaterThanOrEqualTo(55));
+
+        // 1. Scale up + Carbs before bed + Creatine -> Intracellular water & Great status
+        final glycogenContext = _context(
+          scalars: {
+            HerculSignals.weightKg: 82.8,
+            HerculSignals.carbsBeforeBedYesterdayG: 110,
+            HerculSignals.creatineDays7d: 6,
+            HerculSignals.creatineLoadingPhase: 1,
+            HerculSignals.liftingDeltaPct7d: 3.4,
+            HerculSignals.cnsReadiness: 0.78,
+            HerculSignals.sleepYesterdayHours: 8.0,
+            HerculSignals.regenerationScore: 88,
+          },
+          series: {
+            HerculSignals.weightDeltaKg: {'1': 0.8, '7': 1.1},
+          },
+        );
+        final glycogenMessages = HerculEngine.evaluate(
+          context: glycogenContext,
+          rules: rules,
+          limit: 50,
+          onePerDomain: false,
+        );
+        expect(
+          glycogenMessages.map((m) => m.ruleId),
+          containsAll([
+            'scale-up-late-carbs-glycogen-good',
+            'scale-up-creatine-intracellular-good',
+            'carbs-before-bed-strength-surge',
+            'creatine-saturated-strength-up',
+          ]),
+        );
+
+        final greatReport = HerculInsightsReport.build(
+          context: glycogenContext,
+          messages: glycogenMessages,
+        );
+        expect(greatReport.overallStatus, HerculGlanceStatus.great);
+        expect(
+          greatReport.waterRetentionAssessment.status,
+          HerculGlanceStatus.great,
+        );
+        expect(greatReport.liftingAssessment.status, HerculGlanceStatus.great);
+
+        // 2. Alcohol yesterday + Lifting drop + Scale bloat -> Bad status
+        final alcoholContext = _context(
+          scalars: {
+            HerculSignals.alcoholYesterdayG: 42,
+            HerculSignals.alcoholYesterdayDrinks: 3.0,
+            HerculSignals.liftingDeltaPct7d: -4.5,
+            HerculSignals.lastSessionAvgRpe: 9.0,
+            HerculSignals.cnsLoad: 0.72,
+            HerculSignals.cnsReadiness: 0.28,
+            HerculSignals.regenerationScore: 34,
+          },
+          series: {
+            HerculSignals.weightDeltaKg: {'1': 0.9},
+          },
+        );
+        final alcoholMessages = HerculEngine.evaluate(
+          context: alcoholContext,
+          rules: rules,
+          limit: 50,
+          onePerDomain: false,
+        );
+        expect(
+          alcoholMessages.map((m) => m.ruleId),
+          containsAll([
+            'alcohol-yesterday-lifting-drop',
+            'alcohol-yesterday-water-retention-cortisol',
+            'alcohol-yesterday-high-rpe',
+          ]),
+        );
+
+        final badReport = HerculInsightsReport.build(
+          context: alcoholContext,
+          messages: alcoholMessages,
+        );
+        expect(badReport.overallStatus, HerculGlanceStatus.bad);
+        expect(
+          badReport.waterRetentionAssessment.status,
+          HerculGlanceStatus.bad,
+        );
+        expect(badReport.liftingAssessment.status, HerculGlanceStatus.bad);
+
+        // 3. Extended fast + Scale drop -> Expected glycogen water flush
+        final fastContext = _context(
+          scalars: {
+            HerculSignals.fastingYesterdayHours: 20.0,
+            HerculSignals.liftingDeltaPct7d: -2.8,
+          },
+          series: {
+            HerculSignals.weightDeltaKg: {'1': -0.9},
+          },
+        );
+        final fastMessages = HerculEngine.evaluate(
+          context: fastContext,
+          rules: rules,
+          limit: 50,
+          onePerDomain: false,
+        );
+        expect(
+          fastMessages.map((m) => m.ruleId),
+          containsAll([
+            'scale-down-fasting-water-drop-expected',
+            'lifting-down-fasted-training',
+          ]),
+        );
+      },
+    );
   });
 }

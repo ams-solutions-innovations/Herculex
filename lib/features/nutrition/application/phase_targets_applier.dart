@@ -17,6 +17,7 @@ class PhaseTargetsApplier {
     required DietPhase phase,
     required DietPaceOption pace,
     required PhaseTargets targets,
+    DateTime? effectiveFrom,
   }) async {
     await _ref
         .read(nutritionRepositoryProvider)
@@ -27,6 +28,7 @@ class PhaseTargetsApplier {
           proteinG: targets.proteinG,
           carbsG: targets.carbsG,
           fatG: targets.fatG,
+          effectiveFrom: effectiveFrom,
         );
     await _ref
         .read(activeDietPlanProvider.notifier)
@@ -35,6 +37,7 @@ class PhaseTargetsApplier {
           weeklyRateKg: pace.weeklyKg,
           kcalDelta: pace.kcalDelta,
           paceLabel: pace.label,
+          effectiveFrom: effectiveFrom,
         );
   }
 }

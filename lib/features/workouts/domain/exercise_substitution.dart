@@ -160,6 +160,83 @@ class ExerciseSubstitution {
     results.sort((a, b) => b.score.compareTo(a.score));
     return results;
   }
+
+  /// Returns substitutes for [original] filtered by a free-text [query].
+  ///
+  /// With an empty query only biomechanically relevant candidates are
+  /// returned (same as [getRankedSubstitutes]). With a non-empty query the
+  /// biomechanical matches that satisfy the query come first (still ranked by
+  /// score), followed by **every other** catalog exercise matching the query,
+  /// regardless of biomechanical similarity. Those extra results carry a
+  /// `percentage` of 0 (see [RankedSubstitution.isBiomechanicalMatch]).
+  static List<RankedSubstitution> searchSubstitutes({
+    required ExerciseCatalogData original,
+    required List<ExerciseCatalogData> candidates,
+    required Set<int> recentExerciseIds,
+    required String query,
+  }) {
+    final ranked = getRankedSubstitutes(
+      original: original,
+      candidates: candidates,
+      recentExerciseIds: recentExerciseIds,
+    );
+    final tokens = query
+        .toLowerCase()
+        .split(RegExp(r'\s+'))
+        .where((t) => t.isNotEmpty)
+        .toList();
+    if (tokens.isEmpty) return ranked;
+
+    bool matchesQuery(ExerciseCatalogData e) {
+      final haystack = '${e.name} ${e.primaryMuscle} ${e.equipment}'
+          .toLowerCase();
+      return tokens.every(haystack.contains);
+    }
+
+    final rankedMatches = ranked
+        .where((m) => matchesQuery(m.exercise))
+        .toList();
+    final rankedIds = {for (final m in ranked) m.exercise.id};
+
+    final needle = tokens.join(' ');
+    int relevance(ExerciseCatalogData e) {
+      final name = e.name.toLowerCase();
+      if (name == needle) return 0;
+      if (name.startsWith(needle)) return 1;
+      if (name.contains(needle)) return 2;
+      if (tokens.every(name.contains)) return 3;
+      return 4; // matched only via muscle / equipment
+    }
+
+    final others =
+        candidates
+            .where(
+              (e) =>
+                  e.id != original.id &&
+                  !rankedIds.contains(e.id) &&
+                  matchesQuery(e),
+            )
+            .toList()
+          ..sort((a, b) {
+            final byRelevance = relevance(a).compareTo(relevance(b));
+            if (byRelevance != 0) return byRelevance;
+            final aRecent = recentExerciseIds.contains(a.id);
+            final bRecent = recentExerciseIds.contains(b.id);
+            if (aRecent != bRecent) return aRecent ? -1 : 1;
+            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          });
+
+    return [
+      ...rankedMatches,
+      for (final e in others)
+        RankedSubstitution(
+          exercise: e,
+          score: 0,
+          percentage: 0,
+          isHistoryMatch: recentExerciseIds.contains(e.id),
+        ),
+    ];
+  }
 }
 
 class RankedSubstitution {
@@ -174,4 +251,8 @@ class RankedSubstitution {
     required this.percentage,
     required this.isHistoryMatch,
   });
+
+  /// False for search results that are not biomechanically similar to the
+  /// original exercise (included only because they matched the search query).
+  bool get isBiomechanicalMatch => percentage > 0;
 }

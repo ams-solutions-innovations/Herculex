@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
@@ -7,7 +8,6 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/workouts/presentation/views/workout_finish_view.dart';
 import 'package:herculex/features/workouts/presentation/views/workouts_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'support/test_database.dart';
 
 /// Regression guard for the finish-workout red screen.
@@ -31,6 +31,18 @@ import 'support/test_database.dart';
 /// This test fails on the pre-fix code.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('com.example.herculex/wear'),
+          (_) async => null,
+        );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMessageHandler(
+          'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle',
+          (_) async => const StandardMessageCodec().encodeMessage([null]),
+        );
+  });
 
   late AppDatabase db;
   late SharedPreferences prefs;
@@ -50,6 +62,9 @@ void main() {
   /// dialog transition.
   Future<void> settle(WidgetTester tester, {int frames = 12}) async {
     for (var i = 0; i < frames; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 15)),
+      );
       await tester.pump(const Duration(milliseconds: 50));
     }
   }
@@ -121,7 +136,7 @@ void main() {
   testWidgets('finishing a workout ends the session and raises no error', (
     tester,
   ) async {
-    final sessionId = await seedActiveSession();
+    final sessionId = (await tester.runAsync(seedActiveSession))!;
 
     await pumpWorkouts(tester);
     expect(
@@ -139,10 +154,6 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Finish').last);
     await settle(tester);
 
-    // Drain rather than take one: the finish dialog also trips Flutter's
-    // debug-only "ListTile background color or ink splashes may be invisible"
-    // advisory (a DecoratedBox between the tile and its Material), which is a
-    // real but cosmetic pre-existing issue and not what this test guards.
     final raised = <Object>[];
     for (
       var e = tester.takeException();
@@ -152,7 +163,7 @@ void main() {
       raised.add(e);
     }
     expect(
-      raised.whereType<StateError>(),
+      raised,
       isEmpty,
       reason:
           'finishing must not raise a StateError — "Cannot use ref after the '
@@ -160,9 +171,13 @@ void main() {
           'Raised: $raised',
     );
 
-    final session = await (db.select(
-      db.workoutSessions,
-    )..where((t) => t.id.equals(sessionId))).getSingleOrNull();
+    // Real async: the calendar's live drift queries keep a re-query in
+    // flight, and under fake time it would never be allowed to finish.
+    final session = await tester.runAsync(
+      () => (db.select(
+        db.workoutSessions,
+      )..where((t) => t.id.equals(sessionId))).getSingleOrNull(),
+    );
     expect(session, isNotNull);
     expect(
       session!.endedAt,
@@ -194,7 +209,7 @@ void main() {
     // `buddySessionControllerProvider` — a synchronous throw out of `ref.watch`
     // during build, i.e. an instant red screen on the app's most-used screen
     // in every credential-less build.
-    await seedActiveSession();
+    await tester.runAsync(seedActiveSession);
     await pumpWorkouts(tester);
 
     expect(tester.takeException(), isNull);
@@ -206,15 +221,18 @@ void main() {
   testWidgets('finish screen keeps secondary details collapsed by default', (
     tester,
   ) async {
-    final sessionId = await seedActiveSession();
-    await (db.update(
-      db.workoutSessions,
-    )..where((row) => row.id.equals(sessionId))).write(
-      WorkoutSessionsCompanion(
-        name: const Value('Leg day'),
-        endedAt: Value(DateTime.now()),
-        caloriesBurned: const Value(320),
-      ),
+    final sessionId = (await tester.runAsync(seedActiveSession))!;
+    await tester.runAsync(
+      () =>
+          (db.update(
+            db.workoutSessions,
+          )..where((row) => row.id.equals(sessionId))).write(
+            WorkoutSessionsCompanion(
+              name: const Value('Leg day'),
+              endedAt: Value(DateTime.now()),
+              caloriesBurned: const Value(320),
+            ),
+          ),
     );
 
     await tester.pumpWidget(
@@ -229,27 +247,38 @@ void main() {
     await settle(tester, frames: 36);
 
     expect(find.text('Workout Complete'), findsOneWidget);
-    expect(find.text('Leg day'), findsWidgets);
-    expect(find.bySemanticsLabel('Share workout'), findsOneWidget);
+    expect(find.textContaining('Leg day'), findsWidgets);
+    // The headline numbers are on the page; the share card is not.
+    expect(find.text('Time'), findsOneWidget);
+    expect(find.text('Volume'), findsOneWidget);
+    expect(find.text('Sets'), findsOneWidget);
+    expect(find.text('Share'), findsOneWidget);
     expect(find.text('More details'), findsOneWidget);
-    expect(find.text('SHARE CARD STYLE'), findsNothing);
-    expect(find.widgetWithText(FilledButton, 'Done'), findsOneWidget);
+    expect(find.text('WORKOUT PHOTO'), findsNothing);
+    expect(find.text('Transparent'), findsNothing);
+    expect(find.text('Done'), findsOneWidget);
 
     await tester.ensureVisible(find.text('More details'));
     await tester.tap(find.text('More details'));
     await settle(tester);
-
-    expect(find.text('SHARE CARD STYLE'), findsOneWidget);
     expect(find.text('WORKOUT PHOTO'), findsOneWidget);
+
+    // Share opens a preview with the card styles.
+    await tester.tap(find.text('Share'));
+    await settle(tester);
+    expect(find.text('Transparent'), findsOneWidget);
 
     await unmount(tester);
   });
 
   testWidgets('Done returns from the finish screen', (tester) async {
-    final sessionId = await seedActiveSession();
-    await (db.update(db.workoutSessions)
-          ..where((row) => row.id.equals(sessionId)))
-        .write(WorkoutSessionsCompanion(endedAt: Value(DateTime.now())));
+    final sessionId = (await tester.runAsync(seedActiveSession))!;
+    await tester.runAsync(
+      () =>
+          (db.update(db.workoutSessions)
+                ..where((row) => row.id.equals(sessionId)))
+              .write(WorkoutSessionsCompanion(endedAt: Value(DateTime.now()))),
+    );
 
     await tester.pumpWidget(
       ProviderScope(
@@ -274,7 +303,7 @@ void main() {
 
     await tester.tap(find.text('Open finish'));
     await settle(tester, frames: 36);
-    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.tap(find.text('Done'));
     await settle(tester);
 
     expect(find.text('Open finish'), findsOneWidget);
@@ -284,7 +313,7 @@ void main() {
   testWidgets('keyboard excludes active-workout actions from every surface', (
     tester,
   ) async {
-    await seedActiveSession();
+    await tester.runAsync(seedActiveSession);
     tester.view.viewInsets = const FakeViewPadding(bottom: 320);
     addTearDown(tester.view.resetViewInsets);
     tester.binding.handleMetricsChanged();

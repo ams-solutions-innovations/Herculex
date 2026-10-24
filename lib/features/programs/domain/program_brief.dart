@@ -91,7 +91,9 @@ DayStressRole _strictDayStressRole(Object? value) {
 
 int _requiredInt(Map<String, dynamic> json, String key) {
   final value = json[key];
-  if (value is num) return value.toInt();
+  if (value is num && value.isFinite && value == value.truncateToDouble()) {
+    return value.toInt();
+  }
   throw FormatException('Herculex AI program brief is missing $key.');
 }
 
@@ -162,6 +164,41 @@ class ProgramBrief {
   final List<DayRoleBrief> dayRoles;
   final List<ProgrammingMusclePriority> musclePriorities;
   final String phaseIntent;
+
+  void validateForProfile(Map<String, dynamic> profile) {
+    final days = profile['daysPerWeek'];
+    if (days is int && days >= 1 && days <= 7) {
+      final indices = dayRoles.map((r) => r.dayIndex).toSet();
+      if (dayRoles.length != days ||
+          indices.length != days ||
+          indices.any((i) => i < 0 || i >= days)) {
+        throw const FormatException(
+          'Program brief does not match the selected training days.',
+        );
+      }
+    }
+    if (profile['experience'] == 'novice' &&
+        periodizationModel == PeriodizationModel.maxEffort) {
+      throw const FormatException(
+        'Max Effort is not appropriate for novice generation.',
+      );
+    }
+    if (profile['trainingStyle'] == 'crossfit' &&
+        splitType != SplitType.crossfit) {
+      throw const FormatException(
+        'Program brief does not match CrossFit style.',
+      );
+    }
+    if (profile['trainingStyle'] == 'full_body_2x_gpp' &&
+        splitType !=
+            (profile['includeGppConditioning'] == false
+                ? SplitType.fullBodyAb
+                : SplitType.fullBodyAbGpp)) {
+      throw const FormatException(
+        'Program brief does not match the selected GPP structure.',
+      );
+    }
+  }
 
   factory ProgramBrief.fromJson(Map<String, dynamic> json) {
     // Must run before any field-by-field parsing: a whole-brief rejection on

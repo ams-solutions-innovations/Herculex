@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/hx_geometry.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
 import 'package:herculex/features/nutrition/data/product_catalogue_repository.dart';
@@ -220,6 +221,31 @@ class _BarcodeProductReviewDialogState
     }
   }
 
+  // Tighter side padding than the theme's 24 dp, which wrapped "Enter
+  // manually" onto two lines in a half-width sheet button.
+  Widget _retryOrManualRow() {
+    const pad = EdgeInsets.symmetric(horizontal: HxSpace.x3);
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: _analyze,
+            style: OutlinedButton.styleFrom(padding: pad),
+            child: const Text('Try again'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: FilledButton.styleFrom(padding: pad),
+            child: const Text('Enter manually'),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -338,42 +364,10 @@ class _BarcodeProductReviewDialogState
                       style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _analyze,
-                            child: const Text('Try again'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Enter manually'),
-                          ),
-                        ),
-                      ],
-                    ),
+                    _retryOrManualRow(),
                   ] else if (_error != null) ...[
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _analyze,
-                            child: const Text('Try again'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Enter manually'),
-                          ),
-                        ),
-                      ],
-                    ),
+                    _retryOrManualRow(),
                   ] else if (_result != null) ...[
                     Text(
                       'Product details',

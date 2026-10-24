@@ -4,6 +4,8 @@ import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/domain/session_completion.dart';
+import 'package:herculex/features/workout_report/domain/workout_report.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -29,6 +31,27 @@ class CalendarService {
 
   CalendarService(this._db) {
     _ensureTimezone();
+  }
+
+  /// Session id → share of planned sets logged, for sessions with a report.
+  Future<Map<int, double>> _completionBySession(
+    Iterable<int> sessionIds,
+  ) async {
+    final ids = sessionIds.toSet();
+    if (ids.isEmpty) return const {};
+    final rows = await (_db.select(
+      _db.workoutReports,
+    )..where((r) => r.sessionId.isIn(ids))).get();
+    return {
+      for (final row in rows)
+        row.sessionId: () {
+          final report = WorkoutReport.decode(row.reportJson);
+          return SessionCompletion.ratio(
+            completed: report.completedSets,
+            planned: report.plannedSets,
+          );
+        }(),
+    };
   }
 
   Future<void> _ensureTimezone() async {
@@ -290,6 +313,11 @@ class CalendarService {
       );
 
       // 4. PHASE 2: OUTBOUND SYNC (Herculex scheduled workouts -> Google Calendar)
+      final completion = await _completionBySession(
+        updatedScheduledRows
+            .map((item) => item.workout.completedSessionId)
+            .nonNulls,
+      );
       for (final item in updatedScheduledRows) {
         final workout = item.workout;
         final existingEvent = eventsByWorkoutId[workout.id];
@@ -324,6 +352,7 @@ class CalendarService {
         final String title = calendarEventTitle(
           dayName,
           done: workout.status == 'done',
+          completion: completion[workout.completedSessionId],
         );
 
         final String description =
@@ -692,8 +721,15 @@ class ScheduledWorkoutWithDay {
 ///
 /// Events are matched by the `[herculex_workout_id:…]` marker in their
 /// description, never by title, so the wording can change freely.
-String calendarEventTitle(String name, {required bool done}) {
+String calendarEventTitle(
+  String name, {
+  required bool done,
+  double? completion,
+}) {
   final trimmed = name.trim().isEmpty ? 'Workout' : name.trim();
   final base = '$trimmed ${CalendarService.emojiForDay(trimmed)}';
-  return done ? '$base ✅' : base;
+  if (!done) return base;
+  return SessionCompletion.isPartial(completion)
+      ? '$base ✅ ${SessionCompletion.label(completion!)}'
+      : '$base ✅';
 }

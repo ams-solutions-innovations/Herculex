@@ -12,12 +12,12 @@ import android.widget.RemoteViews
  */
 class ScannerWidgetProvider : HxWidgetProvider() {
 
-    override val defaultSize = 182f to 80f
+    override val defaultSize = 182f to 86f
 
     override val layoutId: Int get() = R.layout.widget_hx_quick_log
 
     override fun render(context: Context, renderer: HxWidgetRenderer, w: Float, h: Float): HxRendered =
-        renderer.quickLog(w, h)
+        renderer.quickLog(w, defaultSize.second)
 
     override fun bindClicks(context: Context, views: RemoteViews) {
         views.setOnClickPendingIntent(R.id.btn_scan_food, scanFood(context))

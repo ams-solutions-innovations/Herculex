@@ -7,6 +7,7 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/exercise_substitution.dart';
+import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 
 /// Opaque sheet used when replacing an exercise during plan review.
 ///
@@ -53,24 +54,14 @@ class _ExerciseReplacementSheetState
     final theme = Theme.of(context);
     final recentIds =
         ref.watch(recentExerciseIdsProvider).valueOrNull ?? const <int>{};
-    final ranked = ExerciseSubstitution.getRankedSubstitutes(
+    final query = _query.trim().toLowerCase();
+    // Biomechanical matches first; a search also surfaces any other exercise.
+    final matches = ExerciseSubstitution.searchSubstitutes(
       original: widget.current,
       candidates: widget.candidates,
       recentExerciseIds: recentIds,
+      query: query,
     );
-    final query = _query.trim().toLowerCase();
-    final matches = query.isEmpty
-        ? ranked
-        : ranked
-              .where(
-                (match) =>
-                    match.exercise.name.toLowerCase().contains(query) ||
-                    match.exercise.primaryMuscle.toLowerCase().contains(
-                      query,
-                    ) ||
-                    match.exercise.equipment.toLowerCase().contains(query),
-              )
-              .toList();
     return HxSheet(
       scrollable: false,
       title: 'Choose a replacement',
@@ -80,6 +71,35 @@ class _ExerciseReplacementSheetState
         height: MediaQuery.sizeOf(context).height * .64,
         child: Column(
           children: [
+            Row(
+              children: [
+                ExerciseArtwork(exercise: widget.current, size: 52),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'CURRENT',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: AppColors.secondary,
+                          letterSpacing: .8,
+                        ),
+                      ),
+                      Text(
+                        widget.current.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             PremiumTextField(
               controller: _searchController,
               hintText: 'Search exercises',
@@ -174,6 +194,10 @@ class _ExerciseReplacementSheetState
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
+                          leading: ExerciseArtwork(
+                            exercise: exercise,
+                            size: 48,
+                          ),
                           title: Text(
                             exercise.name,
                             style: theme.textTheme.titleMedium?.copyWith(
@@ -186,29 +210,30 @@ class _ExerciseReplacementSheetState
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 9,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color:
-                                      (strong
-                                              ? AppColors.primary
-                                              : AppColors.secondary)
-                                          .withValues(alpha: .12),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  '${match.percentage}%',
-                                  style: TextStyle(
-                                    color: strong
-                                        ? AppColors.primary
-                                        : AppColors.secondary,
-                                    fontWeight: FontWeight.w800,
+                              if (match.isBiomechanicalMatch)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 9,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        (strong
+                                                ? AppColors.primary
+                                                : AppColors.secondary)
+                                            .withValues(alpha: .12),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '${match.percentage}%',
+                                    style: TextStyle(
+                                      color: strong
+                                          ? AppColors.primary
+                                          : AppColors.secondary,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                                 ),
-                              ),
                               const SizedBox(width: 6),
                               const Icon(Icons.chevron_right_rounded),
                             ],

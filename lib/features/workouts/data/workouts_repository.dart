@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:herculex/core/utils/clock.dart';
@@ -5,7 +6,11 @@ import 'package:herculex/core/utils/failures.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_biomechanics.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
+import 'package:herculex/features/workout_report/data/workout_report_journal.dart';
+import 'package:herculex/features/workout_report/data/workout_report_repository.dart';
 import 'package:herculex/features/workouts/domain/active_workout_notification_target.dart';
+import 'package:herculex/features/workouts/domain/calisthenics_set_plan.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/exercise_search.dart';
 import 'package:herculex/features/workouts/domain/workout_name_generator.dart';
 import 'package:uuid/uuid.dart';
@@ -527,6 +532,21 @@ class WorkoutsRepository {
     int? caloriesBurned,
     String? photoPath,
   }) async {
+    // Preserve intended/omitted work before cleanup erases unfinished rows.
+    final existingSession = await (_db.select(
+      _db.workoutSessions,
+    )..where((s) => s.id.equals(sessionId))).getSingleOrNull();
+    if (existingSession?.endedAt != null && endedAt == null) {
+      try {
+        await WorkoutReportRepository(_db, _clock).generate(sessionId);
+      } catch (_) {}
+      return;
+    }
+    try {
+      await WorkoutReportJournal(_db, _clock).beforeFinish(sessionId);
+    } catch (_) {
+      // Optional reporting must not prevent the workout being saved.
+    }
     await _cleanupIncompleteSetsAndExercises(sessionId);
 
     final session = await (_db.select(
@@ -561,6 +581,11 @@ class WorkoutsRepository {
     await (_db.update(_db.scheduledWorkouts)
           ..where((t) => t.completedSessionId.equals(sessionId)))
         .write(const ScheduledWorkoutsCompanion(status: Value('done')));
+    try {
+      await WorkoutReportRepository(_db, _clock).generate(sessionId);
+    } catch (_) {
+      // Report retries when the finish screen or history opens.
+    }
   }
 
   Future<void> updateSessionPhoto(int sessionId, String? photoPath) async {
@@ -577,6 +602,15 @@ class WorkoutsRepository {
 
   Future<void> deleteSession(int sessionId) async {
     await _db.transaction(() async {
+      await (_db.delete(
+        _db.workoutReports,
+      )..where((r) => r.sessionId.equals(sessionId))).go();
+      await (_db.delete(
+        _db.workoutReportEvents,
+      )..where((r) => r.sessionId.equals(sessionId))).go();
+      await (_db.delete(
+        _db.workoutReportPlans,
+      )..where((r) => r.sessionId.equals(sessionId))).go();
       final exerciseIds =
           (await (_db.select(
                 _db.workoutExercises,
@@ -739,6 +773,10 @@ class WorkoutsRepository {
     required int exerciseId,
     String? equipmentVariant,
     String? machineConfigJson,
+    int? targetSets,
+    int? targetReps,
+    double? targetWeightKg,
+    int? targetDurationSeconds,
   }) async {
     final existing = await (_db.select(
       _db.workoutExercises,
@@ -774,12 +812,16 @@ class WorkoutsRepository {
     if (exercise.supportsWeightedBodyweight || equipmentVariant == 'weighted') {
       final bwRow =
           await (_db.select(_db.bodyMeasurements)
-                ..where((t) => t.metric.equals('bodyweight'))
+                ..where(
+                  (t) => t.metric.equals('bodyweight') & t.deletedAt.isNull(),
+                )
                 ..orderBy([
                   (t) => OrderingTerm(
                     expression: t.dateIso,
                     mode: OrderingMode.desc,
                   ),
+                  (t) =>
+                      OrderingTerm(expression: t.id, mode: OrderingMode.desc),
                 ])
                 ..limit(1))
               .getSingleOrNull();
@@ -790,9 +832,11 @@ class WorkoutsRepository {
       _db.exerciseProgressions,
     )..where((t) => t.exerciseId.equals(exerciseId))).getSingleOrNull();
 
-    final int setsToCreate = (progression?.autoAddSets ?? false)
-        ? (progression?.autoAddSetsCount ?? 3)
-        : 1;
+    final int setsToCreate =
+        targetSets ??
+        ((progression?.autoAddSets ?? false)
+            ? (progression?.autoAddSetsCount ?? 3)
+            : 1);
 
     for (int i = 0; i < (setsToCreate > 0 ? setsToCreate : 1); i++) {
       await _db
@@ -804,6 +848,18 @@ class WorkoutsRepository {
               weightKg: 0,
               reps: 0,
               bodyweightKg: Value(bodyweight),
+              plannedRepsMin: Value(targetReps),
+              plannedRepsMax: Value(targetReps),
+              plannedWeightKg: Value(targetWeightKg),
+              durationSeconds: Value(targetDurationSeconds),
+              setTypeMetaJson: Value(
+                targetSets == null || equipmentVariant == null
+                    ? null
+                    : CalisthenicsSetPlan(
+                        equipmentVariant,
+                        targetDurationSeconds,
+                      ).encode(),
+              ),
             ),
           );
     }
@@ -896,6 +952,10 @@ class WorkoutsRepository {
 
   Future<void> removeWorkoutExercise(int workoutExerciseId) async {
     await _db.transaction(() async {
+      await WorkoutReportJournal(
+        _db,
+        _clock,
+      ).forExercise(workoutExerciseId, 'remove_exercise');
       final setIds =
           (await (_db.select(_db.setEntries)..where(
                     (t) => t.workoutExerciseId.equals(workoutExerciseId),
@@ -1020,6 +1080,8 @@ class WorkoutsRepository {
     required int workoutExerciseId,
     required int newExerciseId,
     bool permanently = false,
+    String? reason,
+    bool preserveCompletedSets = true,
   }) async {
     final we = await (_db.select(
       _db.workoutExercises,
@@ -1027,16 +1089,64 @@ class WorkoutsRepository {
     final oldExerciseId = we.exerciseId;
 
     await _db.transaction(() async {
-      await (_db.update(_db.workoutExercises)
-            ..where((t) => t.id.equals(workoutExerciseId)))
-          .write(
-            WorkoutExercisesCompanion(
-              exerciseId: Value(newExerciseId),
-              // The old lift's equipment variant says nothing about the new
-              // one; null falls back to the new exercise's own modality.
-              equipmentVariant: const Value(null),
-            ),
-          );
+      final replacement = await (_db.select(
+        _db.exerciseCatalog,
+      )..where((c) => c.id.equals(newExerciseId))).getSingle();
+      await WorkoutReportJournal(_db, _clock).forExercise(
+        workoutExerciseId,
+        'substitute',
+        details: {'newExerciseId': newExerciseId, 'newName': replacement.name},
+        reason: reason,
+      );
+      var targetId = workoutExerciseId;
+      final completed =
+          await (_db.select(_db.setEntries)..where(
+                (s) =>
+                    s.workoutExerciseId.equals(workoutExerciseId) &
+                    s.isCompleted.equals(true),
+              ))
+              .get();
+      if (completed.isNotEmpty && preserveCompletedSets) {
+        // Completed sets must retain their original movement identity.
+        await _db.customUpdate(
+          'UPDATE workout_exercises SET order_index = order_index + 1 '
+          'WHERE session_id = ? AND order_index > ?',
+          variables: [Variable(we.sessionId), Variable(we.orderIndex)],
+          updates: {_db.workoutExercises},
+        );
+        targetId = await _db
+            .into(_db.workoutExercises)
+            .insert(
+              we
+                  .toCompanion(false)
+                  .copyWith(
+                    id: const Value.absent(),
+                    exerciseId: Value(newExerciseId),
+                    orderIndex: Value(we.orderIndex + 1),
+                    equipmentVariant: const Value(null),
+                    machineConfigJson: const Value(null),
+                    syncUuid: Value(const Uuid().v4()),
+                    syncedAt: const Value(null),
+                  ),
+            );
+        await (_db.update(_db.setEntries)..where(
+              (s) =>
+                  s.workoutExerciseId.equals(workoutExerciseId) &
+                  s.isCompleted.equals(false),
+            ))
+            .write(SetEntriesCompanion(workoutExerciseId: Value(targetId)));
+      }
+      await (_db.update(
+        _db.workoutExercises,
+      )..where((t) => t.id.equals(targetId))).write(
+        WorkoutExercisesCompanion(
+          exerciseId: Value(newExerciseId),
+          // The old lift's equipment variant says nothing about the new
+          // one; null falls back to the new exercise's own modality.
+          equipmentVariant: const Value(null),
+          machineConfigJson: const Value(null),
+        ),
+      );
 
       // Everything still to be done was loaded or typed for the OLD lift: the
       // absolute load (plan and entered) and the entered RPE. Clearing it lets
@@ -1046,7 +1156,7 @@ class WorkoutsRepository {
       // are history and are never touched.
       await (_db.update(_db.setEntries)..where(
             (t) =>
-                t.workoutExerciseId.equals(workoutExerciseId) &
+                t.workoutExerciseId.equals(targetId) &
                 t.isCompleted.equals(false),
           ))
           .write(
@@ -1060,41 +1170,28 @@ class WorkoutsRepository {
           );
     });
 
+    // Only a template-driven day is edited here. A program day's blueprint is
+    // rotation-aware (a stale `program_day_exercises` write is shadowed by its
+    // `rotation_assignments`), so the caller makes that swap permanent through
+    // `ProgramsRepository.replaceProgramExerciseSlot` with an explicit scope.
     if (permanently) {
       final schedule =
           await (_db.select(_db.scheduledWorkouts)
                 ..where((t) => t.completedSessionId.equals(we.sessionId)))
               .getSingleOrNull();
-      if (schedule != null) {
-        final day = await (_db.select(
-          _db.programDays,
-        )..where((t) => t.id.equals(schedule.programDayId))).getSingleOrNull();
-        if (day != null) {
-          final effectiveTemplateId =
-              schedule.templateIdOverride ?? day.templateId;
-          if (effectiveTemplateId != null) {
-            await (_db.update(_db.templateExercises)..where(
-                  (t) =>
-                      t.templateId.equals(effectiveTemplateId) &
-                      t.exerciseId.equals(oldExerciseId),
-                ))
-                .write(
-                  TemplateExercisesCompanion(exerciseId: Value(newExerciseId)),
-                );
-          } else {
-            await (_db.update(_db.programDayExercises)..where(
-                  (t) =>
-                      t.programDayId.equals(day.id) &
-                      t.exerciseId.equals(oldExerciseId),
-                ))
-                .write(
-                  ProgramDayExercisesCompanion(
-                    exerciseId: Value(newExerciseId),
-                  ),
-                );
-          }
-        }
-      }
+      if (schedule == null) return;
+      final day = await (_db.select(
+        _db.programDays,
+      )..where((t) => t.id.equals(schedule.programDayId))).getSingleOrNull();
+      final effectiveTemplateId =
+          schedule.templateIdOverride ?? day?.templateId;
+      if (effectiveTemplateId == null) return;
+      await (_db.update(_db.templateExercises)..where(
+            (t) =>
+                t.templateId.equals(effectiveTemplateId) &
+                t.exerciseId.equals(oldExerciseId),
+          ))
+          .write(TemplateExercisesCompanion(exerciseId: Value(newExerciseId)));
     }
   }
 
@@ -1121,6 +1218,12 @@ class WorkoutsRepository {
     final existing = await (_db.select(
       _db.setEntries,
     )..where((t) => t.workoutExerciseId.equals(workoutExerciseId))).get();
+    if (!isWarmup) {
+      await WorkoutReportJournal(
+        _db,
+        _clock,
+      ).forExercise(workoutExerciseId, 'add_set');
+    }
     final nextIndex = existing.length;
     return _db
         .into(_db.setEntries)
@@ -1147,12 +1250,55 @@ class WorkoutsRepository {
         );
   }
 
+  /// Restore the frozen assisted prescription before any work has been logged.
+  Future<bool> undoAutomaticProgression(
+    int workoutExerciseId,
+  ) => _db.transaction(() async {
+    final sets = await watchSetsForWorkoutExercise(workoutExerciseId).first;
+    if (sets.any((s) => s.isCompleted)) return false;
+    Map<String, dynamic>? original;
+    for (final set in sets) {
+      final meta = jsonDecode(set.setTypeMetaJson ?? '{}');
+      if (meta is! Map || meta['promotionOriginal'] is! Map) continue;
+      final old = Map<String, dynamic>.from(meta['promotionOriginal'] as Map);
+      original ??= old;
+      await (_db.update(
+        _db.setEntries,
+      )..where((t) => t.id.equals(set.id))).write(
+        SetEntriesCompanion(
+          plannedRepsMin: Value(old['repsMin'] as int?),
+          plannedRepsMax: Value(old['repsMax'] as int?),
+          plannedWeightKg: Value((old['weightKg'] as num?)?.toDouble()),
+          plannedRpeX10: Value(old['rpeX10'] as int?),
+          plannedRir: Value(old['rir'] as int?),
+          plannedPercentOf1Rm: Value((old['percentOf1Rm'] as num?)?.toDouble()),
+          plannedIntent: Value(old['intent'] as String?),
+          setTypeMetaJson: Value(old['meta'] as String?),
+          weightKg: const Value(0),
+          reps: const Value(0),
+        ),
+      );
+    }
+    if (original == null) return false;
+    await (_db.update(
+      _db.workoutExercises,
+    )..where((t) => t.id.equals(workoutExerciseId))).write(
+      WorkoutExercisesCompanion(
+        exerciseId: Value(original['exerciseId'] as int),
+        equipmentVariant: Value(original['variant'] as String?),
+        plannedPrescriptionWhy: Value(original['why'] as String?),
+      ),
+    );
+    return true;
+  });
+
   Future<void> updateSet({
     required int setId,
     double? weightKg,
     int? reps,
     int? rpeX10,
     bool clearRpe = false,
+    bool markWeightEntered = true,
     bool? isWarmup,
     bool? isCompleted,
     String? setType,
@@ -1174,6 +1320,35 @@ class WorkoutsRepository {
     int? calories,
     bool clearCalories = false,
   }) async {
+    if (weightKg == 0 && markWeightEntered && !clearSetTypeMetaJson) {
+      final existing = await (_db.select(
+        _db.setEntries,
+      )..where((t) => t.id.equals(setId))).getSingleOrNull();
+      Map<String, dynamic> meta;
+      try {
+        meta = Map<String, dynamic>.from(
+          jsonDecode(setTypeMetaJson ?? existing?.setTypeMetaJson ?? '{}')
+              as Map,
+        );
+      } catch (_) {
+        meta = {};
+      }
+      meta['weightExplicitlyEntered'] = true;
+      setTypeMetaJson = jsonEncode(meta);
+    }
+    if (isCompleted == true) {
+      final set = await (_db.select(
+        _db.setEntries,
+      )..where((s) => s.id.equals(setId))).getSingleOrNull();
+      if (set != null) {
+        final e = await (_db.select(
+          _db.workoutExercises,
+        )..where((e) => e.id.equals(set.workoutExerciseId))).getSingleOrNull();
+        if (e != null) {
+          await WorkoutReportJournal(_db, _clock).capture(e.sessionId);
+        }
+      }
+    }
     await (_db.update(_db.setEntries)..where((t) => t.id.equals(setId))).write(
       SetEntriesCompanion(
         weightKg: weightKg == null ? const Value.absent() : Value(weightKg),
@@ -1225,8 +1400,19 @@ class WorkoutsRepository {
     );
   }
 
-  Future<void> deleteSet(int setId) async {
+  Future<void> deleteSet(int setId, {String? reason}) async {
     await _db.transaction(() async {
+      final set = await (_db.select(
+        _db.setEntries,
+      )..where((s) => s.id.equals(setId))).getSingleOrNull();
+      if (set != null && !set.isWarmup) {
+        await WorkoutReportJournal(_db, _clock).forExercise(
+          set.workoutExerciseId,
+          'remove_set',
+          details: {'setId': setId},
+          reason: reason,
+        );
+      }
       await (_db.delete(
         _db.setAccessories,
       )..where((t) => t.setEntryId.equals(setId))).go();
@@ -1258,6 +1444,17 @@ class WorkoutsRepository {
       final newSetId = await _db
           .into(_db.setEntries)
           .insert(set.toCompanion(false), mode: InsertMode.insertOrReplace);
+      // Undo removes the change event as well as restoring the row.
+      final removed = await (_db.select(
+        _db.workoutReportEvents,
+      )..where((e) => e.kind.equals('remove_set'))).get();
+      for (final event in removed) {
+        if ((jsonDecode(event.detailJson) as Map)['setId'] == set.id) {
+          await (_db.delete(
+            _db.workoutReportEvents,
+          )..where((e) => e.id.equals(event.id))).go();
+        }
+      }
       if (bands != null && bands.isNotEmpty) {
         for (final b in bands) {
           await _db
@@ -1286,58 +1483,50 @@ class WorkoutsRepository {
   /// All sets from the most recent *completed* session that included this exercise.
   /// Used for the "last time" hint shown under the active exercise card.
   Future<LastPerformanceSnapshot?> lastPerformanceSnapshotFor(
-    int exerciseId,
-  ) async {
-    final priorSessions =
-        await (_db.selectOnly(_db.workoutExercises, distinct: true)
-              ..addColumns([_db.workoutExercises.sessionId])
-              ..join([
-                innerJoin(
-                  _db.workoutSessions,
-                  _db.workoutSessions.id.equalsExp(
-                    _db.workoutExercises.sessionId,
-                  ),
-                ),
-              ])
-              ..where(
-                _db.workoutExercises.exerciseId.equals(exerciseId) &
-                    _db.workoutSessions.endedAt.isNotNull(),
-              )
-              ..orderBy([
-                OrderingTerm(
-                  expression: _db.workoutSessions.startedAt,
-                  mode: OrderingMode.desc,
-                ),
-              ])
-              ..limit(1))
-            .get();
-
-    if (priorSessions.isEmpty) return null;
-    final sessionId = priorSessions.first.read(_db.workoutExercises.sessionId)!;
-
-    final priorWorkoutExercises =
-        await (_db.select(_db.workoutExercises)..where(
-              (t) =>
-                  t.sessionId.equals(sessionId) &
-                  t.exerciseId.equals(exerciseId),
-            ))
-            .get();
-    if (priorWorkoutExercises.isEmpty) return null;
-
-    final priorWorkoutExercise = priorWorkoutExercises.first;
-    final sets =
-        await (_db.select(_db.setEntries)
-              ..where(
-                (t) =>
-                    t.workoutExerciseId.equals(priorWorkoutExercise.id) &
-                    t.isCompleted.equals(true),
-              )
-              ..orderBy([(t) => OrderingTerm(expression: t.setIndex)]))
-            .get();
-    return LastPerformanceSnapshot(
-      equipmentVariant: priorWorkoutExercise.equipmentVariant,
-      sets: sets,
-    );
+    int exerciseId, {
+    String? equipmentVariant,
+  }) async {
+    final catalog = await (_db.select(
+      _db.exerciseCatalog,
+    )..where((t) => t.id.equals(exerciseId))).getSingleOrNull();
+    final query =
+        _db.select(_db.workoutExercises).join([
+            innerJoin(
+              _db.workoutSessions,
+              _db.workoutSessions.id.equalsExp(_db.workoutExercises.sessionId),
+            ),
+          ])
+          ..where(
+            _db.workoutExercises.exerciseId.equals(exerciseId) &
+                _db.workoutExercises.deletedAt.isNull() &
+                _db.workoutSessions.deletedAt.isNull() &
+                _db.workoutSessions.endedAt.isNotNull(),
+          )
+          ..orderBy([
+            OrderingTerm.desc(_db.workoutSessions.startedAt),
+            OrderingTerm.desc(_db.workoutExercises.id),
+          ]);
+    final candidates = await query.get();
+    for (final row in candidates) {
+      final we = row.readTable(_db.workoutExercises);
+      final variant = isMachineAssistedPullup(catalog?.slug)
+          ? 'machine_selectorized'
+          : we.equipmentVariant ?? catalog?.modality;
+      if (equipmentVariant != null && variant != equipmentVariant) continue;
+      final sets =
+          await (_db.select(_db.setEntries)
+                ..where(
+                  (t) =>
+                      t.workoutExerciseId.equals(we.id) &
+                      t.isCompleted.equals(true) &
+                      t.deletedAt.isNull(),
+                )
+                ..orderBy([(t) => OrderingTerm.asc(t.setIndex)]))
+              .get();
+      if (sets.isEmpty) continue;
+      return LastPerformanceSnapshot(equipmentVariant: variant, sets: sets);
+    }
+    return null;
   }
 
   Future<List<SetEntryData>> lastPerformanceFor(int exerciseId) async {

@@ -7,7 +7,7 @@ import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
 import 'package:herculex/features/workouts/data/templates_repository.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import 'support/test_database.dart';
 
 class _FixedClock implements Clock {
@@ -19,6 +19,7 @@ class _FixedClock implements Clock {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => SharedPreferences.setMockInitialValues({}));
 
   late AppDatabase db;
   final testDate = DateTime(2026, 9, 14, 9, 30);

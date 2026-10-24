@@ -1,6 +1,10 @@
 package com.ams.herculex
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -46,6 +50,14 @@ import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.MutableStateFlow
 
 class MainActivity : ComponentActivity() {
+    private val screenOnReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == Intent.ACTION_SCREEN_ON) {
+                RestTimerStore.checkWakeGoTime(applicationContext)
+            }
+        }
+    }
+
     // Notification-tap "open the active workout" signal, tracked as a
     // MutableStateFlow Compose actually observes (ENG-15) — the bare
     // `intent` field `onNewIntent` used to update via `setIntent()` isn't
@@ -73,8 +85,20 @@ class MainActivity : ComponentActivity() {
         }
         if (missing.isNotEmpty()) requestPermissions(missing.toTypedArray(), 102)
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        }
+        val screenFilter = IntentFilter(Intent.ACTION_SCREEN_ON)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(screenOnReceiver, screenFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(screenOnReceiver, screenFilter)
+        }
+
         consumeIntentExtras(intent)
         com.ams.herculex.workout.WorkoutSettings.init(applicationContext)
+        com.ams.herculex.complication.MidnightAlarmScheduler.scheduleMidnightAlarm(applicationContext)
 
         setContent {
             MaterialTheme {
@@ -102,11 +126,13 @@ class MainActivity : ComponentActivity() {
                             workoutViewModel.startEmptyWorkout()
                             navController.navigate("active_workout")
                         } else if (route.startsWith("start_workout/")) {
-                            // Tile quick-start: never start a second session over a running one.
-                            val template = com.ams.herculex.workout.WorkoutStore
-                                .getById(applicationContext, route.removePrefix("start_workout/"))
-                            if (activeSession == null && template != null) workoutViewModel.startWorkout(template)
-                            navController.navigate("active_workout")
+                            // If a workout is already in progress, resume it; otherwise show workout details with exercises
+                            val workoutId = route.removePrefix("start_workout/")
+                            if (activeSession != null) {
+                                navController.navigate("active_workout")
+                            } else {
+                                navController.navigate("workout_detail/$workoutId")
+                            }
                         } else {
                             navController.navigate(route)
                         }
@@ -154,9 +180,12 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Box(modifier = Modifier.fillMaxSize()) {
+                    val backEntry by navController.currentBackStackEntryFlow
+                        .collectAsState(initial = navController.currentBackStackEntry)
                     SwipeDismissableNavHost(
                         navController    = navController,
                         startDestination = "home",
+                        userSwipeEnabled = backEntry?.destination?.route != "active_workout",
                     ) {
                         // ── Home hub ──────────────────────────────────────────────
                         composable("home") {
@@ -165,7 +194,14 @@ class MainActivity : ComponentActivity() {
 
                         // ── Nutrition ─────────────────────────────────────────────
                         composable("nutrition") {
-                            NutritionScreen(navController)
+                            NutritionScreen(navController, nutritionViewModel)
+                        }
+                        composable("today_meals") {
+                            com.ams.herculex.nutrition.TodayMealsScreen(navController, nutritionViewModel)
+                        }
+                        composable("edit_logged_food/{entryId}") { backStack ->
+                            val entryId = backStack.arguments?.getString("entryId")?.toIntOrNull() ?: 0
+                            com.ams.herculex.nutrition.EditLoggedFoodScreen(navController, nutritionViewModel, entryId)
                         }
                         composable("nutrients") {
                             NutrientsScreen(navController, nutritionViewModel)
@@ -198,6 +234,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("fasting") {
                             FastingScreen(navController, nutritionViewModel)
+                        }
+                        composable("cns") {
+                            com.ams.herculex.analytics.CnsScreen(navController)
                         }
 
                         // ── Workouts ──────────────────────────────────────────────
@@ -264,6 +303,13 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         RestTimerStore.appInForeground = true
+        RestTimerStore.checkWakeGoTime(applicationContext)
+        com.ams.herculex.sync.SyncService.activeNutritionViewModel?.refresh()
+    }
+
+    override fun onDestroy() {
+        runCatching { unregisterReceiver(screenOnReceiver) }
+        super.onDestroy()
     }
 
     override fun onPause() {

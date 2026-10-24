@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +8,7 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/router.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
@@ -22,6 +22,7 @@ import 'package:herculex/features/fasting/data/fasting_schedule_action_queue.dar
 import 'package:herculex/features/fasting/domain/fasting_plan.dart';
 import 'package:herculex/features/fasting/domain/fasting_schedule_occurrence.dart';
 import 'package:herculex/features/gyms/presentation/gym_picker_sheet.dart';
+import 'package:herculex/features/labs/application/labs_providers.dart';
 import 'package:herculex/features/measurements/presentation/quick_log_weight.dart';
 import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
 import 'package:herculex/features/notifications/data/notification_sync_service.dart';
@@ -151,6 +152,24 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     // When the user taps the widget, Android sends 'openScanner' via
     // the widget MethodChannel. We push the barcode scanner route.
     const widgetChannel = MethodChannel('com.ams.herculex/widget');
+
+    Future<BuildContext?> waitForNavContext() async {
+      if (ref.read(profileProvider).isLoading) {
+        try {
+          await ref.read(profileProvider.future);
+        } catch (_) {}
+      }
+      final ctx = rootNavigatorKey.currentContext;
+      if (ctx != null && ctx.mounted) {
+        return ctx;
+      }
+      final completer = Completer<BuildContext?>();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        completer.complete(rootNavigatorKey.currentContext);
+      });
+      return completer.future;
+    }
+
     Future<void> handleWidgetCall(MethodCall call) async {
       if (call.method == 'openActiveWorkout' && mounted) {
         final args = (call.arguments as Map?)?.cast<String, dynamic>();
@@ -159,37 +178,42 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         ref.read(routerProvider).go(AppRoutes.app);
 
         if (action == 'add_exercise') {
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            final activeSession = ref.read(activeSessionProvider).valueOrNull;
-            if (activeSession != null && mounted) {
-              final results = await ExercisePickerSheet.show(context);
-              if (results == null || results.isEmpty || !mounted) return;
-              final repo = ref.read(workoutsRepositoryProvider);
-              final circuitIds = <int>{};
-              for (final result in results) {
-                if (!mounted) return;
-                if (result.circuitId != null) {
-                  if (!circuitIds.contains(result.circuitId!)) {
-                    circuitIds.add(result.circuitId!);
-                    await ref
-                        .read(circuitsRepositoryProvider)
-                        .addCircuitToSession(
-                          sessionId: activeSession.id,
-                          circuitId: result.circuitId!,
-                        );
-                  }
-                  continue;
-                }
-                final picked = result.exercise;
-                final variant = result.equipmentVariant ?? picked.modality;
-                await repo.addExerciseToSession(
-                  sessionId: activeSession.id,
-                  exerciseId: picked.id,
-                  equipmentVariant: variant,
-                );
-              }
+          final navContext = await waitForNavContext();
+          final activeSession = ref.read(activeSessionProvider).valueOrNull;
+          if (activeSession != null &&
+              navContext != null &&
+              navContext.mounted) {
+            final results = await ExercisePickerSheet.show(navContext);
+            if (results == null || results.isEmpty || !navContext.mounted) {
+              return;
             }
-          });
+            final repo = ref.read(workoutsRepositoryProvider);
+            final circuitIds = <int>{};
+            for (final result in results) {
+              if (!navContext.mounted) {
+                return;
+              }
+              if (result.circuitId != null) {
+                if (!circuitIds.contains(result.circuitId!)) {
+                  circuitIds.add(result.circuitId!);
+                  await ref
+                      .read(circuitsRepositoryProvider)
+                      .addCircuitToSession(
+                        sessionId: activeSession.id,
+                        circuitId: result.circuitId!,
+                      );
+                }
+                continue;
+              }
+              final picked = result.exercise;
+              final variant = result.equipmentVariant ?? picked.modality;
+              await repo.addExerciseToSession(
+                sessionId: activeSession.id,
+                exerciseId: picked.id,
+                equipmentVariant: variant,
+              );
+            }
+          }
         }
         return;
       }
@@ -198,6 +222,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         await _handleWidgetCommand(
           args?['command'] as String?,
           args?['arg'] as String?,
+          waitForNavContext: waitForNavContext,
         );
         return;
       }
@@ -209,7 +234,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
           String() => args,
           _ => null,
         };
-        if (route == null) return;
+        if (route == null) {
+          return;
+        }
         final router = ref.read(routerProvider);
         router.go(AppRoutes.app);
         router.push(route);
@@ -232,20 +259,20 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       if (call.method == 'openFoodSearch' && mounted) {
         ref.read(mainTabIndexProvider.notifier).state = 1;
         ref.read(routerProvider).go(AppRoutes.app);
-        final ctx = context;
-        if (ctx.mounted) {
+        final navContext = await waitForNavContext();
+        if (navContext != null && navContext.mounted) {
           final now = DateTime.now();
           final date = DateTime(now.year, now.month, now.day);
-          await FoodPickerSheet.show(ctx, date: date, mealKey: 'lunch');
+          await FoodPickerSheet.show(navContext, date: date, mealKey: 'lunch');
         }
         return;
       }
       if (call.method == 'openScanner' && mounted) {
         ref.read(mainTabIndexProvider.notifier).state = 1;
         ref.read(routerProvider).go(AppRoutes.app);
-        final ctx = context;
-        if (ctx.mounted) {
-          await scanAndLogFood(ctx, ref);
+        final navContext = await waitForNavContext();
+        if (navContext != null && navContext.mounted) {
+          await scanAndLogFood(navContext, ref);
         }
         return;
       }
@@ -275,10 +302,10 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
           imageQuality: 85,
         );
         await ref.read(pendingAiScanServiceProvider).clearPendingContext();
-        final ctx = context;
-        if (picked != null && ctx.mounted) {
+        final navContext = await waitForNavContext();
+        if (picked != null && navContext != null && navContext.mounted) {
           await GeminiPhotoAnalysisDialog.show(
-            ctx,
+            navContext,
             imageFile: File(picked.path),
             meal: Meal.fromName(mealKey),
             mealKey: mealKey,
@@ -331,6 +358,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   }
 
   void _onForeground() {
+    ref.invalidate(localDayProvider);
     _appBackgrounded = false;
     _drainPendingWorkoutNotificationActions();
     _drainPendingFastingScheduleActions();
@@ -353,7 +381,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   /// [snapshot] lets a caller that already built one hand it over, so a set
   /// edit costs a single target query rather than one per surface.
   Future<void> _syncBubble({OngoingWorkoutSurfaceSnapshot? snapshot}) async {
-    if (!WorkoutBubbleService.instance.isSupported) return;
+    if (!WorkoutBubbleService.instance.isSupported) {
+      return;
+    }
     final sessionAsync = ref.read(activeSessionProvider);
     final visible = shouldShowWorkoutBubble(
       activeSession: sessionAsync,
@@ -371,9 +401,13 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     }
 
     final resolved = snapshot ?? await _surfaceSnapshotFor(session);
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     // An awaited query above can outlive the session it was started for.
-    if (ref.read(activeSessionProvider).valueOrNull?.id != session.id) return;
+    if (ref.read(activeSessionProvider).valueOrNull?.id != session.id) {
+      return;
+    }
     // ...and so can the app coming back to the foreground: the visibility
     // check at the top ran before that await.
     if (!_appBackgrounded) {
@@ -423,9 +457,13 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   }
 
   Future<void> _refreshBubblePermission() async {
-    if (!WorkoutBubbleService.instance.isSupported) return;
+    if (!WorkoutBubbleService.instance.isSupported) {
+      return;
+    }
     final granted = await WorkoutBubbleService.instance.hasPermission();
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     _bubblePermissionGranted = granted;
     await _syncBubble();
   }
@@ -449,7 +487,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   void _firePostWorkoutSupplementReminder() {
     try {
       final notifSettings = ref.read(notificationSettingsProvider);
-      if (!notifSettings.postWorkoutSupplementEnabled) return;
+      if (!notifSettings.postWorkoutSupplementEnabled) {
+        return;
+      }
 
       final prefs = ref.read(sharedPreferencesProvider);
       final repo = SupplementRepository(prefs);
@@ -513,9 +553,13 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
 
   Future<void> _syncWorkoutNotificationFor(WorkoutSessionData session) async {
     final snapshot = await _surfaceSnapshotFor(session);
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     final activeSession = ref.read(activeSessionProvider).asData?.value;
-    if (activeSession?.id != session.id) return;
+    if (activeSession?.id != session.id) {
+      return;
+    }
 
     // Reuses the snapshot rather than letting the bubble query for its own.
     unawaited(_syncBubble(snapshot: snapshot));
@@ -544,12 +588,18 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     String? value,
   }) async {
     final session = ref.read(activeSessionProvider).asData?.value;
-    if (session == null) return false;
-    if (sessionId != null && sessionId != session.id) return true;
+    if (session == null) {
+      return false;
+    }
+    if (sessionId != null && sessionId != session.id) {
+      return true;
+    }
 
     final repo = ref.read(workoutsRepositoryProvider);
     final target = await repo.activeNotificationTargetForSession(session.id);
-    if (target == null) return false;
+    if (target == null) {
+      return false;
+    }
     final targetSet = target.set;
 
     if (actionId == 'edit_weight' && value != null) {
@@ -607,13 +657,21 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     int? targetSetId,
   }) async {
     final session = ref.read(activeSessionProvider).asData?.value;
-    if (session == null) return false;
-    if (sessionId != null && sessionId != session.id) return true;
+    if (session == null) {
+      return false;
+    }
+    if (sessionId != null && sessionId != session.id) {
+      return true;
+    }
 
     final repo = ref.read(workoutsRepositoryProvider);
     final target = await repo.activeNotificationTargetForSession(session.id);
-    if (target == null) return false;
-    if (targetSetId != null && target.set.id != targetSetId) return true;
+    if (target == null) {
+      return false;
+    }
+    if (targetSetId != null && target.set.id != targetSetId) {
+      return true;
+    }
 
     final targetSet = target.set;
     final patch = workoutNotificationPatchForAction(
@@ -621,7 +679,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       set: targetSet,
       weightStepKg: ref.read(quickLoadStepProvider),
     );
-    if (patch == null) return true;
+    if (patch == null) {
+      return true;
+    }
 
     await repo.updateSet(
       setId: targetSet.id,
@@ -635,7 +695,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   }
 
   Future<void> _drainPendingWorkoutNotificationActions() async {
-    if (_isDrainingWorkoutActions) return;
+    if (_isDrainingWorkoutActions) {
+      return;
+    }
     _isDrainingWorkoutActions = true;
     final prefs = ref.read(sharedPreferencesProvider);
     try {
@@ -646,7 +708,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
             activeSessionId,
           );
       final pending = [...fallbackDrain.actions];
-      if (pending.isEmpty && fallbackDrain.remaining.isEmpty) return;
+      if (pending.isEmpty && fallbackDrain.remaining.isEmpty) {
+        return;
+      }
 
       final remaining = [...fallbackDrain.remaining];
       for (final action in pending) {
@@ -679,9 +743,13 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   Future<void> _startFastFromScheduleIfNeeded(int scheduleId) async {
     final repo = ref.read(fastingRepositoryProvider);
     final schedule = await repo.schedule(scheduleId);
-    if (schedule == null || !schedule.autoStart) return;
+    if (schedule == null || !schedule.autoStart) {
+      return;
+    }
     final active = await repo.activeSession();
-    if (active != null) return;
+    if (active != null) {
+      return;
+    }
     final targetSeconds = resolveScheduleTargetSeconds(
       schedule.planName,
       schedule.customTargetSeconds,
@@ -725,7 +793,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   }
 
   void _startFastingScheduleCheck() {
-    if (_fastingScheduleCheckTimer?.isActive ?? false) return;
+    if (_fastingScheduleCheckTimer?.isActive ?? false) {
+      return;
+    }
     _fastingScheduleCheckTimer = Timer.periodic(
       const Duration(seconds: 30),
       (_) => unawaited(_checkAndAutoStartFastingSchedules()),
@@ -739,7 +809,11 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
 
   /// Taps on home-screen widget buttons that act rather than just navigate
   /// (see `HxWidgetProvider.command` on the Android side).
-  Future<void> _handleWidgetCommand(String? command, String? arg) async {
+  Future<void> _handleWidgetCommand(
+    String? command,
+    String? arg, {
+    Future<BuildContext?> Function()? waitForNavContext,
+  }) async {
     final router = ref.read(routerProvider);
     void showTab(int tab) {
       ref.read(mainTabIndexProvider.notifier).state = tab;
@@ -755,22 +829,39 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         // Same flow as the dashboard's Today's Plan card.
         showTab(2);
         final workout = await ref.read(todaysScheduledWorkoutProvider.future);
-        if (workout == null || workout.isStarted || !mounted) return;
-        final gym = await GymPickerSheet.resolve(context, ref);
-        if (gym.cancelled) return;
+        if (workout == null || workout.isStarted || !mounted) {
+          return;
+        }
+        final navContext =
+            await (waitForNavContext?.call() ??
+                Future.value(rootNavigatorKey.currentContext));
+        if (navContext == null || !navContext.mounted) {
+          return;
+        }
+        final gym = await GymPickerSheet.resolve(navContext, ref);
+        if (gym.cancelled) {
+          return;
+        }
         await ref
             .read(scheduledWorkoutServiceProvider)
             .startScheduledWorkout(workout, gymId: gym.gymId);
         ref.invalidate(todaysScheduledWorkoutProvider);
       case 'logWeight':
         showTab(0);
-        if (mounted) await quickLogWeight(context, ref);
+        final navContext =
+            await (waitForNavContext?.call() ??
+                Future.value(rootNavigatorKey.currentContext));
+        if (navContext != null && navContext.mounted) {
+          await quickLogWeight(navContext, ref);
+        }
       case 'logMiniWorkout':
         showTab(0);
         final id = int.tryParse(arg ?? '');
         final today = await ref.read(microWorkoutsTodayProvider.future);
         final item = today.where((m) => m.microWorkout.id == id).firstOrNull;
-        if (item == null || item.doneForToday) return;
+        if (item == null || item.doneForToday) {
+          return;
+        }
         await ref
             .read(microWorkoutsRepositoryProvider)
             .logCompletion(item.microWorkout);
@@ -779,7 +870,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
 
   Future<void> _handleFastingScheduleTap(int scheduleId) async {
     await _startFastFromScheduleIfNeeded(scheduleId);
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     final router = ref.read(routerProvider);
     router.go(AppRoutes.app);
     router.push(AppRoutes.fasting);
@@ -788,7 +881,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   Future<void> _drainPendingFastingScheduleActions() async {
     final prefs = ref.read(sharedPreferencesProvider);
     final ids = PendingFastingScheduleActionQueue.read(prefs);
-    if (ids.isEmpty) return;
+    if (ids.isEmpty) {
+      return;
+    }
     await PendingFastingScheduleActionQueue.replace(prefs, const []);
     for (final id in ids) {
       await _startFastFromScheduleIfNeeded(id);
@@ -798,7 +893,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   /// Navigation only (RPT-03): the week is resolved now, not from the payload,
   /// and the report is generated by the view's controller once it opens.
   Future<void> _openWeeklyReport() async {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     final week = WeeklyReportDeepLink.weekForTap(
       now: ref.read(clockProvider).now(),
       timeHHMM: ref.read(notificationSettingsProvider).weeklyReportTimeHHMM,
@@ -818,7 +915,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   Future<void> _drainPendingSupplementActions() async {
     final prefs = ref.read(sharedPreferencesProvider);
     final ids = PendingSupplementActionQueue.read(prefs);
-    if (ids.isEmpty) return;
+    if (ids.isEmpty) {
+      return;
+    }
     await PendingSupplementActionQueue.replace(prefs, const []);
     final repo = ref.read(supplementRepositoryProvider);
     for (final id in ids) {
@@ -856,7 +955,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   }
 
   Future<void> _handleSupplementTap(String supplementId) async {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     ref.read(mainTabIndexProvider.notifier).state = 1;
     ref.read(routerProvider).go(AppRoutes.app);
   }
@@ -869,7 +970,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   }
 
   void _startPendingWorkoutActionDrain() {
-    if (_workoutActionDrainTimer?.isActive ?? false) return;
+    if (_workoutActionDrainTimer?.isActive ?? false) {
+      return;
+    }
     _workoutActionDrainTimer = Timer.periodic(
       const Duration(seconds: 1),
       (_) => unawaited(_drainPendingWorkoutNotificationActions()),
@@ -899,6 +1002,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     ref.watch(tdeeRecalibrationControllerProvider);
     // Weekly report card: re-read the due week when the app is foregrounded.
     ref.watch(weeklyReportResumeProvider);
+    ref.watch(labsLifecycleProvider);
     ref.watch(widgetCnsSyncControllerProvider);
     ref.watch(widgetRecoverySyncControllerProvider);
     ref.watch(widgetFastingSyncControllerProvider);

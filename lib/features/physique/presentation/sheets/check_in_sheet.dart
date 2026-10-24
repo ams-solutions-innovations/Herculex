@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
@@ -30,6 +29,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 part 'check_in_sheet/_replan.part.dart';
+part 'check_in_sheet/_capture.part.dart';
 part 'check_in_sheet/_steps.part.dart';
 
 enum _Step { pose, privacy, consent, working, result, review }
@@ -78,7 +78,7 @@ class CheckInSheet extends ConsumerStatefulWidget {
       "compare your progress, and Herculex doesn't keep a copy.";
 
   static const _updateConsentBody =
-      'Your photos stay on this device. Herculex AI looks at your new photo '
+      'Your photos stay on this device. Herculex AI looks at your new photos '
       'and your dream physique photo once to update your plan, and Herculex '
       "doesn't keep a copy.";
 
@@ -97,7 +97,7 @@ class CheckInSheet extends ConsumerStatefulWidget {
           goal: goal,
           resumed: resumed,
           capture: capture,
-          updateRoadmap: updateRoadmap,
+          updateRoadmap: updateRoadmap || (resumed?.updateRoadmap ?? false),
           outerNotices: notices,
         ),
       ),
@@ -129,8 +129,8 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
   late bool _blur;
   _Step _step = _Step.pose;
   String _pose = 'front';
-  File? _source;
-  StagedPhoto? _staged;
+  final Map<String, File> _sources = {};
+  final List<StagedPosePhoto> _staged = [];
   bool _busy = false;
   List<String> _progress = const [];
   String? _notice;
@@ -153,10 +153,15 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
     final resumed = widget.resumed;
     if (resumed != null) {
       _pose = resumed.pose;
-      _source = File(resumed.path);
-      _step = _Step.privacy;
+      _sources.addAll(
+        resumed.photos.map((pose, path) => MapEntry(pose, File(path))),
+      );
+      _sources[resumed.pose] = File(resumed.path);
+      _step = _Step.pose;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         ref.read(physiqueResumedCaptureProvider.notifier).state = null;
       });
     }
@@ -164,165 +169,66 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
 
   @override
   void dispose() {
-    final staged = _staged;
-    if (staged != null) _flow.discardStaged(staged);
+    for (final staged in _staged) {
+      _flow.discardStaged(staged.photo);
+    }
     super.dispose();
   }
 
   Future<void> _preflight() async {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     final ctx = ref.read(physiqueCheckInContextProvider(widget.goal.id));
     try {
       await _replan.checkReady(widget.goal, weightKg: ctx.weightKg);
-      if (mounted && _blocked != null) setState(() => _blocked = null);
+      if (mounted && _blocked != null) {
+        setState(() => _blocked = null);
+      }
     } on ReplanBlockedException catch (e) {
-      if (mounted) setState(() => _blocked = e);
+      if (mounted) {
+        setState(() => _blocked = e);
+      }
     }
   }
 
   bool get _baselineMode {
-    if (widget.updateRoadmap) return false;
+    if (widget.updateRoadmap) {
+      return false;
+    }
     final photos = ref.watch(physiquePhotosProvider(widget.goal.id));
     final rows = photos.asData?.value;
     return rows != null && !rows.any((p) => p.role == 'baseline');
+  }
+
+  void _setCaptureState(VoidCallback update) {
+    if (mounted) {
+      setState(update);
+    }
   }
 
   void _snack(String text) {
     AppNotice.show(context, text, kind: AppNoticeKind.info);
   }
 
-  Future<void> _pick(ImageSource source) async {
-    final pending = ref.read(pendingAiScanServiceProvider);
-    final clock = ref.read(clockProvider);
-    final capture = widget.capture ?? _defaultCapture;
-    XFile? file;
-    try {
-      await pending.setPendingContext(
-        PendingAiScanContext(
-          type: AiScanContextType.physiqueCheckin,
-          extra: {'goalId': widget.goal.id, 'pose': _pose},
-          createdAt: clock.now(),
-        ),
-      );
-      file = await capture(source);
-    } on Object {
-      if (mounted) setState(() => _notice = _unreadable);
-    } finally {
-      await pending.clearPendingContext();
-    }
-    if (file == null || !mounted) return;
-    setState(() {
-      _source = File(file!.path);
-      _step = _Step.privacy;
-      _notice = null;
-    });
-  }
-
-  Future<void> _continue({required bool baseline}) async {
-    final source = _source;
-    if (source == null || _busy) return;
-    final prefs = ref.read(physiquePrivacyPreferencesProvider);
-    await prefs.setBlurFaces(_blur);
-    if (!mounted) return;
-    setState(() {
-      _busy = true;
-      _notice = null;
-      _progress = [
-        'Removing location data...',
-        if (_blur) 'Checking for faces...',
-      ];
-    });
-    StagedPhoto staged;
-    try {
-      staged = await _flow.stage(source, blurFaces: _blur);
-    } on PhotoSanitizeException {
-      _backToPose(_unreadable);
-      return;
-    } on Object {
-      if (mounted) {
-        setState(() {
-          _busy = false;
-          _notice = _storageFailed;
-        });
-      }
-      return;
-    }
-    if (!mounted) {
-      await _flow.discardStaged(staged);
-      return;
-    }
-    if (staged.noFaceFound) {
-      final choice = await NoFaceFoundDialog.show(context);
-      if (choice != NoFaceChoice.saveWithoutBlur) {
-        await _flow.discardStaged(staged);
-        _backToPose(null);
-        return;
-      }
-      if (!mounted) {
-        await _flow.discardStaged(staged);
-        return;
-      }
-    }
-    _staged = staged;
-    if (baseline) {
-      await _saveBaseline(staged);
-      return;
-    }
-    final accepted = ref
-        .read(physiquePrivacyPreferencesProvider)
-        .hasAcceptedConsent(dreamPhysiqueImageConsentVersion);
-    if (accepted) {
-      await _analyse(analyze: true);
-    } else {
-      setState(() {
-        _busy = false;
-        _step = _Step.consent;
-      });
-    }
-  }
-
-  void _backToPose(String? notice) {
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _staged = null;
-      _source = null;
-      _step = _Step.pose;
-      _notice = notice;
-    });
-  }
-
-  Future<void> _saveBaseline(StagedPhoto staged) async {
-    try {
-      await _flow.saveBaseline(goal: widget.goal, staged: staged, pose: _pose);
-      _staged = null;
-      if (!mounted) return;
-      final notices = widget.outerNotices;
-      Navigator.of(context).pop();
-      notices.show('Baseline photo saved.');
-    } on Object {
-      // Keep the staged file so the user can retry from the same screen.
-      if (mounted) {
-        setState(() {
-          _busy = false;
-          _notice = _storageFailed;
-        });
-      }
-    }
-  }
-
   Future<void> _acceptAndAnalyse() async {
     await ref
         .read(physiquePrivacyPreferencesProvider)
         .acceptConsent(dreamPhysiqueImageConsentVersion);
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     await _analyse(analyze: true);
   }
 
   Future<void> _analyse({required bool analyze}) async {
-    final staged = _staged;
-    if (staged == null) return;
-    if (widget.updateRoadmap) return _replanAnalyse();
+    final staged = [..._staged];
+    if (staged.isEmpty) {
+      return;
+    }
+    if (widget.updateRoadmap) {
+      return _replanAnalyse();
+    }
     final ctx = ref.read(physiqueCheckInContextProvider(widget.goal.id));
     final consent = ref
         .read(physiquePrivacyPreferencesProvider)
@@ -338,8 +244,7 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
     try {
       final outcome = await _flow.completeCheckIn(
         goal: widget.goal,
-        staged: staged,
-        pose: _pose,
+        photos: staged,
         phase: ctx.phase,
         weeksInPhase: ctx.weeksInPhase,
         analyze: analyze,
@@ -347,10 +252,12 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
         weightKg: ctx.weightKg,
         weeklyTrendKg: ctx.weeklyTrendKg,
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       switch (outcome) {
         case CheckInRecorded():
-          _staged = null;
+          _staged.clear();
           setState(() {
             _busy = false;
             _recorded = outcome;
@@ -372,9 +279,10 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
           break;
       }
     } on CheckInTooSoonException catch (e) {
-      await _flow.discardStaged(staged);
-      _staged = null;
-      if (!mounted) return;
+      await _discardStaged();
+      if (!mounted) {
+        return;
+      }
       final notices = widget.outerNotices;
       Navigator.of(context).pop();
       final next = DateFormat('EEE, MMM d').format(e.nextEligibleDate);
@@ -384,7 +292,9 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
         kind: AppNoticeKind.info,
       );
     } on Object {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _busy = false;
         _error = const _AnalysisError(text: _storageFailed, canRetry: true);
@@ -395,8 +305,10 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
   /// Update-roadmap mode: analyse against the dream photo and build the
   /// proposal. Nothing is stored; the member decides in the review step.
   Future<void> _replanAnalyse() async {
-    final staged = _staged;
-    if (staged == null) return;
+    final staged = [..._staged];
+    if (staged.isEmpty) {
+      return;
+    }
     final ctx = ref.read(physiqueCheckInContextProvider(widget.goal.id));
     final consent = ref
         .read(physiquePrivacyPreferencesProvider)
@@ -413,26 +325,32 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
     try {
       final proposal = await _replan.analyse(
         goal: widget.goal,
-        staged: staged,
+        photos: staged,
         consentGranted: consent,
         weightKg: ctx.weightKg,
         currentPhase: ctx.phase,
         weeksInPhase: ctx.weeksInPhase,
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _busy = false;
         _proposal = proposal;
         _step = _Step.review;
       });
     } on ReplanBlockedException catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _busy = false;
         _blocked = e;
       });
     } on Object catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _busy = false;
         _error = _AnalysisError(
@@ -444,20 +362,26 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
   }
 
   Future<void> _applyReplan() async {
-    final staged = _staged;
+    final staged = [..._staged];
     final proposal = _proposal;
-    if (staged == null || proposal == null || _busy) return;
-    setState(() => _busy = true);
+    if (staged.isEmpty || proposal == null || _busy) {
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     final format = ref.read(weightFormatProvider);
     try {
       await _replan.apply(
         goal: widget.goal,
         proposal: proposal,
-        staged: staged,
-        pose: _pose,
+        photos: staged,
       );
-      _staged = null; // moved into the goal's folder
-      if (!mounted) return;
+      _staged.clear();
+      if (!mounted) {
+        return;
+      }
       final notices = widget.outerNotices;
       Navigator.of(context).pop();
       final target = proposal.phases.first.targetWeightKg;
@@ -467,15 +391,16 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
             : 'Roadmap updated. Your target is now ${format.format(target)}.',
       );
     } on Object {
-      _staged = null; // the move already happened; nothing left to discard
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _busy = false;
         _error = const _AnalysisError(
           text:
               "We couldn't save your new roadmap, so your current one is "
-              'unchanged. Close this and start again.',
-          canRetry: false,
+              'unchanged. You can try saving it again.',
+          canRetry: true,
         );
       });
     }
@@ -497,7 +422,9 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
     return PopScope(
       canPop: !_busy,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _busy) _snack('Hang on, almost done');
+        if (!didPop && _busy) {
+          _snack('Hang on, almost done');
+        }
       },
       child: HxSheet(
         title: update
@@ -530,7 +457,9 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
                     ? null
                     : () => _analyse(analyze: false),
                 onTryAgain: _error!.canRetry
-                    ? () => _analyse(analyze: true)
+                    ? () => _proposal != null && update
+                          ? _applyReplan()
+                          : _analyse(analyze: true)
                     : null,
                 onClose: () => Navigator.of(context).pop(),
               )
@@ -538,13 +467,19 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
               switch (_step) {
                 _Step.pose => _PoseStep(
                   pose: _pose,
+                  photos: _sources,
+                  onRemove: (pose) => setState(() => _sources.remove(pose)),
+                  onContinue: _sources.isEmpty
+                      ? null
+                      : () => setState(() => _step = _Step.privacy),
                   notice: _notice,
                   onPose: (p) => setState(() => _pose = p),
                   onCamera: () => _pick(ImageSource.camera),
                   onLibrary: () => _pick(ImageSource.gallery),
                 ),
                 _Step.privacy => _PrivacyStep(
-                  file: _source!,
+                  files: _sources,
+                  onEdit: () => setState(() => _step = _Step.pose),
                   blur: _blur,
                   notice: _notice,
                   busy: _busy,

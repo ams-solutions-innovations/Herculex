@@ -111,6 +111,52 @@ void main() {
       expect(find.text('Training'), findsOneWidget);
       expect(find.text('No data this week'), findsOneWidget);
     });
+
+    testWidgets(
+      'does not overflow on narrow mobile screens with large tonnage and delta',
+      (tester) async {
+        tester.view.physicalSize = const Size(360, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.darkTheme,
+            home: const Scaffold(
+              body: SingleChildScrollView(
+                child: TrainingSectionCard(
+                  section: TrainingSection(
+                    sessions: 5,
+                    tonnageKg: 22725,
+                    prevWeekTonnageKg: 5645,
+                    e1rmMovers: [
+                      E1rmMover(
+                        exerciseName: 'Pendulum Squat',
+                        e1rmKg: 150,
+                        deltaKg: 4.4,
+                      ),
+                      E1rmMover(
+                        exerciseName: 'Barbell Bench Press',
+                        e1rmKg: 120,
+                        deltaKg: 3.0,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Training'), findsOneWidget);
+        expect(find.text('5'), findsOneWidget);
+        expect(find.text('22725 kg'), findsOneWidget);
+        expect(find.text('+17080 kg vs last week'), findsOneWidget);
+        expect(find.text('Pendulum Squat'), findsOneWidget);
+        expect(find.text('+4.4 kg'), findsOneWidget);
+      },
+    );
   });
 
   group('RecoverySectionCard', () {

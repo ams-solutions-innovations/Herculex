@@ -117,7 +117,13 @@ class _FakeHerculexGeminiBackend implements GeminiBackend {
     callCount++;
     if (delay != null) await Future<void>.delayed(delay!);
     if (error != null) throw error!;
-    return (result ?? _defaultResult(), const <String, dynamic>{});
+    final output = Map<String, dynamic>.from(result ?? _defaultResult());
+    final firstDay = (output['dayRoles'] as List).first as Map<String, dynamic>;
+    output['dayRoles'] = [
+      for (var i = 0; i < (profileInputs['daysPerWeek'] as int? ?? 1); i++)
+        {...firstDay, 'dayIndex': i},
+    ];
+    return (output, const <String, dynamic>{});
   }
 
   @override
@@ -1623,7 +1629,7 @@ void main() {
         expect(find.text(rejectionHeading), findsOneWidget);
         expect(
           find.textContaining(
-            'A six-day PPL would create three Max Effort days.',
+            'Max Effort is not appropriate for novice generation.',
           ),
           findsOneWidget,
         );

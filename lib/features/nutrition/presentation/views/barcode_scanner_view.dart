@@ -4,12 +4,20 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// Returns the first detected barcode string (or null if user cancels).
+/// When [aiFallbackLabel] is provided, tapping that action returns
+/// [BarcodeScannerView.aiFallbackResult].
 class BarcodeScannerView extends StatefulWidget {
-  const BarcodeScannerView({super.key});
+  static const aiFallbackResult = '__AI_PHOTO_FALLBACK__';
 
-  static Future<String?> show(BuildContext context) {
+  final String? aiFallbackLabel;
+
+  const BarcodeScannerView({super.key, this.aiFallbackLabel});
+
+  static Future<String?> show(BuildContext context, {String? aiFallbackLabel}) {
     return Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const BarcodeScannerView()),
+      MaterialPageRoute(
+        builder: (_) => BarcodeScannerView(aiFallbackLabel: aiFallbackLabel),
+      ),
     );
   }
 
@@ -281,18 +289,40 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView>
           ),
         ),
         Positioned(
-          left: 0,
-          right: 0,
-          bottom: 72,
-          child: Center(
-            child: TextButton.icon(
-              onPressed: _enterManually,
-              icon: const Icon(Icons.keyboard, color: Colors.white),
-              label: const Text(
-                'Enter barcode manually',
-                style: TextStyle(color: Colors.white),
+          left: 16,
+          right: 16,
+          bottom: 64,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.aiFallbackLabel != null) ...[
+                FilledButton.tonalIcon(
+                  onPressed: () {
+                    if (_handled || !mounted) return;
+                    _handled = true;
+                    Navigator.of(
+                      context,
+                    ).pop(BarcodeScannerView.aiFallbackResult);
+                  },
+                  icon: const Icon(Icons.auto_awesome, size: 18),
+                  label: Text(widget.aiFallbackLabel!),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF9B59B6),
+                    foregroundColor: Colors.white,
+                    shape: const StadiumBorder(),
+                  ),
+                ),
+                const SizedBox(height: 6),
+              ],
+              TextButton.icon(
+                onPressed: _enterManually,
+                icon: const Icon(Icons.keyboard, color: Colors.white),
+                label: const Text(
+                  'Enter barcode manually',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ],

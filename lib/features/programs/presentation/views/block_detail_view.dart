@@ -5,20 +5,28 @@ import 'package:herculex/design_system/components/app_bottom_sheet.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/programs/application/block_update_controller.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
+import 'package:herculex/features/programs/domain/week_blocks.dart';
 import 'package:herculex/features/programs/presentation/sheets/exercise_replacement_sheet.dart';
 import 'package:herculex/features/programs/presentation/sheets/template_picker_sheet.dart';
+import 'package:herculex/features/programs/presentation/sheets/update_block_sheet.dart';
 import 'package:herculex/features/programs/presentation/widgets/program_muscle_volume_card.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 
 part 'block_detail_view/_week_card.part.dart';
 part 'block_detail_view/_day_row.part.dart';
+part 'block_detail_view/_exercise_line.part.dart';
+part 'block_detail_view/_week_strip.part.dart';
+part 'block_detail_view/_blocks_tab.part.dart';
 
-/// Edit a block: the Week/Wave editor. A Week dropdown selects one active
-/// week at a time (D-01); directly beneath it, a wave-strip label explains
+/// Edit a block: the Week/Wave editor. Two views: "Weeks" — a week strip
+/// selects one active week at a time (D-01) with a wave-strip label that explains
 /// which rotation wave the viewed week belongs to (D-05). Per-exercise and
 /// day-level replacement/link triggers reach a scoped rotation write plus
 /// [ProgramsRepository.rematerializeProgram] (D-04), never disturbing
@@ -35,6 +43,13 @@ class BlockDetailView extends ConsumerStatefulWidget {
 class _BlockDetailViewState extends ConsumerState<BlockDetailView> {
   int _selectedWeekIndex = 0;
 
+  /// 0 = Weeks, 1 = Blocks.
+  int _tab = 0;
+
+  /// The strip opens on the week the user is in, once; after that it is
+  /// the user's choice.
+  bool _jumpedToCurrentWeek = false;
+
   @override
   Widget build(BuildContext context) {
     final programs = ref.watch(programsListProvider).value ?? const [];
@@ -44,6 +59,11 @@ class _BlockDetailViewState extends ConsumerState<BlockDetailView> {
       programVolumeBreakdownProvider(widget.programId),
     );
     final tracking = ref.watch(programTrackingProvider(widget.programId));
+    final currentWeekIndex = tracking.value?.currentWeekIndex;
+    if (!_jumpedToCurrentWeek && currentWeekIndex != null) {
+      _jumpedToCurrentWeek = true;
+      _selectedWeekIndex = currentWeekIndex;
+    }
 
     return HxScreenShell(
       title: program?.name ?? 'Block',
@@ -52,6 +72,7 @@ class _BlockDetailViewState extends ConsumerState<BlockDetailView> {
           PopupMenuButton<String>(
             onSelected: (value) => _menu(context, ref, program, value),
             itemBuilder: (_) => const [
+              PopupMenuItem(value: 'update', child: Text('Update block')),
               PopupMenuItem(value: 'archive', child: Text('Archive block')),
               PopupMenuItem(value: 'delete', child: Text('Delete block')),
             ],
@@ -83,32 +104,52 @@ class _BlockDetailViewState extends ConsumerState<BlockDetailView> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  if (volumeAsync.value != null &&
-                      volumeAsync.value!.isNotEmpty)
-                    ProgramMuscleVolumeCard(
-                      breakdown: volumeAsync.value!,
-                      title: 'Weekly Volume per Muscle Group',
+                  HxTopTabs(
+                    labels: const ['Weeks', 'Blocks'],
+                    index: _tab,
+                    onChanged: (value) => setState(() => _tab = value),
+                  ),
+                  const SizedBox(height: 14),
+                  if (_tab == 0) ...[
+                    _WeekStrip(
+                      weeks: list,
+                      selectedWeekIndex: selectedWeek.weekIndex,
+                      currentWeekIndex: currentWeekIndex,
+                      onChanged: (value) =>
+                          setState(() => _selectedWeekIndex = value),
                     ),
-                  const SizedBox(height: 4),
-                  _WeekDropdown(
-                    weekCount: list.length,
-                    selectedWeekIndex: selectedWeek.weekIndex,
-                    onChanged: (value) =>
-                        setState(() => _selectedWeekIndex = value ?? 0),
-                  ),
-                  const SizedBox(height: 8),
-                  _WaveStrip(
-                    programId: program.id,
-                    programWeekId: selectedWeek.id,
-                    weekIndex: selectedWeek.weekIndex,
-                    totalWeeks: list.length,
-                  ),
-                  const SizedBox(height: 12),
-                  _WeekCard(
-                    program: program,
-                    week: selectedWeek,
-                    totalWeeks: list.length,
-                  ),
+                    const SizedBox(height: 8),
+                    _WaveStrip(
+                      programId: program.id,
+                      programWeekId: selectedWeek.id,
+                      weekIndex: selectedWeek.weekIndex,
+                      totalWeeks: list.length,
+                    ),
+                    const SizedBox(height: 12),
+                    _WeekCard(
+                      program: program,
+                      week: selectedWeek,
+                      totalWeeks: list.length,
+                    ),
+                  ] else ...[
+                    _BlocksTab(
+                      program: program,
+                      weeks: list,
+                      currentWeekIndex: currentWeekIndex,
+                      onOpenWeek: (weekIndex) => setState(() {
+                        _selectedWeekIndex = weekIndex;
+                        _tab = 0;
+                      }),
+                    ),
+                    if (volumeAsync.value != null &&
+                        volumeAsync.value!.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      ProgramMuscleVolumeCard(
+                        breakdown: volumeAsync.value!,
+                        title: 'Weekly Volume per Muscle Group',
+                      ),
+                    ],
+                  ],
                 ],
               );
             },
@@ -125,6 +166,18 @@ class _BlockDetailViewState extends ConsumerState<BlockDetailView> {
   ) async {
     final repo = ref.read(programsRepositoryProvider);
     final navigator = Navigator.of(context);
+
+    if (action == 'update') {
+      final adjustment = ref.read(visibleBlockAdjustmentProvider);
+      await showUpdateBlockSheet(
+        context,
+        program: program,
+        recommendation: adjustment?.program.id == program.id
+            ? adjustment!.recommendation
+            : null,
+      );
+      return;
+    }
 
     if (action == 'archive') {
       await repo.archiveProgram(program.id);
@@ -370,56 +423,8 @@ class _Summary extends StatelessWidget {
   }
 }
 
-/// The Week dropdown (D-01): "Week N of M" — never a scrollable stack of
-/// every week's card. Selecting a value drives which single active week
-/// [_WeekCard] and [_WaveStrip] render.
-class _WeekDropdown extends StatelessWidget {
-  const _WeekDropdown({
-    required this.weekCount,
-    required this.selectedWeekIndex,
-    required this.onChanged,
-  });
-
-  final int weekCount;
-  final int selectedWeekIndex;
-  final ValueChanged<int?> onChanged;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14),
-    decoration: BoxDecoration(
-      color: AppColors.surfaceContainer,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(
-        color: AppColors.outlineVariant.withValues(alpha: .35),
-      ),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<int>(
-        value: selectedWeekIndex,
-        isExpanded: true,
-        dropdownColor: AppColors.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: AppColors.onSurface,
-          fontWeight: FontWeight.w600,
-        ),
-        icon: const Icon(Icons.keyboard_arrow_down_rounded),
-        onChanged: onChanged,
-        items: [
-          for (var i = 0; i < weekCount; i++)
-            DropdownMenuItem(
-              value: i,
-              child: Text('Week ${i + 1} of $weekCount'),
-            ),
-        ],
-      ),
-    ),
-  );
-}
-
 /// D-05's "Exercise wave X of Y · Weeks A–B" indicator, always a distinct
-/// [Text] widget from [_WeekDropdown]'s own label — never string-concatenated
+/// [Text] widget from [_WeekStrip]'s chips — never string-concatenated
 /// into one line. Renders nothing while loading or when the viewed week has
 /// no anchor `main` slot.
 class _WaveStrip extends ConsumerWidget {

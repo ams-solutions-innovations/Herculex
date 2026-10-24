@@ -12,7 +12,7 @@ import 'package:herculex/features/nutrition/application/nutrition_providers.dart
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/data/templates_repository.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import 'support/test_database.dart';
 
 class _TestHealthAdapter implements HealthAdapter {
@@ -110,6 +110,8 @@ HealthDataPoint _makeNumericPoint(
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   late AppDatabase db;
   late _TestHealthAdapter adapter;
   late HealthService service;

@@ -10,6 +10,7 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/programs/application/block_update_controller.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/data/herculex_ai_brief_service.dart';
 import 'package:herculex/features/programs/domain/program_brief.dart';
@@ -29,9 +30,17 @@ import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork
 /// screen is open. That makes its exercise choices real (rather than a mock
 /// preview) without exposing an unapproved program anywhere else in the app.
 class ProgramReviewView extends ConsumerStatefulWidget {
-  const ProgramReviewView({super.key, required this.programId});
+  const ProgramReviewView({
+    super.key,
+    required this.programId,
+    this.replacesProgramId,
+  });
 
   final int programId;
+
+  /// Set when this draft is an update of an existing block. Confirming then
+  /// ends that block from tomorrow; its logged sessions stay as history.
+  final int? replacesProgramId;
 
   @override
   ConsumerState<ProgramReviewView> createState() => _ProgramReviewViewState();
@@ -321,6 +330,10 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
     setState(() => _confirming = true);
     try {
       final repo = ref.read(programsRepositoryProvider);
+      final replaces = widget.replacesProgramId;
+      if (replaces != null) {
+        await ref.read(blockUpdateControllerProvider).retire(replaces);
+      }
       await repo.archiveProgram(widget.programId, archived: false);
       await repo.setActiveProgram(widget.programId);
       await repo.rematerializeProgram(widget.programId, futureOnly: false);
@@ -363,8 +376,17 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
           ),
         ),
         children: [
+          if (widget.replacesProgramId != null) ...[
+            const _Notice(
+              text:
+                  'This is your updated block. Confirming replaces your current block from tomorrow. Workouts you already logged stay in your history.',
+            ),
+            const SizedBox(height: 16),
+          ],
           Text(
-            'Your exercise plan',
+            widget.replacesProgramId != null
+                ? 'Your updated plan'
+                : 'Your exercise plan',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
             ),

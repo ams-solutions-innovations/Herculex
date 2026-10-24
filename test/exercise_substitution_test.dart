@@ -229,4 +229,77 @@ void main() {
       },
     );
   });
+
+  group('ExerciseSubstitution - searchSubstitutes', () {
+    final bench = createExercise(
+      id: 10,
+      name: 'Barbell Bench Press',
+      primaryMuscle: 'Chest',
+      mechanics: 'compound',
+      force: 'push',
+      plane: 'horizontal',
+      equipment: 'Barbell',
+    );
+    final dbBench = createExercise(
+      id: 11,
+      name: 'Dumbbell Bench Press',
+      primaryMuscle: 'Chest',
+      mechanics: 'compound',
+      force: 'push',
+      plane: 'horizontal',
+      equipment: 'Dumbbell',
+    );
+    final squat = createExercise(
+      id: 12,
+      name: 'Barbell Squat',
+      primaryMuscle: 'Quads',
+      mechanics: 'compound',
+      force: 'push',
+      plane: 'sagittal',
+      equipment: 'Barbell',
+    );
+    final all = [bench, dbBench, squat];
+
+    test('empty query returns only biomechanical matches', () {
+      final res = ExerciseSubstitution.searchSubstitutes(
+        original: bench,
+        candidates: all,
+        recentExerciseIds: {},
+        query: '  ',
+      );
+      expect(res.map((r) => r.exercise.id), [11]);
+    });
+
+    test('query finds non-similar exercises too', () {
+      final res = ExerciseSubstitution.searchSubstitutes(
+        original: bench,
+        candidates: all,
+        recentExerciseIds: {},
+        query: 'squat',
+      );
+      expect(res.single.exercise.id, 12);
+      expect(res.single.isBiomechanicalMatch, isFalse);
+    });
+
+    test('biomechanical matches stay ahead of other results', () {
+      final res = ExerciseSubstitution.searchSubstitutes(
+        original: bench,
+        candidates: all,
+        recentExerciseIds: {},
+        query: 'press',
+      );
+      expect(res.map((r) => r.exercise.id), [11]);
+
+      final mixed = ExerciseSubstitution.searchSubstitutes(
+        original: bench,
+        candidates: all,
+        recentExerciseIds: {},
+        query: 'b',
+      );
+      expect(mixed.first.exercise.id, 11);
+      expect(mixed.first.isBiomechanicalMatch, isTrue);
+      expect(mixed.map((r) => r.exercise.id), contains(12));
+      expect(mixed.any((r) => r.exercise.id == 10), isFalse);
+    });
+  });
 }

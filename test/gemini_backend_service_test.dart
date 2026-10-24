@@ -160,8 +160,12 @@ extractResultWithProvenance(Map<String, dynamic> data) {
 
 Map<String, dynamic> _resultMap(Map<String, dynamic> data) {
   final result = data['result'];
-  if (result is Map<String, dynamic>) return result;
-  if (result is Map) return Map<String, dynamic>.from(result);
+  if (result is Map<String, dynamic>) {
+    return result;
+  }
+  if (result is Map) {
+    return Map<String, dynamic>.from(result);
+  }
   throw Exception('AI analysis returned an invalid JSON result.');
 
   test(
@@ -171,7 +175,7 @@ Map<String, dynamic> _resultMap(Map<String, dynamic> data) {
       await expectLater(
         backend.analyzePhysiqueCheckIn(
           baselineImages: const [],
-          currentImage: const {},
+          currentImages: const [],
           context: const {},
         ),
         throwsA(

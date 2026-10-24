@@ -49,7 +49,10 @@ data class ExerciseTemplate(
     val waveLabel: String? = null,
     val prescriptionReason: String? = null,
 ) {
+    fun isAssistanceLoad(): Boolean = slug?.startsWith("assisted-pull-up-machine-") == true
+
     fun isBodyweightOnly(): Boolean {
+        if (isAssistanceLoad()) return false
         val metric = loggingMetric?.lowercase()?.trim()
         if (metric == "reps") return true
         if (metric == "weight_reps" || metric == "weight_time" || metric == "weight_distance") return false
@@ -206,6 +209,7 @@ data class ExerciseTemplate(
     /// distance (`time_distance`) instead of leaving every non-`weight_*`
     /// metric's Kg picker in place unexamined.
     fun hasRealWeightSlot(): Boolean {
+        if (isAssistanceLoad()) return true
         val metric = loggingMetric?.lowercase()?.trim()
         return metric != "distance" && metric != "time_distance"
     }

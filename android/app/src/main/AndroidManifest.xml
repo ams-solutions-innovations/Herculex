@@ -461,6 +461,32 @@
                 android:resource="@xml/widget_info_cycle" />
         </receiver>
 
+        <!-- Sleep (2x1) -->
+        <receiver
+            android:name=".SleepWidgetProvider"
+            android:exported="true"
+            android:label="Sleep">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_sleep" />
+        </receiver>
+
+        <!-- Steps (2x1) -->
+        <receiver
+            android:name=".StepsWidgetProvider"
+            android:exported="true"
+            android:label="Steps">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_steps" />
+        </receiver>
+
         <!-- Repaints all widgets after a reboot / app update. Every provider
              uses updatePeriodMillis="0", so Android sends them nothing on its
              own and they would stay blank until the app is next opened. -->

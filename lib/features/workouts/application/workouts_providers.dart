@@ -1,15 +1,16 @@
+import 'dart:async';
 import 'package:drift/drift.dart' as drift;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
-import 'package:herculex/features/fasting/application/fasting_providers.dart';
-import 'package:herculex/features/fasting/domain/fasting_sync_snapshot.dart';
 import 'package:herculex/features/gamification/application/gamification_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
+import 'package:herculex/features/workouts/data/exercise_ergonomics_repository.dart';
 import 'package:herculex/features/workouts/data/media_sync_service.dart';
 import 'package:herculex/features/workouts/data/micro_workouts_repository.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
@@ -17,14 +18,15 @@ import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
 import 'package:herculex/features/workouts/data/templates_repository.dart';
 import 'package:herculex/features/workouts/data/wear_workout_sync_service.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
-import 'package:herculex/features/workouts/data/exercise_ergonomics_repository.dart';
 import 'package:herculex/features/workouts/domain/active_workout_notification_target.dart';
 import 'package:herculex/features/workouts/domain/calendar_service.dart';
 import 'package:herculex/features/workouts/domain/effective_load.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/session_summary.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 
 part 'workouts_providers/_planned_workout_preview.part.dart';
+part 'workouts_providers/_wear_sync_controller.part.dart';
 
 final mediaSyncServiceProvider = Provider<MediaSyncService>((ref) {
   final wearSync = ref.watch(wearSyncServiceProvider);
@@ -49,12 +51,14 @@ final exerciseErgonomicsRepositoryProvider =
     });
 
 final wearWorkoutSyncServiceProvider = Provider<WearWorkoutSyncService>((ref) {
-  return WearWorkoutSyncService(
+  final service = WearWorkoutSyncService(
     ref.watch(workoutsRepositoryProvider),
     ref.watch(wearSyncServiceProvider),
     ref.watch(appDatabaseProvider),
     ref,
   );
+  ref.onDispose(service.dispose);
+  return service;
 });
 
 final activeSessionProvider = StreamProvider<WorkoutSessionData?>((ref) {
@@ -106,6 +110,10 @@ final activeSessionStatsProvider = StreamProvider.family<LiveWorkoutStats, int>(
         db.workoutExercises,
         db.workoutExercises.id.equalsExp(db.setEntries.workoutExerciseId),
       ),
+      drift.innerJoin(
+        db.exerciseCatalog,
+        db.exerciseCatalog.id.equalsExp(db.workoutExercises.exerciseId),
+      ),
     ])..where(db.workoutExercises.sessionId.equals(sessionId));
 
     return query.watch().map((rows) {
@@ -120,7 +128,10 @@ final activeSessionStatsProvider = StreamProvider.family<LiveWorkoutStats, int>(
           completed++;
         }
         final effectiveKg = EffectiveLoad.computeKg(
-          weightKg: set.weightKg,
+          weightKg:
+              isMachineAssistedPullup(row.readTable(db.exerciseCatalog).slug)
+              ? -set.weightKg
+              : set.weightKg,
           bodyweightKg: set.bodyweightKg,
           includesBodyweight: set.bodyweightKg != null,
           chainsKg: set.chainsKg,
@@ -275,6 +286,7 @@ final lastPerformanceProvider =
       ref,
       exerciseId,
     ) async {
+      ref.watch(recentSessionsProvider);
       return ref
           .watch(workoutsRepositoryProvider)
           .lastPerformanceSnapshotFor(exerciseId);
@@ -420,162 +432,6 @@ final activeWorkoutNotificationTargetProvider =
           .watch(workoutsRepositoryProvider)
           .watchActiveNotificationTargetForSession(sessionId);
     });
-
-final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
-  // Need to eagerly load the sync service so its callbacks are registered.
-  final syncService = ref.watch(wearWorkoutSyncServiceProvider);
-  ref.watch(mediaSyncServiceProvider);
-
-  // Handle explicit sync requests from watch
-  WearSyncService.onRequestSync = () async {
-    // Snapshot everything ref-derived up front — same reasoning as the
-    // workoutFoldersProvider listener below: this provider's watched
-    // streams can flag it as dirty mid-await, and any ref.read after that
-    // throws ("Cannot use ref functions after the dependency of a provider
-    // changed but before the provider rebuilt").
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final activeSession = ref.read(activeSessionProvider).asData?.value;
-    final catalog = ref
-        .read(exerciseCatalogProvider(const ExerciseCatalogFilter()))
-        .asData
-        ?.value;
-    final totals = ref.read(dailyTotalsProvider(today)).asData?.value;
-    final activeFast = ref.read(activeFastingSessionProvider).asData?.value;
-    final wearSyncService = ref.read(wearSyncServiceProvider);
-    final fastingRepo = ref.read(fastingRepositoryProvider);
-
-    // Watcher callbacks shouldn't await before reading everything they need,
-    // but the repo is safe to read.
-    final lastFast = activeFast == null
-        ? (await fastingRepo.history(limit: 1)).firstOrNull
-        : null;
-
-    if (activeSession != null) {
-      await syncService.pushActiveSessionToWatch(activeSession);
-    }
-    if (catalog != null) {
-      await syncService.syncCatalogToWatch(catalog);
-    }
-    if (totals != null) {
-      await wearSyncService.syncMacros(
-        totals.kcal.round(),
-        totals.proteinG.round(),
-        carbs: totals.carbsG.round(),
-        fats: totals.fatG.round(),
-      );
-    }
-    await wearSyncService.syncFastingSnapshot(
-      encodeFastingSnapshot(
-        session: activeFast,
-        lastSession: lastFast,
-        revision: ref.read(wearSyncRevisionAllocatorProvider).next(),
-      ),
-    );
-  };
-
-  // Watch active session and all exercises & sets reactively.
-  final activeSession = ref.watch(activeSessionProvider).asData?.value;
-  ref.watch(mediaSyncServiceProvider).setWorkoutActive(activeSession != null);
-  if (activeSession != null) {
-    final exercises =
-        ref.watch(sessionExercisesProvider(activeSession.id)).asData?.value ??
-        const <WorkoutExerciseData>[];
-
-    for (final exercise in exercises) {
-      ref.watch(setsForWorkoutExerciseProvider(exercise.id));
-    }
-
-    Future.microtask(() {
-      syncService.scheduleOutboundSync(activeSession);
-    });
-  } else {
-    if (!syncService.shouldSkipOutboundSync &&
-        syncService.hasActiveSyncedSession) {
-      Future.microtask(() {
-        syncService.notifySessionEnded();
-      });
-    }
-  }
-
-  // Watch exercise catalog and sync custom exercises to watch
-  ref.listen(exerciseCatalogProvider(const ExerciseCatalogFilter()), (
-    previous,
-    next,
-  ) {
-    if (next.hasValue && next.value != null) {
-      syncService.syncCatalogToWatch(next.value!);
-    }
-  }, fireImmediately: true);
-
-  // Push every template (all folders) plus today's scheduled workout to the
-  // watch. Runs when templates change and again when the schedule changes.
-  Future<void> pushTemplatesToWatch(List<WorkoutFolderData> folders) async {
-    final List<WorkoutTemplateData> allTemplates = [];
-    final Map<int, List<TemplateExerciseData>> templateExercises = {};
-    final Map<int, List<TemplateSetData>> templateSets = {};
-
-    // Capture the repository/db instances before any `await` — this
-    // provider watches fast-changing streams (active session sets), which
-    // can flag its own dependency as changed mid-await and make any
-    // further ref.read/watch here throw ("Cannot use ref functions after
-    // the dependency of a provider changed but before the provider
-    // rebuilt"). Plain values captured up front sidestep that entirely.
-    final templatesRepository = ref.read(templatesRepositoryProvider);
-    final db = ref.read(appDatabaseProvider);
-    final scheduledService = ref.read(scheduledWorkoutServiceProvider);
-
-    // Include un-foldered templates
-    final rootTemplates = await templatesRepository
-        .watchTemplates(folderId: null)
-        .first;
-    allTemplates.addAll(rootTemplates);
-
-    for (final folder in folders) {
-      final templates = await templatesRepository
-          .watchTemplates(folderId: folder.id)
-          .first;
-      allTemplates.addAll(templates);
-    }
-
-    for (final t in allTemplates) {
-      final exercises = await templatesRepository
-          .watchTemplateExercises(t.id)
-          .first;
-      templateExercises[t.id] = exercises;
-      for (final exercise in exercises) {
-        templateSets[exercise.id] = await templatesRepository
-            .watchTemplateSets(exercise.id)
-            .first;
-      }
-    }
-
-    final catalog = await db.select(db.exerciseCatalog).get();
-    final scheduledToday = await scheduledService.todaysWorkouts();
-    syncService.syncTemplatesToWatch(
-      allTemplates,
-      templateExercises,
-      templateSets,
-      catalog,
-      scheduledToday: scheduledToday,
-    );
-  }
-
-  ref.listen<AsyncValue<List<WorkoutFolderData>>>(workoutFoldersProvider, (
-    previous,
-    next,
-  ) {
-    if (next.hasValue) pushTemplatesToWatch(next.value ?? []);
-  }, fireImmediately: true);
-
-  ref.listen<AsyncValue<List<ScheduledWorkoutData>>>(scheduleChangesProvider, (
-    previous,
-    next,
-  ) {
-    final folders = ref.read(workoutFoldersProvider).valueOrNull;
-    if (next.hasValue && folders != null) pushTemplatesToWatch(folders);
-  });
-});
 
 /// Emits whenever a scheduled workout is added, moved, started or finished, so
 /// the watch hears about today's workout without waiting for a template edit.

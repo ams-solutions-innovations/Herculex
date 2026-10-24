@@ -15,6 +15,7 @@ class HxStatTile extends StatelessWidget {
     required this.icon,
     required this.accent,
     this.secondaryValue,
+    this.subtitle,
     this.progress,
     this.iconColor,
     this.onTap,
@@ -25,6 +26,9 @@ class HxStatTile extends StatelessWidget {
 
   /// Rendered smaller next to [value], e.g. "/ 2400".
   final String? secondaryValue;
+
+  /// Rendered below [value], e.g. "+17080 kg vs last week".
+  final String? subtitle;
   final IconData icon;
 
   /// Drives the icon bubble and the progress bar.
@@ -85,6 +89,8 @@ class HxStatTile extends StatelessWidget {
                   Flexible(
                     child: Text(
                       value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -92,15 +98,28 @@ class HxStatTile extends StatelessWidget {
                   ),
                   if (secondaryValue != null) ...[
                     const SizedBox(width: HxSpace.x1),
-                    Text(
-                      secondaryValue!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: hx.secondary,
+                    Flexible(
+                      child: Text(
+                        secondaryValue!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: hx.secondary,
+                        ),
                       ),
                     ),
                   ],
                 ],
               ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: hx.secondary,
+                  ),
+                ),
+              ],
               if (progress != null) ...[
                 const SizedBox(height: HxSpace.x2),
                 LinearProgressIndicator(

@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,813 +8,200 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/hx_colors.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
 import 'package:herculex/features/analytics/data/analytics_repository.dart';
+import 'package:herculex/features/analytics/domain/insights_week_summary.dart';
 import 'package:herculex/features/analytics/presentation/widgets/cns_recovery_cards.dart';
+import 'package:herculex/features/labs/presentation/labs_view.dart';
 import 'package:herculex/features/weekly_report/presentation/widgets/weekly_reports_entry_card.dart';
 import 'package:intl/intl.dart';
 
+part 'insights_view/_training_cards.part.dart';
+part 'insights_view/_correlation_cards.part.dart';
+
+/// Insights leads with what matters this week — three numbers and one piece
+/// of advice — then the weekly reports, Labs and top lifts. The detailed
+/// analytics (recovery map, CNS chart, balance, correlations) sit under
+/// "More analytics" for the users who want them.
 class InsightsView extends ConsumerWidget {
   const InsightsView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     return HxScreenShell(
       title: 'Insights',
       children: [
-        Text(
-          'Dynamic performance analytics, biometric sleep vs. stress correlations, and targeted muscle recovery calculations.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.secondary,
+        const _ThisWeekHero(),
+        const SizedBox(height: 16),
+        Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+            childrenPadding: EdgeInsets.zero,
+            title: Text(
+              'More analytics',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            subtitle: Text(
+              'Muscle recovery, CNS load, balance, volume and correlations',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: context.hx.secondary),
+            ),
+            children: const [
+              SizedBox(height: 8),
+              WeeklyReportsEntryCard(),
+              SizedBox(height: 12),
+              LabsEntryCard(),
+              SizedBox(height: 16),
+              _OneRmCard(),
+              SizedBox(height: 16),
+              RecoveryDetailCard(),
+              SizedBox(height: 16),
+              CnsTrendCard(),
+              SizedBox(height: 16),
+              _BalanceCard(),
+              SizedBox(height: 16),
+              _TonnageCard(),
+              SizedBox(height: 16),
+              _SleepVsRpeCard(),
+              SizedBox(height: 16),
+              _HrVsTonnageCard(),
+            ],
           ),
         ),
-        const SizedBox(height: 24),
-        const WeeklyReportsEntryCard(),
-        const SizedBox(height: 24),
-        const RecoveryDetailCard(),
-        const SizedBox(height: 24),
-        const CnsTrendCard(),
-        const SizedBox(height: 24),
-        const _BalanceCard(),
-        const SizedBox(height: 24),
-        const _TonnageCard(),
-        const SizedBox(height: 24),
-        const _OneRmCard(),
-        const SizedBox(height: 24),
-        const _SleepVsRpeCard(),
-        const SizedBox(height: 24),
-        const _HrVsTonnageCard(),
       ],
     );
   }
 }
 
-class _BalanceCard extends ConsumerWidget {
-  const _BalanceCard();
+class _ThisWeekHero extends ConsumerWidget {
+  const _ThisWeekHero();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final hx = context.hx;
     final theme = Theme.of(context);
-    final balanceAsync = ref.watch(pushPullBalanceProvider);
+    final summary = ref.watch(insightsWeekSummaryProvider);
+    final weight = ref.watch(weightFormatProvider);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+    return HxCard(
+      accent: hx.domainTraining,
+      child: summary.when(
+        loading: () => const SizedBox(
+          height: 120,
+          child: Center(child: CircularProgressIndicator()),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Push / Pull Volume',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+        error: (_, _) => const Text('Could not load this week.'),
+        data: (s) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'THIS WEEK',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: hx.secondary,
+                letterSpacing: 1,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Total set volume tagged by movement mechanics (last 4 weeks)',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.secondary,
-            ),
-          ),
-          const SizedBox(height: 24),
-          balanceAsync.when(
-            data: (res) => Column(
+            const SizedBox(height: 12),
+            Row(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "PUSH: ${res.pushPercentage.round()}%",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    Text(
-                      "PULL: ${res.pullPercentage.round()}%",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: SizedBox(
-                    height: 10,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: res.pushPercentage.round(),
-                          child: Container(color: AppColors.primary),
-                        ),
-                        Expanded(
-                          flex: res.pullPercentage.round(),
-                          child: Container(color: AppColors.primaryContainer),
-                        ),
-                      ],
-                    ),
+                Expanded(
+                  child: _HeroNumber(
+                    value: '${s.sessions}',
+                    label: s.sessions == 1 ? 'workout' : 'workouts',
                   ),
                 ),
-                if (res.hasAsymmetry) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.secondary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: theme.colorScheme.secondary.withValues(
-                          alpha: 0.3,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: theme.colorScheme.secondary,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            "Asymmetry detected (>25%). Consider adding more pulling exercises to support structural shoulder balance.",
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                Expanded(
+                  child: _HeroNumber(
+                    value: weight.format(s.tonnageKg),
+                    label: _changeLabel(s),
                   ),
-                ],
+                ),
+                Expanded(
+                  child: _HeroNumber(
+                    value: '${(s.readiness * 100).round()}%',
+                    label: 'ready',
+                    color: _readinessColor(hx, s.readiness),
+                  ),
+                ),
               ],
             ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Text('Error: $e'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SleepVsRpeCard extends ConsumerWidget {
-  const _SleepVsRpeCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final hx = context.hx;
-    final async = ref.watch(sleepVsRpeProvider);
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: hx.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Sleep vs. Gym RPE',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+            const SizedBox(height: 14),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.lightbulb_outline_rounded,
+                  size: 18,
+                  color: hx.primary,
                 ),
-              ),
-              IconButton(
-                icon: Icon(Icons.info_outline, size: 18, color: hx.secondary),
-                onPressed: () => _showMethodologyDialog(
-                  context,
-                  "Sleep vs. RPE Correlation",
-                  "R² (Coefficient of Determination) indicates the percentage of variation in perceived session RPE that can be explained by sleep duration. A higher R² indicates that sleep heavily impacts recovery stress levels.",
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(s.advice, style: theme.textTheme.bodyMedium),
                 ),
-              ),
-            ],
-          ),
-          Text(
-            'Sleep duration hours (X) vs. average session RPE (Y)',
-            style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
-          ),
-          const SizedBox(height: 24),
-          async.when(
-            data: (res) {
-              if (res.points.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Text(
-                      'No correlation data available yet.\nLog workouts and sleep to see analysis.',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: hx.secondary,
-                      ),
-                    ),
-                  ),
-                );
-              }
-
-              final minXVal = res.points.map((p) => p.x).reduce(min);
-              final maxXVal = res.points.map((p) => p.x).reduce(max);
-              final minYVal = res.points.map((p) => p.y).reduce(min);
-              final maxYVal = res.points.map((p) => p.y).reduce(max);
-
-              // Smart bounds with breathing room
-              final minX = max(0.0, (minXVal - 0.6).floorToDouble());
-              final maxX = (maxXVal + 0.6).ceilToDouble();
-              final safeMaxX = (maxX - minX < 2.0) ? minX + 2.0 : maxX;
-              final xSpan = safeMaxX - minX;
-              final xInterval = xSpan <= 4.0
-                  ? 1.0
-                  : (xSpan <= 8.0 ? 2.0 : (xSpan / 4).ceilToDouble());
-
-              final minY = max(1.0, (minYVal - 0.5).floorToDouble());
-              final maxY = min(10.0, (maxYVal + 0.5).ceilToDouble());
-              final safeMaxY = (maxY - minY < 2.0)
-                  ? min(10.0, minY + 2.0)
-                  : maxY;
-              final safeMinY = (safeMaxY - minY < 2.0)
-                  ? max(1.0, safeMaxY - 2.0)
-                  : minY;
-              final ySpan = safeMaxY - safeMinY;
-              final yInterval = ySpan <= 3.0 ? 1.0 : (ySpan / 4).ceilToDouble();
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: SizedBox(
-                      height: 180,
-                      child: ScatterChart(
-                        ScatterChartData(
-                          minX: minX,
-                          maxX: safeMaxX,
-                          minY: safeMinY,
-                          maxY: safeMaxY,
-                          scatterSpots: res.points
-                              .map(
-                                (p) => ScatterSpot(
-                                  p.x,
-                                  p.y,
-                                  dotPainter: FlDotCirclePainter(
-                                    radius: 6,
-                                    color: hx.primary,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          gridData: FlGridData(
-                            show: true,
-                            horizontalInterval: yInterval,
-                            verticalInterval: xInterval,
-                            getDrawingHorizontalLine: (_) => FlLine(
-                              color: hx.outlineVariant.withValues(alpha: 0.2),
-                              strokeWidth: 1,
-                              dashArray: [4, 4],
-                            ),
-                            getDrawingVerticalLine: (_) => FlLine(
-                              color: hx.outlineVariant.withValues(alpha: 0.2),
-                              strokeWidth: 1,
-                              dashArray: [4, 4],
-                            ),
-                          ),
-                          borderData: FlBorderData(show: false),
-                          titlesData: FlTitlesData(
-                            topTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 32,
-                                interval: yInterval,
-                                getTitlesWidget: (val, _) {
-                                  return Text(
-                                    val.toStringAsFixed(val % 1 == 0 ? 0 : 1),
-                                    style: TextStyle(
-                                      color: hx.secondary,
-                                      fontSize: 10,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 24,
-                                interval: xInterval,
-                                getTitlesWidget: (val, _) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(
-                                      '${val.toStringAsFixed(val % 1 == 0 ? 0 : 1)}h',
-                                      style: TextStyle(
-                                        color: hx.secondary,
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "R² FIT INDEX: ${res.r2.toStringAsFixed(2)}",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          res.interpretation,
-                          textAlign: TextAlign.end,
-                          style: TextStyle(
-                            color: hx.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Text('Error: $e'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HrVsTonnageCard extends ConsumerWidget {
-  const _HrVsTonnageCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final hx = context.hx;
-    final async = ref.watch(hrVsTonnageProvider);
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: hx.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Resting HR vs. Tonnage',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.info_outline, size: 18, color: hx.secondary),
-                onPressed: () => _showMethodologyDialog(
-                  context,
-                  "Resting HR vs. Tonnage Correlation",
-                  "Elevated resting heart rate indicates systemic stress. This scatter plot tracks whether higher heart rates correlate with decreased absolute session volume (tonnage).",
-                ),
-              ),
-            ],
-          ),
-          Text(
-            'Resting HR bpm (X) vs. session tonnage kg (Y)',
-            style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
-          ),
-          const SizedBox(height: 24),
-          async.when(
-            data: (res) {
-              if (res.points.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Text(
-                      'No correlation data available yet.\nLog workouts and heart rate samples to see analysis.',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: hx.secondary,
-                      ),
-                    ),
-                  ),
-                );
-              }
-
-              final minXVal = res.points.map((p) => p.x).reduce(min);
-              final maxXVal = res.points.map((p) => p.x).reduce(max);
-              final minYVal = res.points.map((p) => p.y).reduce(min);
-              final maxYVal = res.points.map((p) => p.y).reduce(max);
-
-              // Smart bounds for HR (X: bpm)
-              final minX = max(30.0, ((minXVal - 5) / 5).floor() * 5.0);
-              final maxX = ((maxXVal + 5) / 5).ceil() * 5.0;
-              final safeMaxX = (maxX - minX < 15.0) ? minX + 15.0 : maxX;
-              final xSpan = safeMaxX - minX;
-              final xInterval = xSpan <= 20.0
-                  ? 5.0
-                  : (xSpan <= 40.0 ? 10.0 : (xSpan / 4).ceilToDouble());
-
-              // Smart bounds for Tonnage (Y: kg)
-              final minY = max(0.0, ((minYVal * 0.9) / 500).floor() * 500.0);
-              final maxY = ((maxYVal * 1.1) / 500).ceil() * 500.0;
-              final safeMaxY = (maxY - minY < 1000.0) ? minY + 1000.0 : maxY;
-              final ySpan = safeMaxY - minY;
-              final yInterval = ySpan <= 2000.0
-                  ? 500.0
-                  : (ySpan <= 5000.0
-                        ? 1000.0
-                        : (ySpan / 4 / 500).ceil() * 500.0);
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: SizedBox(
-                      height: 180,
-                      child: ScatterChart(
-                        ScatterChartData(
-                          minX: minX,
-                          maxX: safeMaxX,
-                          minY: minY,
-                          maxY: safeMaxY,
-                          scatterSpots: res.points
-                              .map(
-                                (p) => ScatterSpot(
-                                  p.x,
-                                  p.y,
-                                  dotPainter: FlDotCirclePainter(
-                                    radius: 6,
-                                    color: Colors.teal,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          gridData: FlGridData(
-                            show: true,
-                            horizontalInterval: yInterval,
-                            verticalInterval: xInterval,
-                            getDrawingHorizontalLine: (_) => FlLine(
-                              color: hx.outlineVariant.withValues(alpha: 0.2),
-                              strokeWidth: 1,
-                              dashArray: [4, 4],
-                            ),
-                            getDrawingVerticalLine: (_) => FlLine(
-                              color: hx.outlineVariant.withValues(alpha: 0.2),
-                              strokeWidth: 1,
-                              dashArray: [4, 4],
-                            ),
-                          ),
-                          borderData: FlBorderData(show: false),
-                          titlesData: FlTitlesData(
-                            topTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 38,
-                                interval: yInterval,
-                                getTitlesWidget: (val, _) {
-                                  final label = val >= 1000
-                                      ? '${(val / 1000).toStringAsFixed(val % 1000 == 0 ? 0 : 1)}k'
-                                      : '${val.toInt()}';
-                                  return Text(
-                                    label,
-                                    style: TextStyle(
-                                      color: hx.secondary,
-                                      fontSize: 10,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 24,
-                                interval: xInterval,
-                                getTitlesWidget: (val, _) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(
-                                      '${val.toInt()}',
-                                      style: TextStyle(
-                                        color: hx.secondary,
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "R² FIT INDEX: ${res.r2.toStringAsFixed(2)}",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          res.interpretation,
-                          textAlign: TextAlign.end,
-                          style: const TextStyle(
-                            color: Colors.teal,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Text('Error: $e'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-void _showMethodologyDialog(
-  BuildContext context,
-  String title,
-  String description,
-) {
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: AppColors.surfaceContainerLowest,
-        title: Text(title),
-        content: Text(description),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              "CLOSE",
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-              ),
+              ],
             ),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-class _TonnageCard extends ConsumerWidget {
-  const _TonnageCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final async = ref.watch(weeklyTonnageProvider);
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+          ],
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Weekly tonnage',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Total kg moved per week (working sets only)',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.secondary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 180,
-            child: async.when(
-              data: (data) => _emptyOrChart(data, theme),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
-  Widget _emptyOrChart(List<WeeklyTonnage> data, ThemeData theme) {
-    if (data.every((w) => w.tonnageKg == 0)) {
-      return Center(
-        child: Text(
-          'Log a workout to see your tonnage.',
-          style: theme.textTheme.bodyMedium,
-        ),
-      );
+  static String _changeLabel(InsightsWeekSummary s) {
+    final change = s.tonnageChange;
+    if (change == null) {
+      return 'volume';
     }
-    final maxY = data
-        .map((d) => d.tonnageKg)
-        .fold<double>(0, (a, b) => b > a ? b : a);
-    return BarChart(
-      BarChartData(
-        alignment: BarChartAlignment.spaceBetween,
-        maxY: maxY * 1.15,
-        gridData: const FlGridData(show: false),
-        borderData: FlBorderData(show: false),
-        titlesData: FlTitlesData(
-          leftTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 22,
-              interval: 1,
-              getTitlesWidget: (value, _) {
-                final i = value.toInt();
-                if (i < 0 || i >= data.length) return const SizedBox.shrink();
-                if (i % 2 != data.length % 2) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    DateFormat('M/d').format(data[i].weekStart),
-                    style: TextStyle(color: AppColors.secondary, fontSize: 10),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-        barGroups: [
-          for (var i = 0; i < data.length; i++)
-            BarChartGroupData(
-              x: i,
-              barRods: [
-                BarChartRodData(
-                  toY: data[i].tonnageKg,
-                  color: AppColors.primary,
-                  width: 12,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
+    final pct = (change * 100).round();
+    return pct >= 0 ? '+$pct% vs last wk' : '$pct% vs last wk';
+  }
+
+  static Color _readinessColor(HxColors hx, double readiness) {
+    if (readiness >= 0.6) {
+      return hx.success;
+    }
+    if (readiness >= 0.3) {
+      return hx.warning;
+    }
+    return hx.danger;
   }
 }
 
-class _OneRmCard extends ConsumerWidget {
-  const _OneRmCard();
+class _HeroNumber extends StatelessWidget {
+  const _HeroNumber({required this.value, required this.label, this.color});
+
+  final String value;
+  final String label;
+  final Color? color;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final async = ref.watch(topOneRmsProvider);
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Estimated 1RM',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: context.hx.secondary,
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Top lifts, projected from best working set (Epley + Brzycki avg)',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.secondary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          async.when(
-            data: (list) => list.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Text(
-                      'No completed sets yet.',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  )
-                : Column(
-                    children: [
-                      for (final p in list)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  p.exerciseName,
-                                  style: theme.textTheme.titleSmall,
-                                ),
-                              ),
-                              Text(
-                                ref
-                                    .watch(weightFormatProvider)
-                                    .format(p.estimatedOneRmKg),
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-            loading: () => const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (e, _) => Text('Error: $e'),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

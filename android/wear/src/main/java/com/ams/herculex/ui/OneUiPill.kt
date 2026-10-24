@@ -45,19 +45,19 @@ data class OneUiPillStyle(
     companion object {
         // Deep Royal Blue for active / primary action pills
         val RoyalBlue = OneUiPillStyle(
-            containerColor = Color(0xFF1E44AA),
-            badgeColor = Color(0xFF132E78),
+            containerColor = Color(HxPillColors.ROYAL_CONTAINER),
+            badgeColor = Color(HxPillColors.ROYAL_BADGE),
             contentColor = Color.White,
-            secondaryColor = Color(0xFFC0CCEC),
+            secondaryColor = Color(HxPillColors.ROYAL_SECONDARY),
         )
 
         // Dark Slate Navy for general menu list items
         val SlateNavy = OneUiPillStyle(
-            containerColor = Color(0xFF202636),
-            badgeColor = Color(0xFF141926),
+            containerColor = Color(HxPillColors.SLATE_CONTAINER),
+            badgeColor = Color(HxPillColors.SLATE_BADGE),
             contentColor = Color.White,
-            secondaryColor = Color(0xFFA0AABF),
-            borderColor = Color(0xFF323B52),
+            secondaryColor = Color(HxPillColors.SLATE_SECONDARY),
+            borderColor = Color(HxPillColors.SLATE_BORDER),
         )
 
         // Warm Terracotta / Copper Brown for vitals, food, alerts
@@ -70,10 +70,10 @@ data class OneUiPillStyle(
 
         // Emerald Forest Green for active state / finished
         val EmeraldGreen = OneUiPillStyle(
-            containerColor = Color(0xFF1B4D3E),
-            badgeColor = Color(0xFF113329),
+            containerColor = Color(HxPillColors.EMERALD_CONTAINER),
+            badgeColor = Color(HxPillColors.EMERALD_BADGE),
             contentColor = Color.White,
-            secondaryColor = Color(0xFFA5D6A7),
+            secondaryColor = Color(HxPillColors.EMERALD_SECONDARY),
         )
 
         // Deep Violet / Indigo for mindfulness / special features
@@ -86,10 +86,10 @@ data class OneUiPillStyle(
 
         // Bright Accent Blue for primary call to action
         val AccentBlue = OneUiPillStyle(
-            containerColor = Color(0xFF1565C0),
-            badgeColor = Color(0xFF0D47A1),
+            containerColor = Color(HxPillColors.ACCENT_CONTAINER),
+            badgeColor = Color(HxPillColors.ACCENT_BADGE),
             contentColor = Color.White,
-            secondaryColor = Color(0xFFBBDEFB),
+            secondaryColor = Color(HxPillColors.ACCENT_SECONDARY),
         )
 
         // Elevated dark slate for options / secondary buttons

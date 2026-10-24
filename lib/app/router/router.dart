@@ -15,17 +15,22 @@ import 'package:herculex/features/analytics/presentation/views/muscle_volume_det
 import 'package:herculex/features/analytics/presentation/views/muscle_volume_overview_view.dart';
 import 'package:herculex/features/analytics/presentation/views/personal_records_view.dart';
 import 'package:herculex/features/buddy/presentation/buddy_join_scanner_view.dart';
+import 'package:herculex/features/buddy/presentation/gym_buddy_hub_view.dart';
 import 'package:herculex/features/fasting/presentation/fasting_schedule_view.dart';
 import 'package:herculex/features/fasting/presentation/fasting_view.dart';
+import 'package:herculex/features/gamification/presentation/level_system_view.dart';
 import 'package:herculex/features/gamification/presentation/training_level_view.dart';
 import 'package:herculex/features/gyms/presentation/gyms_view.dart';
 import 'package:herculex/features/health/presentation/cycle_tracking_view.dart';
 import 'package:herculex/features/health/presentation/health_integrations_view.dart';
 import 'package:herculex/features/health/presentation/health_platform_detail_view.dart';
+import 'package:herculex/features/hercul/presentation/views/hercul_insights_report_view.dart';
+import 'package:herculex/features/labs/presentation/labs_view.dart';
 import 'package:herculex/features/measurements/presentation/measurements_view.dart';
 import 'package:herculex/features/measurements/presentation/metric_detail_view.dart';
 import 'package:herculex/features/notifications/presentation/notification_settings_view.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
+import 'package:herculex/features/nutrition/presentation/views/activity_calibration_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/calorie_macro_goals_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/calorie_meal_goals_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/goals_view.dart';
@@ -53,6 +58,8 @@ import 'package:herculex/features/settings/presentation/preferences_settings_vie
 import 'package:herculex/features/settings/presentation/settings_view.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/shell/splash_view.dart';
+import 'package:herculex/features/sleep/presentation/views/sleep_tracking_view.dart';
+import 'package:herculex/features/steps/presentation/views/steps_tracking_view.dart';
 import 'package:herculex/features/supplements/presentation/supplements_view.dart';
 import 'package:herculex/features/weekly_report/domain/iso_week.dart';
 import 'package:herculex/features/weekly_report/presentation/views/weekly_report_view.dart';
@@ -102,11 +109,16 @@ Widget buildWeeklyReportRoute(BuildContext context, GoRouterState state) {
   return WeeklyReportView(week: isoWeek);
 }
 
+/// Root navigator key used for imperative navigation, modal sheets, and dialogs
+/// triggered from external intents (widgets, shortcuts, notifications).
+final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'rootNavigator');
+
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = _RouterRefresh(ref);
   ref.onDispose(refresh.dispose);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.splash,
     refreshListenable: refresh,
     // Unmatched paths and malformed deep links used to fall through to
@@ -147,6 +159,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const OnboardingView(),
       ),
       GoRoute(path: AppRoutes.app, builder: (_, _) => const MainScaffold()),
+      GoRoute(path: AppRoutes.labs, builder: (_, _) => const LabsView()),
       GoRoute(
         path: AppRoutes.workoutHistory,
         builder: (context, state) {
@@ -198,6 +211,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.insights,
         builder: (_, _) => const InsightsView(),
       ),
+      GoRoute(
+        path: AppRoutes.herculInsights,
+        builder: (_, _) => const HerculInsightsReportView(),
+      ),
       GoRoute(path: AppRoutes.cns, builder: (_, _) => const CnsView()),
       GoRoute(
         path: AppRoutes.weeklyReports,
@@ -230,6 +247,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const HealthIntegrationsView(),
       ),
       GoRoute(
+        path: AppRoutes.steps,
+        builder: (_, _) => const StepsTrackingView(),
+      ),
+      GoRoute(
+        path: AppRoutes.sleep,
+        builder: (_, _) => const SleepTrackingView(),
+      ),
+      GoRoute(
         path: AppRoutes.cycle,
         builder: (_, _) => const CycleTrackingView(),
       ),
@@ -252,6 +277,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.trainingLevel,
         builder: (_, _) => const TrainingLevelView(),
+      ),
+      GoRoute(
+        path: AppRoutes.levelSystem,
+        builder: (_, _) => const LevelSystemView(),
       ),
       GoRoute(
         path: AppRoutes.notifications,
@@ -335,6 +364,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: AppRoutes.goals, builder: (_, _) => const GoalsView()),
       GoRoute(
+        path: AppRoutes.activityCalibration,
+        builder: (_, _) => const ActivityCalibrationView(),
+      ),
+      GoRoute(
         path: AppRoutes.calorieMacroGoals,
         builder: (_, _) => const CalorieMacroGoalsView(),
       ),
@@ -345,6 +378,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.rotationPools,
         builder: (_, _) => const RotationPoolsView(),
+      ),
+      GoRoute(
+        path: AppRoutes.gymBuddy,
+        builder: (_, _) => const GymBuddyHubView(),
       ),
       GoRoute(
         path: AppRoutes.buddyJoin,

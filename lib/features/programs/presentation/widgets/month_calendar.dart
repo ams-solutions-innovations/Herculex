@@ -4,7 +4,9 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
+import 'package:herculex/features/programs/domain/session_completion.dart';
 import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
+import 'package:herculex/features/workout_report/application/workout_report_providers.dart';
 import 'package:intl/intl.dart';
 
 /// Opens a day, optionally scrolled to and highlighting one specific
@@ -152,6 +154,7 @@ class _DayCell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final completion = ref.watch(scheduleCompletionProvider).value ?? const {};
 
     return DragTarget<int>(
       onWillAcceptWithDetails: (d) => !rows.any((r) => r.id == d.data),
@@ -223,6 +226,9 @@ class _DayCell extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: scheduleStatusColor(
                               row.status,
+                              partial: SessionCompletion.isPartial(
+                                completion[row.id],
+                              ),
                             ).withValues(alpha: inMonth ? 1 : 0.4),
                             shape: BoxShape.circle,
                           ),

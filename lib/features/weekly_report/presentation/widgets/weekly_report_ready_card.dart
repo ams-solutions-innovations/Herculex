@@ -52,7 +52,11 @@ class WeeklyReportReadyCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: hx.onSurfaceVariant),
+              IconButton(
+                tooltip: 'Previous reports',
+                onPressed: () => context.push(AppRoutes.weeklyReports),
+                icon: Icon(Icons.history_rounded, color: hx.onSurfaceVariant),
+              ),
             ],
           ),
         ),

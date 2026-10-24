@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
@@ -10,11 +9,12 @@ import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import 'support/test_database.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => SharedPreferences.setMockInitialValues({}));
 
   late AppDatabase db;
   setUp(() async => db = await openTestDatabase());

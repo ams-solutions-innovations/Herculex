@@ -7,6 +7,7 @@
     android:targetCellWidth="2"
     android:targetCellHeight="2"
     android:initialLayout="@layout/widget_hx_card"
+    android:previewLayout="@layout/widget_preview_recovery"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:updatePeriodMillis="0"

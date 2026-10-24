@@ -14,6 +14,7 @@ import 'package:herculex/features/fasting/presentation/fasting_food_log_dialog.d
 import 'package:herculex/features/nutrition/application/meal_slots_provider.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/barcode_utils.dart';
+import 'package:herculex/features/nutrition/domain/food_insights.dart';
 import 'package:herculex/features/nutrition/domain/food_portion.dart';
 import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
@@ -25,6 +26,7 @@ import 'package:herculex/features/nutrition/presentation/sheets/log_entry_sheet.
 import 'package:herculex/features/nutrition/presentation/views/barcode_scanner_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/recipe_builder_view.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/barcode_resolution_flow.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/food_nutrition_gradient.dart';
 import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -58,12 +60,45 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
   final _queryCtrl = TextEditingController();
   String? _query;
   late String _activeMealKey = widget.mealKey;
+  FoodSuggestionParams? _stableSuggestionParams;
+  List<int>? _stableSuggestedFoodIds;
+  List<int>? _stableRecentFoodIds;
+  final Map<int, FoodData> _pickerFoodsById = {};
 
   @override
   void dispose() {
     _tabs.dispose();
     _queryCtrl.dispose();
     super.dispose();
+  }
+
+  void _resetSuggestedFoodOrderFor(FoodSuggestionParams params) {
+    if (_stableSuggestionParams == params) return;
+    _stableSuggestionParams = params;
+    _stableSuggestedFoodIds = null;
+  }
+
+  List<FoodData> _foodsInStablePickerOrder({
+    required AsyncValue<List<FoodData>> asyncFoods,
+    required List<int>? stableIds,
+    required ValueChanged<List<int>> saveIds,
+  }) {
+    final currentFoods = asyncFoods.valueOrNull ?? const <FoodData>[];
+    for (final food in currentFoods) {
+      _pickerFoodsById[food.id] = food;
+    }
+
+    var order = stableIds;
+    if (order == null && asyncFoods.hasValue) {
+      order = List<int>.unmodifiable(currentFoods.map((food) => food.id));
+      saveIds(order);
+    }
+    if (order == null) return currentFoods;
+
+    return [
+      for (final id in order)
+        if (_pickerFoodsById[id] case final food?) food,
+    ];
   }
 
   Future<void> _logFood(FoodData f) async {
@@ -438,7 +473,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
               ),
               const SizedBox(height: 8),
 
-              // ── Quick Action Cards: Rambler AI & Skeniraj kodo ─────────────
+              // ── Quick Action Cards: Rambler AI & Scan Barcode ──────────────
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -456,8 +491,8 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                     Expanded(
                       child: _QuickActionCard(
                         icon: Icons.qr_code_scanner_rounded,
-                        title: 'Skeniraj kodo',
-                        subtitle: 'Črtna koda & kamera',
+                        title: 'Scan Code',
+                        subtitle: 'Barcode & camera',
                         color: AppColors.primary,
                         onTap: _scan,
                       ),
@@ -647,15 +682,31 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
     if (queryText.isNotEmpty) {
       final asyncFoods = ref.watch(foodSearchProvider(queryText));
       final currentHour = ref.watch(clockProvider).now().hour;
+      final suggestionParams = FoodSuggestionParams(
+        hour: currentHour,
+        mealKey: _activeMealKey,
+      );
       final asyncSuggested = ref.watch(
-        suggestedFoodsProvider(
-          FoodSuggestionParams(hour: currentHour, mealKey: _activeMealKey),
-        ),
+        suggestedFoodsProvider(suggestionParams),
       );
       final asyncRecent = ref.watch(recentlyLoggedFoodsProvider);
+      _resetSuggestedFoodOrderFor(suggestionParams);
+      final suggestedFoods = _foodsInStablePickerOrder(
+        asyncFoods: asyncSuggested,
+        stableIds: _stableSuggestedFoodIds,
+        saveIds: (ids) => _stableSuggestedFoodIds = ids,
+      );
+      final recentFoods = _foodsInStablePickerOrder(
+        asyncFoods: asyncRecent,
+        stableIds: _stableRecentFoodIds,
+        saveIds: (ids) => _stableRecentFoodIds = ids,
+      );
 
       return asyncFoods.when(
         data: (list) {
+          for (final food in list) {
+            _pickerFoodsById[food.id] = food;
+          }
           if (list.isEmpty) {
             return Center(
               child: Padding(
@@ -692,10 +743,8 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
             );
           }
 
-          final suggestedIds =
-              asyncSuggested.valueOrNull?.map((e) => e.id).toSet() ?? {};
-          final recentList = asyncRecent.valueOrNull ?? [];
-          final recentIds = recentList.map((e) => e.id).toList();
+          final suggestedIds = suggestedFoods.map((e) => e.id).toSet();
+          final recentIds = recentFoods.map((e) => e.id).toList();
 
           final sortedList = List<FoodData>.from(list);
           sortedList.sort((a, b) {
@@ -734,13 +783,24 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
 
     // 2. Default state: Suggested (time/meal-based) + Recent (chronological newest to oldest) + Fallback (All foods)
     final currentHour = ref.watch(clockProvider).now().hour;
-    final asyncSuggested = ref.watch(
-      suggestedFoodsProvider(
-        FoodSuggestionParams(hour: currentHour, mealKey: _activeMealKey),
-      ),
+    final suggestionParams = FoodSuggestionParams(
+      hour: currentHour,
+      mealKey: _activeMealKey,
     );
+    final asyncSuggested = ref.watch(suggestedFoodsProvider(suggestionParams));
     final asyncRecent = ref.watch(recentlyLoggedFoodsProvider);
     final asyncAll = ref.watch(foodSearchProvider(null));
+    _resetSuggestedFoodOrderFor(suggestionParams);
+    final suggestedFoods = _foodsInStablePickerOrder(
+      asyncFoods: asyncSuggested,
+      stableIds: _stableSuggestedFoodIds,
+      saveIds: (ids) => _stableSuggestedFoodIds = ids,
+    );
+    final recentFoods = _foodsInStablePickerOrder(
+      asyncFoods: asyncRecent,
+      stableIds: _stableRecentFoodIds,
+      saveIds: (ids) => _stableRecentFoodIds = ids,
+    );
 
     // Show loading while primary data streams initialize
     if (asyncRecent.isLoading &&
@@ -750,8 +810,6 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
       return const Center(child: CircularProgressIndicator());
     }
 
-    final suggestedFoods = asyncSuggested.valueOrNull ?? const <FoodData>[];
-    final recentFoods = asyncRecent.valueOrNull ?? const <FoodData>[];
     final allFoods = asyncAll.valueOrNull ?? const <FoodData>[];
 
     final slots = ref.watch(mealSlotsProvider);
@@ -1203,8 +1261,10 @@ class _ActionCard extends StatelessWidget {
   }
 }
 
-// ─── Food List Tile with Circular Quick Add (+) Button ───────────────────────
-class _FoodTile extends StatelessWidget {
+enum _FoodTileAction { editOriginalFood, scanNutritionAi, logFood }
+
+// ─── Food List Tile with 3-Dots Menu & Circular Quick Add (+) Button ─────────
+class _FoodTile extends ConsumerWidget {
   final FoodData food;
   final VoidCallback onTap;
   final VoidCallback onQuickAdd;
@@ -1215,49 +1275,140 @@ class _FoodTile extends StatelessWidget {
     required this.onQuickAdd,
   });
 
+  Future<void> _editFood(
+    BuildContext context,
+    WidgetRef ref, {
+    bool autoStartAiScan = false,
+  }) async {
+    final updated = await CustomFoodFormSheet.show(
+      context,
+      existingFood: food,
+      autoStartAiScan: autoStartAiScan,
+    );
+    if (updated == null || !context.mounted) return;
+    ref.invalidate(foodByIdProvider(updated.id));
+    ref.invalidate(foodSearchProvider);
+    ref.invalidate(customFoodsProvider);
+    ref.invalidate(recentFoodsProvider);
+    ref.invalidate(recentlyLoggedFoodsProvider);
+    ref.invalidate(suggestedFoodsProvider);
+    AppNotice.show(
+      context,
+      'Original food "${updated.name}" updated',
+      kind: AppNoticeKind.success,
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final grade = FoodInsights.gradeFor(
+      name: food.name,
+      kcal: food.kcalPer100g,
+      proteinG: food.proteinPer100g,
+      carbsG: food.carbsPer100g,
+      fatG: food.fatPer100g,
+      kcalPer100g: food.kcalPer100g,
+    );
+    final style = FoodNutritionStyle.resolve(context, grade);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: onTap,
+      child: Material(
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        clipBehavior: Clip.antiAlias,
+        child: Ink(
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainer,
+            color: style.gradient == null ? style.color : null,
+            gradient: style.gradient,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: style.borderColor),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      food.name,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          food.name,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${FoodPortion.label(food)} · ${(food.kcalPer100g * FoodPortion.nutritionFactor(food, FoodPortion.defaultAmount(food), FoodPortion.defaultUnit(food))).toStringAsFixed(0)} kcal',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${FoodPortion.label(food)} · ${(food.kcalPer100g * FoodPortion.nutritionFactor(food, FoodPortion.defaultAmount(food), FoodPortion.defaultUnit(food))).toStringAsFixed(0)} kcal',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.secondary,
-                      ),
+                  ),
+                  PopupMenuButton<_FoodTileAction>(
+                    tooltip: 'Food options',
+                    icon: Icon(
+                      Icons.more_vert,
+                      size: 20,
+                      color: AppColors.secondary,
                     ),
-                  ],
-                ),
+                    padding: EdgeInsets.zero,
+                    onSelected: (action) {
+                      switch (action) {
+                        case _FoodTileAction.editOriginalFood:
+                          _editFood(context, ref);
+                        case _FoodTileAction.scanNutritionAi:
+                          _editFood(context, ref, autoStartAiScan: true);
+                        case _FoodTileAction.logFood:
+                          onTap();
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: _FoodTileAction.editOriginalFood,
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: Icon(Icons.edit_outlined, size: 20),
+                          title: Text('Edit original food'),
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: _FoodTileAction.scanNutritionAi,
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: Icon(
+                            Icons.document_scanner_outlined,
+                            size: 20,
+                          ),
+                          title: Text('Scan nutrition values (AI)'),
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: _FoodTileAction.logFood,
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: Icon(Icons.add_circle_outline, size: 20),
+                          title: Text('Log food'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 4),
+                  // Animated Quick Add (+) Button
+                  _QuickAddButton(onTap: onQuickAdd),
+                ],
               ),
-              const SizedBox(width: 8),
-              // Animated Quick Add (+) Button
-              _QuickAddButton(onTap: onQuickAdd),
-            ],
+            ),
           ),
         ),
       ),

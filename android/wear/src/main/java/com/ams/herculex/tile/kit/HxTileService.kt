@@ -21,8 +21,9 @@ abstract class HxTileService(private val resVersion: String) : SuspendingTileSer
 
     private val imageNames = listOf(
         "hx_glow_fasting", "hx_glow_macros", "hx_glow_water", "hx_glow_volume", "hx_glow_workout",
+        "hx_pill_shimmer",
         "ic_hx_fasting", "ic_hx_flame", "ic_hx_utensils", "ic_hx_clock", "ic_hx_play",
-        "ic_hx_dumbbell", "ic_hx_drop", "ic_hx_barbell", "ic_hx_chevron", "ic_hx_check", "ic_hx_stop",
+        "ic_hx_dumbbell", "ic_hx_drop", "ic_hx_barbell", "ic_hx_chevron", "ic_hx_check", "ic_hx_stop", "ic_hx_plus",
     )
 
     override suspend fun resourcesRequest(requestParams: RequestBuilders.ResourcesRequest): ResourceBuilders.Resources {

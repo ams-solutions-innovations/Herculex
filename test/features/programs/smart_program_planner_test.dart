@@ -8,6 +8,8 @@ import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
+import 'package:herculex/features/programs/domain/time_saving_policy.dart';
+import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 
 import '../../support/test_database.dart';
@@ -86,6 +88,7 @@ void main() {
   /// eligible candidate so slot assignment is fully deterministic.
   Future<void> seedBaseDayCatalog({
     String mainModality = 'barbell',
+    String isolationModality = 'barbell',
     String? isolationMovementPatternRaw,
   }) async {
     await insertExercise(
@@ -117,13 +120,17 @@ void main() {
       slug: 'fixture-isolation-shoulder',
       name: 'Fixture Isolation Shoulder',
       primaryMuscle: 'Shoulder',
+      modality: isolationModality,
       mechanics: 'isolation',
       cnsScore: 1,
       movementPatternRaw: isolationMovementPatternRaw,
     );
   }
 
-  Future<int> createBaseDayProgram({int weeks = 1}) {
+  Future<int> createBaseDayProgram({
+    int weeks = 1,
+    String? periodizationModel,
+  }) {
     final plan = SplitTemplates.generate(
       type: SplitType.custom,
       daysPerWeek: 1,
@@ -132,6 +139,7 @@ void main() {
     return ProgramsRepository(db).createProgramFromSplit(
       name: 'Time-budget fixture',
       weeks: weeks,
+      periodizationModel: periodizationModel,
       plan: plan,
       startDate: DateTime(2026, 9, 7),
       buildMode: ProgramBuildMode.smart,
@@ -560,7 +568,7 @@ void main() {
 
   test('a compressed short-session isolation slot writes a codec-decodable '
       'prescriptionCodecJson using SetType.myoReps (PRES-01)', () async {
-    await seedBaseDayCatalog();
+    await seedBaseDayCatalog(isolationModality: 'dumbbell');
     final programId = await createBaseDayProgram();
     await SmartProgramPlanner(db).populate(
       programId,
@@ -585,7 +593,163 @@ void main() {
     );
     expect(decoded, isNotNull);
     expect(decoded!.segments.single.setType, SetType.myoReps);
+    expect(compressed.targetRir, decoded.segments.single.intent.rir);
   });
+
+  test('a short failure plan materializes one warmup and two working sets; '
+      'swapping to a compound removes the failure intent', () async {
+    await seedBaseDayCatalog(isolationModality: 'cable');
+    final programId = await createBaseDayProgram();
+    await SmartProgramPlanner(db).populate(
+      programId,
+      const SmartProgramConfiguration(
+        goal: TrainingGoal.hypertrophy,
+        experience: ExperienceLevel.intermediate,
+        workoutDurationMinutes: 45,
+        allowTimeSavingSetTechniques: true,
+        timeSavingTechnique: TimeSavingTechnique.twoToFailure,
+      ),
+    );
+    final rows = await dayExercisesFor(programId);
+    final isolation = rows.firstWhere(
+      (r) => r.slotRole == SlotRole.isolation.id,
+    );
+    expect(isolation.targetSets, 2);
+    final resolved = await PlannedSessionResolver(
+      db,
+    ).resolveProgramDay(isolation.programDayId);
+    final exercise = resolved.exercises.firstWhere(
+      (e) => e.exerciseId == isolation.exerciseId,
+    );
+    expect(exercise.sets.where((s) => s.isWarmup), hasLength(1));
+    final work = exercise.sets.where((s) => !s.isWarmup);
+    expect(work, hasLength(2));
+    expect(work.every((s) => s.rir == 0), isTrue);
+    // A saved user choice can point to a different movement after generation.
+    await (db.update(
+      db.exerciseCatalog,
+    )..where((e) => e.id.equals(isolation.exerciseId))).write(
+      const ExerciseCatalogCompanion(
+        mechanics: Value('compound'),
+        modality: Value('barbell'),
+        cnsScore: Value(5),
+      ),
+    );
+    final changed = await PlannedSessionResolver(
+      db,
+    ).resolveProgramDay(isolation.programDayId);
+    final safe = changed.exercises.firstWhere(
+      (e) => e.exerciseId == isolation.exerciseId,
+    );
+    expect(
+      safe.sets.where((s) => !s.isWarmup).every((s) => s.rir! >= 2),
+      isTrue,
+    );
+  });
+
+  test(
+    'automatic machine compression records the final drop metadata',
+    () async {
+      await seedBaseDayCatalog(isolationModality: 'machine_selectorized');
+      final programId = await createBaseDayProgram();
+      await SmartProgramPlanner(db).populate(
+        programId,
+        const SmartProgramConfiguration(
+          goal: TrainingGoal.hypertrophy,
+          experience: ExperienceLevel.intermediate,
+          workoutDurationMinutes: 45,
+          allowTimeSavingSetTechniques: true,
+        ),
+      );
+      final isolation = (await dayExercisesFor(
+        programId,
+      )).firstWhere((r) => r.slotRole == SlotRole.isolation.id);
+      final plan = await PlannedSessionResolver(
+        db,
+      ).resolveProgramDay(isolation.programDayId);
+      final work = plan.exercises
+          .firstWhere((e) => e.exerciseId == isolation.exerciseId)
+          .sets;
+      expect(work.where((s) => !s.isWarmup), hasLength(2));
+      expect(work.last.setType, SetType.drop.id);
+      expect(work.last.setTypeMetaJson, contains('dropPercent'));
+    },
+  );
+
+  test(
+    'a planned deload returns from failure work to ordinary controlled sets',
+    () async {
+      await seedBaseDayCatalog(isolationModality: 'cable');
+      final programId = await createBaseDayProgram(
+        weeks: 4,
+        periodizationModel: 'linear',
+      );
+      await SmartProgramPlanner(db).populate(
+        programId,
+        const SmartProgramConfiguration(
+          goal: TrainingGoal.hypertrophy,
+          experience: ExperienceLevel.intermediate,
+          workoutDurationMinutes: 45,
+          allowTimeSavingSetTechniques: true,
+          timeSavingTechnique: TimeSavingTechnique.twoToFailure,
+        ),
+      );
+      final week =
+          await (db.select(db.programWeeks)..where(
+                (w) => w.programId.equals(programId) & w.weekIndex.equals(3),
+              ))
+              .getSingle();
+      final day = await (db.select(
+        db.programDays,
+      )..where((d) => d.programWeekId.equals(week.id))).getSingle();
+      final plan = await PlannedSessionResolver(db).resolveProgramDay(day.id);
+      expect(
+        plan.exercises
+            .expand((e) => e.sets)
+            .where((s) => !s.isWarmup)
+            .every((s) => s.rir != 0 && s.setType == SetType.standard.id),
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'session indices preserve different AI roles for repeated day labels',
+    () async {
+      await seedBaseDayCatalog();
+      final programId = await ProgramsRepository(db).createProgramFromSplit(
+        name: 'Repeated labels',
+        weeks: 1,
+        plan: SplitTemplates.generate(
+          type: SplitType.custom,
+          daysPerWeek: 2,
+          customSlots: const ['Test Day'],
+        ),
+        startDate: DateTime(2026, 9, 7),
+      );
+      await SmartProgramPlanner(db).populate(
+        programId,
+        const SmartProgramConfiguration(
+          goal: TrainingGoal.hypertrophy,
+          experience: ExperienceLevel.intermediate,
+          workoutDurationMinutes: 90,
+          dayRolesByIndex: {
+            0: DayStressRole.volume,
+            1: DayStressRole.intensity,
+          },
+        ),
+      );
+      final week = await (db.select(
+        db.programWeeks,
+      )..where((w) => w.programId.equals(programId))).getSingle();
+      final days =
+          await (db.select(db.programDays)
+                ..where((d) => d.programWeekId.equals(week.id))
+                ..orderBy([(d) => OrderingTerm.asc(d.orderIndex)]))
+              .get();
+      expect(days.map((d) => d.stressRole).toList(), ['volume', 'intensity']);
+    },
+  );
 
   group('CrossFit/GPP segment wiring (CF-01/CF-02/CF-03)', () {
     Future<void> seedCrossfitCatalog() async {

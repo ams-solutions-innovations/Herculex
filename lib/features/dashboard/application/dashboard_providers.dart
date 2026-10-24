@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/dashboard/data/dashboard_config_repository.dart';
 import 'package:herculex/features/dashboard/domain/dashboard_config.dart';
@@ -97,10 +98,20 @@ final scheduledWorkoutServiceProvider = Provider<ScheduledWorkoutService>((
 
 /// Today's scheduled workout for the smart launcher (§18). Refreshes when the
 /// active workout session changes (so a completed schedule updates).
+final todaysScheduledWorkoutsProvider =
+    StreamProvider<List<TodaysScheduledWorkout>>((ref) {
+      final day = ref.watch(localDayProvider);
+      return ref
+          .watch(scheduledWorkoutServiceProvider)
+          .watchWorkoutsForDay(day);
+    });
+
 final todaysScheduledWorkoutProvider = FutureProvider<TodaysScheduledWorkout?>((
   ref,
 ) {
-  return ref.watch(scheduledWorkoutServiceProvider).todaysWorkout();
+  return ref
+      .watch(todaysScheduledWorkoutsProvider.future)
+      .then(ScheduledWorkoutService.primaryWorkout);
 });
 
 /// Bodyweight history stream for dashboard visualization.
@@ -116,13 +127,19 @@ final bodyweightHistoryProvider = StreamProvider<List<BodyMeasurementData>>((
 final todayExerciseKcalProvider = Provider.autoDispose<double?>((ref) {
   final lastRead = ref.watch(lastDailyHealthReadProvider);
   final activeRead = lastRead?.activeKcal;
-  if (activeRead != null && !activeRead.isAvailable) return null;
+  if (activeRead != null && !activeRead.isAvailable) {
+    return null;
+  }
 
   final samples = ref.watch(todayHealthSamplesProvider).asData?.value;
-  if (samples == null) return null;
+  if (samples == null) {
+    return null;
+  }
   var kcal = 0.0;
   for (final s in samples) {
-    if (s.kind == 'active_kcal') kcal += s.value;
+    if (s.kind == 'active_kcal') {
+      kcal += s.value;
+    }
   }
   return kcal == 0 ? null : kcal;
 });
@@ -144,7 +161,9 @@ class RemainingCalories {
   /// Fraction of the (exercise-adjusted) budget consumed, clamped for gauges.
   double get consumedFraction {
     final budget = goal + exercise;
-    if (budget <= 0) return 0;
+    if (budget <= 0) {
+      return 0;
+    }
     return (food / budget).clamp(0.0, 1.0);
   }
 
@@ -161,7 +180,9 @@ final remainingCaloriesProvider = Provider.autoDispose<RemainingCalories?>((
   final MacroTargets? targets =
       ref.watch(effectiveTargetsProvider(today)).asData?.value ??
       ref.watch(baselineTargetsProvider);
-  if (targets == null) return null;
+  if (targets == null) {
+    return null;
+  }
 
   final exerciseKcal = ref.watch(todayExerciseKcalProvider)?.round() ?? 0;
   final profile = ref.watch(profileProvider).asData?.value;
@@ -178,13 +199,19 @@ final remainingCaloriesProvider = Provider.autoDispose<RemainingCalories?>((
 /// Days of food logging in a row (§18).
 final nutritionStreakProvider = Provider.autoDispose<Streak>((ref) {
   final history = ref.watch(nutritionHistoryProvider).asData?.value;
-  if (history == null) return Streak.zero;
+  if (history == null) {
+    return Streak.zero;
+  }
   final dates = <DateTime>[];
   for (final entry in history.entries) {
     // Days present but empty (0 kcal) don't count as "logged".
-    if (entry.value.kcal <= 0) continue;
+    if (entry.value.kcal <= 0) {
+      continue;
+    }
     final d = DateTime.tryParse(entry.key);
-    if (d != null) dates.add(d);
+    if (d != null) {
+      dates.add(d);
+    }
   }
   return StreakCalculator.daily(dates, ref.watch(clockProvider).now());
 });
@@ -210,7 +237,9 @@ final completedSessionDatesProvider =
 /// day doesn't wipe the streak.
 final workoutStreakProvider = Provider.autoDispose<Streak>((ref) {
   final dates = ref.watch(completedSessionDatesProvider).asData?.value;
-  if (dates == null) return Streak.zero;
+  if (dates == null) {
+    return Streak.zero;
+  }
   return StreakCalculator.weekly(dates, ref.watch(clockProvider).now());
 });
 

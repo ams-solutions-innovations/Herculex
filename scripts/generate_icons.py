@@ -1,116 +1,138 @@
 """
-Run this script after placing your logo at:
-  assets/icon_source.png  (1024x1024 recommended, black bg with white logo)
+Generates all Android, Wear OS, and app icons from assets/images/app_icon_master.png.
 
 Usage:
   python scripts/generate_icons.py
-
-Generates:
-  - Android mipmap PNGs (all densities)
-  - Android adaptive icon foreground (white lion on transparent bg)
-  - iOS Icons (if ios/ folder exists)
 """
-from PIL import Image, ImageDraw
-import os, shutil
+import os
+import shutil
+from PIL import Image
 
-SRC = "assets/icon_source.png"
-RES  = "android/app/src/main/res"
+MASTER_PATH = "assets/images/app_icon_master.png"
 
-ANDROID_SIZES = {
-    "mipmap-mdpi":    48,
-    "mipmap-hdpi":    72,
-    "mipmap-xhdpi":   96,
-    "mipmap-xxhdpi":  144,
-    "mipmap-xxxhdpi": 192,
+SIZES = {
+    "mdpi": 48,
+    "hdpi": 72,
+    "xhdpi": 96,
+    "xxhdpi": 144,
+    "xxxhdpi": 192,
 }
 
-# Adaptive icon foreground sizes (108dp each density)
 ADAPTIVE_SIZES = {
-    "mipmap-mdpi":    108,
-    "mipmap-hdpi":    162,
-    "mipmap-xhdpi":   216,
-    "mipmap-xxhdpi":  324,
-    "mipmap-xxxhdpi": 432,
+    "mdpi": 108,
+    "hdpi": 162,
+    "xhdpi": 216,
+    "xxhdpi": 324,
+    "xxxhdpi": 432,
 }
 
-def make_rounded(img, radius_pct=22):
-    """Apply rounded corners to image."""
-    size = img.size
-    r = int(size[0] * radius_pct / 100)
-    mask = Image.new("L", size, 0)
-    draw = ImageDraw.Draw(mask)
-    draw.rounded_rectangle([(0, 0), (size[0]-1, size[1]-1)], radius=r, fill=255)
-    result = img.copy().convert("RGBA")
-    result.putalpha(mask)
-    return result
+def extract_foreground(master: Image.Image) -> Image.Image:
+    """Extract bright cyan/blue H-mark onto transparent background."""
+    img = master.convert("RGBA")
+    data = img.getdata()
+    new_data = []
+    for r, g, b, a in data:
+        # Match mark: bright blue/cyan; navy background is excluded
+        if b > 82 and g > 52 and b > r * 1.8:
+            new_data.append((r, g, b, 255))
+        else:
+            new_data.append((0, 0, 0, 0))
+    fg = Image.new("RGBA", img.size)
+    fg.putdata(new_data)
+    return fg
+
+def extract_monochrome(fg: Image.Image) -> Image.Image:
+    """White silhouette with same alpha."""
+    data = fg.getdata()
+    new_data = []
+    for r, g, b, a in data:
+        if a > 0:
+            new_data.append((255, 255, 255, a))
+        else:
+            new_data.append((0, 0, 0, 0))
+    mono = Image.new("RGBA", fg.size)
+    mono.putdata(new_data)
+    return mono
 
 def generate():
-    if not os.path.exists(SRC):
-        print(f"ERROR: Source image not found at '{SRC}'")
-        print("Please save your logo PNG to assets/icon_source.png and re-run.")
+    if not os.path.exists(MASTER_PATH):
+        print(f"Error: Master icon not found at {MASTER_PATH}")
         return
 
-    src = Image.open(SRC).convert("RGBA")
-    print(f"Source image: {src.size}")
+    master = Image.open(MASTER_PATH).convert("RGBA")
+    print(f"Loaded master icon: {master.size}")
 
-    # ── Standard launcher icons (rounded square, black bg) ─────────────────
-    for folder, size in ANDROID_SIZES.items():
-        out_dir = os.path.join(RES, folder)
-        os.makedirs(out_dir, exist_ok=True)
+    foreground = extract_foreground(master)
+    monochrome = extract_monochrome(foreground)
 
-        # Compose: resize source onto black square, then round corners
-        bg = Image.new("RGBA", (size, size), (0, 0, 0, 255))
-        icon = src.resize((size, size), Image.LANCZOS)
-        bg.paste(icon, mask=icon.split()[3])
-        rounded = make_rounded(bg)
+    # Save assets/images artifacts
+    master.save("assets/images/logo.png", "PNG")
+    master.save("assets/images/app_icon_ios.png", "PNG")
+    foreground.save("assets/images/app_icon_foreground.png", "PNG")
+    monochrome.save("assets/images/app_icon_monochrome.png", "PNG")
+    monochrome.save("assets/images/app_icon_ios_dark.png", "PNG")
+    monochrome.save("assets/images/app_icon_ios_tinted.png", "PNG")
+    print("Updated assets/images icons.")
 
-        # Save as PNG (Android accepts PNG for mipmap)
-        out = os.path.join(out_dir, "ic_launcher.png")
-        rounded.save(out, "PNG")
-        print(f"  {out} ({size}x{size})")
+    res_dirs = [
+        "android/app/src/main/res",
+        "android/wear/src/main/res",
+    ]
 
-    # ── Adaptive icon foreground (white lion on transparent bg) ────────────
-    # Extract just the white lion (no black bg) for the foreground layer
-    for folder, size in ADAPTIVE_SIZES.items():
-        out_dir = os.path.join(RES, folder)
-        os.makedirs(out_dir, exist_ok=True)
+    adaptive_xml_content = """<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+  <background android:drawable="@color/ic_launcher_background"/>
+  <foreground>
+      <inset
+          android:drawable="@drawable/ic_launcher_foreground"
+          android:inset="16%" />
+  </foreground>
+  <monochrome>
+      <inset
+          android:drawable="@drawable/ic_launcher_monochrome"
+          android:inset="16%" />
+  </monochrome>
+</adaptive-icon>
+"""
 
-        fg = src.resize((size, size), Image.LANCZOS)
-        out = os.path.join(out_dir, "ic_launcher_foreground.png")
-        fg.save(out, "PNG")
-        print(f"  {out} ({size}x{size}) [adaptive fg]")
+    for res_dir in res_dirs:
+        if not os.path.exists(res_dir):
+            continue
+        print(f"\nProcessing {res_dir}...")
 
-    # ── Write adaptive icon XMLs ────────────────────────────────────────────
-    drawable_dir = os.path.join(RES, "drawable")
-    os.makedirs(drawable_dir, exist_ok=True)
+        # Mipmaps (full master image scaled)
+        for density, size in SIZES.items():
+            mipmap_dir = os.path.join(res_dir, f"mipmap-{density}")
+            os.makedirs(mipmap_dir, exist_ok=True)
+            resized = master.resize((size, size), Image.LANCZOS)
+            for name in ["ic_launcher.png", "ic_launcher_round.png", "launcher_icon.png", "launcher_icon_round.png"]:
+                dest = os.path.join(mipmap_dir, name)
+                resized.save(dest, "PNG")
+            print(f"  Saved mipmap-{density} ({size}x{size})")
 
-    bg_xml = os.path.join(drawable_dir, "ic_launcher_background.xml")
-    with open(bg_xml, "w") as f:
-        f.write('<?xml version="1.0" encoding="utf-8"?>\n')
-        f.write('<shape xmlns:android="http://schemas.android.com/apk/res/android"\n')
-        f.write('    android:shape="rectangle">\n')
-        f.write('    <solid android:color="#000000"/>\n')
-        f.write('</shape>\n')
-    print(f"  {bg_xml}")
+        # Adaptive drawables (foreground & monochrome)
+        for density, size in ADAPTIVE_SIZES.items():
+            drawable_dir = os.path.join(res_dir, f"drawable-{density}")
+            os.makedirs(drawable_dir, exist_ok=True)
+            fg_resized = foreground.resize((size, size), Image.LANCZOS)
+            mono_resized = monochrome.resize((size, size), Image.LANCZOS)
 
-    for api_folder in ["mipmap-anydpi-v26"]:
-        api_dir = os.path.join(RES, api_folder)
-        os.makedirs(api_dir, exist_ok=True)
+            for name in ["ic_launcher_foreground.png", "launcher_icon_foreground.png"]:
+                fg_resized.save(os.path.join(drawable_dir, name), "PNG")
+            for name in ["ic_launcher_monochrome.png", "launcher_icon_monochrome.png"]:
+                mono_resized.save(os.path.join(drawable_dir, name), "PNG")
+            print(f"  Saved drawable-{density} ({size}x{size})")
 
-        adaptive_xml = os.path.join(api_dir, "ic_launcher.xml")
-        with open(adaptive_xml, "w") as f:
-            f.write('<?xml version="1.0" encoding="utf-8"?>\n')
-            f.write('<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n')
-            f.write('    <background android:drawable="@drawable/ic_launcher_background"/>\n')
-            f.write('    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n')
-            f.write('</adaptive-icon>\n')
-        print(f"  {adaptive_xml}")
+        # Adaptive XML in mipmap-anydpi-v26
+        anydpi_dir = os.path.join(res_dir, "mipmap-anydpi-v26")
+        os.makedirs(anydpi_dir, exist_ok=True)
+        for xml_name in ["ic_launcher.xml", "ic_launcher_round.xml", "launcher_icon.xml", "launcher_icon_round.xml"]:
+            xml_path = os.path.join(anydpi_dir, xml_name)
+            with open(xml_path, "w", encoding="utf-8") as f:
+                f.write(adaptive_xml_content)
+        print(f"  Updated adaptive XMLs in {anydpi_dir}")
 
-        adaptive_round_xml = os.path.join(api_dir, "ic_launcher_round.xml")
-        shutil.copy(adaptive_xml, adaptive_round_xml)
-        print(f"  {adaptive_round_xml}")
-
-    print("\nDone! Run 'flutter run' to see the new icon.")
+    print("\nAll icons generated successfully without any legacy Flutter logos!")
 
 if __name__ == "__main__":
     generate()

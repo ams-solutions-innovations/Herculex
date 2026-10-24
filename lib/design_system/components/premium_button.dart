@@ -8,12 +8,18 @@ class PremiumButton extends StatefulWidget {
   final bool isPrimary;
   final IconData? icon;
 
+  /// Fill the available width. Off by default because most call sites are
+  /// inline or compact; turn it on when siblings in the same column are
+  /// full width, otherwise the button shrink-wraps to its label.
+  final bool expand;
+
   const PremiumButton({
     super.key,
     required this.text,
     required this.onTap,
     this.isPrimary = true,
     this.icon,
+    this.expand = false,
   });
 
   @override
@@ -53,6 +59,7 @@ class _PremiumButtonState extends State<PremiumButton> {
           opacity: _pressed ? 0.85 : 1.0,
           duration: const Duration(milliseconds: 100),
           child: Container(
+            width: widget.expand ? double.infinity : null,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
               color: bgColor,
@@ -66,9 +73,14 @@ class _PremiumButtonState extends State<PremiumButton> {
                   Icon(widget.icon, color: textColor, size: 20),
                   const SizedBox(width: 8),
                 ],
-                Text(
-                  widget.text,
-                  style: theme.textTheme.labelLarge?.copyWith(color: textColor),
+                Flexible(
+                  child: Text(
+                    widget.text,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: textColor,
+                    ),
+                  ),
                 ),
               ],
             ),

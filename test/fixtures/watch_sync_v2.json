@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "entity": "active_workout",
+  "entityId": "apple-watch-fixture-session",
+  "revision": 100,
+  "origin": "watch",
+  "updatedAtEpochMs": 1792576800000,
+  "payload": {
+    "template": {"id": "watch_fixture", "name": "Watch fixture", "exercises": []},
+    "startedAtEpochMs": 1792576800000,
+    "currentExerciseIndex": 0,
+    "currentSetIndex": 0,
+    "healthExport": {"owner": "watch", "status": "pending"},
+    "exercises": [{
+      "wireId": "watch_exercise_fixture",
+      "template": {"catalogExerciseId": 1, "slug": "watch-fixture-press", "name": "Watch Fixture Press", "loggingMetric": "weight_reps", "targetSets": 1},
+      "sets": [{
+        "wireId": "watch_set_fixture", "setIndex": 1,
+        "weight": 80.5, "reps": 8, "rpe": 8.5,
+        "setType": "rest_pause", "isWarmup": false, "completed": true,
+        "completedAtEpochMs": 1792576860000,
+        "bodyweightKg": 75, "chainsKg": 2.5,
+        "setTypeMetaJson": "{\"miniSets\":[3,2],\"restSeconds\":20,\"unknownFutureField\":true}",
+        "syncVersions": {
+          "weight": {"revision": 90, "origin": "phone"},
+          "reps": {"revision": 100, "origin": "watch"},
+          "completion": {"revision": 100, "origin": "watch"}
+        }
+      }]
+    }]
+  }
+}

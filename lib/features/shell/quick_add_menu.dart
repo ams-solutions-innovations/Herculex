@@ -114,11 +114,11 @@ class QuickAddMenuState extends ConsumerState<QuickAddMenu>
         }),
       ),
       _QuickAddItem(
-        icon: Icons.group_add_rounded,
-        label: 'Join Gym Buddy',
+        icon: Icons.group_rounded,
+        label: 'Gym Buddy',
         accent: hx.domainTraining,
         onTap: () => _run((ctx, ref) async {
-          ctx.push(AppRoutes.buddyJoin);
+          ctx.push(AppRoutes.gymBuddy);
         }),
       ),
       activeFast == null

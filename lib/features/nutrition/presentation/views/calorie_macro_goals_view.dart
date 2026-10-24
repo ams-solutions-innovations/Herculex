@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
@@ -10,8 +11,11 @@ class CalorieMacroGoalsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final targets = ref.watch(baselineTargetsProvider);
-    final customTargets = ref.watch(nutritionTargetsProvider);
+    final today = ref.watch(localDayProvider);
+    final targets =
+        ref.watch(effectiveTargetsProvider(today)).valueOrNull ??
+        ref.watch(baselineTargetsProvider);
+    final customTargets = ref.watch(visibleNutritionTargetsProvider);
 
     return HxScreenShell(
       title: 'Calorie & Macro Goals',
@@ -73,7 +77,9 @@ class CalorieMacroGoalsView extends ConsumerWidget {
                   children: [
                     for (final t in rows) ...[
                       _CustomTargetRow(
-                        label: t.label,
+                        label: t.effectiveFromDateIso == '0001-01-01'
+                            ? t.label
+                            : '${t.label} · from ${t.effectiveFromDateIso}',
                         kcal: t.kcal,
                         onDelete: () => ref
                             .read(nutritionRepositoryProvider)
@@ -125,7 +131,9 @@ class CalorieMacroGoalsView extends ConsumerWidget {
   }
 
   static int _pct(int numeratorKcal, int totalKcal) {
-    if (totalKcal == 0) return 0;
+    if (totalKcal == 0) {
+      return 0;
+    }
     return (numeratorKcal / totalKcal * 100).round();
   }
 

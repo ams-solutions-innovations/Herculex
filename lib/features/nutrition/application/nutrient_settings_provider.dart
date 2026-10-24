@@ -41,6 +41,25 @@ final visibleNutrientIdsProvider =
       return NutrientSettingsNotifier(ref.watch(sharedPreferencesProvider));
     });
 
+/// Controls whether micronutrient details are shown in the daily diary.
+class MicronutrientsVisibleNotifier extends Notifier<bool> {
+  static const _prefsKey = 'nutrition_micronutrients_visible_v1';
+
+  @override
+  bool build() =>
+      ref.watch(sharedPreferencesProvider).getBool(_prefsKey) ?? true;
+
+  Future<void> set(bool enabled) async {
+    await ref.read(sharedPreferencesProvider).setBool(_prefsKey, enabled);
+    state = enabled;
+  }
+}
+
+final micronutrientsVisibleProvider =
+    NotifierProvider<MicronutrientsVisibleNotifier, bool>(
+      MicronutrientsVisibleNotifier.new,
+    );
+
 /// Whether the food-logging form offers a time-of-day field (§3). Off by
 /// default — most users only care which day a food landed on, and an extra
 /// required decision slows down every single log.

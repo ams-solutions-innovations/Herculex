@@ -16,11 +16,15 @@ class ResumedCapture {
     required this.goalId,
     required this.pose,
     required this.path,
+    this.photos = const {},
+    this.updateRoadmap = false,
   });
 
   final int goalId;
   final String pose;
   final String path;
+  final Map<String, String> photos;
+  final bool updateRoadmap;
 
   /// Null unless [context] is a `physiqueCheckin` context with a valid int
   /// goal id and a known pose (a forged or stale context is ignored).
@@ -28,13 +32,32 @@ class ResumedCapture {
     PendingAiScanContext context,
     String path,
   ) {
-    if (context.type != AiScanContextType.physiqueCheckin) return null;
+    if (context.type != AiScanContextType.physiqueCheckin) {
+      return null;
+    }
     final goalId = context.extra?['goalId'];
     final pose = context.extra?['pose'];
     if (goalId is! int || pose is! String || !_poses.contains(pose)) {
       return null;
     }
-    return ResumedCapture(goalId: goalId, pose: pose, path: path);
+    final saved = context.extra?['photos'];
+    final photos = <String, String>{};
+    if (saved is Map) {
+      for (final entry in saved.entries) {
+        if (_poses.contains(entry.key) &&
+            entry.value is String &&
+            (entry.value as String).isNotEmpty) {
+          photos[entry.key as String] = entry.value as String;
+        }
+      }
+    }
+    return ResumedCapture(
+      goalId: goalId,
+      pose: pose,
+      path: path,
+      photos: photos,
+      updateRoadmap: context.extra?['updateRoadmap'] == true,
+    );
   }
 }
 
@@ -59,7 +82,9 @@ class CheckInFlowContext {
 
 DietPhase _phaseOf(String name) {
   for (final p in DietPhase.values) {
-    if (p.name == name) return p;
+    if (p.name == name) {
+      return p;
+    }
   }
   return DietPhase.maintain;
 }
@@ -97,7 +122,9 @@ final physiqueCheckInContextProvider = Provider.family<CheckInFlowContext, int>(
 /// Copy for the one-time legacy migration SnackBar (D-08, UI-SPEC S9).
 abstract final class LegacyMigrationNotice {
   static String? messageFor(LegacyMigrationResult? result) {
-    if (result == null || !result.ran) return null;
+    if (result == null || !result.ran) {
+      return null;
+    }
     final parts = <String>[
       if (result.photosMigrated > 0)
         'Your progress photos now live in your private Dream Physique goal.',

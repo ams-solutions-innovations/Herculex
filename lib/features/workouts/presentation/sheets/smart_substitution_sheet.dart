@@ -6,8 +6,12 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/hx_sheet.dart';
 import 'package:herculex/design_system/components/premium_text_field.dart';
 import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/data/programs_repository.dart';
+import 'package:herculex/features/workout_report/presentation/report_context_sheet.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/exercise_substitution.dart';
+import 'package:herculex/features/workouts/presentation/dialogs/swap_scope_dialog.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 
 class SmartSubstitutionSheet extends ConsumerStatefulWidget {
@@ -101,14 +105,16 @@ class _SmartSubstitutionSheetState
           const SizedBox(height: 12),
           PremiumTextField(
             controller: _searchController,
-            hintText: "Search candidates by name...",
+            hintText: "Search all exercises...",
             prefixIcon: Icons.search,
           ),
           const SizedBox(height: 12),
           _buildEquipmentFilterRow(),
           const SizedBox(height: 24),
           Text(
-            "Suggested Biomechanical Matches",
+            _searchQuery.trim().isEmpty
+                ? "Suggested Biomechanical Matches"
+                : "Search Results (best matches first)",
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -118,32 +124,22 @@ class _SmartSubstitutionSheetState
             data: (catalog) {
               return recentHistoryAsync.when(
                 data: (recentHistory) {
-                  final matches = ExerciseSubstitution.getRankedSubstitutes(
+                  // Biomechanical matches first; when searching, any other
+                  // catalog exercise matching the query is appended below.
+                  var filtered = ExerciseSubstitution.searchSubstitutes(
                     original: widget.originalExercise,
                     candidates: catalog,
                     recentExerciseIds: recentHistory,
+                    query: _searchQuery,
                   );
 
                   // Apply local interactive filters
-                  var filtered = matches;
                   if (_selectedEquipment != 'All') {
                     filtered = filtered
                         .where(
                           (m) =>
                               m.exercise.equipment.toLowerCase() ==
                               _selectedEquipment.toLowerCase(),
-                        )
-                        .toList();
-                  }
-                  if (_searchQuery.trim().isNotEmpty) {
-                    final query = _searchQuery.toLowerCase();
-                    filtered = filtered
-                        .where(
-                          (m) =>
-                              m.exercise.name.toLowerCase().contains(query) ||
-                              m.exercise.primaryMuscle.toLowerCase().contains(
-                                query,
-                              ),
                         )
                         .toList();
                   }
@@ -249,12 +245,20 @@ class _SmartSubstitutionSheetState
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            widget.originalExercise.name,
-            style: theme.textTheme.displayMedium?.copyWith(
-              fontSize: 19,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            children: [
+              ExerciseArtwork(exercise: widget.originalExercise, size: 56),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  widget.originalExercise.name,
+                  style: theme.textTheme.displayMedium?.copyWith(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -327,38 +331,62 @@ class _SmartSubstitutionSheetState
 
     return InkWell(
       onTap: () async {
-        bool permanently = false;
-        if (isHighlyCompatible) {
-          final result = await showDialog<bool>(
+        final programsRepo = ref.read(programsRepositoryProvider);
+        // Resolved before the swap: without a slot the program row is matched
+        // on the exercise the session started with.
+        final source = await programsRepo.programSourceForWorkoutExercise(
+          widget.workoutExercise.id,
+        );
+        if (!mounted) return;
+        var permanently = false;
+        ProgramExerciseReplacementScope? scope;
+        // A freestyle workout has nothing to write back to, so it never asks.
+        if (source != null) {
+          final choice = await showDialog<SwapChoice>(
             context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Permanent substitution?'),
-              content: Text(
-                '${candidate.name} is a great match (${match.percentage}%). Do you want to replace it only for today, or permanently in this routine?',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Today only'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Permanently'),
-                ),
-              ],
+            builder: (ctx) => SwapScopeDialog(
+              exerciseName: candidate.name,
+              percentage: match.isBiomechanicalMatch ? match.percentage : null,
+              // Any program-day row can be scoped by week; only
+              // template-backed days fall back to "Permanently".
+              hasWaves: source.programDayExerciseId != null,
             ),
           );
-          if (result == null) return;
-          permanently = result;
+          if (choice == null) return;
+          permanently = choice != SwapChoice.today;
+          scope = switch (choice) {
+            SwapChoice.thisWave => ProgramExerciseReplacementScope.thisWave,
+            SwapChoice.futureWaves =>
+              ProgramExerciseReplacementScope.thisAndFutureWaves,
+            SwapChoice.entireBlock =>
+              ProgramExerciseReplacementScope.entireBlock,
+            _ => null,
+          };
         }
 
+        final changeReason = mounted
+            ? await showReportReasonSheet(context)
+            : null;
+        if (!mounted) return;
         await ref
             .read(workoutsRepositoryProvider)
             .substituteExercise(
               workoutExerciseId: widget.workoutExercise.id,
               newExerciseId: candidate.id,
-              permanently: permanently,
+              // Template-driven days are edited by the repository itself;
+              // program days go through the scoped replacement below.
+              permanently: permanently && source?.programDayExerciseId == null,
+              reason: changeReason?.name,
             );
+        final blueprintRowId = source?.programDayExerciseId;
+        if (permanently && blueprintRowId != null) {
+          await programsRepo.replaceProgramExerciseSlot(
+            programDayExerciseId: blueprintRowId,
+            replacementExerciseId: candidate.id,
+            scope: scope ?? ProgramExerciseReplacementScope.entireBlock,
+          );
+          await programsRepo.rematerializeProgram(source!.programId);
+        }
         // Force refresh recent history
         ref.invalidate(recentExerciseIdsProvider);
         if (mounted) {
@@ -449,41 +477,42 @@ class _SmartSubstitutionSheetState
               ),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isHighlyCompatible
-                        ? AppColors.primary.withValues(alpha: 0.1)
-                        : AppColors.outlineVariant.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    "${match.percentage}%",
-                    style: theme.textTheme.titleMedium?.copyWith(
+            if (match.isBiomechanicalMatch)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
                       color: isHighlyCompatible
-                          ? AppColors.primary
-                          : AppColors.secondary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                          ? AppColors.primary.withValues(alpha: 0.1)
+                          : AppColors.outlineVariant.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "${match.percentage}%",
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: isHighlyCompatible
+                            ? AppColors.primary
+                            : AppColors.secondary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Match",
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.secondary,
-                    fontSize: 10,
+                  const SizedBox(height: 4),
+                  Text(
+                    "Match",
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                      fontSize: 10,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
             const SizedBox(width: 4),
             Icon(
               Icons.chevron_right_rounded,

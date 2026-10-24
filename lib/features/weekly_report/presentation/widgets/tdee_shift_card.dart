@@ -6,6 +6,7 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/application/tdee_display_providers.dart';
+import 'package:herculex/features/nutrition/presentation/dialogs/target_start_date_dialog.dart';
 import 'package:herculex/features/weekly_report/application/weekly_report_providers.dart';
 import 'package:herculex/features/weekly_report/application/weekly_report_tdee_actions.dart';
 import 'package:herculex/features/weekly_report/data/weekly_report_repository.dart';
@@ -62,6 +63,13 @@ class _TdeeShiftCardState extends ConsumerState<TdeeShiftCard> {
 
   Future<void> _update(TdeeTargetProposal proposal) async {
     final notices = AppNotice.of(context);
+    final start = await chooseTargetStartDate(
+      context,
+      now: ref.read(clockProvider).now(),
+    );
+    if (start == null || !mounted) {
+      return;
+    }
     setState(() => _busy = true);
     String? message;
     try {
@@ -72,6 +80,7 @@ class _TdeeShiftCardState extends ConsumerState<TdeeShiftCard> {
             oldEstimateKcal: widget.section.oldKcal,
             newEstimateKcal: widget.section.newKcal,
             displayed: proposal,
+            effectiveFrom: start,
           );
       message = _message(
         result,
@@ -80,7 +89,9 @@ class _TdeeShiftCardState extends ConsumerState<TdeeShiftCard> {
     } catch (_) {
       message = "Couldn't update your target. Try again.";
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
     if (message != null) {
       notices.show(message);
@@ -102,11 +113,15 @@ class _TdeeShiftCardState extends ConsumerState<TdeeShiftCard> {
           .keep(week: widget.record.week, currentKcal: currentKcal);
       // A kept decision re-renders the card; no snackbar on success.
       message = _message(result, applied: '');
-      if (result == TdeeActionResult.applied) message = null;
+      if (result == TdeeActionResult.applied) {
+        message = null;
+      }
     } catch (_) {
       message = _saveFailed;
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
     if (message != null) {
       notices.show(message);

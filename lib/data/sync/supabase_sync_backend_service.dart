@@ -25,7 +25,18 @@ class SupabaseSyncBackendService implements SyncBackendService {
   @override
   Future<void> upsert(String table, Map<String, dynamic> row) async {
     final payload = Map<String, dynamic>.from(row)..remove('updated_at');
-    await _guard(() => _client.from(table).upsert(payload));
+    // Two devices can create the same rule before either one has synced.
+    // Its user/scope/start date is the durable identity; the last server write wins.
+    await _guard(
+      () => _client
+          .from(table)
+          .upsert(
+            payload,
+            onConflict: table == 'nutrition_targets'
+                ? 'user_id,applies_to,effective_from_date_iso'
+                : 'id',
+          ),
+    );
   }
 
   @override
@@ -202,8 +213,8 @@ class SupabaseSyncBackendService implements SyncBackendService {
       return await body();
     } on SyncBackendException {
       rethrow;
-    } catch (e) {
-      throw _classify(e);
+    } catch (e, stack) {
+      Error.throwWithStackTrace(_classify(e), stack);
     }
   }
 

@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:uuid/uuid.dart';
 
 /// Thrown when a relative photo path could escape the physique sandbox.
@@ -66,6 +65,20 @@ class PhysiquePhotoStore {
     );
   }
 
+  /// Copies a staged photo so failed database writes remain retryable.
+  Future<String> copyIntoGoal(File staged, {required String goalUuid}) async {
+    final relative = relativePathFor(goalUuid: goalUuid);
+    final target = await resolve(relative);
+    await target.parent.create(recursive: true);
+    try {
+      await staged.copy(target.path);
+    } on Object {
+      await delete(relative);
+      rethrow;
+    }
+    return relative;
+  }
+
   /// Moves [staged] into `physique/<goalUuid>/` and returns the relative path.
   ///
   /// A [fileName] makes the slot fixed, so the new file replaces the old one.
@@ -77,7 +90,9 @@ class PhysiquePhotoStore {
     final relative = relativePathFor(goalUuid: goalUuid, fileName: fileName);
     final target = await resolve(relative);
     await target.parent.create(recursive: true);
-    if (fileName != null && await target.exists()) await target.delete();
+    if (fileName != null && await target.exists()) {
+      await target.delete();
+    }
     try {
       await staged.rename(target.path);
     } on FileSystemException {
@@ -94,7 +109,9 @@ class PhysiquePhotoStore {
   Future<void> delete(String relativePath) async {
     try {
       final file = await resolve(relativePath);
-      if (await file.exists()) await file.delete();
+      if (await file.exists()) {
+        await file.delete();
+      }
     } on Object {
       // Tolerant by design: a missing or locked file must not block cleanup.
     }
@@ -108,7 +125,9 @@ class PhysiquePhotoStore {
         '${root.path}${Platform.pathSeparator}$rootFolderName'
         '${Platform.pathSeparator}$goalUuid',
       );
-      if (await dir.exists()) await dir.delete(recursive: true);
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+      }
     } on Object {
       // Tolerant, see [delete].
     }
@@ -120,7 +139,9 @@ class PhysiquePhotoStore {
       final dir = Directory(
         '${root.path}${Platform.pathSeparator}$rootFolderName',
       );
-      if (await dir.exists()) await dir.delete(recursive: true);
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+      }
     } on Object {
       // Tolerant, see [delete].
     }

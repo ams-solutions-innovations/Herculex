@@ -14,7 +14,8 @@ import 'package:herculex/features/buddy/application/buddy_providers.dart';
 import 'package:herculex/features/buddy/domain/buddy_scope.dart';
 import 'package:herculex/features/buddy/presentation/buddy_presence_bar.dart';
 import 'package:herculex/features/buddy/presentation/buddy_share_sheet.dart';
-import 'package:herculex/features/health/application/health_providers.dart';
+import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/presentation/sheets/weekly_adaptation_sheet.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/circuits_providers.dart';
 import 'package:herculex/features/workouts/application/finish_workout_action.dart';
@@ -326,7 +327,6 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
                 ),
               ),
               const BuddyPresenceBar(),
-              const _HealthActivityAdjustmentBanner(),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 4),
                 child: RestTimerBanner(),
@@ -447,7 +447,12 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
           child: SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, HxNavBar.clearance),
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                8,
+                16,
+                HxNavBar.clearance - 18,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -493,12 +498,22 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
                               exerciseId: picked.id,
                               equipmentVariant: variant,
                               scope: BuddyScope.both,
+                              targetSets: result.targetSets,
+                              targetReps: result.targetReps,
+                              targetWeightKg: result.targetWeightKg,
+                              targetDurationSeconds:
+                                  result.targetDurationSeconds,
                             );
                           } else {
                             await repo.addExerciseToSession(
                               sessionId: session.id,
                               exerciseId: picked.id,
                               equipmentVariant: variant,
+                              targetSets: result.targetSets,
+                              targetReps: result.targetReps,
+                              targetWeightKg: result.targetWeightKg,
+                              targetDurationSeconds:
+                                  result.targetDurationSeconds,
                             );
                           }
                         }
@@ -721,6 +736,7 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
     // disposes this widget (see FinishWorkoutAction's doc comment), so a
     // `ref.read` after that await throws.
     final finish = FinishWorkoutAction.resolve(ref);
+    final adaptation = ref.read(weeklyAdaptationRepositoryProvider);
     // The app-level navigator outlives this screen; `context` does not.
     final rootNavigator = Navigator.of(context, rootNavigator: true);
 
@@ -814,9 +830,21 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
                       endedAt: finalEndedAt,
                     );
 
+                    final proposal = await adaptation
+                        .proposeForIncompleteSession(session.id);
+
                     if (!ctx.mounted) return;
                     Navigator.pop(ctx);
 
+                    if (!rootNavigator.mounted) return;
+                    if (proposal != null) {
+                      await showWeeklyAdaptationSheet(
+                        rootNavigator.context,
+                        repository: adaptation,
+                        proposal: proposal,
+                        skipOnDecline: false,
+                      );
+                    }
                     if (!rootNavigator.mounted) return;
                     await WorkoutFinishView.show(
                       rootNavigator.context,
@@ -837,9 +865,21 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
                       endedAt: finalEndedAt,
                     );
 
+                    final proposal = await adaptation
+                        .proposeForIncompleteSession(session.id);
+
                     if (!ctx.mounted) return;
                     Navigator.pop(ctx);
 
+                    if (!rootNavigator.mounted) return;
+                    if (proposal != null) {
+                      await showWeeklyAdaptationSheet(
+                        rootNavigator.context,
+                        repository: adaptation,
+                        proposal: proposal,
+                        skipOnDecline: false,
+                      );
+                    }
                     if (!rootNavigator.mounted) return;
                     await WorkoutFinishView.show(
                       rootNavigator.context,
@@ -1205,62 +1245,6 @@ class _FloatyButtonState extends State<_FloatyButton> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _HealthActivityAdjustmentBanner extends ConsumerWidget {
-  const _HealthActivityAdjustmentBanner();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final adjAsync = ref.watch(activityBasedAdjustmentProvider);
-    final adj = adjAsync.asData?.value;
-    if (adj == null || adj.volumeFactor >= 1.0) return const SizedBox.shrink();
-
-    final theme = Theme.of(context);
-    final isRest = adj.volumeFactor == 0.0;
-    final accentColor = isRest ? Colors.redAccent : const Color(0xFFFFB300);
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: accentColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accentColor.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            isRest ? Icons.nightlife_rounded : Icons.directions_walk_rounded,
-            color: accentColor,
-            size: 20,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  adj.statusLabel,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: accentColor,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  adj.message,
-                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -39,6 +39,70 @@ void main() {
       expect(target.totalSets, 2);
     });
 
+    test('follows the exercise worked on last, not always the first', () {
+      final t0 = DateTime(2026, 1, 1, 10);
+      final target = selectActiveWorkoutNotificationTarget(
+        exercises: [
+          _exercise(id: 10, exerciseId: 1, orderIndex: 0),
+          _exercise(id: 20, exerciseId: 2, orderIndex: 1),
+          _exercise(id: 30, exerciseId: 3, orderIndex: 2),
+        ],
+        setsByWorkoutExerciseId: {
+          10: [_set(id: 100, workoutExerciseId: 10, setIndex: 0)],
+          20: [_set(id: 200, workoutExerciseId: 20, setIndex: 0)],
+          30: [
+            _set(
+              id: 300,
+              workoutExerciseId: 30,
+              setIndex: 0,
+              completed: true,
+              completedAt: t0,
+            ),
+            _set(id: 301, workoutExerciseId: 30, setIndex: 1),
+          ],
+        },
+        catalog: [
+          _catalog(id: 1, name: 'Squat'),
+          _catalog(id: 2, name: 'Bench Press'),
+          _catalog(id: 3, name: 'Row'),
+        ],
+      );
+
+      expect(target!.exerciseName, 'Row');
+      expect(target.set.id, 301);
+    });
+
+    test('moves on to the next exercise once the last-worked one is done', () {
+      final t0 = DateTime(2026, 1, 1, 10);
+      final target = selectActiveWorkoutNotificationTarget(
+        exercises: [
+          _exercise(id: 10, exerciseId: 1, orderIndex: 0),
+          _exercise(id: 20, exerciseId: 2, orderIndex: 1),
+          _exercise(id: 30, exerciseId: 3, orderIndex: 2),
+        ],
+        setsByWorkoutExerciseId: {
+          10: [_set(id: 100, workoutExerciseId: 10, setIndex: 0)],
+          20: [
+            _set(
+              id: 200,
+              workoutExerciseId: 20,
+              setIndex: 0,
+              completed: true,
+              completedAt: t0,
+            ),
+          ],
+          30: [_set(id: 300, workoutExerciseId: 30, setIndex: 0)],
+        },
+        catalog: [
+          _catalog(id: 1, name: 'Squat'),
+          _catalog(id: 2, name: 'Bench Press'),
+          _catalog(id: 3, name: 'Row'),
+        ],
+      );
+
+      expect(target!.exerciseName, 'Row');
+    });
+
     test('falls back to the last known set when all sets are completed', () {
       final target = selectActiveWorkoutNotificationTarget(
         exercises: [
@@ -263,6 +327,7 @@ SetEntryData _set({
   double weightKg = 80,
   int reps = 5,
   bool completed = false,
+  DateTime? completedAt,
 }) {
   return SetEntryData(
     id: id,
@@ -272,6 +337,7 @@ SetEntryData _set({
     reps: reps,
     isWarmup: false,
     isCompleted: completed,
+    completedAt: completedAt,
     setType: 'standard',
   );
 }

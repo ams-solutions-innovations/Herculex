@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,19 +8,25 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
+import 'package:herculex/features/nutrition/data/nutrition_label_ocr_service.dart';
 import 'package:herculex/features/nutrition/domain/barcode_utils.dart';
 import 'package:herculex/features/nutrition/domain/food_portion.dart';
+import 'package:herculex/features/nutrition/domain/nutrition_label.dart';
+import 'package:image_picker/image_picker.dart';
 
 class CustomFoodFormSheet extends ConsumerStatefulWidget {
   final String? initialName;
   final String? initialBarcode;
   final FoodData? existingFood;
+  final bool autoStartAiScan;
 
   const CustomFoodFormSheet({
     super.key,
     this.initialName,
     this.initialBarcode,
     this.existingFood,
+    this.autoStartAiScan = false,
   });
 
   static Future<FoodData?> show(
@@ -27,6 +34,7 @@ class CustomFoodFormSheet extends ConsumerStatefulWidget {
     String? initialName,
     String? initialBarcode,
     FoodData? existingFood,
+    bool autoStartAiScan = false,
   }) {
     return showModalBottomSheet<FoodData>(
       context: context,
@@ -40,6 +48,7 @@ class CustomFoodFormSheet extends ConsumerStatefulWidget {
           initialName: initialName,
           initialBarcode: initialBarcode,
           existingFood: existingFood,
+          autoStartAiScan: autoStartAiScan,
         ),
       ),
     );
@@ -82,6 +91,8 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
   late final TextEditingController _copper;
 
   bool _saving = false;
+  bool _scanningAi = false;
+  String? _aiScanStatus;
   String? _error;
   late String _referenceBasis;
 
@@ -155,10 +166,16 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
       return '';
     }
 
+    final initialFiber = fmt('fiber').isNotEmpty
+        ? fmt('fiber')
+        : (ef?.fiberPer100g != null
+              ? ef!.fiberPer100g!.toStringAsFixed(1)
+              : '');
+
     _sugars = TextEditingController(text: fmt('sugars'));
     _transFat = TextEditingController(text: fmt('trans_fat'));
     _saturatedFat = TextEditingController(text: fmt('saturated_fat'));
-    _fiber = TextEditingController(text: fmt('fiber'));
+    _fiber = TextEditingController(text: initialFiber);
     _calcium = TextEditingController(text: fmt('calcium'));
     _iron = TextEditingController(text: fmt('iron'));
     _vitaminC = TextEditingController(text: fmt('vitamin_c'));
@@ -169,6 +186,12 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
     _selenium = TextEditingController(text: fmt('selenium'));
     _phosphorus = TextEditingController(text: fmt('phosphorus'));
     _copper = TextEditingController(text: fmt('copper'));
+
+    if (widget.autoStartAiScan) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scanNutritionLabelWithAi();
+      });
+    }
   }
 
   @override
@@ -205,6 +228,150 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
       c.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _scanNutritionLabelWithAi() async {
+    if (_scanningAi) return;
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(
+                Icons.camera_alt_outlined,
+                color: AppColors.primary,
+              ),
+              title: const Text('Take photo of nutrition label'),
+              subtitle: const Text(
+                'Herculex AI reads calories, macros, and micronutrients from photo',
+              ),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose photo from gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !mounted) return;
+
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() {
+      _scanningAi = true;
+      _error = null;
+      _aiScanStatus = null;
+    });
+
+    try {
+      final gemini = ref.read(geminiFoodAnalyzerServiceProvider);
+      final draft = await NutritionLabelOcrService(
+        gemini,
+      ).extractWithAi(File(picked.path));
+      if (!mounted) return;
+      _applyLabelDraft(draft);
+      setState(() {
+        _scanningAi = false;
+        _aiScanStatus =
+            draft.warning ??
+            'Nutritional values scanned with Herculex AI. Review and save.';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _scanningAi = false;
+        _error = 'AI scan failed: $e';
+      });
+    }
+  }
+
+  void _applyLabelDraft(NutritionLabelDraft draft) {
+    final trimmedDraftName = draft.name.trim();
+    if (_name.text.trim().isEmpty &&
+        trimmedDraftName.isNotEmpty &&
+        trimmedDraftName.toLowerCase() != 'scanned food') {
+      _name.text = trimmedDraftName;
+    } else if (_name.text.trim().isEmpty && trimmedDraftName.isNotEmpty) {
+      _name.text = trimmedDraftName;
+    }
+    if (_brand.text.trim().isEmpty &&
+        (draft.brand?.trim().isNotEmpty ?? false)) {
+      _brand.text = draft.brand!.trim();
+    }
+    if (draft.servingUnit.trim().toLowerCase() == 'ml') {
+      _referenceBasis = '100 ml';
+    }
+    if (draft.kcalPer100g != null) {
+      _kcal.text = draft.kcalPer100g!.toStringAsFixed(0);
+    }
+    if (draft.proteinPer100g != null) {
+      _protein.text = draft.proteinPer100g!.toStringAsFixed(1);
+    }
+    if (draft.carbsPer100g != null) {
+      _carbs.text = draft.carbsPer100g!.toStringAsFixed(1);
+    }
+    if (draft.fatPer100g != null) {
+      _fat.text = draft.fatPer100g!.toStringAsFixed(1);
+    }
+    if (draft.fiberPer100g != null) {
+      _fiber.text = draft.fiberPer100g!.toStringAsFixed(1);
+    }
+    if (draft.sodiumMgPer100g != null) {
+      _sodium.text = draft.sodiumMgPer100g!.toStringAsFixed(0);
+    }
+    if (draft.servingGrams != null && draft.servingGrams! > 0) {
+      _servingG.text = draft.servingGrams!.toStringAsFixed(0);
+    }
+    if (draft.portionAmount != null && draft.portionAmount! > 0) {
+      _servingAmount.text = draft.portionAmount!.toStringAsFixed(
+        draft.portionAmount! % 1 == 0 ? 0 : 1,
+      );
+    }
+    if (draft.servingUnit.trim().isNotEmpty) {
+      _servingUnit.text = draft.servingUnit.trim();
+    }
+
+    void setMicro(TextEditingController ctrl, List<String> keys) {
+      for (final k in keys) {
+        final v = draft.microsPer100g[k];
+        if (v != null) {
+          ctrl.text = v % 1 == 0 ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+          return;
+        }
+      }
+    }
+
+    setMicro(_sugars, ['sugars', 'sugar']);
+    setMicro(_saturatedFat, ['saturated_fat', 'saturatedFat']);
+    setMicro(_transFat, ['trans_fat', 'transFat']);
+    setMicro(_potassium, ['potassium', 'potassium_mg']);
+    setMicro(_cholesterol, ['cholesterol', 'cholesterol_mg']);
+    setMicro(_calcium, ['calcium', 'calcium_mg']);
+    setMicro(_iron, ['iron', 'iron_mg']);
+    setMicro(_vitaminC, ['vitamin_c', 'vitaminC']);
+    setMicro(_vitaminD, ['vitamin_d', 'vitaminD']);
+    setMicro(_zinc, ['zinc', 'zinc_mg']);
+    setMicro(_magnesium, ['magnesium', 'magnesium_mg']);
+    setMicro(_manganese, ['manganese', 'manganese_mg']);
+    setMicro(_selenium, ['selenium', 'selenium_ug']);
+    setMicro(_phosphorus, ['phosphorus', 'phosphorus_mg']);
+    setMicro(_copper, ['copper', 'copper_mg']);
   }
 
   Future<void> _save() async {
@@ -281,6 +448,7 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
       unit: servingUnit,
       mass: savedServingGrams,
     );
+    final fiberVal = double.tryParse(_fiber.text.trim());
     final FoodData food;
     if (widget.existingFood != null) {
       food = await repo.updateCustomFood(
@@ -292,6 +460,7 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
         proteinPer100g: double.tryParse(_protein.text.trim()) ?? 0,
         carbsPer100g: double.tryParse(_carbs.text.trim()) ?? 0,
         fatPer100g: double.tryParse(_fat.text.trim()) ?? 0,
+        fiberPer100g: fiberVal,
         servingGrams: savedServingGrams,
         servingLabel: servingLabel,
         referenceBasis: _referenceBasis,
@@ -311,6 +480,7 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
         proteinPer100g: double.tryParse(_protein.text.trim()) ?? 0,
         carbsPer100g: double.tryParse(_carbs.text.trim()) ?? 0,
         fatPer100g: double.tryParse(_fat.text.trim()) ?? 0,
+        fiberPer100g: fiberVal,
         servingGrams: savedServingGrams,
         servingLabel: servingLabel,
         referenceBasis: _referenceBasis,
@@ -356,7 +526,7 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
             ),
             const SizedBox(height: 20),
             Text(
-              isEditing ? 'Edit custom food' : 'Custom food',
+              isEditing ? 'Edit food' : 'Custom food',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -368,7 +538,75 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
                 color: AppColors.secondary,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              key: const Key('scan_nutrition_ai_button'),
+              onPressed: _scanningAi ? null : _scanNutritionLabelWithAi,
+              icon: _scanningAi
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      Icons.document_scanner_outlined,
+                      color: AppColors.primary,
+                    ),
+              label: Text(
+                _scanningAi
+                    ? 'Analyzing nutrition label with AI…'
+                    : 'Scan nutrition values with AI',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 16,
+                ),
+                side: BorderSide(
+                  color: AppColors.primary.withValues(alpha: 0.5),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+            if (_aiScanStatus != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.auto_awesome,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _aiScanStatus!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
             _Field(label: 'Name *', controller: _name),
             const SizedBox(height: 14),
             _Field(label: 'Brand', controller: _brand),

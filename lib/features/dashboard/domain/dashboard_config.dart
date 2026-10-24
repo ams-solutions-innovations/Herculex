@@ -45,6 +45,8 @@ enum DashboardWidgetType {
   miniWorkouts('mini_workouts', 'Mini Workouts Checklist'),
   workoutCalendar('workout_calendar', 'Workout Calendar'),
   recoverySummary('recovery_summary', 'Recovery'),
+  sleep('sleep', 'Sleep'),
+  steps('steps', 'Steps'),
   cnsLoad('cns_load', 'CNS Load'),
   weeklyVolume('weekly_volume', 'Weekly Volume'),
   latestPrs('latest_prs', 'Latest PRs'),
@@ -54,7 +56,8 @@ enum DashboardWidgetType {
   remainingCalories('remaining_calories', 'Calories Remaining'),
   nutritionStreak('nutrition_streak', 'Nutrition Streak'),
   workoutStreak('workout_streak', 'Workout Streak'),
-  herculInsights('hercul_insights', 'Hercul Insights');
+  herculInsights('hercul_insights', 'Hercul Insights'),
+  labs('labs', 'Herculex Labs');
 
   const DashboardWidgetType(this.id, this.label);
   final String id;
@@ -70,6 +73,8 @@ enum DashboardWidgetType {
     DashboardWidgetType.miniWorkouts => Icons.checklist_outlined,
     DashboardWidgetType.workoutCalendar => Icons.calendar_today_outlined,
     DashboardWidgetType.recoverySummary => Icons.battery_charging_full,
+    DashboardWidgetType.sleep => Icons.bedtime_outlined,
+    DashboardWidgetType.steps => Icons.directions_walk,
     DashboardWidgetType.cnsLoad => Icons.bolt_outlined,
     DashboardWidgetType.weeklyVolume => Icons.bar_chart,
     DashboardWidgetType.latestPrs => Icons.emoji_events_outlined,
@@ -80,6 +85,7 @@ enum DashboardWidgetType {
     DashboardWidgetType.nutritionStreak => Icons.local_fire_department,
     DashboardWidgetType.workoutStreak => Icons.directions_run,
     DashboardWidgetType.herculInsights => Icons.psychology_outlined,
+    DashboardWidgetType.labs => Icons.science_outlined,
   };
 
   /// Widget shape classification for stack compatibility.
@@ -92,8 +98,11 @@ enum DashboardWidgetType {
     DashboardWidgetType.bodyweightTrends ||
     DashboardWidgetType.recoverySummary ||
     DashboardWidgetType.latestPrs ||
+    DashboardWidgetType.sleep ||
+    DashboardWidgetType.steps ||
     DashboardWidgetType.remainingCalories ||
     DashboardWidgetType.quickScan ||
+    DashboardWidgetType.labs ||
     DashboardWidgetType.herculInsights ||
     DashboardWidgetType.supplements ||
     DashboardWidgetType.miniWorkouts ||
@@ -127,9 +136,13 @@ enum DashboardWidgetType {
     DashboardWidgetType.cnsLoad ||
     DashboardWidgetType.weeklyVolume ||
     DashboardWidgetType.latestPrs ||
+    DashboardWidgetType.sleep ||
+    DashboardWidgetType.steps ||
     DashboardWidgetType.remainingCalories ||
     DashboardWidgetType.nutritionStreak ||
-    DashboardWidgetType.workoutStreak => true,
+    DashboardWidgetType.workoutStreak ||
+    DashboardWidgetType.herculInsights ||
+    DashboardWidgetType.labs => true,
     _ => false,
   };
 
@@ -206,6 +219,8 @@ class DashboardConfig {
     DashboardWidgetConfig([DashboardWidgetType.miniWorkouts]),
     DashboardWidgetConfig([DashboardWidgetType.workoutCalendar]),
     DashboardWidgetConfig([DashboardWidgetType.recoverySummary]),
+    DashboardWidgetConfig([DashboardWidgetType.sleep], visible: false),
+    DashboardWidgetConfig([DashboardWidgetType.steps], visible: false),
     DashboardWidgetConfig([DashboardWidgetType.cnsLoad], visible: false),
     DashboardWidgetConfig([DashboardWidgetType.weeklyVolume], visible: false),
     DashboardWidgetConfig([DashboardWidgetType.latestPrs], visible: false),

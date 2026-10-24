@@ -1,35 +1,43 @@
 import 'dart:async';
 import 'dart:convert';
-
+import 'package:drift/drift.dart' show Value, Variable;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/data/watch_command_inbox.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
-import 'package:herculex/features/physique/application/effective_goal_provider.dart';
-import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
+import 'package:herculex/features/workouts/application/workout_target_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
+import 'package:herculex/features/workouts/domain/active_workout_notification_target.dart';
+import 'package:herculex/features/workouts/domain/calisthenics_set_plan.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
-import 'package:herculex/features/workouts/domain/progression_engine.dart';
+import 'package:herculex/features/workouts/domain/set_prescription_metadata.dart';
 import 'package:herculex/features/workouts/domain/watch_exercise_resolver.dart';
+import 'package:herculex/features/workouts/domain/workout_target_resolver.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+part 'apple_watch_workout_sync.part.dart';
 
 class WearWorkoutSyncService {
   final WorkoutsRepository _workoutsRepository;
   final WearSyncService _wearSyncService;
   final AppDatabase _db;
   final Ref _ref;
+  String? _lastAdaptiveWatchInput;
   int _lastCurrentExerciseIndex = 0;
   int _lastCurrentSetIndex = 0;
   int? _lastSyncedSessionId;
   String? _lastSyncedEntityId;
   bool _isApplyingRemoteSession = false;
+  bool _disposed = false;
   DateTime? _suppressOutboundUntil;
   Future<void> _remoteApplyQueue = Future.value();
 
@@ -57,6 +65,7 @@ class WearWorkoutSyncService {
     _prefs = _ref.read(sharedPreferencesProvider);
     _revisionAllocator = WearRevisionAllocator(_prefs, 'workout');
     _restoreSetSyncStates();
+    WearSyncService.onAppleWatchWorkoutEvent = _handleAppleWatchWorkoutEvent;
     WearSyncService.onWatchWorkoutStarted = _handleWatchWorkoutStarted;
     WearSyncService.onWatchWorkoutUpdated = _handleWatchWorkoutUpdated;
     WearSyncService.onWatchWorkoutEnded = _handleWatchWorkoutEnded;
@@ -64,13 +73,42 @@ class WearWorkoutSyncService {
         _handleWatchWorkoutSavedAsTemplate;
   }
 
+  void dispose() {
+    if (WearSyncService.onAppleWatchWorkoutEvent ==
+        _handleAppleWatchWorkoutEvent) {
+      WearSyncService.onAppleWatchWorkoutEvent = null;
+    }
+    _disposed = true;
+    _pendingOutboundTimer?.cancel();
+    _pendingOutboundSession = null;
+    _queuedPush = null;
+    if (WearSyncService.onWatchWorkoutStarted == _handleWatchWorkoutStarted) {
+      WearSyncService.onWatchWorkoutStarted = null;
+    }
+    if (WearSyncService.onWatchWorkoutUpdated == _handleWatchWorkoutUpdated) {
+      WearSyncService.onWatchWorkoutUpdated = null;
+    }
+    if (WearSyncService.onWatchWorkoutEnded == _handleWatchWorkoutEnded) {
+      WearSyncService.onWatchWorkoutEnded = null;
+    }
+    if (WearSyncService.onWatchWorkoutSavedAsTemplate ==
+        _handleWatchWorkoutSavedAsTemplate) {
+      WearSyncService.onWatchWorkoutSavedAsTemplate = null;
+    }
+  }
+
   bool get shouldSkipOutboundSync {
-    if (_isApplyingRemoteSession) return true;
+    if (_isApplyingRemoteSession) {
+      return true;
+    }
     final until = _suppressOutboundUntil;
     return until != null && DateTime.now().isBefore(until);
   }
 
   void scheduleOutboundSync(WorkoutSessionData session) {
+    if (_disposed) {
+      return;
+    }
     // Drift emits an active-session update while a watch snapshot is being
     // applied.  Queuing that update and sending it back after the guard used
     // to manufacture a new phone envelope for the exact data we just
@@ -102,7 +140,12 @@ class WearWorkoutSyncService {
   }
 
   void _schedulePendingPush() {
-    if (_pendingOutboundSession == null) return;
+    if (_disposed) {
+      return;
+    }
+    if (_pendingOutboundSession == null) {
+      return;
+    }
     final until = _suppressOutboundUntil;
     final wait = until == null
         ? Duration.zero
@@ -112,72 +155,15 @@ class WearWorkoutSyncService {
       _pendingOutboundTimer = null;
       final pending = _pendingOutboundSession;
       _pendingOutboundSession = null;
-      if (pending != null) scheduleOutboundSync(pending);
+      if (pending != null) {
+        scheduleOutboundSync(pending);
+      }
     });
   }
 
   bool get hasActiveSyncedSession =>
       _lastSyncedSessionId != null ||
       (_lastSyncedEntityId != null && _lastSyncedEntityId!.isNotEmpty);
-
-  SetEntryData? _findPriorSet(
-    SetEntryData currentSet,
-    int index,
-    List<SetEntryData> allCurrentSets,
-    List<SetEntryData> allLastSets,
-  ) {
-    if (allLastSets.isEmpty) return null;
-    final sameTypeCurrent = allCurrentSets
-        .where(
-          (s) =>
-              s.isWarmup == currentSet.isWarmup &&
-              s.setType == currentSet.setType,
-        )
-        .toList();
-    final subIdx = sameTypeCurrent.indexOf(currentSet);
-    final sameTypePrior = allLastSets
-        .where(
-          (s) =>
-              s.isWarmup == currentSet.isWarmup &&
-              s.setType == currentSet.setType,
-        )
-        .toList();
-    if (sameTypePrior.isNotEmpty) {
-      if (subIdx >= 0 && subIdx < sameTypePrior.length) {
-        return sameTypePrior[subIdx];
-      }
-      return sameTypePrior.last;
-    }
-    if (index < allLastSets.length) return allLastSets[index];
-    return allLastSets.lastOrNull;
-  }
-
-  Future<({ProgressionGoal goal, double? weeklyPctOverride})>
-  _resolveProgressionGoal(int exerciseId) async {
-    try {
-      final override = await (_db.select(
-        _db.exerciseProgressions,
-      )..where((t) => t.exerciseId.equals(exerciseId))).getSingleOrNull();
-      if (override != null && override.enabled) {
-        final goal = ProgressionGoal.values.firstWhere(
-          (g) => g.name == override.goal,
-          orElse: () => ProgressionGoal.muscleGain,
-        );
-        return (goal: goal, weeklyPctOverride: override.weeklyIncreasePct);
-      }
-      final fitnessGoal =
-          _ref.read(effectiveFitnessGoalProvider) ?? FitnessGoal.maintenance;
-      final goal = switch (fitnessGoal) {
-        FitnessGoal.weightLoss => ProgressionGoal.fatLoss,
-        FitnessGoal.muscleGain ||
-        FitnessGoal.maintenance => ProgressionGoal.muscleGain,
-        FitnessGoal.improveHealth => ProgressionGoal.endurance,
-      };
-      return (goal: goal, weeklyPctOverride: null);
-    } catch (_) {
-      return (goal: ProgressionGoal.muscleGain, weeklyPctOverride: null);
-    }
-  }
 
   /// [scheduledToday] are resolved from their program day (rotation,
   /// periodisation and prescription applied, exactly what the phone would
@@ -194,9 +180,13 @@ class WearWorkoutSyncService {
     final List<Map<String, dynamic>> jsonList = [];
     final prefs = _ref.read(sharedPreferencesProvider);
     final hintModeRaw = prefs.getString('performance_hint_mode');
-    final isNextMode = hintModeRaw == 'next';
+    final isNextMode = hintModeRaw != 'last';
     final weightFmt = _ref.read(weightFormatProvider);
     final catalogById = {for (final c in catalog) c.id: c};
+    final folderNames = {
+      for (final folder in await _db.select(_db.workoutFolders).get())
+        folder.id: folder.name,
+    };
 
     final scheduledJson = <Map<String, dynamic>>[];
     // Stamped on every entry so the watch can stop calling a workout "today"
@@ -208,16 +198,23 @@ class WearWorkoutSyncService {
         '${now.day.toString().padLeft(2, '0')}';
     final coveredTemplateIds = <int>{};
     for (final today in scheduledToday) {
-      if (today.isDone) continue;
+      if (today.isDone ||
+          !ScheduleStatus.isOpen(today.schedule.status) ||
+          today.schedule.deletedAt != null) {
+        continue;
+      }
       try {
-        final plan = await PlannedSessionResolver(_db).resolveProgramDay(
-          today.programDay.id,
-          templateOverride: today.schedule.templateIdOverride,
+        final resolver = PlannedSessionResolver(_db);
+        final plan = await resolver.prepare(
+          await resolver.resolveScheduledWorkout(today.schedule),
+          at: now,
         );
         final exJsonList = <Map<String, dynamic>>[];
         for (final ex in plan.exercises) {
           final catalogItem = catalogById[ex.exerciseId];
-          if (catalogItem == null) continue;
+          if (catalogItem == null) {
+            continue;
+          }
           final working = ex.sets.where((s) => !s.isWarmup).toList();
           exJsonList.add(
             await _exerciseJson(
@@ -228,7 +225,7 @@ class WearWorkoutSyncService {
               sets: [
                 for (final s in ex.sets)
                   _WearSetTarget(
-                    order: s.index + 1,
+                    order: s.index,
                     wireId:
                         'scheduled_set_${today.schedule.id}_${ex.orderIndex}_${s.index}',
                     setType: s.setType,
@@ -236,15 +233,21 @@ class WearWorkoutSyncService {
                     targetRepsMin: s.repsMin,
                     targetRepsMax: s.repsMax,
                     targetWeightKg: s.weightKg,
+                    rpeX10: s.rpeX10,
+                    percentOf1Rm: s.percentOf1Rm,
                     isWarmup: s.isWarmup,
                   ),
               ],
+              equipmentVariant: ex.equipmentVariant,
+              trainingMethod: ex.trainingMethod,
               isNextMode: isNextMode,
               weightFmt: weightFmt,
             ),
           );
         }
-        if (exJsonList.isEmpty) continue;
+        if (exJsonList.isEmpty) {
+          continue;
+        }
         scheduledJson.add({
           'id': 'scheduled_${today.schedule.id}',
           'name': plan.name,
@@ -254,7 +257,9 @@ class WearWorkoutSyncService {
           'exercises': exJsonList,
         });
         final templateId = today.template?.id;
-        if (templateId != null) coveredTemplateIds.add(templateId);
+        if (templateId != null) {
+          coveredTemplateIds.add(templateId);
+        }
       } catch (e) {
         // A broken schedule must not stop the rest of the library syncing.
         debugPrint('Scheduled workout skipped for watch sync: $e');
@@ -262,13 +267,17 @@ class WearWorkoutSyncService {
     }
 
     for (final template in templates) {
-      if (coveredTemplateIds.contains(template.id)) continue;
+      if (coveredTemplateIds.contains(template.id)) {
+        continue;
+      }
       final exercises = templateExercises[template.id] ?? [];
       final List<Map<String, dynamic>> exJsonList = [];
 
       for (final ex in exercises) {
         final catalogItem = catalogById[ex.exerciseId];
-        if (catalogItem == null) continue;
+        if (catalogItem == null) {
+          continue;
+        }
         exJsonList.add(
           await _exerciseJson(
             catalogItem: catalogItem,
@@ -286,6 +295,17 @@ class WearWorkoutSyncService {
                   targetRepsMin: ts.targetRepsMin,
                   targetRepsMax: ts.targetRepsMax,
                   targetWeightKg: ts.targetWeightKg,
+                  rpeX10:
+                      SetPrescriptionMetadata.decode(
+                            ts.setTypeMetaJson,
+                          )['rpeX10']
+                          as int?,
+                  percentOf1Rm:
+                      (SetPrescriptionMetadata.decode(
+                                ts.setTypeMetaJson,
+                              )['percentOf1Rm']
+                              as num?)
+                          ?.toDouble(),
                   isWarmup: ts.isWarmup,
                 ),
             ],
@@ -298,6 +318,9 @@ class WearWorkoutSyncService {
       jsonList.add({
         'id': template.id.toString(),
         'name': template.name,
+        if (template.folderId != null) 'folderId': template.folderId,
+        if (folderNames[template.folderId] != null)
+          'folderName': folderNames[template.folderId],
         'exercises': exJsonList,
       });
     }
@@ -317,99 +340,121 @@ class WearWorkoutSyncService {
     required List<_WearSetTarget> sets,
     required bool isNextMode,
     required WeightFormat weightFmt,
+    String? equipmentVariant,
+    String? trainingMethod,
   }) async {
-    final lastSnapshot = await _workoutsRepository.lastPerformanceSnapshotFor(
-      catalogItem.id,
+    if (sets.isEmpty) {
+      sets = List.generate(
+        targetSets,
+        (i) => _WearSetTarget(
+          order: i + 1,
+          wireId: 'planned_${catalogItem.id}_$i',
+          setType: 'standard',
+          isWarmup: false,
+          targetRepsMin: targetRepsMin,
+        ),
+      );
+    }
+    final meta = SetPrescriptionMetadata.decode(
+      sets.firstOrNull?.setTypeMetaJson,
     );
-    final lastSets = lastSnapshot?.sets ?? const <SetEntryData>[];
-    final progression = await _resolveProgressionGoal(catalogItem.id);
-
-    double defaultPriorWeight = 0.0;
-    int defaultPriorReps = 0;
-    if (lastSets.isNotEmpty) {
-      final firstWorkingSet = lastSets.firstWhere(
-        (s) => !s.isWarmup,
-        orElse: () => lastSets.first,
-      );
-      defaultPriorWeight = firstWorkingSet.weightKg;
-      defaultPriorReps = firstWorkingSet.reps;
+    equipmentVariant ??=
+        CalisthenicsSetPlan.decode(
+          sets.firstOrNull?.setTypeMetaJson,
+        )?.variant ??
+        meta['equipmentVariant'] as String?;
+    trainingMethod ??= meta['trainingMethod'] as String?;
+    var plan = PlannedExerciseSnapshot(
+      exerciseId: catalogItem.id,
+      orderIndex: 0,
+      restSeconds: 90,
+      slotRole: 'main',
+      trainingMethod: trainingMethod ?? 'straight_sets',
+      why: '',
+      equipmentVariant: equipmentVariant,
+      allowsAdvancedTechniques: false,
+      sets: [
+        for (final ts in sets)
+          PlannedSetSnapshot(
+            index: ts.order,
+            repsMin: ts.targetRepsMin ?? ts.targetReps ?? targetRepsMin,
+            repsMax:
+                ts.targetRepsMax ??
+                ts.targetRepsMin ??
+                ts.targetReps ??
+                targetRepsMin,
+            weightKg: ts.targetWeightKg,
+            isWarmup: ts.isWarmup,
+            setType: ts.setType,
+            setTypeMetaJson: ts.setTypeMetaJson,
+            intent: 'rir2',
+            rpeX10: ts.rpeX10,
+            percentOf1Rm: ts.percentOf1Rm,
+          ),
+      ],
+    );
+    final prepared = await PlannedSessionResolver(_db).prepare(
+      PlannedSessionSnapshot(name: '', exercises: [plan]),
+      at: _ref.read(clockProvider).now(),
+    );
+    plan = prepared.exercises.single;
+    if (plan.exerciseId != catalogItem.id) {
+      catalogItem = await (_db.select(
+        _db.exerciseCatalog,
+      )..where((t) => t.id.equals(plan.exerciseId))).getSingle();
     }
-
-    double defaultHintWeight = defaultPriorWeight;
-    int defaultHintReps = defaultPriorReps;
-    if (isNextMode && (defaultPriorWeight > 0 || defaultPriorReps > 0)) {
-      final target = ProgressionEngine.suggestNext(
-        lastWeightKg: defaultPriorWeight,
-        lastReps: defaultPriorReps > 0 ? defaultPriorReps : 1,
-        goal: progression.goal,
-        equipmentVariant: catalogItem.modality,
-        weeklyIncreasePctOverride: progression.weeklyPctOverride,
-      );
-      if (target.weightKg > 0) defaultHintWeight = target.weightKg;
-      if (target.reps > 0) defaultHintReps = target.reps;
-    }
-
-    String? performanceHint;
-    if (isNextMode && (defaultHintWeight > 0 || defaultHintReps > 0)) {
-      performanceHint =
-          'Next: ${weightFmt.format(defaultHintWeight)} × $defaultHintReps';
-    } else if (defaultPriorWeight > 0 || defaultPriorReps > 0) {
-      performanceHint =
-          'Last: ${weightFmt.format(defaultPriorWeight)} × $defaultPriorReps';
-    }
-
-    final plannedSetsJson = sets.map((ts) {
-      final prior = (ts.order - 1) < lastSets.length && (ts.order - 1) >= 0
-          ? lastSets[ts.order - 1]
-          : lastSets.lastOrNull;
-      double pWeight = prior?.weightKg ?? defaultPriorWeight;
-      int pReps = prior?.reps ?? defaultPriorReps;
-      double hWeight = pWeight;
-      int hReps = pReps;
-      if (isNextMode && prior != null && !prior.isWarmup) {
-        final target = ProgressionEngine.suggestNext(
-          lastWeightKg: pWeight,
-          lastReps: pReps > 0 ? pReps : 1,
-          goal: progression.goal,
-          equipmentVariant: catalogItem.modality,
-          weeklyIncreasePctOverride: progression.weeklyPctOverride,
+    equipmentVariant = plan.equipmentVariant;
+    final originalSets = sets;
+    sets = [
+      for (final (i, row) in plan.sets.indexed)
+        _WearSetTarget(
+          order: row.index,
+          wireId: i < originalSets.length
+              ? originalSets[i].wireId
+              : 'planned_${catalogItem.id}_$i',
+          setType: row.setType,
+          isWarmup: row.isWarmup,
+          setTypeMetaJson: row.setTypeMetaJson,
+          targetRepsMin: row.repsMin,
+          targetRepsMax: row.repsMax,
+          targetWeightKg: row.weightKg,
+          rpeX10: row.rpeX10,
+          percentOf1Rm: row.percentOf1Rm,
+        ),
+    ];
+    final resolved = await _ref
+        .read(workoutTargetsRepositoryProvider)
+        .resolve(
+          exercise: catalogItem,
+          workoutExercise: plan.targetExercise,
+          sets: plan.targetRows,
+          goal: _ref.read(workoutProgressionGoalProvider),
+          nextMode: _prefs.getString('performance_hint_mode') != 'last',
         );
-        if (target.weightKg > 0) hWeight = target.weightKg;
-        if (target.reps > 0) hReps = target.reps;
-      }
-      final finalWeight = (ts.targetWeightKg != null && ts.targetWeightKg! > 0)
-          ? ts.targetWeightKg!
-          : (hWeight > 0 ? hWeight : defaultHintWeight);
-      final finalReps = (ts.targetReps != null && ts.targetReps! > 0)
-          ? ts.targetReps!
-          : (hReps > 0
-                ? hReps
-                : (defaultHintReps > 0
-                      ? defaultHintReps
-                      : (targetRepsMin ?? 10)));
-
-      return {
-        'wireId': ts.wireId,
-        'setIndex': ts.order,
-        'setType': normalizeWearSetType(ts.setType),
-        'isWarmup': ts.isWarmup,
-        'targetReps': finalReps,
-        'targetRepsMin': ts.targetRepsMin,
-        'targetRepsMax': ts.targetRepsMax,
-        'targetWeightKg': finalWeight,
-        'setTypeMetaJson': ts.setTypeMetaJson,
-      };
-    }).toList();
-
+    final first = resolved.values.firstOrNull;
+    final plannedSetsJson = [
+      for (final ts in sets)
+        {
+          'wireId': ts.wireId,
+          'setIndex': ts.order,
+          'setType': normalizeWearSetType(ts.setType),
+          'isWarmup': ts.isWarmup,
+          'targetReps': resolved[-ts.order - 1]?.reps,
+          'targetRepsMin': ts.targetRepsMin,
+          'targetRepsMax': ts.targetRepsMax,
+          'targetWeightKg': resolved[-ts.order - 1]?.weightKg,
+          if (ts.rpeX10 != null) 'targetRpe': ts.rpeX10! / 10,
+          'targetPercentOf1Rm': ts.percentOf1Rm,
+          'setTypeMetaJson': ts.setTypeMetaJson,
+        },
+    ];
     return {
-      ..._templateJson(catalogItem),
+      ..._templateJson(catalogItem, equipmentVariant: equipmentVariant),
+      'trainingMethod': plan.trainingMethod,
       'targetSets': targetSets,
       'supersetGroup': supersetGroup,
-      'prevWeight': defaultHintWeight > 0
-          ? defaultHintWeight
-          : defaultPriorWeight,
-      'prevReps': defaultHintReps > 0 ? defaultHintReps : defaultPriorReps,
-      if (performanceHint != null) 'performanceHint': performanceHint,
+      'prevWeight': first?.weightKg ?? 0,
+      'prevReps': first?.reps ?? 0,
       'plannedSets': plannedSetsJson,
     };
   }
@@ -418,7 +463,9 @@ class WearWorkoutSyncService {
     String? sessionJson,
     bool jumpToWorkout,
   ) async {
-    if (sessionJson == null || sessionJson.isEmpty) return;
+    if (sessionJson == null || sessionJson.isEmpty) {
+      return;
+    }
     try {
       await _enqueueRemoteApply(() async {
         final envelope = _decodeWorkoutEnvelope(sessionJson);
@@ -426,6 +473,9 @@ class WearWorkoutSyncService {
         if (!_remoteDedupe.wouldAccept(envelope)) {
           _wearLog(envelope, delivery: 'flutter', apply: 'ignored');
           await _wearSyncService.markWatchWorkoutApplied();
+          return;
+        }
+        if (!await _validateWatchSchedule(envelope)) {
           return;
         }
         _wearLog(envelope, delivery: 'flutter', apply: 'accepted');
@@ -486,7 +536,9 @@ class WearWorkoutSyncService {
   }
 
   Future<void> _handleWatchWorkoutUpdated(String? sessionJson) async {
-    if (sessionJson == null || sessionJson.isEmpty) return;
+    if (sessionJson == null || sessionJson.isEmpty) {
+      return;
+    }
     try {
       await _enqueueRemoteApply(() async {
         final envelope = _decodeWorkoutEnvelope(sessionJson);
@@ -494,6 +546,9 @@ class WearWorkoutSyncService {
         if (!_remoteDedupe.wouldAccept(envelope)) {
           _wearLog(envelope, delivery: 'flutter', apply: 'ignored');
           await _wearSyncService.markWatchWorkoutApplied();
+          return;
+        }
+        if (!await _validateWatchSchedule(envelope)) {
           return;
         }
         _wearLog(envelope, delivery: 'flutter', apply: 'accepted');
@@ -542,9 +597,94 @@ class WearWorkoutSyncService {
         _remoteDedupe.commit(envelope);
         await _wearSyncService.markWatchWorkoutApplied();
       });
+      final envelope = _decodeWorkoutEnvelope(sessionJson);
+      await _refreshWatchTargets(envelope.payload);
     } catch (e, st) {
       debugPrint('Failed to handle watch workout updated: $e\n$st');
     }
+  }
+
+  int? _watchScheduleId(Map<String, dynamic> data) {
+    final template = data['template'];
+    final id = template is Map ? template['id'] : null;
+    if (id is! String || !id.startsWith('scheduled_')) {
+      return null;
+    }
+    return int.tryParse(id.substring('scheduled_'.length));
+  }
+
+  Future<bool> _validateWatchSchedule(WearSyncEnvelope envelope) async {
+    final id = _watchScheduleId(envelope.payload);
+    if (id == null) {
+      return true;
+    }
+    final source = await (_db.select(
+      _db.scheduledWorkouts,
+    )..where((s) => s.id.equals(id))).getSingleOrNull();
+    WorkoutSessionData? linked;
+    if (source?.completedSessionId case final sessionId?) {
+      linked = await (_db.select(
+        _db.workoutSessions,
+      )..where((s) => s.id.equals(sessionId))).getSingleOrNull();
+    }
+    if (source != null &&
+        source.deletedAt == null &&
+        const [
+          ScheduleStatus.planned,
+          ScheduleStatus.moved,
+          ScheduleStatus.inProgress,
+        ].contains(source.status) &&
+        (source.completedSessionId == null ||
+            linked?.sessionUuid == envelope.entityId)) {
+      return true;
+    }
+    // Offline/stale watch tiles must not revive a skipped or finished workout.
+    _remoteDedupe.commit(envelope);
+    _wearLog(envelope, delivery: 'flutter', apply: 'ignored-stale-schedule');
+    await _wearSyncService.markWatchWorkoutApplied();
+    await _wearSyncService.endWorkoutOnWatch(envelope.entityId);
+    return false;
+  }
+
+  Future<void> _refreshWatchTargets(Map<String, dynamic> data) async {
+    final exercises = (data['exercises'] as List<dynamic>? ?? const [])
+        .whereType<Map>();
+    final adaptive = exercises
+        .where(
+          (e) =>
+              ((e['template'] as Map?)?['plannedSets'] as List?)?.isNotEmpty ??
+              false,
+        )
+        .toList();
+    if (adaptive.isEmpty) {
+      return;
+    }
+    final inputs = [
+      for (final e in adaptive)
+        [
+          for (final s
+              in (e['sets'] as List<dynamic>? ?? const []).whereType<Map>())
+            [
+              s['wireId'],
+              s['setIndex'],
+              s['weight'],
+              s['reps'],
+              s['rpe'],
+              s['completed'],
+            ],
+        ],
+    ];
+    final signature = jsonEncode(inputs);
+    if (signature == _lastAdaptiveWatchInput) {
+      return;
+    }
+    final session = await _workoutsRepository.watchActiveSession().first;
+    if (session == null) {
+      return;
+    }
+    _lastAdaptiveWatchInput = signature;
+    _pendingOutboundSession = session;
+    _schedulePendingPush();
   }
 
   Future<void> _handleWatchWorkoutEnded(
@@ -631,6 +771,9 @@ class WearWorkoutSyncService {
     // guard window exactly bracket its own execution, with no gap for
     // another chain link to interleave through.
     final result = _remoteApplyQueue.catchError((_) {}).then((_) async {
+      if (_disposed) {
+        return;
+      }
       _isApplyingRemoteSession = true;
       try {
         await apply();
@@ -722,14 +865,22 @@ class WearWorkoutSyncService {
 
   void _restoreSetSyncStates() {
     final encoded = _prefs.getString(_setSyncStatesPreferenceKey);
-    if (encoded == null || encoded.isEmpty) return;
+    if (encoded == null || encoded.isEmpty) {
+      return;
+    }
     try {
       final decoded = jsonDecode(encoded);
-      if (decoded is! Map) return;
+      if (decoded is! Map) {
+        return;
+      }
       for (final entry in decoded.entries) {
-        if (entry.key is! String) continue;
+        if (entry.key is! String) {
+          continue;
+        }
         final state = _PhoneSetSyncState.fromJson(entry.value);
-        if (state != null) _setSyncStates[entry.key as String] = state;
+        if (state != null) {
+          _setSyncStates[entry.key as String] = state;
+        }
       }
     } catch (_) {
       // Metadata is an optimization around the durable workout data.  A
@@ -789,7 +940,9 @@ class WearWorkoutSyncService {
         ),
       );
       _setSyncStates[key] = created;
-      if (persist) _persistSetSyncStates();
+      if (persist) {
+        _persistSetSyncStates();
+      }
       return created;
     }
 
@@ -823,7 +976,9 @@ class WearWorkoutSyncService {
         completion: _nextLocalSetStamp(),
       );
     }
-    if (persist) _persistSetSyncStates();
+    if (persist) {
+      _persistSetSyncStates();
+    }
     return existing;
   }
 
@@ -930,6 +1085,30 @@ class WearWorkoutSyncService {
     };
     try {
       await _db.transaction(() async {
+        final sourceId = _watchScheduleId(data);
+        if (sourceId != null) {
+          final source = await (_db.select(
+            _db.scheduledWorkouts,
+          )..where((s) => s.id.equals(sourceId))).getSingle();
+          if (source.deletedAt != null ||
+              !const [
+                ScheduleStatus.planned,
+                ScheduleStatus.moved,
+                ScheduleStatus.inProgress,
+              ].contains(source.status) ||
+              (source.completedSessionId != null &&
+                  source.completedSessionId != sessionId)) {
+            throw StateError('Scheduled workout changed before watch apply');
+          }
+          await (_db.update(
+            _db.scheduledWorkouts,
+          )..where((s) => s.id.equals(sourceId))).write(
+            ScheduledWorkoutsCompanion(
+              status: const Value(ScheduleStatus.inProgress),
+              completedSessionId: Value(sessionId),
+            ),
+          );
+        }
         var catalog = await _db.select(_db.exerciseCatalog).get();
         var resolver = await _buildResolver(catalog);
 
@@ -953,10 +1132,14 @@ class WearWorkoutSyncService {
         for (int i = 0; i < exercises.length; i++) {
           final exData = exercises[i] as Map<String, dynamic>;
           final template = exData['template'] as Map<String, dynamic>?;
-          if (template == null) continue;
+          if (template == null) {
+            continue;
+          }
 
           final name = template['name'] as String?;
-          if (name == null) continue;
+          if (name == null) {
+            continue;
+          }
 
           final match = resolver.resolve(
             catalogExerciseId: template['catalogExerciseId'] as int?,
@@ -996,7 +1179,9 @@ class WearWorkoutSyncService {
               catalogItem = retry == null
                   ? null
                   : catalog.where((c) => c.id == retry.exerciseId).firstOrNull;
-              if (catalogItem == null) rethrow;
+              if (catalogItem == null) {
+                rethrow;
+              }
             }
           }
 
@@ -1016,6 +1201,11 @@ class WearWorkoutSyncService {
               await _workoutsRepository.substituteExercise(
                 workoutExerciseId: workoutExerciseId,
                 newExerciseId: catalogItem.id,
+                // The incoming full-row wire revision is an authoritative
+                // correction, not the phone's "switch from now on" action.
+                // Keep wire identities; the journal records the old movement
+                // and the report excludes a like-for-like comparison.
+                preserveCompletedSets: false,
               );
             }
             if (equipmentVariant != null &&
@@ -1037,6 +1227,21 @@ class WearWorkoutSyncService {
               // "Squat (Barbell)", which no phone row could ever match; it now
               // travels as the same per-log variant the phone sheet writes.
               equipmentVariant: equipmentVariant,
+            );
+          }
+
+          if (existingExercise == null && template['trainingMethod'] != null) {
+            await (_db.update(
+              _db.workoutExercises,
+            )..where((t) => t.id.equals(workoutExerciseId))).write(
+              WorkoutExercisesCompanion(
+                plannedTrainingMethod: Value(
+                  template['trainingMethod'] as String?,
+                ),
+                plannedPrescriptionWhy: Value(
+                  template['prescriptionReason'] as String?,
+                ),
+              ),
             );
           }
 
@@ -1171,6 +1376,44 @@ class WearWorkoutSyncService {
                 distanceM: distanceM,
                 completedAt: completedAt,
               );
+              final rawPlans =
+                  template['plannedSets'] as List<dynamic>? ?? const [];
+              final planned = rawPlans
+                  .whereType<Map>()
+                  .where((p) => p['setIndex'] == (setData['setIndex'] ?? j))
+                  .firstOrNull;
+              if (planned != null) {
+                await (_db.update(
+                  _db.setEntries,
+                )..where((t) => t.id.equals(newSetId))).write(
+                  SetEntriesCompanion(
+                    plannedRepsMin: Value(
+                      (planned['targetRepsMin'] as num? ??
+                              planned['targetReps'] as num?)
+                          ?.toInt(),
+                    ),
+                    plannedRepsMax: Value(
+                      (planned['targetRepsMax'] as num? ??
+                              planned['targetRepsMin'] as num? ??
+                              planned['targetReps'] as num?)
+                          ?.toInt(),
+                    ),
+                    plannedWeightKg: Value(
+                      (planned['targetWeightKg'] as num?)?.toDouble(),
+                    ),
+                    plannedRpeX10: Value(
+                      planned['targetRpe'] == null
+                          ? null
+                          : ((planned['targetRpe'] as num) * 10).round(),
+                    ),
+                    plannedRir: Value((planned['targetRir'] as num?)?.toInt()),
+                    plannedPercentOf1Rm: Value(
+                      (planned['targetPercentOf1Rm'] as num?)?.toDouble(),
+                    ),
+                    plannedIntent: Value(planned['plannedIntent'] as String?),
+                  ),
+                );
+              }
               _setSyncStates[_setSyncStateKey(
                 sessionEntityId,
                 newSetId,
@@ -1213,7 +1456,9 @@ class WearWorkoutSyncService {
   /// wrong type, wrong prefix, or a watch-minted id like `'watch_set_...'`),
   /// which callers correctly treat as "no match — this is new."
   int? _driftIdFromWireId(dynamic wireId, String prefix) {
-    if (wireId is! String || !wireId.startsWith(prefix)) return null;
+    if (wireId is! String || !wireId.startsWith(prefix)) {
+      return null;
+    }
     return int.tryParse(wireId.substring(prefix.length));
   }
 
@@ -1249,16 +1494,26 @@ class WearWorkoutSyncService {
     final json = <String, dynamic>{
       if (item != null) 'catalogExerciseId': item.id,
       if (item?.slug != null) 'slug': item!.slug,
-      if (item?.loggingMetric != null) 'loggingMetric': item!.loggingMetric,
+      if (item != null)
+        'loggingMetric': effectiveLoggingMetric(
+          exercise: item,
+          equipmentVariant: equipmentVariant,
+        ).id,
+      if (item != null && isMachineAssistedPullup(item.slug))
+        'loadIsAssistance': true,
       'name': item?.name ?? fallbackName ?? 'Exercise',
     };
     if (item != null) {
       final options = equipmentVariantsFor(item);
       // A single option is nothing to prompt about; the watch skips it either
       // way, so don't pay for the array.
-      if (options.length > 1) json['equipmentOptions'] = options;
+      if (options.length > 1) {
+        json['equipmentOptions'] = options;
+      }
     }
-    if (equipmentVariant != null) json['equipmentVariant'] = equipmentVariant;
+    if (equipmentVariant != null) {
+      json['equipmentVariant'] = equipmentVariant;
+    }
     return json;
   }
 
@@ -1273,13 +1528,16 @@ class WearWorkoutSyncService {
   /// with an inbound apply), and a burst of edits collapses into one push of
   /// the latest state.
   Future<void> pushActiveSessionToWatch(WorkoutSessionData session) {
+    if (_disposed) {
+      return Future.value();
+    }
     _queuedPush = session;
     return _pushDrain ??= _drainPushes();
   }
 
   Future<void> _drainPushes() async {
     try {
-      while (_queuedPush != null) {
+      while (!_disposed && _queuedPush != null) {
         final next = _queuedPush!;
         _queuedPush = null;
         final run = _remoteApplyQueue
@@ -1294,6 +1552,9 @@ class WearWorkoutSyncService {
   }
 
   Future<void> _pushActiveSessionNow(WorkoutSessionData session) async {
+    if (_disposed) {
+      return;
+    }
     final isStart = _lastSyncedSessionId != session.id;
     _lastSyncedSessionId = session.id;
     // Fallback only guards a theoretical pre-migration NULL race; every
@@ -1308,13 +1569,11 @@ class WearWorkoutSyncService {
       final catalog = await _db.select(_db.exerciseCatalog).get();
 
       final List<Map<String, dynamic>> exJsonList = [];
-      var currentExerciseIndex = 0;
-      var currentSetIndex = 0;
-      var foundCurrent = false;
+      final setsPerExercise = <List<SetEntryData>>[];
 
-      final prefs = _ref.read(sharedPreferencesProvider);
-      final hintModeRaw = prefs.getString('performance_hint_mode');
-      final isNextMode = hintModeRaw == 'next';
+      if (_disposed) {
+        return;
+      }
       final weightFmt = _ref.read(weightFormatProvider);
 
       for (var i = 0; i < exercises.length; i++) {
@@ -1323,92 +1582,45 @@ class WearWorkoutSyncService {
             .where((c) => c.id == ex.exerciseId)
             .firstOrNull;
 
-        final lastSnapshot = catalogItem != null
-            ? await _workoutsRepository.lastPerformanceSnapshotFor(
-                catalogItem.id,
-              )
-            : null;
-        final lastSets = lastSnapshot?.sets ?? const <SetEntryData>[];
-        final progression = await _resolveProgressionGoal(ex.exerciseId);
-
-        double defaultPriorWeight = 0.0;
-        int defaultPriorReps = 0;
-        if (lastSets.isNotEmpty) {
-          final firstWorkingSet = lastSets.firstWhere(
-            (s) => !s.isWarmup,
-            orElse: () => lastSets.first,
-          );
-          defaultPriorWeight = firstWorkingSet.weightKg;
-          defaultPriorReps = firstWorkingSet.reps;
-        }
-
-        double defaultHintWeight = defaultPriorWeight;
-        int defaultHintReps = defaultPriorReps;
-
-        if (isNextMode && (defaultPriorWeight > 0 || defaultPriorReps > 0)) {
-          final target = ProgressionEngine.suggestNext(
-            lastWeightKg: defaultPriorWeight,
-            lastReps: defaultPriorReps > 0 ? defaultPriorReps : 1,
-            goal: progression.goal,
-            equipmentVariant:
-                ex.equipmentVariant ?? catalogItem?.modality ?? 'barbell',
-            weeklyIncreasePctOverride: progression.weeklyPctOverride,
-          );
-          if (target.weightKg > 0) defaultHintWeight = target.weightKg;
-          if (target.reps > 0) defaultHintReps = target.reps;
-        }
-
-        String? performanceHint;
-        if (isNextMode && (defaultHintWeight > 0 || defaultHintReps > 0)) {
-          performanceHint =
-              'Next: ${weightFmt.format(defaultHintWeight)} × $defaultHintReps';
-        } else if (defaultPriorWeight > 0 || defaultPriorReps > 0) {
-          performanceHint =
-              'Last: ${weightFmt.format(defaultPriorWeight)} × $defaultPriorReps';
-        }
-
         final sets = await _workoutsRepository
             .watchSetsForWorkoutExercise(ex.id)
             .first;
+        if (_disposed) {
+          return;
+        }
+        final targets = catalogItem == null
+            ? <int, WorkoutTarget>{}
+            : await _ref
+                  .read(workoutTargetsRepositoryProvider)
+                  .resolve(
+                    exercise: catalogItem,
+                    workoutExercise: ex,
+                    sets: sets,
+                    goal: _ref.read(workoutProgressionGoalProvider),
+                    nextMode:
+                        _prefs.getString('performance_hint_mode') != 'last',
+                  );
+        final active = sets.where((s) => !s.isCompleted).firstOrNull;
+        final firstTarget = targets[active?.id];
+        final defaultHintWeight = firstTarget?.weightKg ?? 0.0;
+        final defaultHintReps = firstTarget?.reps ?? 0;
+        final defaultPriorWeight = 0.0;
+        final defaultPriorReps = 0;
+        final performanceHint = firstTarget == null
+            ? null
+            : (_prefs.getString('performance_hint_mode') == 'last'
+                  ? 'Last: ${firstTarget.isAssistance ? 'Assistance ' : ''}${weightFmt.format(defaultHintWeight)} × $defaultHintReps'
+                  : '${firstTarget.isAssistance ? 'Assistance ' : ''}${weightFmt.format(defaultHintWeight)} × $defaultHintReps');
+
         final List<Map<String, dynamic>> setsJsonList = [];
 
         for (var j = 0; j < sets.length; j++) {
           final setEntry = sets[j];
           final syncState = _stateForLocalSet(entityId, setEntry);
-          final priorSet = _findPriorSet(setEntry, j, sets, lastSets);
-
-          double setPriorWeight = priorSet?.weightKg ?? defaultPriorWeight;
-          int setPriorReps = priorSet?.reps ?? defaultPriorReps;
-
-          double setHintWeight = setPriorWeight;
-          int setHintReps = setPriorReps;
-
-          if (isNextMode && priorSet != null && !priorSet.isWarmup) {
-            final target = ProgressionEngine.suggestNext(
-              lastWeightKg: setPriorWeight,
-              lastReps: setPriorReps > 0 ? setPriorReps : 1,
-              goal: progression.goal,
-              equipmentVariant:
-                  ex.equipmentVariant ?? catalogItem?.modality ?? 'barbell',
-              weeklyIncreasePctOverride: progression.weeklyPctOverride,
-            );
-            if (target.weightKg > 0) setHintWeight = target.weightKg;
-            if (target.reps > 0) setHintReps = target.reps;
-          }
-
-          final targetWeight = setEntry.weightKg > 0
-              ? setEntry.weightKg
-              : (setHintWeight > 0 ? setHintWeight : defaultHintWeight);
-          final targetReps = setEntry.reps > 0
-              ? setEntry.reps
-              : (setHintReps > 0
-                    ? setHintReps
-                    : (defaultHintReps > 0 ? defaultHintReps : 10));
-
-          final weight = setEntry.isCompleted
-              ? setEntry.weightKg
-              : targetWeight;
-          final reps = setEntry.isCompleted ? setEntry.reps : targetReps;
+          // Recommendations live in plannedSets. Actual zero/blank values
+          // must not become logged edits merely by travelling through the watch.
+          final weight = setEntry.weightKg;
+          final reps = setEntry.reps;
 
           final setJson = <String, dynamic>{
             'wireId': 'set_${setEntry.id}',
@@ -1433,46 +1645,13 @@ class WearWorkoutSyncService {
           setsJsonList.add(setJson);
         }
 
-        final firstOpenSet = sets.indexWhere(
-          (setEntry) => !setEntry.isCompleted,
-        );
-        if (!foundCurrent && firstOpenSet >= 0) {
-          currentExerciseIndex = i;
-          currentSetIndex = firstOpenSet;
-          foundCurrent = true;
-        }
+        setsPerExercise.add(sets);
 
         final plannedSetsJson = sets.map((setEntry) {
-          final idx = sets.indexOf(setEntry);
-          final priorSet = _findPriorSet(setEntry, idx, sets, lastSets);
-          double setPriorWeight = priorSet?.weightKg ?? defaultPriorWeight;
-          int setPriorReps = priorSet?.reps ?? defaultPriorReps;
-          double setHintWeight = setPriorWeight;
-          int setHintReps = setPriorReps;
-          if (isNextMode && priorSet != null && !priorSet.isWarmup) {
-            final target = ProgressionEngine.suggestNext(
-              lastWeightKg: setPriorWeight,
-              lastReps: setPriorReps > 0 ? setPriorReps : 1,
-              goal: progression.goal,
-              equipmentVariant:
-                  ex.equipmentVariant ?? catalogItem?.modality ?? 'barbell',
-              weeklyIncreasePctOverride: progression.weeklyPctOverride,
-            );
-            if (target.weightKg > 0) setHintWeight = target.weightKg;
-            if (target.reps > 0) setHintReps = target.reps;
-          }
-          final tWeight =
-              setEntry.plannedWeightKg ??
-              (setEntry.weightKg > 0
-                  ? setEntry.weightKg
-                  : (setHintWeight > 0 ? setHintWeight : defaultHintWeight));
-          final tReps =
-              setEntry.plannedRepsMin ??
-              (setEntry.reps > 0
-                  ? setEntry.reps
-                  : (setHintReps > 0
-                        ? setHintReps
-                        : (defaultHintReps > 0 ? defaultHintReps : 10)));
+          final target = targets[setEntry.id];
+          final tWeight = target?.weightKg;
+          final tReps = target?.reps;
+          final targetRpeVal = setEntry.plannedRpeX10 ?? target?.rpeX10;
           return {
             'wireId': 'set_${setEntry.id}',
             'setIndex': setEntry.setIndex,
@@ -1482,8 +1661,7 @@ class WearWorkoutSyncService {
             'targetRepsMin': setEntry.plannedRepsMin,
             'targetRepsMax': setEntry.plannedRepsMax,
             'targetWeightKg': tWeight,
-            if (setEntry.plannedRpeX10 != null)
-              'targetRpe': setEntry.plannedRpeX10! / 10.0,
+            if (targetRpeVal != null) 'targetRpe': targetRpeVal / 10.0,
             'targetRir': setEntry.plannedRir,
             'targetPercentOf1Rm': setEntry.plannedPercentOf1Rm,
             'plannedIntent': setEntry.plannedIntent,
@@ -1528,7 +1706,15 @@ class WearWorkoutSyncService {
           ? session.name!
           : 'Active Workout';
 
+      if (exercises.isNotEmpty) {
+        final idx = currentExerciseIndexFor(setsPerExercise);
+        final openSet = setsPerExercise[idx].indexWhere((s) => !s.isCompleted);
+        _lastCurrentExerciseIndex = idx;
+        _lastCurrentSetIndex = openSet >= 0 ? openSet : 0;
+      }
+
       final Map<String, dynamic> sessionPayload = {
+        'healthExport': await _appleHealthExport(entityId),
         'template': {
           'id': 'phone_session',
           'name': templateName,
@@ -1539,18 +1725,6 @@ class WearWorkoutSyncService {
         'startedAtEpochMs': session.startedAt.millisecondsSinceEpoch,
         'exercises': exJsonList,
       };
-
-      if (foundCurrent) {
-        _lastCurrentExerciseIndex = currentExerciseIndex;
-        _lastCurrentSetIndex = currentSetIndex;
-        sessionPayload['currentExerciseIndex'] = currentExerciseIndex;
-        sessionPayload['currentSetIndex'] = currentSetIndex;
-      } else if (exercises.isNotEmpty) {
-        final lastIdx = exercises.length - 1;
-        _lastCurrentExerciseIndex = lastIdx;
-        sessionPayload['currentExerciseIndex'] = lastIdx;
-        sessionPayload['currentSetIndex'] = 0;
-      }
 
       final sessionJson = WearSyncEnvelope.wrap(
         entity: wearSyncEntityActiveWorkout,
@@ -1617,11 +1791,15 @@ class _PhoneSetSyncState {
   };
 
   static _PhoneSetSyncState? fromJson(Object? raw) {
-    if (raw is! Map) return null;
+    if (raw is! Map) {
+      return null;
+    }
     final weight = (raw['weightKg'] as num?)?.toDouble();
     final reps = (raw['reps'] as num?)?.toInt();
     final completed = raw['isCompleted'] as bool?;
-    if (weight == null || reps == null || completed == null) return null;
+    if (weight == null || reps == null || completed == null) {
+      return null;
+    }
     final fallback = WearSyncStamp(revision: 0, origin: wearSyncOriginPhone);
     final completedAtEpochMs = (raw['completedAtEpochMs'] as num?)?.toInt();
     return _PhoneSetSyncState(
@@ -1652,6 +1830,8 @@ class _WearSetTarget {
     this.targetRepsMin,
     this.targetRepsMax,
     this.targetWeightKg,
+    this.rpeX10,
+    this.percentOf1Rm,
   });
 
   final int order;
@@ -1661,6 +1841,7 @@ class _WearSetTarget {
   final int? targetReps;
   final int? targetRepsMin;
   final int? targetRepsMax;
-  final double? targetWeightKg;
+  final double? targetWeightKg, percentOf1Rm;
+  final int? rpeX10;
   final bool isWarmup;
 }

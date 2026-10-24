@@ -26,6 +26,44 @@ class ActiveWorkoutNotificationTarget {
   });
 }
 
+/// Index of the exercise the user is "on".
+///
+/// Not simply the first exercise with an open set: if the user skips ahead or
+/// works out of order, that would keep pointing at exercise 1. Instead we
+/// anchor on the exercise whose set was completed most recently, stay there
+/// while it still has open sets, and otherwise continue with the next
+/// exercise (wrapping around) that has something left to do.
+///
+/// With no completed set yet it is the first exercise with open (or no) sets.
+/// When everything is done it is the last exercise.
+int currentExerciseIndexFor(List<List<SetEntryData>> setsPerExercise) {
+  final n = setsPerExercise.length;
+  if (n == 0) return 0;
+
+  bool hasWork(List<SetEntryData> sets) =>
+      sets.isEmpty || sets.any((s) => !s.isCompleted);
+
+  var anchor = 0;
+  DateTime? latest;
+  for (var i = 0; i < n; i++) {
+    for (final s in setsPerExercise[i]) {
+      final at = s.completedAt;
+      if (s.isCompleted &&
+          at != null &&
+          (latest == null || at.isAfter(latest))) {
+        latest = at;
+        anchor = i;
+      }
+    }
+  }
+
+  for (var step = 0; step < n; step++) {
+    final i = (anchor + step) % n;
+    if (hasWork(setsPerExercise[i])) return i;
+  }
+  return n - 1;
+}
+
 ActiveWorkoutNotificationTarget? selectActiveWorkoutNotificationTarget({
   required List<WorkoutExerciseData> exercises,
   required Map<int, List<SetEntryData>> setsByWorkoutExerciseId,
@@ -33,54 +71,48 @@ ActiveWorkoutNotificationTarget? selectActiveWorkoutNotificationTarget({
 }) {
   if (exercises.isEmpty) return null;
 
-  ActiveWorkoutNotificationTarget? fallback;
-  for (final exercise in exercises) {
-    final sets = setsByWorkoutExerciseId[exercise.id] ?? const <SetEntryData>[];
+  final index = currentExerciseIndexFor([
+    for (final e in exercises)
+      setsByWorkoutExerciseId[e.id] ?? const <SetEntryData>[],
+  ]);
+  final exercise = exercises[index];
+  final sets = setsByWorkoutExerciseId[exercise.id] ?? const <SetEntryData>[];
 
-    final catalogEntry = catalog.firstWhereOrNull(
-      (e) => e.id == exercise.exerciseId,
+  final catalogEntry = catalog.firstWhereOrNull(
+    (e) => e.id == exercise.exerciseId,
+  );
+  final exerciseName = catalogEntry?.name ?? 'Workout in progress';
+
+  if (sets.isEmpty) {
+    final syntheticSet = SetEntryData(
+      id: -exercise.id,
+      workoutExerciseId: exercise.id,
+      setIndex: 0,
+      weightKg: 0.0,
+      reps: 0,
+      setType: 'standard',
+      isWarmup: false,
+      isCompleted: false,
     );
-    final exerciseName = catalogEntry?.name ?? 'Workout in progress';
-
-    if (sets.isEmpty) {
-      final syntheticSet = SetEntryData(
-        id: -exercise.id,
-        workoutExerciseId: exercise.id,
-        setIndex: 0,
-        weightKg: 0.0,
-        reps: 0,
-        setType: 'standard',
-        isWarmup: false,
-        isCompleted: false,
-      );
-      return ActiveWorkoutNotificationTarget(
-        exerciseName: exerciseName,
-        set: syntheticSet,
-        totalSets: 1,
-        primaryMuscle: catalogEntry?.primaryMuscle ?? '',
-        equipmentVariant:
-            exercise.equipmentVariant ?? catalogEntry?.modality ?? '',
-      );
-    }
-
-    final nextOpenSet = sets.where((s) => !s.isCompleted).firstOrNull;
-    final targetSet = nextOpenSet ?? sets.last;
-    final target = ActiveWorkoutNotificationTarget(
+    return ActiveWorkoutNotificationTarget(
       exerciseName: exerciseName,
-      set: targetSet,
-      setNumber: numberSets(sets)[sets.indexOf(targetSet)],
-      totalSets: sets.length,
+      set: syntheticSet,
+      totalSets: 1,
       primaryMuscle: catalogEntry?.primaryMuscle ?? '',
       equipmentVariant:
           exercise.equipmentVariant ?? catalogEntry?.modality ?? '',
-      lastCompletedSet: sets.where((s) => s.isCompleted).lastOrNull,
     );
-
-    if (nextOpenSet != null) {
-      return target;
-    }
-    fallback = target;
   }
 
-  return fallback;
+  final nextOpenSet = sets.where((s) => !s.isCompleted).firstOrNull;
+  final targetSet = nextOpenSet ?? sets.last;
+  return ActiveWorkoutNotificationTarget(
+    exerciseName: exerciseName,
+    set: targetSet,
+    setNumber: numberSets(sets)[sets.indexOf(targetSet)],
+    totalSets: sets.length,
+    primaryMuscle: catalogEntry?.primaryMuscle ?? '',
+    equipmentVariant: exercise.equipmentVariant ?? catalogEntry?.modality ?? '',
+    lastCompletedSet: sets.where((s) => s.isCompleted).lastOrNull,
+  );
 }

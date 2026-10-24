@@ -21,6 +21,10 @@ import 'package:herculex/services/platform/workout_notification_service.dart';
 ///
 /// Watched once from the app root.
 final restTimerWearBridgeProvider = Provider<void>((ref) {
+  var disposed = false;
+  ref.onDispose(() {
+    disposed = true;
+  });
   int? lastSentEndsAtMs;
   ref.listen<RestTimerState>(restTimerProvider, (previous, next) {
     final endsAtMs = next.endsAt?.millisecondsSinceEpoch;
@@ -42,6 +46,7 @@ final restTimerWearBridgeProvider = Provider<void>((ref) {
         .read(wearWorkoutSyncServiceProvider)
         .hasActiveSyncedSession;
     final payload = jsonEncode({
+      'entityId': ref.read(activeSessionProvider).asData?.value?.sessionUuid,
       'endsAtEpochMs': endsAtMs ?? 0,
       'totalSeconds': next.targetSeconds,
       'label': next.exerciseName ?? '',
@@ -50,6 +55,13 @@ final restTimerWearBridgeProvider = Provider<void>((ref) {
     });
 
     wear.syncRestTimer(payload).then((delivered) {
+      if (disposed) return;
+      // A slower reply for a replaced/cancelled timer must never silence or
+      // schedule the alert belonging to its successor.
+      if (ref.read(restTimerProvider).endsAt?.millisecondsSinceEpoch !=
+          endsAtMs) {
+        return;
+      }
       if (!watchFollowsWorkout || !alert || endsAtMs == null) return;
       final service = WorkoutNotificationService.instance;
       if (delivered) {

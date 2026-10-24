@@ -10,7 +10,7 @@ import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
 import 'package:herculex/features/workouts/presentation/views/planned_workout_preview_view.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import '../support/test_database.dart';
 
 class _FakeScheduledWorkoutService extends Fake
@@ -41,6 +41,7 @@ class _FakeScheduledWorkoutService extends Fake
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => SharedPreferences.setMockInitialValues({}));
 
   late AppDatabase db;
 

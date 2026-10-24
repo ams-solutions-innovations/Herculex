@@ -215,6 +215,7 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
             excludedMuscles: excludedMuscles,
             workoutDurationMinutes: _workoutDurationMinutes,
             allowTimeSavingSetTechniques: _allowTimeSavingSetTechniques,
+            timeSavingTechnique: _timeSavingTechnique,
             includeAutomaticWarmups: _includeAutomaticWarmups,
             includeGppConditioning:
                 _trainingStyle == TrainingStyle.fullBody2xGpp
@@ -224,6 +225,16 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
             buildMode: _buildMode,
             mainMethodByDayLabel: _mainMethodByDayLabel,
             dayRoles: _dayRoles,
+            dayRolesByIndex:
+                _acceptedHerculexBrief?.splitType == _split &&
+                    _acceptedHerculexBrief?.periodizationModel == _model &&
+                    _acceptedHerculexBrief?.dayRoles.length ==
+                        _plan.trainingDayCount
+                ? {
+                    for (final role in _acceptedHerculexBrief!.dayRoles)
+                      role.dayIndex: role.role,
+                  }
+                : const {},
             musclePriorities: _manualPriorities,
             muscleVolumeWeights: _manualWeights,
             weeklySetCaps: _useManualMusclePlan ? _manualSetCaps : const {},
@@ -294,6 +305,21 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
               'goal': _goal.id,
               'experience': _experience.id,
               'weeks': _weeks,
+              'trainingStyle': _trainingStyle.id,
+              'daysPerWeek': _daysPerWeek,
+              'scheduleMode': _mode.name,
+              'periodizationModel': _model.id,
+              'workoutDurationMinutes': _workoutDurationMinutes,
+              'allowTimeSavingSetTechniques': _allowTimeSavingSetTechniques,
+              'timeSavingTechnique': _timeSavingTechnique.id,
+              'includeAutomaticWarmups': _includeAutomaticWarmups,
+              'includeGppConditioning': _includeGppConditioning,
+              'musclePriorities': _useManualMusclePlan
+                  ? _manualPriorities
+                  : _dreamPhysiquePriorities,
+              'weeklySetCaps': _useManualMusclePlan
+                  ? _manualSetCaps
+                  : const <String, int>{},
             },
           );
       final configIssues = ProgramGuardrails.validateConfiguration(
@@ -341,11 +367,18 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
           // Generate/Regenerate tap.
           _split = brief.splitType;
           _model = brief.periodizationModel;
+          _clearCustomWeeklyPlacement();
+          _templatesBySlot.clear();
+          _dayRoles.clear();
         });
       }
     } on HerculexAiBriefException catch (e) {
       if (!mounted) return;
       setState(() {
+        if (e.isProfileConflict) {
+          _herculexRejectionMessage = e.message;
+          return;
+        }
         _herculexDegradationMessage = e.isQuotaExhausted
             ? "Today's Herculex AI program briefs are used up — try again "
                   'tomorrow. Continuing with the Smart/Guided recommendation.'

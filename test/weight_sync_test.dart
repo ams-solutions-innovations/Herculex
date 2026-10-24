@@ -85,6 +85,77 @@ void main() {
 
         expect(profileRepo.currentProfile?.weightKg, equals(80.0));
         expect(await measurementsRepo.latestBodyweightKg(), equals(80.0));
+        expect(
+          await measurementsRepo.watchMetric('bodyweight').first,
+          hasLength(1),
+        );
+      },
+    );
+
+    test(
+      'correcting a daily weight updates it without retaining the bad value',
+      () async {
+        await measurementsRepo.logMeasurement(
+          dateIso: '2026-08-20',
+          metric: 'bodyweight',
+          value: 250.0,
+        );
+        await measurementsRepo.logMeasurement(
+          dateIso: '2026-08-20',
+          metric: 'bodyweight',
+          value: 75.5,
+        );
+
+        final rows = await measurementsRepo.watchMetric('bodyweight').first;
+        expect(rows, hasLength(1));
+        expect(rows.single.value, equals(75.5));
+        expect(await measurementsRepo.latestBodyweightKg(), equals(75.5));
+        expect(profileRepo.currentProfile?.weightKg, equals(75.5));
+        expect(
+          (await measurementsRepo.getLatestMeasurements())['bodyweight'],
+          equals(75.5),
+        );
+      },
+    );
+
+    test('deleted measurements never contribute to the latest value', () async {
+      await measurementsRepo.logMeasurement(
+        dateIso: '2026-08-20',
+        metric: 'bodyweight',
+        value: 80.0,
+      );
+      await measurementsRepo.logMeasurement(
+        dateIso: '2026-08-21',
+        metric: 'bodyweight',
+        value: 250.0,
+      );
+      final bad = (await measurementsRepo.watchMetric('bodyweight').first)
+          .singleWhere((row) => row.value == 250.0);
+
+      await measurementsRepo.deleteMeasurement(bad.id);
+
+      expect(await measurementsRepo.latestBodyweightKg(), equals(80.0));
+      expect(
+        (await measurementsRepo.getLatestMeasurements())['bodyweight'],
+        equals(80.0),
+      );
+    });
+
+    test(
+      'editing a bodyweight corrects the profile and latest measurement',
+      () async {
+        await measurementsRepo.logMeasurement(
+          dateIso: '2026-08-20',
+          metric: 'bodyweight',
+          value: 250.0,
+        );
+        final bad =
+            (await measurementsRepo.watchMetric('bodyweight').first).single;
+
+        await measurementsRepo.updateMeasurement(id: bad.id, value: 75.5);
+
+        expect(await measurementsRepo.latestBodyweightKg(), equals(75.5));
+        expect(profileRepo.currentProfile?.weightKg, equals(75.5));
       },
     );
   });

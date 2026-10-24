@@ -6,7 +6,7 @@ import android.widget.RemoteViews
 /** 2×1 Volume: working sets logged this week. Data arrives through `syncWidgetData("volume")`. */
 class VolumeWidgetProvider : HxWidgetProvider() {
 
-    override val defaultSize = 182f to 80f
+    override val defaultSize = 182f to 86f
 
     override fun render(context: Context, renderer: HxWidgetRenderer, w: Float, h: Float): HxRendered {
         val d = data(context, "volume")

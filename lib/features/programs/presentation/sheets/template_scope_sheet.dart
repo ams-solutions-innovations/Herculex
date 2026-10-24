@@ -27,22 +27,22 @@ class TemplateScopeSheet {
       builder: (sheetContext) => HxSheet(
         scrollable: false,
         title: 'Apply to',
-        subtitle: 'This template can cover one session or all of them.',
+        subtitle:
+            'Choose whether this edit lasts for one workout or every wave.',
         child: Column(
           children: [
             _ScopeOption(
               icon: Icons.today_rounded,
-              title: 'This session only',
-              subtitle: 'Swap just ${DateFormat('MMM d').format(date)}.',
+              title: 'This workout only',
+              subtitle: 'Applies only to ${DateFormat('MMM d').format(date)}.',
               onTap: () =>
                   Navigator.pop(sheetContext, TemplateScope.thisSession),
             ),
             const SizedBox(height: 8),
             _ScopeOption(
               icon: Icons.repeat_rounded,
-              title: 'Every future $dayTitle day',
-              subtitle:
-                  'Re-links the program day; past sessions are untouched.',
+              title: 'Every wave',
+              subtitle: 'Use this edited template for every future $dayTitle.',
               onTap: () =>
                   Navigator.pop(sheetContext, TemplateScope.everyFuture),
             ),

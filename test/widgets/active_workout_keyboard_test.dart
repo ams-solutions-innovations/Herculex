@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
@@ -9,11 +10,22 @@ import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/services/platform/app_shortcuts_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../support/test_database.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('plugins.flutter.io/quick_actions'),
+          (_) async => null,
+        );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMessageHandler(
+          'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle',
+          (_) async => const StandardMessageCodec().encodeMessage([null]),
+        );
+  });
 
   late AppDatabase db;
   late SharedPreferences prefs;
@@ -28,6 +40,9 @@ void main() {
 
   Future<void> settle(WidgetTester tester, {int frames = 10}) async {
     for (var i = 0; i < frames; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
       await tester.pump(const Duration(milliseconds: 50));
     }
   }
@@ -79,7 +94,7 @@ void main() {
   testWidgets(
     'workoutInputFocusedProvider synchronizes hiding and ignoring of nav bar and workout action bar',
     (tester) async {
-      await seedActiveSession();
+      await tester.runAsync(seedActiveSession);
 
       final container = ProviderContainer(
         overrides: [
@@ -89,7 +104,15 @@ void main() {
           appShortcutsControllerProvider.overrideWithValue(null),
         ],
       );
-      addTearDown(container.dispose);
+      var disposed = false;
+      void disposeContainer() {
+        if (!disposed) {
+          disposed = true;
+          container.dispose();
+        }
+      }
+
+      addTearDown(disposeContainer);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -222,6 +245,9 @@ void main() {
       // Tear down safely before canceling stream timers
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(milliseconds: 50));
+      await tester.runAsync(() async {
+        disposeContainer();
+      });
     },
   );
 }

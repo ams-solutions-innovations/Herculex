@@ -10,6 +10,7 @@ import 'package:herculex/features/weekly_report/application/weekly_report_provid
 import 'package:herculex/features/weekly_report/data/weekly_report_repository.dart';
 import 'package:herculex/features/weekly_report/domain/iso_week.dart';
 import 'package:herculex/features/weekly_report/domain/weekly_report_payload.dart';
+import 'package:herculex/features/weekly_report/domain/weekly_report_summary.dart';
 import 'package:herculex/features/weekly_report/presentation/widgets/section_card_scaffold.dart';
 import 'package:intl/intl.dart';
 
@@ -160,6 +161,8 @@ class _ReportRow extends StatelessWidget {
     final hx = context.hx;
     final week = record.week;
     final unread = record.viewedAt == null;
+    final payload = WeeklyReportPayload.tryDecode(record.payloadJson);
+    final summary = payload == null ? null : WeeklyReportSummary.from(payload);
     return HxCard(
       onTap: () =>
           context.push(AppPaths.weeklyReport(week.isoYear, week.isoWeek)),
@@ -178,6 +181,17 @@ class _ReportRow extends StatelessWidget {
                     ).copyWith(fontWeight: FontWeight.w600),
                   ),
                   Text(_rangeLabel(week), style: ReportText.label(context)),
+                  if (summary != null) ...[
+                    const SizedBox(height: HxSpace.x1),
+                    Text(
+                      '${summary.verdict.label} · ${summary.detail}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: ReportText.label(
+                        context,
+                      ).copyWith(color: hx.onSurface),
+                    ),
+                  ],
                 ],
               ),
             ),

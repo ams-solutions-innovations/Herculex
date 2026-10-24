@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,8 +23,8 @@ import 'package:herculex/features/physique/domain/roadmap_exit_criteria.dart';
 import 'package:herculex/features/physique/presentation/views/physique_progress_view.dart';
 import 'package:herculex/features/physique/presentation/widgets/verdict_block.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../support/exif_jpeg_fixture.dart';
 import '../../../support/fake_clock.dart';
 
@@ -209,6 +208,8 @@ class _Data {
         (ref) => Stream.value(const <WeightLog>[]),
       ),
       physiqueCheckInFlowProvider.overrideWithValue(_FakeFlow()),
+      // The training-block card on this screen reads the program tables.
+      activeProgramProvider.overrideWith((ref) => Stream.value(null)),
       activePhysiqueGoalProvider.overrideWith(
         (ref) => Stream.value(hasActiveGoal && g.status == 'active' ? g : null),
       ),
@@ -716,13 +717,13 @@ void main() {
       );
       await _pump(tester, _host(d, prefs: prefs));
       await tester.pump(const Duration(milliseconds: 500));
-      expect(find.textContaining('Step 2 of'), findsOneWidget);
+      expect(find.textContaining('Step 1 of'), findsOneWidget);
       final container = ProviderScope.containerOf(
         tester.element(find.byType(PhysiqueProgressView)),
       );
       expect(container.read(physiqueResumedCaptureProvider), isNull);
       await tester.pump(const Duration(milliseconds: 500));
-      expect(find.textContaining('Step 2 of'), findsOneWidget);
+      expect(find.textContaining('Step 1 of'), findsOneWidget);
     });
 
     testWidgets('ignores a capture for another goal', (tester) async {

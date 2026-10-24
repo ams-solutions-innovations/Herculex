@@ -4,6 +4,7 @@ import 'package:herculex/features/analytics/data/analytics_repository.dart';
 import 'package:herculex/features/analytics/domain/balance_analyzer.dart';
 import 'package:herculex/features/analytics/domain/biometric_correlations.dart';
 import 'package:herculex/features/analytics/domain/cns_trends.dart';
+import 'package:herculex/features/analytics/domain/insights_week_summary.dart';
 import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
 import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 import 'package:herculex/features/analytics/domain/variant_performance.dart';
@@ -97,6 +98,21 @@ final recoveryWarningsProvider = FutureProvider<List<RecoveryWarning>>((
 final cnsTrendsProvider = FutureProvider<CnsTrendsResult>((ref) async {
   final snapshot = await ref.watch(trainingSnapshotProvider.future);
   return CnsTrends.compute(snapshot: snapshot, asOf: DateTime.now());
+});
+
+/// Headline numbers for the top of Insights.
+final insightsWeekSummaryProvider = FutureProvider<InsightsWeekSummary>((
+  ref,
+) async {
+  final snapshot = await ref.watch(trainingSnapshotProvider.future);
+  final cns = await ref.watch(cnsTrendsProvider.future);
+  final recovery = await ref.watch(recoveryV3Provider.future);
+  return InsightsWeekSummary.compute(
+    snapshot: snapshot,
+    cns: cns,
+    recovery: recovery,
+    now: ref.watch(clockProvider).now(),
+  );
 });
 
 /// (exerciseId) → PRs per equipment variant (§1).

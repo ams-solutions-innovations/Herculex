@@ -1,8 +1,8 @@
 part of '../block_detail_view.dart';
 
 /// One program day: its template/link trigger (D-03, unchanged), plus each
-/// planned exercise's summary line and a new per-exercise "Replace this
-/// exercise" trigger (D-04) that opens the same [ExerciseReplacementSheet]
+/// planned exercise as an [_ExerciseLine] with a "Replace this exercise"
+/// trigger (D-04) that opens the same [ExerciseReplacementSheet]
 /// used pre-commit and reaches future materialized sessions without
 /// disturbing already-started or completed ones.
 class _DayRow extends ConsumerWidget {
@@ -105,72 +105,13 @@ class _DayRow extends ConsumerWidget {
             data: (items) => items.isEmpty
                 ? const SizedBox.shrink()
                 : Padding(
-                    padding: const EdgeInsets.only(left: 44, top: 6, bottom: 4),
+                    padding: const EdgeInsets.only(top: 6, bottom: 4),
                     child: Column(
                       children: [
                         for (final item in items)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 5,
-                                  height: 5,
-                                  margin: const EdgeInsets.only(
-                                    top: 6,
-                                    right: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.name,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      ),
-                                      Text(
-                                        '${item.targetLabel} · ${item.role.replaceAll('_', ' ')} · ${item.method.replaceAll('_', ' ')}',
-                                        style: theme.textTheme.labelSmall
-                                            ?.copyWith(
-                                              color: AppColors.secondary,
-                                            ),
-                                      ),
-                                      if (item.why?.isNotEmpty == true)
-                                        Text(
-                                          item.why!,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.labelSmall
-                                              ?.copyWith(
-                                                color: AppColors.secondary,
-                                                fontStyle: FontStyle.italic,
-                                              ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                IconButton(
-                                  visualDensity: VisualDensity.compact,
-                                  tooltip: 'Replace this exercise',
-                                  icon: Icon(
-                                    Icons.swap_horiz_rounded,
-                                    size: 18,
-                                    color: AppColors.primary,
-                                  ),
-                                  onPressed: () => _replace(context, ref, item),
-                                ),
-                              ],
-                            ),
+                          _ExerciseLine(
+                            item: item,
+                            onReplace: () => _replace(context, ref, item),
                           ),
                       ],
                     ),

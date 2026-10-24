@@ -71,6 +71,24 @@ class MealSlotsView extends ConsumerWidget {
             ),
           ),
         ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: hx.surfaceContainer,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
+          ),
+          child: SwitchListTile.adaptive(
+            value: ref.watch(micronutrientsVisibleProvider),
+            onChanged: (v) =>
+                ref.read(micronutrientsVisibleProvider.notifier).set(v),
+            secondary: Icon(Icons.science_outlined, color: hx.primary),
+            title: const Text('Show micronutrients'),
+            subtitle: const Text(
+              'Show or hide micronutrient details in the daily food log.',
+            ),
+          ),
+        ),
         const SizedBox(height: HxSpace.x4),
         ReorderableListView.builder(
           shrinkWrap: true,

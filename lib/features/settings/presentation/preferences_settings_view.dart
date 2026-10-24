@@ -5,7 +5,6 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/components.dart';
-import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/data/speech_to_text_service.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/settings/presentation/widgets/stt_language_picker.dart';
@@ -99,7 +98,6 @@ class PreferencesSettingsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final profile = ref.watch(profileProvider).valueOrNull;
     final stt = ref.watch(speechToTextServiceProvider);
 
@@ -151,23 +149,11 @@ class PreferencesSettingsView extends ConsumerWidget {
             HxSettingsTile(
               icon: Icons.mic_rounded,
               label: 'Voice / Rambler Language',
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '${stt.selectedLanguageOption.flag} ${stt.selectedLanguageOption.name}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: context.hx.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right,
-                    color: context.hx.onSurfaceVariant,
-                    size: 18,
-                  ),
-                ],
-              ),
+              // As a subtitle rather than a trailing value: beside the label
+              // it squeezed "Voice / Rambler Language" onto two lines.
+              subtitle:
+                  '${stt.selectedLanguageOption.flag} ${stt.selectedLanguageOption.name}',
+              chevron: true,
               onTap: () => showSttLanguagePicker(context, ref),
             ),
           ],

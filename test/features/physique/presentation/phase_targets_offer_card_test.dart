@@ -38,6 +38,7 @@ class _FakeApplier implements PhaseTargetsApplier {
     required DietPhase phase,
     required DietPaceOption pace,
     required PhaseTargets targets,
+    DateTime? effectiveFrom,
   }) async {
     calls.add((phase: phase, pace: pace, targets: targets));
   }
@@ -148,6 +149,9 @@ void main() {
     expect(h.applier.calls, isEmpty);
 
     await tester.tap(find.byKey(const Key('phase-offer-apply')));
+    await tester.pumpAndSettle();
+    expect(h.applier.calls, isEmpty);
+    await tester.tap(find.text('From today'));
     await tester.pumpAndSettle();
 
     expect(h.applier.calls, hasLength(1));

@@ -1,15 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/utils/env.dart';
+import 'package:herculex/services/ai/ai_backend_exception.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+export 'package:herculex/services/ai/ai_backend_exception.dart';
 
 const dreamPhysiqueImageConsentVersion = 'dream_physique_images_v1';
 
 final geminiBackendProvider = Provider<GeminiBackend>((ref) {
-  if (!Env.hasSupabase) return const UnconfiguredGeminiBackend();
+  if (!Env.hasSupabase) {
+    return const UnconfiguredGeminiBackend();
+  }
   return SupabaseGeminiBackend(Supabase.instance.client);
 });
 
@@ -27,7 +30,7 @@ abstract interface class PhysiqueCheckInBackend {
   Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
   analyzePhysiqueCheckIn({
     required List<Map<String, dynamic>> baselineImages,
-    required Map<String, dynamic> currentImage,
+    required List<Map<String, dynamic>> currentImages,
     required Map<String, dynamic> context,
     String? userNote,
   });
@@ -206,7 +209,7 @@ class UnconfiguredGeminiBackend
   Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
   analyzePhysiqueCheckIn({
     required List<Map<String, dynamic>> baselineImages,
-    required Map<String, dynamic> currentImage,
+    required List<Map<String, dynamic>> currentImages,
     required Map<String, dynamic> context,
     String? userNote,
   }) async {
@@ -269,7 +272,9 @@ class SupabaseGeminiBackend
       'image': _imagePayload(imageBytes, mimeType),
     });
     final text = data['text'];
-    if (text is String && text.isNotEmpty) return text.trim();
+    if (text is String && text.isNotEmpty) {
+      return text.trim();
+    }
     final result = data['result'];
     if (result is Map && result['identifiedName'] is String) {
       return (result['identifiedName'] as String).trim();
@@ -287,8 +292,12 @@ class SupabaseGeminiBackend
       'image': _imagePayload(imageBytes, mimeType),
     });
     final result = data['result'];
-    if (result is Map<String, dynamic>) return result;
-    if (result is Map) return Map<String, dynamic>.from(result);
+    if (result is Map<String, dynamic>) {
+      return result;
+    }
+    if (result is Map) {
+      return Map<String, dynamic>.from(result);
+    }
     final text = data['text'];
     return {
       'identifiedName': text is String ? text.trim() : 'Unknown',
@@ -413,17 +422,19 @@ class SupabaseGeminiBackend
   Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
   analyzePhysiqueCheckIn({
     required List<Map<String, dynamic>> baselineImages,
-    required Map<String, dynamic> currentImage,
+    required List<Map<String, dynamic>> currentImages,
     required Map<String, dynamic> context,
     String? userNote,
   }) async {
-    Map<String, String> encode(Map<String, dynamic> img) =>
-        _imagePayload(img['bytes'] as List<int>, img['mimeType'] as String);
+    Map<String, String> encode(Map<String, dynamic> img) => {
+      ..._imagePayload(img['bytes'] as List<int>, img['mimeType'] as String),
+      if (img['pose'] is String) 'pose': img['pose'] as String,
+    };
 
     final data = await _invoke({
       'kind': 'physique_checkin',
       'baselineImages': baselineImages.map(encode).toList(),
-      'currentImages': [encode(currentImage)],
+      'currentImages': currentImages.map(encode).toList(),
       'checkinContext': context,
       'userNote': userNote,
       // The caller only reaches this after the user accepted the matching,
@@ -445,42 +456,109 @@ class SupabaseGeminiBackend
     return _resultWithProvenance(data);
   }
 
+  Future<Map<String, dynamic>> explainLabs(Map<String, dynamic> facts) async {
+    final data = await _invoke({
+      'kind': 'labs_report',
+      'facts': facts,
+      'privacyConsent': {'version': 'labs_summary_v1', 'granted': true},
+    });
+    return _resultWithProvenance(data).$1;
+  }
+
   Future<Map<String, dynamic>> _invoke(Map<String, dynamic> body) async {
+    final elapsed = Stopwatch()..start();
+    const deadline = Duration(seconds: 80);
     try {
-      final response = await _client.functions
-          .invoke('gemini-analyze', body: body)
-          .timeout(const Duration(seconds: 45));
-      final data = response.data;
-      if (data is Map<String, dynamic>) return data;
-      if (data is Map) return Map<String, dynamic>.from(data);
-      throw Exception('AI analysis returned an invalid response.');
+      for (var attempt = 0; attempt < 2; attempt++) {
+        try {
+          final remaining = deadline - elapsed.elapsed;
+          if (remaining <= Duration.zero) {
+            throw TimeoutException('AI request deadline');
+          }
+          final response = await _client.functions
+              .invoke('gemini-analyze', body: body)
+              .timeout(remaining);
+          final raw = response.data;
+          final data = raw is Map<String, dynamic>
+              ? raw
+              : raw is Map
+              ? Map<String, dynamic>.from(raw)
+              : null;
+          if (data == null) {
+            throw const AiBackendException(
+              AiFailureKind.invalidResponse,
+              'Herculex AI returned an incomplete response. Please try again.',
+              retryable: true,
+            );
+          }
+          if (response.status >= 400 || data['error'] is String) {
+            throw AiBackendException.fromResponse(response.status, data);
+          }
+          return data;
+        } on FunctionException catch (error) {
+          // A gateway rejection has not consumed an AI quota unit. Refresh once.
+          if (attempt == 0 &&
+              error.status == 401 &&
+              _client.auth.currentSession != null) {
+            final remaining = deadline - elapsed.elapsed;
+            if (remaining <= Duration.zero) {
+              throw TimeoutException('AI request deadline');
+            }
+            try {
+              await _client.auth.refreshSession().timeout(remaining);
+            } on TimeoutException {
+              rethrow;
+            } on Object {
+              throw const AiBackendException(
+                AiFailureKind.authorization,
+                'Please sign in again to use Herculex AI.',
+              );
+            }
+            continue;
+          }
+          throw AiBackendException.fromResponse(error.status, error.details);
+        }
+      }
+      throw const AiBackendException(
+        AiFailureKind.authorization,
+        'Please sign in again to use Herculex AI.',
+      );
     } on TimeoutException {
-      throw Exception(
-        'AI analysis timed out. Please check your internet connection and try again.',
+      throw const AiBackendException(
+        AiFailureKind.timeout,
+        'Herculex AI took too long. Your input is kept; please try again.',
+        retryable: true,
       );
     } on SocketException {
-      throw Exception(
-        'Cannot connect to the server. Please check your internet connection.',
+      throw const AiBackendException(
+        AiFailureKind.unavailable,
+        'Cannot connect to the server. Check your internet connection and try again.',
+        retryable: true,
       );
-    } on FunctionException catch (error) {
-      final details = error.details;
-      if (details is Map && details['error'] is String) {
-        throw Exception(details['error'] as String);
-      }
-      throw Exception(
-        'AI analysis failed (${error.status}). Please try again.',
+    } on AiBackendException {
+      rethrow;
+    } on Object {
+      throw const AiBackendException(
+        AiFailureKind.unavailable,
+        'Herculex AI could not connect. Your input is kept; please try again.',
+        retryable: true,
       );
-    } catch (e) {
-      if (e is Exception) rethrow;
-      throw Exception('Error connecting to Herculex AI: $e');
     }
   }
 
   Map<String, dynamic> _resultMap(Map<String, dynamic> data) {
     final result = data['result'];
-    if (result is Map<String, dynamic>) return result;
-    if (result is Map) return Map<String, dynamic>.from(result);
-    throw Exception('AI analysis returned an invalid JSON result.');
+    if (result is Map<String, dynamic>) {
+      return result;
+    }
+    if (result is Map) {
+      return Map<String, dynamic>.from(result);
+    }
+    throw const AiBackendException(
+      AiFailureKind.invalidResponse,
+      'Herculex AI returned an incomplete response. Please try again.',
+      retryable: true,
+    );
   }
 
   (Map<String, dynamic> result, Map<String, dynamic> provenance)

@@ -48,7 +48,7 @@ class _Body extends StatelessWidget {
             HxStatTile(
               label: 'Tonnage',
               value: '${section.tonnageKg.toStringAsFixed(0)} kg',
-              secondaryValue: prev == null
+              subtitle: prev == null
                   ? null
                   : '${signedNumber(section.tonnageKg - prev, fractionDigits: 0)}'
                         ' kg vs last week',

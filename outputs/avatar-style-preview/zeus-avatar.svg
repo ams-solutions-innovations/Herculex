@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Zeus minimal contour avatar</title>
+  <desc id="desc">Minimal monoline face icon of Zeus with a laurel arc and a small lightning mark.</desc>
+  <defs><clipPath id="avatar"><circle cx="128" cy="128" r="120"/></clipPath></defs>
+  <circle cx="128" cy="128" r="120" fill="#1D333D"/>
+  <g clip-path="url(#avatar)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Laurel crown -->
+    <path d="M83 96c5-31 23-48 45-48s40 17 45 48" stroke="#D8AE62" stroke-width="4"/>
+    <path d="M91 81c-9-8-11-17-7-24 9 2 15 8 16 17m-8 9c-11-2-17-8-18-15 9-3 17 0 22 8m-8 9c-11 2-18-2-21-8 7-6 15-7 23-2" stroke="#D8AE62" stroke-width="3.5"/>
+    <path d="M165 81c9-8 11-17 7-24-9 2-15 8-16 17m8 9c11-2 17-8 18-15-9-3-17 0-22 8m8 9c11 2 18-2 21-8-7-6-15-7-23-2" stroke="#D8AE62" stroke-width="3.5"/>
+
+    <!-- Hair and face contour -->
+    <path d="M79 119c-8-32 1-59 23-72m75 72c8-32-1-59-23-72" stroke="#E7E7DF" stroke-width="5"/>
+    <path d="M78 119c-7 3-11 9-10 17 1 7 6 12 13 13m97-30c7 3 11 9 10 17-1 7-6 12-13 13" stroke="#E7E7DF" stroke-width="4.5"/>
+    <path d="M80 119v17c0 30 20 50 48 50s48-20 48-50v-17" stroke="#E7E7DF" stroke-width="5"/>
+
+    <!-- Simple face details -->
+    <path d="M99 126c5-4 11-4 16 0m26 0c5-4 11-4 16 0" stroke="#E7E7DF" stroke-width="4.5"/>
+    <path d="M128 128v20l-7 5m2 9c4 3 9 3 13 0" stroke="#E7E7DF" stroke-width="4"/>
+
+    <!-- Beard as a single clean contour -->
+    <path d="M84 151c2 40 20 66 44 80 24-14 42-40 44-80m-88 1c7 7 15 10 23 11m65-11c-7 7-15 10-23 11m-21 6v43" stroke="#E7E7DF" stroke-width="5"/>
+
+    <!-- Small identifying lightning accent -->
+    <path d="m194 117-13 21h11l-8 22 22-29h-12l9-14Z" stroke="#D8AE62" stroke-width="4"/>
+  </g>
+</svg>

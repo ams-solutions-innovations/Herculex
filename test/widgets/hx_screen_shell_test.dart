@@ -42,6 +42,17 @@ void main() {
     return tester.widget<AnimatedOpacity>(finder).opacity;
   }
 
+  /// Opacity the actions in the header are currently rendered at.
+  double actionsOpacity(WidgetTester tester) {
+    final finder = find
+        .ancestor(
+          of: find.byIcon(Icons.edit),
+          matching: find.byType(AnimatedOpacity),
+        )
+        .first;
+    return tester.widget<AnimatedOpacity>(finder).opacity;
+  }
+
   Future<void> scroll(WidgetTester tester, double dy) async {
     await tester.drag(find.byType(CustomScrollView), Offset(0, dy));
     await tester.pumpAndSettle();
@@ -76,6 +87,28 @@ void main() {
       tester.widget<Padding>(titlePadding).padding,
       const EdgeInsets.only(left: 56, right: 112),
     );
+    expect(actionsOpacity(tester), 1.0);
+  });
+
+  testWidgets('header actions hide on scroll down and return at top', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      harness(
+        actions: [IconButton(icon: const Icon(Icons.edit), onPressed: () {})],
+      ),
+    );
+
+    expect(actionsOpacity(tester), 1.0);
+
+    // Scroll down: actions fade out and are ignored
+    await scroll(tester, -600);
+    expect(actionsOpacity(tester), 0.0);
+
+    // Return to top: actions are restored
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, 2000));
+    await tester.pumpAndSettle();
+    expect(actionsOpacity(tester), 1.0);
   });
 
   testWidgets('header hides on scroll down and returns on scroll up', (

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -16,18 +18,68 @@ import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/fasting/domain/fasting_plan.dart';
 import 'package:herculex/features/fasting/presentation/end_fast_dialog.dart';
 import 'package:herculex/features/fasting/presentation/widgets/fasting_stage_icon.dart';
+import 'package:herculex/features/labs/presentation/labs_view.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/profile/presentation/widgets/greek_avatar_badge.dart';
 import 'package:herculex/features/supplements/presentation/supplement_tracker_widget.dart';
 import 'package:herculex/features/weekly_report/presentation/widgets/weekly_report_ready_card.dart';
 import 'package:intl/intl.dart';
 
-class DashboardView extends ConsumerWidget {
+class DashboardView extends ConsumerStatefulWidget {
   const DashboardView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardView> createState() => _DashboardViewState();
+}
+
+class _DashboardViewState extends ConsumerState<DashboardView> {
+  final ScrollController _scrollController = ScrollController();
+  Timer? _autoScrollTimer;
+  double? _dragPointerY;
+
+  @override
+  void dispose() {
+    _autoScrollTimer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _updateDragPosition(DragUpdateDetails details) {
+    _dragPointerY = details.globalPosition.dy;
+    _autoScrollTimer ??= Timer.periodic(const Duration(milliseconds: 16), (_) {
+      if (!_scrollController.hasClients || _dragPointerY == null) return;
+      final position = _scrollController.position;
+      final height = MediaQuery.sizeOf(context).height;
+      const edge = 100.0;
+      const step = 12.0;
+      final y = _dragPointerY!;
+      if (y < edge && position.pixels > position.minScrollExtent) {
+        _scrollController.jumpTo(
+          (position.pixels - step)
+              .clamp(position.minScrollExtent, position.maxScrollExtent)
+              .toDouble(),
+        );
+      } else if (y > height - edge &&
+          position.pixels < position.maxScrollExtent) {
+        _scrollController.jumpTo(
+          (position.pixels + step)
+              .clamp(position.minScrollExtent, position.maxScrollExtent)
+              .toDouble(),
+        );
+      }
+    });
+  }
+
+  void _endDrag() {
+    _dragPointerY = null;
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final profile = ref.watch(profileProvider).valueOrNull;
     final name = _firstName(profile?.name);
@@ -59,6 +111,7 @@ class DashboardView extends ConsumerWidget {
           : null,
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,7 +149,10 @@ class DashboardView extends ConsumerWidget {
                       onPressed: () => _showCustomizeSheet(context, ref),
                     ),
                     const SizedBox(width: 4),
-                    _ProfileAvatarButton(name: name),
+                    _ProfileAvatarButton(
+                      name: name,
+                      avatarId: profile?.avatarId,
+                    ),
                   ],
                 ],
               ),
@@ -153,11 +209,28 @@ class DashboardView extends ConsumerWidget {
                                   child: _renderWidget(validTypes.first, theme),
                                 );
 
-                          final tile = _EditableDashboardTile(
-                            slotIndex: index,
-                            slot: w,
-                            editMode: editMode,
-                            child: rendered,
+                          final tile = AnimatedSwitcher(
+                            duration: HxMotion.base,
+                            switchInCurve: HxMotion.emphasized,
+                            switchOutCurve: Curves.easeIn,
+                            transitionBuilder: (child, animation) =>
+                                FadeTransition(
+                                  opacity: animation,
+                                  child: ScaleTransition(
+                                    scale: Tween<double>(
+                                      begin: 0.97,
+                                      end: 1,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                ),
+                            child: _EditableDashboardTile(
+                              key: ValueKey('${w.id}_$index'),
+                              slotIndex: index,
+                              slot: w,
+                              editMode: editMode,
+                              child: rendered,
+                            ),
                           );
 
                           if (!editMode) return tile;
@@ -174,6 +247,9 @@ class DashboardView extends ConsumerWidget {
                             data: index,
                             delay: const Duration(milliseconds: 120),
                             onDragStarted: Haptics.medium,
+                            onDragUpdate: _updateDragPosition,
+                            onDragEnd: (_) => _endDrag(),
+                            onDraggableCanceled: (_, _) => _endDrag(),
                             feedback: Material(
                               color: Colors.transparent,
                               child: SizedBox(
@@ -201,7 +277,13 @@ class DashboardView extends ConsumerWidget {
                                         ),
                                       ],
                                     ),
-                                    child: Opacity(opacity: 0.95, child: tile),
+                                    child: Transform.rotate(
+                                      angle: 0.025,
+                                      child: Opacity(
+                                        opacity: 0.95,
+                                        child: tile,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -370,6 +452,10 @@ class DashboardView extends ConsumerWidget {
         return const WorkoutCalendarCard();
       case DashboardWidgetType.recoverySummary:
         return const RecoverySummaryCard();
+      case DashboardWidgetType.sleep:
+        return const SleepDashboardCard();
+      case DashboardWidgetType.steps:
+        return const StepsDashboardCard();
       case DashboardWidgetType.cnsLoad:
         return const CnsLoadMiniCard();
       case DashboardWidgetType.weeklyVolume:
@@ -388,6 +474,8 @@ class DashboardView extends ConsumerWidget {
         return const NutritionStreakCard();
       case DashboardWidgetType.workoutStreak:
         return const WorkoutStreakCard();
+      case DashboardWidgetType.labs:
+        return const LabsEntryCard();
       case DashboardWidgetType.herculInsights:
         return const HerculInsightsCard();
     }
@@ -584,7 +672,7 @@ class FastingTimerWidget extends ConsumerWidget {
                           const SizedBox(width: 6),
                           Flexible(
                             child: Text(
-                              "${currentStage.hour}. ura: ${currentStage.stageName}",
+                              "${currentStage.hour}h: ${currentStage.stageName}",
                               style: TextStyle(
                                 color: accent,
                                 fontWeight: FontWeight.bold,
@@ -735,11 +823,11 @@ class FastingTimerWidget extends ConsumerWidget {
                           'HH:mm',
                         ).format(nextFast.nextOccurrence);
                         final dayLabel = isToday
-                            ? 'Danes ob'
+                            ? 'Today at'
                             : (isTomorrow
-                                  ? 'Jutri ob'
+                                  ? 'Tomorrow at'
                                   : DateFormat(
-                                      'EEEE ob',
+                                      "EEEE 'at'",
                                     ).format(nextFast.nextOccurrence));
                         final hrsUntil = nextFast.timeUntil.inHours;
                         final minsUntil = nextFast.timeUntil.inMinutes % 60;
@@ -750,7 +838,7 @@ class FastingTimerWidget extends ConsumerWidget {
                         return Column(
                           children: [
                             Text(
-                              "Naslednji post: $dayLabel $timeStr",
+                              "Next fast: $dayLabel $timeStr",
                               style: theme.textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 19,
@@ -768,7 +856,7 @@ class FastingTimerWidget extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                "${nextFast.planLabel} · Začetek čez $untilStr",
+                                "${nextFast.planLabel} · Starts in $untilStr",
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: accent,
                                   fontWeight: FontWeight.bold,
@@ -778,7 +866,7 @@ class FastingTimerWidget extends ConsumerWidget {
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              "Urnik je aktiven in vas bo pravočasno opomnil na začetek posta.",
+                              "Schedule is active and will remind you when your fast begins.",
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: AppColors.secondary,
                               ),
@@ -852,33 +940,20 @@ class FastingTimerWidget extends ConsumerWidget {
 /// tab as the entry point into `/profile`.
 class _ProfileAvatarButton extends StatelessWidget {
   final String name;
-  const _ProfileAvatarButton({required this.name});
+  final String? avatarId;
+  const _ProfileAvatarButton({required this.name, this.avatarId});
 
   @override
   Widget build(BuildContext context) {
-    final initial = name.trim().isEmpty ? 'A' : name.trim()[0].toUpperCase();
+    final fallbackName = name.trim().isEmpty ? 'A' : name.trim();
     return GestureDetector(
       onTap: () => context.push(AppRoutes.profile),
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.primary, Color(0xFF30D158)],
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          initial,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
+      child: GreekAvatarBadge(
+        avatarId: avatarId,
+        name: fallbackName,
+        size: 40,
+        showGlow: avatarId != null,
+        borderWidth: 1.8,
       ),
     );
   }
@@ -967,6 +1042,15 @@ class _StackedDashboardWidgetState
     if (types.any((t) => t.kind == DashboardWidgetKind.large)) {
       return 330.0;
     }
+    if (types.every(
+      (t) =>
+          t == DashboardWidgetType.calorieTrends ||
+          t == DashboardWidgetType.bodyweightTrends,
+    )) {
+      // These two preview cards share a compact layout; stacking them should
+      // not inflate either card into the height of a full feature widget.
+      return 138.0;
+    }
     if (types.any((t) => t.kind == DashboardWidgetKind.card)) {
       return 184.0;
     }
@@ -986,30 +1070,39 @@ class _StackedDashboardWidgetState
         mainAxisSize: MainAxisSize.min,
         children: [
           // Main swipeable PageView with infinite scroll
-          SizedBox(
-            height: height,
-            child: PageView.builder(
-              controller: _controller,
-              physics: const BouncingScrollPhysics(),
-              itemCount: count > 1 ? null : count,
-              onPageChanged: (i) {
-                final newPage = (i % count + count) % count;
-                if (newPage != _page) {
-                  Haptics.selection();
-                  setState(() => _page = newPage);
-                }
-              },
-              itemBuilder: (context, index) {
-                final logicalIndex = (index % count + count) % count;
-                final type = widget.types[logicalIndex];
-                final child = widget.renderWidget(type);
-                return KeyedSubtree(
-                  key: ValueKey('stacked_${type.id}_$index'),
-                  child: height > 100 && type.kind == DashboardWidgetKind.pill
-                      ? Center(child: child)
-                      : child,
-                );
-              },
+          AnimatedSize(
+            duration: HxMotion.base,
+            curve: HxMotion.emphasized,
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              height: height,
+              child: StackedEdgeFadeMask(
+                controller: _controller,
+                child: PageView.builder(
+                  controller: _controller,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: count > 1 ? null : count,
+                  onPageChanged: (i) {
+                    final newPage = (i % count + count) % count;
+                    if (newPage != _page) {
+                      Haptics.selection();
+                      setState(() => _page = newPage);
+                    }
+                  },
+                  itemBuilder: (context, index) {
+                    final logicalIndex = (index % count + count) % count;
+                    final type = widget.types[logicalIndex];
+                    final child = widget.renderWidget(type);
+                    return KeyedSubtree(
+                      key: ValueKey('stacked_${type.id}_$index'),
+                      child:
+                          height > 100 && type.kind == DashboardWidgetKind.pill
+                          ? Center(child: child)
+                          : child,
+                    );
+                  },
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -1095,6 +1188,7 @@ class _DoneEditingButton extends StatelessWidget {
 /// size toggle pill (bottom-right) that flips the tile between half and full width.
 class _EditableDashboardTile extends ConsumerWidget {
   const _EditableDashboardTile({
+    super.key,
     required this.slotIndex,
     required this.slot,
     required this.editMode,

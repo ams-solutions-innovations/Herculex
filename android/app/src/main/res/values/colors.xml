@@ -17,4 +17,18 @@
          surfaceContainerLowest / outlineVariant at 30 %. -->
     <color name="widget_hx_surface">#F5F9FF</color>
     <color name="widget_hx_outline">#4DCFE0F3</color>
+    <color name="widget_hx_primary">#0A84FF</color>
+    <color name="widget_hx_on_primary">#FFFFFF</color>
+    <color name="widget_hx_on_surface">#0B1526</color>
+    <color name="widget_hx_secondary">#64748B</color>
+    <color name="widget_hx_surface_variant">#DDE9F7</color>
+    <color name="widget_hx_kcal">#E0362C</color>
+    <color name="widget_hx_protein">#1F6FD6</color>
+    <color name="widget_hx_carbs">#248A3D</color>
+    <color name="widget_hx_fat">#D97706</color>
+    <color name="widget_hx_success">#1E7A34</color>
+    <color name="widget_hx_warning">#B36A00</color>
+    <color name="widget_hx_danger">#C7261C</color>
+    <color name="widget_hx_recovery">#8036B8</color>
+    <color name="widget_hx_fasting">#0083A8</color>
 </resources>

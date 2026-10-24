@@ -8,26 +8,43 @@ import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/product_catalogue_repository.dart';
 import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
-import 'package:herculex/features/nutrition/presentation/views/barcode_scanner_view.dart';
 import 'package:herculex/features/supplements/application/supplement_providers.dart';
+import 'package:herculex/features/supplements/data/supplement_catalogue_repository.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
-import 'package:herculex/features/supplements/presentation/supplement_ai_scan_dialog.dart';
+import 'package:herculex/features/supplements/presentation/supplement_database_sheet.dart';
 import 'package:herculex/features/supplements/presentation/supplement_nutrients_sheet.dart';
+import 'package:herculex/features/supplements/presentation/supplement_scan_flow.dart';
 import 'package:uuid/uuid.dart';
 
 /// Bottom sheet to add or edit a single supplement.
 class SupplementEditSheet extends ConsumerStatefulWidget {
   final Supplement? existing;
+  final bool isNewDraft;
+  final String? initialScanMessage;
 
-  const SupplementEditSheet({super.key, this.existing});
+  const SupplementEditSheet({
+    super.key,
+    this.existing,
+    this.isNewDraft = false,
+    this.initialScanMessage,
+  });
 
-  static Future<void> show(BuildContext context, {Supplement? existing}) {
+  static Future<void> show(
+    BuildContext context, {
+    Supplement? existing,
+    bool isNewDraft = false,
+    String? initialScanMessage,
+  }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black54,
-      builder: (_) => SupplementEditSheet(existing: existing),
+      builder: (_) => SupplementEditSheet(
+        existing: existing,
+        isNewDraft: isNewDraft,
+        initialScanMessage: initialScanMessage,
+      ),
     );
   }
 
@@ -45,13 +62,16 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
   TimeOfDay? _time;
 
   String? _barcode;
-  bool _scanning = false;
+  final bool _scanning = false;
   String? _scanMessage;
 
   /// Nutrient ID → amount per dose, edited via the nutrient picker.
   late Map<String, double> _nutrients;
 
-  bool get _isEditing => widget.existing != null;
+  bool get _isEditing =>
+      widget.existing != null &&
+      !widget.isNewDraft &&
+      widget.existing!.id.isNotEmpty;
 
   @override
   void initState() {
@@ -72,6 +92,7 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
     _barcode = s?.barcode;
     _nutrients = {...?s?.nutrients};
     _schedule = s?.schedule ?? SupplementSchedule.none;
+    _scanMessage = widget.initialScanMessage;
     if (s?.timeHHMM != null) {
       final parts = s!.timeHHMM!.split(':');
       if (parts.length == 2) {
@@ -91,31 +112,31 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
     super.dispose();
   }
 
-  Future<void> _scanWithGemini() async {
-    final result = await SupplementAiScanDialog.show(context);
-    if (result == null || !mounted) return;
-
+  void _applyLookupResult(SupplementLookupResult resolved) {
+    final s = resolved.supplement;
     setState(() {
-      _nameCtrl.text = result.name;
-      if (result.brand != null) _brandCtrl.text = result.brand!;
-      if (result.doseAmount != null) {
-        _doseCtrl.text =
-            result.doseAmount!.truncateToDouble() == result.doseAmount
-            ? result.doseAmount!.toStringAsFixed(0)
-            : result.doseAmount!.toStringAsFixed(1);
+      if (s.name.isNotEmpty) _nameCtrl.text = s.name;
+      if (s.brand != null && s.brand!.isNotEmpty) {
+        _brandCtrl.text = s.brand!;
       }
-      if (result.doseUnit != null &&
-          supplementDoseUnits.contains(result.doseUnit)) {
-        _doseUnit = result.doseUnit!;
+      if (s.barcode != null && s.barcode!.isNotEmpty) {
+        _barcode = s.barcode;
       }
-      if (result.nutrients.isNotEmpty) {
-        _nutrients = {..._nutrients, ...result.nutrients};
+      if (s.doseAmount != null) {
+        _doseCtrl.text = s.doseAmount!.truncateToDouble() == s.doseAmount
+            ? s.doseAmount!.toStringAsFixed(0)
+            : s.doseAmount!.toStringAsFixed(1);
       }
-      if (result.schedule != SupplementSchedule.none) {
-        _schedule = result.schedule;
-        if (result.schedule == SupplementSchedule.time &&
-            result.timeHHMM != null) {
-          final parts = result.timeHHMM!.split(':');
+      if (s.doseUnit != null && supplementDoseUnits.contains(s.doseUnit)) {
+        _doseUnit = s.doseUnit!;
+      }
+      if (s.nutrients.isNotEmpty) {
+        _nutrients = {..._nutrients, ...s.nutrients};
+      }
+      if (s.schedule != SupplementSchedule.none) {
+        _schedule = s.schedule;
+        if (s.schedule == SupplementSchedule.time && s.timeHHMM != null) {
+          final parts = s.timeHHMM!.split(':');
           if (parts.length == 2) {
             _time = TimeOfDay(
               hour: int.tryParse(parts[0]) ?? 8,
@@ -124,45 +145,25 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
           }
         }
       }
-      _scanMessage = 'Herculex AI je uspešno prebral podatke o dopolnilu.';
+      _scanMessage = s.name.isNotEmpty
+          ? '${resolved.sourceLabel} · "${s.name}"'
+          : resolved.sourceLabel;
     });
   }
 
-  /// Scans a barcode and pre-fills name/brand from OpenFoodFacts. A lookup
-  /// miss still keeps the code — many supplement tubs aren't in the food
-  /// database, and the barcode alone is useful for re-scanning later.
-  Future<void> _scanBarcode() async {
-    final code = await BarcodeScannerView.show(context);
-    if (code == null || !mounted) return;
+  /// Unified scan: scans barcode first → checks the supplement database →
+  /// falls back to AI photo analysis only if not found in the database.
+  Future<void> _unifiedScan() async {
+    final resolved = await scanAndResolveSupplement(context, ref);
+    if (resolved == null || !mounted) return;
+    _applyLookupResult(resolved);
+  }
 
-    setState(() {
-      _barcode = code;
-      _scanning = true;
-      _scanMessage = null;
-    });
-
-    try {
-      final product = await ref
-          .read(openFoodFactsClientProvider)
-          .lookupBarcode(code);
-      if (!mounted) return;
-      setState(() {
-        if (product == null) {
-          _scanMessage = 'Barcode saved — no product match, fill in the rest.';
-        } else {
-          if (_nameCtrl.text.trim().isEmpty) _nameCtrl.text = product.name;
-          if (product.brand != null && _brandCtrl.text.trim().isEmpty) {
-            _brandCtrl.text = product.brand!;
-          }
-          _scanMessage = 'Matched "${product.name}".';
-        }
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _scanMessage = 'Lookup failed — barcode saved anyway.');
-    } finally {
-      if (mounted) setState(() => _scanning = false);
-    }
+  /// Opens the searchable supplement database sheet.
+  Future<void> _browseDatabase() async {
+    final resolved = await SupplementDatabaseSheet.show(context);
+    if (resolved == null || !mounted) return;
+    _applyLookupResult(resolved);
   }
 
   /// `Creatine 5 g · Vitamin D 25 µg` — trimmed to two entries so the row
@@ -216,8 +217,11 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
     final repo = ref.read(supplementRepositoryProvider);
     final brand = _brandCtrl.text.trim();
     final dose = double.tryParse(_doseCtrl.text.trim());
+    final existingId = widget.existing?.id;
     final supplement = Supplement(
-      id: widget.existing?.id ?? const Uuid().v4(),
+      id: (existingId != null && existingId.isNotEmpty)
+          ? existingId
+          : const Uuid().v4(),
       name: name,
       brand: brand.isEmpty ? null : brand,
       barcode: _barcode,
@@ -227,11 +231,21 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
       schedule: _schedule,
       timeHHMM: _schedule == SupplementSchedule.time ? _timeHHMM : null,
     );
-    if (_isEditing) {
+    final existsInRepo = repo.loadSupplements().any(
+      (s) => s.id == supplement.id,
+    );
+    if (_isEditing && existsInRepo) {
       await repo.updateSupplement(supplement);
     } else {
       await repo.addSupplement(supplement);
     }
+
+    // Save to local supplement database catalogue for future barcode/name lookups
+    try {
+      await ref
+          .read(supplementCatalogueRepositoryProvider)
+          .saveToLocalCatalogue(supplement);
+    } catch (_) {}
 
     // Persist to custom foods database for global search, logging, and Supabase sync
     try {
@@ -343,54 +357,74 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // AI Photo Scan + Barcode Scan
-                    Row(
+                    // Unified Scan (Barcode → DB → AI) + Browse Supplement Database,
+                    // stacked full width (side by side the scan label wrapped).
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: _scanWithGemini,
-                            icon: const Icon(Icons.auto_awesome, size: 18),
-                            label: const Text('AI Foto sken'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFF9B59B6),
-                              foregroundColor: Colors.white,
-                              shape: const StadiumBorder(),
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                            ),
+                        FilledButton.icon(
+                          onPressed: _scanning ? null : _unifiedScan,
+                          icon: _scanning
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.qr_code_scanner, size: 18),
+                          label: const Text('Scan (Barcode / AI)'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF9B59B6),
+                            foregroundColor: Colors.white,
+                            shape: const StadiumBorder(),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _scanning ? null : _scanBarcode,
-                            icon: _scanning
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.qr_code_scanner, size: 18),
-                            label: Text(
-                              _barcode == null
-                                  ? 'Črtna koda'
-                                  : 'Koda $_barcode',
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          onPressed: _browseDatabase,
+                          icon: const Icon(
+                            Icons.library_books_outlined,
+                            size: 18,
+                          ),
+                          label: const Text('Supplement DB'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF9B59B6),
+                            side: BorderSide(
+                              color: const Color(
+                                0xFF9B59B6,
+                              ).withValues(alpha: 0.45),
                             ),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.primary,
-                              side: BorderSide(
-                                color: AppColors.primary.withValues(alpha: 0.4),
-                              ),
-                              shape: const StadiumBorder(),
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                            ),
+                            shape: const StadiumBorder(),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
                           ),
                         ),
                       ],
                     ),
-                    if (_scanMessage != null) ...[
+                    if (_barcode != null && _barcode!.isNotEmpty) ...[
                       const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.qr_code,
+                            size: 14,
+                            color: Color(0xFF9B59B6),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Barcode: $_barcode',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: const Color(0xFF9B59B6),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (_scanMessage != null) ...[
+                      const SizedBox(height: 6),
                       Text(
                         _scanMessage!,
                         style: theme.textTheme.bodySmall?.copyWith(

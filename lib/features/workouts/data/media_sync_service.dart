@@ -14,6 +14,7 @@ class MediaSyncService {
   MediaSyncService(this._wearSyncService);
 
   void start() {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     if (_isRunning) return;
     _isRunning = true;
     _pollAndSync();

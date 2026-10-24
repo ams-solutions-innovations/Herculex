@@ -470,6 +470,15 @@ A program design brief is a high-level structural recommendation ONLY: a split
 type, a periodization model, a role and a short rationale for each training day
 of the week, prioritized muscle groups, and an overall phase intent.
 
+Apply the runtime programming skills supplied in the system instruction. Respect
+the selected trainingStyle, available daysPerWeek, session time, equipment and
+time-saving opt-in. Return exactly daysPerWeek day roles, indexed from zero in
+training-session order (not calendar weekday numbers). Respect included/excluded
+GPP conditioning. Explain why the chosen architecture fits the actual schedule.
+If time is short, describe the assistance compression strategy qualitatively in
+day rationales while retaining main-lift practice and graded compound warmups.
+The app owns all numeric prescriptions and checks exercise-specific eligibility.
+
 Safety and product rules:
 - Do not choose a final exercise list or silently prescribe/change a program. Return a
   structural brief for the user to review; Herculex makes later deterministic

@@ -187,8 +187,8 @@ void main() {
 
       final stage72 = await repo.fastingStage(72);
       expect(stage72, isNotNull);
-      expect(stage72!.stageCategory, 'Regeneracija');
-      expect(stage72.stageName, contains('72-urni'));
+      expect(stage72!.stageCategory, 'Regeneration');
+      expect(stage72.stageName, contains('72h'));
     });
   });
 

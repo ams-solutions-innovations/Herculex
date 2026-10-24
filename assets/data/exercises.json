@@ -6846,8 +6846,8 @@
     "category": "strength",
     "movementPattern": "vertical_pull",
     "movementPatternRaw": "Vertical Pull (Assisted)",
-    "modality": "bodyweight",
-    "equipment": "Band/Assist",
+    "modality": "machine_selectorized",
+    "equipment": "Assisted Pull-Up Machine",
     "primaryMuscle": "Back",
     "primaryMuscles": [
       "Lats"
@@ -6863,7 +6863,7 @@
     ],
     "cnsScore": 4,
     "recoveryImpact": 2,
-    "loggingMetric": "reps",
+    "loggingMetric": "weight_reps",
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
@@ -6883,8 +6883,8 @@
     "category": "strength",
     "movementPattern": "vertical_pull",
     "movementPatternRaw": "Vertical Pull (Assisted)",
-    "modality": "bodyweight",
-    "equipment": "Band/Assist",
+    "modality": "machine_selectorized",
+    "equipment": "Assisted Pull-Up Machine",
     "primaryMuscle": "Back",
     "primaryMuscles": [
       "Lats"
@@ -6900,7 +6900,7 @@
     ],
     "cnsScore": 4,
     "recoveryImpact": 2,
-    "loggingMetric": "reps",
+    "loggingMetric": "weight_reps",
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
@@ -6920,8 +6920,8 @@
     "category": "strength",
     "movementPattern": "vertical_pull",
     "movementPatternRaw": "Vertical Pull (Assisted)",
-    "modality": "bodyweight",
-    "equipment": "Band/Assist",
+    "modality": "machine_selectorized",
+    "equipment": "Assisted Pull-Up Machine",
     "primaryMuscle": "Back",
     "primaryMuscles": [
       "Lats"
@@ -6937,7 +6937,7 @@
     ],
     "cnsScore": 4,
     "recoveryImpact": 2,
-    "loggingMetric": "reps",
+    "loggingMetric": "weight_reps",
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [

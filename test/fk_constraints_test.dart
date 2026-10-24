@@ -32,11 +32,55 @@ class _FkEdge {
 
 /// The full, hard-coded inventory of every foreign key declared in
 /// `lib/data/local/tables.dart` (emitted in `database.g.dart`), captured by
-/// `PRAGMA foreign_key_list` against a freshly-migrated database. Schema v47
-/// has 32 CASCADE + 13 RESTRICT + 13 SET NULL + 1 NO ACTION = 59 edges. Any
+/// `PRAGMA foreign_key_list` against a freshly-migrated database. Schema v50
+/// has 38 CASCADE + 13 RESTRICT + 15 SET NULL + 1 NO ACTION = 67 edges. Any
 /// future `tables.dart` edit that changes an edge must update this inventory
 /// deliberately — that is the point of the test.
 const _expectedEdges = <_FkEdge>[
+  _FkEdge(
+    'workout_report_plans',
+    'session_id',
+    'workout_sessions',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'workout_report_events',
+    'session_id',
+    'workout_sessions',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge('workout_reports', 'session_id', 'workout_sessions', 'id', 'CASCADE'),
+  _FkEdge('adaptation_proposals', 'program_id', 'programs', 'id', 'CASCADE'),
+  _FkEdge(
+    'adaptation_proposals',
+    'source_schedule_id',
+    'scheduled_workouts',
+    'id',
+    'SET NULL',
+  ),
+  _FkEdge(
+    'adaptation_proposals',
+    'source_session_id',
+    'workout_sessions',
+    'id',
+    'SET NULL',
+  ),
+  _FkEdge(
+    'adaptation_overrides',
+    'proposal_id',
+    'adaptation_proposals',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'adaptation_overrides',
+    'schedule_id',
+    'scheduled_workouts',
+    'id',
+    'CASCADE',
+  ),
   _FkEdge(
     'buddy_sessions_local',
     'workout_session_id',
@@ -387,14 +431,14 @@ void main() {
     expect(actualEdges.toSet(), _expectedEdges.toSet());
   });
 
-  test('edge action counts match the schema-v42 inventory', () {
+  test('edge action counts match the schema-v50 inventory', () {
     final byAction = <String, int>{};
     for (final edge in _expectedEdges) {
       byAction[edge.onDelete] = (byAction[edge.onDelete] ?? 0) + 1;
     }
-    expect(byAction['CASCADE'], 32);
+    expect(byAction['CASCADE'], 38);
     expect(byAction['RESTRICT'], 13);
-    expect(byAction['SET NULL'], 13);
+    expect(byAction['SET NULL'], 15);
     expect(byAction['NO ACTION'], 1);
   });
 

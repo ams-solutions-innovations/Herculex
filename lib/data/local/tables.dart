@@ -1,6 +1,41 @@
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
+/// Private report state. No SyncColumns: health-derived explanations stay local.
+@DataClassName('WorkoutReportPlanData')
+class WorkoutReportPlans extends Table {
+  IntColumn get sessionId =>
+      integer().references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
+  TextColumn get planJson => text()();
+  DateTimeColumn get capturedAt => dateTime()();
+  @override
+  Set<Column> get primaryKey => {sessionId};
+}
+
+@DataClassName('WorkoutReportEventData')
+class WorkoutReportEvents extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get sessionId =>
+      integer().references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
+  TextColumn get kind => text()();
+  TextColumn get detailJson => text()();
+  TextColumn get reason => text().nullable()();
+  DateTimeColumn get occurredAt => dateTime()();
+}
+
+@DataClassName('WorkoutReportData')
+class WorkoutReports extends Table {
+  IntColumn get sessionId =>
+      integer().references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
+  TextColumn get fingerprint => text()();
+  TextColumn get reportJson => text()();
+  TextColumn get contextJson => text().withDefault(const Constant('{}'))();
+  IntColumn get revision => integer().withDefault(const Constant(1))();
+  DateTimeColumn get generatedAt => dateTime()();
+  @override
+  Set<Column> get primaryKey => {sessionId};
+}
+
 /// Sync identity columns shared by every table that participates in Phase 10
 /// cloud sync. `syncUuid` is the row's identity in Postgres (client-generated
 /// so offline inserts already have an id); `updatedAt` is a purely local
@@ -491,10 +526,12 @@ class NutritionTargets extends Table with SyncColumns, SyncTombstone {
   IntColumn get fiberG => integer().nullable()();
   // global | training_day | rest_day | weekday:<1-7> | date:<yyyy-mm-dd>
   TextColumn get appliesTo => text().withDefault(const Constant('global'))();
+  TextColumn get effectiveFromDateIso =>
+      text().withDefault(const Constant('0001-01-01'))();
 
   @override
   List<Set<Column>> get uniqueKeys => [
-    {appliesTo},
+    {appliesTo, effectiveFromDateIso},
   ];
 }
 
@@ -1128,6 +1165,59 @@ class ScheduledWorkouts extends Table with SyncColumns, SyncTombstone {
   /// unlike the template link, nothing in the UI needs to distinguish "this
   /// session's own time" from "inherited from the day's default".
   IntColumn get startTimeMinutes => integer().nullable()();
+}
+
+/// A user-confirmed or declined weekly adaptation.  The original program is
+/// never edited: this row records the immutable proposal and decision for one
+/// current-week disruption.
+@DataClassName('AdaptationProposalData')
+class AdaptationProposals extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get programId =>
+      integer().references(Programs, #id, onDelete: KeyAction.cascade)();
+  IntColumn get sourceScheduleId => integer().nullable().references(
+    ScheduledWorkouts,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+  IntColumn get sourceSessionId => integer().nullable().references(
+    WorkoutSessions,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+  TextColumn get weekStartIso => text()();
+  TextColumn get trigger => text()();
+
+  /// proposed | accepted | declined | expired
+  TextColumn get decision => text().withDefault(const Constant('proposed'))();
+  TextColumn get reason => text()();
+  TextColumn get inputFingerprint => text()();
+  TextColumn get proposalJson => text()();
+  DateTimeColumn get decidedAt => dateTime().nullable()();
+}
+
+/// An accepted one-off snapshot for one scheduled occurrence.  The resolver
+/// reads this before the program/template so that program edits cannot mutate
+/// an accepted weekly decision.
+@DataClassName('AdaptationOverrideData')
+class AdaptationOverrides extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get proposalId => integer().references(
+    AdaptationProposals,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  IntColumn get scheduleId => integer().references(
+    ScheduledWorkouts,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  TextColumn get planJson => text()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {proposalId, scheduleId},
+  ];
 }
 
 @DataClassName('ExternalEventData')

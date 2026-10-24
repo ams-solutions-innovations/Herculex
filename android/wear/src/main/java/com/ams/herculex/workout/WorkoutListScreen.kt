@@ -27,6 +27,7 @@ import com.ams.herculex.ui.OneUiPillStyle
 @Composable
 fun WorkoutListScreen(navController: NavController, viewModel: WorkoutViewModel) {
     val workouts by viewModel.workouts.collectAsState()
+    val session by viewModel.session.collectAsState()
     val listState = rememberScalingLazyListState()
 
     ScalingLazyColumn(
@@ -45,11 +46,25 @@ fun WorkoutListScreen(navController: NavController, viewModel: WorkoutViewModel)
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    "Workouts",
-                    color = Color.White,
+                    "HERCULEX",
+                    color = Color(0xFF42A5F5),
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    fontSize = 10.sp,
+                    letterSpacing = 1.sp,
                     modifier = Modifier.padding(bottom = 2.dp),
+                )
+            }
+        }
+
+        // Same as the tile: a running workout shows Resume first.
+        if (session != null) {
+            item {
+                OneUiPill(
+                    title = "Resume Workout",
+                    subtitle = "In progress",
+                    icon = "▶",
+                    style = OneUiPillStyle.EmeraldGreen,
+                    onClick = { navController.navigate("active_workout") },
                 )
             }
         }

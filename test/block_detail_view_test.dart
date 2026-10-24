@@ -201,7 +201,7 @@ void main() {
   );
 
   testWidgets(
-    'shows exactly one active week behind a Week dropdown, not a scrollable stack',
+    'shows exactly one active week behind a week strip, not a scrollable stack',
     (tester) async {
       final fixture = await seedRotatingProgram();
 
@@ -216,7 +216,9 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Week 1 of 4'), findsOneWidget);
+      for (final chip in ['W1', 'W2', 'W3', 'W4']) {
+        expect(find.text(chip), findsOneWidget);
+      }
       // Only one week's volume slider is ever mounted — the old all-weeks
       // scrollable stack would have rendered four.
       expect(find.byType(Slider), findsOneWidget);
@@ -227,7 +229,7 @@ void main() {
   );
 
   testWidgets(
-    'the Week dropdown label and the wave-strip caption are separate Text widgets (D-05)',
+    'the week heading and the wave-strip caption are separate Text widgets (D-05)',
     (tester) async {
       final fixture = await seedRotatingProgram();
 
@@ -242,7 +244,7 @@ void main() {
       );
       await tester.pump();
 
-      final weekFinder = find.text('Week 1 of 4');
+      final weekFinder = find.text('Week 1');
       final waveFinder = find.textContaining('Exercise wave');
       expect(weekFinder, findsOneWidget);
       expect(waveFinder, findsOneWidget);
@@ -259,7 +261,7 @@ void main() {
   );
 
   testWidgets(
-    'selecting week 3 from the dropdown updates the wave-strip label',
+    'selecting week 3 from the week strip updates the wave-strip label',
     (tester) async {
       final fixture = await seedRotatingProgram();
 
@@ -274,9 +276,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.text('Week 1 of 4'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Week 3 of 4').last);
+      await tester.tap(find.text('W3'));
       await tester.pumpAndSettle();
       await tester.pump(const Duration(milliseconds: 300));
 

@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
@@ -13,7 +12,6 @@ import 'package:herculex/features/physique/data/physique_photo_store.dart';
 import 'package:herculex/features/physique/domain/check_in_verdict.dart';
 import 'package:herculex/features/physique/domain/physique_guardrails.dart';
 import 'package:herculex/services/ai/gemini_backend_service.dart';
-
 import '../../support/exif_jpeg_fixture.dart';
 import '../../support/fake_clock.dart';
 import '../../support/fake_face_detector.dart';
@@ -34,14 +32,16 @@ class _FakeBackend implements PhysiqueCheckInBackend {
   @override
   Future<(Map<String, dynamic>, Map<String, dynamic>)> analyzePhysiqueCheckIn({
     required List<Map<String, dynamic>> baselineImages,
-    required Map<String, dynamic> currentImage,
+    required List<Map<String, dynamic>> currentImages,
     required Map<String, dynamic> context,
     String? userNote,
   }) async {
     calls++;
     lastBaselineCount = baselineImages.length;
     lastContext = context;
-    if (error != null) throw error!;
+    if (error != null) {
+      throw error!;
+    }
     return (result, {'modelVersion': 'm1', 'knowledgeVersion': 'k1'});
   }
 }
@@ -110,7 +110,9 @@ void main() {
   tearDown(() async {
     await db.close();
     for (final d in [docs, staging, pickerDir]) {
-      if (d.existsSync()) await d.delete(recursive: true);
+      if (d.existsSync()) {
+        await d.delete(recursive: true);
+      }
     }
   });
 
@@ -137,7 +139,9 @@ void main() {
 
   int storedFiles() {
     final root = Directory('${docs.path}/physique');
-    if (!root.existsSync()) return 0;
+    if (!root.existsSync()) {
+      return 0;
+    }
     return root.listSync(recursive: true).whereType<File>().length;
   }
 
@@ -160,6 +164,57 @@ void main() {
     analyze: analyze,
     consentGranted: consent,
     onProgress: steps?.add,
+  );
+
+  test(
+    'three poses are one check-in and a failed write can retry all staged files',
+    () async {
+      await addBaseline('front');
+      final photos = <StagedPosePhoto>[];
+      for (final pose in ['front', 'side', 'back']) {
+        photos.add(StagedPosePhoto(pose: pose, photo: await staged()));
+      }
+      final failing = PhysiqueCheckInFlow(
+        sanitizer: sanitizer,
+        store: store,
+        assessments: _ThrowingAssessments(db, clock),
+        service: PhysiqueCheckInService(backend),
+        clock: clock,
+      );
+      await expectLater(
+        failing.completeCheckIn(
+          goal: goal,
+          photos: photos,
+          phase: DietPhase.cut,
+          weeksInPhase: 3,
+          analyze: false,
+          consentGranted: false,
+        ),
+        throwsStateError,
+      );
+      expect(await checkInRows(), isEmpty);
+      for (final p in photos) {
+        expect(await p.photo.file.exists(), isTrue);
+      }
+      await flow.completeCheckIn(
+        goal: goal,
+        photos: photos,
+        phase: DietPhase.cut,
+        weeksInPhase: 3,
+        analyze: true,
+        consentGranted: true,
+      );
+      final records = await checkInRows();
+      expect(records, hasLength(1));
+      final rows = await (db.select(
+        db.physiquePhotos,
+      )..where((p) => p.assessmentId.equals(records.single.id))).get();
+      expect(rows.map((p) => p.pose).toSet(), {'front', 'side', 'back'});
+      expect(backend.calls, 1);
+      for (final p in photos) {
+        expect(await p.photo.file.exists(), isFalse);
+      }
+    },
   );
 
   group('stage', () {

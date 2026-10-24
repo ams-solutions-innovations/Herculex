@@ -579,6 +579,7 @@ class _ConflictBanner extends ConsumerWidget {
             Text(first['message'] as String, style: theme.textTheme.bodySmall),
             const SizedBox(height: 12),
             PremiumButton(
+              expand: true,
               text: 'Push the second session out a day',
               isPrimary: false,
               onTap: () async {
@@ -648,6 +649,7 @@ class _NoBlockState extends ConsumerWidget {
               const SizedBox(height: 22),
               if (all.isEmpty)
                 PremiumButton(
+                  expand: true,
                   text: 'Build a block',
                   icon: Icons.add_rounded,
                   onTap: () => Navigator.push(
@@ -660,6 +662,7 @@ class _NoBlockState extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: PremiumButton(
+                      expand: true,
                       text: p.name,
                       isPrimary: false,
                       onTap: () => ref

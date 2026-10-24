@@ -196,11 +196,19 @@ mixin _StepParametersMixin on _BuilderStateBase {
             title: 'Time-saving Sets',
             icon: Icons.bolt_rounded,
             body:
-                'Uses density techniques such as Myo-reps exclusively on safe isolation exercises to significantly shorten session duration.',
+                'Uses eligible isolation exercises for Myo-reps, drop sets, or a light primer followed by two sets to technical failure when sessions need to be shorter. Experience, recovery and exercise safety decide which options fit. Heavy lifts keep their warm-up ramps and rest.',
           ),
           onChanged: (value) =>
               setState(() => _allowTimeSavingSetTechniques = value),
         ),
+        if (_allowTimeSavingSetTechniques)
+          _timeSavingOptionsFor(
+            theme: theme,
+            technique: _timeSavingTechnique,
+            experience: _experience,
+            minutes: _workoutDurationMinutes,
+            onChanged: (value) => setState(() => _timeSavingTechnique = value),
+          ),
         _settingToggleTile(
           theme,
           key: const ValueKey('specialization-switch'),
@@ -376,6 +384,16 @@ mixin _StepParametersMixin on _BuilderStateBase {
               onTap: () => setState(() => _model = model),
             ),
           ),
+        if (_buildMode == ProgramBuildMode.herculexAi) ...[
+          const SizedBox(height: 16),
+          PremiumButton(
+            text: _generatingBrief
+                ? 'Generating…'
+                : 'Generate with these settings',
+            icon: Icons.auto_awesome_rounded,
+            onTap: _generatingBrief ? () {} : _generateHerculexBrief,
+          ),
+        ],
       ],
     );
   }

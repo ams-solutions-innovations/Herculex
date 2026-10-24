@@ -19,8 +19,20 @@ const double _kMinTarget = 44;
 /// It describes the estimate, never the text being typed in the field above.
 /// Once an estimate exists it is never blank and never an error look: cold
 /// start, load failure and a stored cold-start row all read "Calibrating".
+///
+/// [onTap] replaces the default [showTdeeEstimateSheet] when a screen has a
+/// fuller place to send the user (Profile opens the calibration page).
 class TdeeEstimateBadge extends ConsumerWidget {
-  const TdeeEstimateBadge({super.key});
+  const TdeeEstimateBadge({
+    super.key,
+    this.onTap,
+    this.alignment = Alignment.centerLeft,
+  });
+
+  final VoidCallback? onTap;
+
+  /// Where the pill sits in its row; Profile centres it.
+  final AlignmentGeometry alignment;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -57,6 +69,8 @@ class TdeeEstimateBadge extends ConsumerWidget {
         key: ValueKey(estimate.badgeState),
         state: estimate.badgeState,
         confidence: estimate.confidence,
+        onTap: onTap,
+        alignment: alignment,
       );
     }
 
@@ -65,10 +79,18 @@ class TdeeEstimateBadge extends ConsumerWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge({super.key, required this.state, required this.confidence});
+  const _Badge({
+    super.key,
+    required this.state,
+    required this.confidence,
+    this.onTap,
+    this.alignment = Alignment.centerLeft,
+  });
 
+  final AlignmentGeometry alignment;
   final TdeeBadgeState state;
   final TdeeConfidence confidence;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -78,10 +100,10 @@ class _Badge extends StatelessWidget {
     // "Measured · High confidence" -> "Measured, High confidence".
     final spoken = label.replaceFirst(' · ', ', ').replaceFirst(' — ', ', ');
 
-    void open() => showTdeeEstimateSheet(context);
+    void open() => onTap != null ? onTap!() : showTdeeEstimateSheet(context);
 
     return Align(
-      alignment: Alignment.centerLeft,
+      alignment: alignment,
       child: Semantics(
         button: true,
         excludeSemantics: true,

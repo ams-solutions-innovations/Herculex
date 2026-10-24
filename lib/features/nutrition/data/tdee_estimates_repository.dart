@@ -62,6 +62,12 @@ class TdeeEstimatesRepository {
     return rows.map(_toResult).toList(growable: false);
   }
 
+  /// Live newest-first history, for the calibration page's trend chart.
+  Stream<List<TdeeEstimateResult>> watchRecent({int limit = 60}) =>
+      _newestFirst(
+        limit: limit,
+      ).watch().map((rows) => rows.map(_toResult).toList(growable: false));
+
   /// Newest estimate whose `estimatedAt` is at or before [t], or null.
   ///
   /// Phase 29 diffs the history itself (Phase 28 D-11): the weekly report

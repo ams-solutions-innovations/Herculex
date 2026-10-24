@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as developer show log;
 import 'dart:math' as math;
-
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
@@ -96,9 +95,13 @@ class SyncService {
   }
 
   void _emit(SyncState next) {
-    if (next == _state) return;
+    if (next == _state) {
+      return;
+    }
     _state = next;
-    if (!_stateController.isClosed) _stateController.add(next);
+    if (!_stateController.isClosed) {
+      _stateController.add(next);
+    }
   }
 
   /// Recomputes [state] from the outbox plus the outcome of whatever just
@@ -115,7 +118,9 @@ class SyncService {
       return;
     }
 
-    if (error != null) _lastRunError = error;
+    if (error != null) {
+      _lastRunError = error;
+    }
 
     final counts = await _db
         .customSelect(
@@ -131,7 +136,9 @@ class SyncService {
     final quarantined = counts.data['quarantined'] as int;
     final quarantinedError = counts.data['quarantined_error'] as String?;
 
-    if (cleanCycle && quarantined == 0) _lastRunError = null;
+    if (cleanCycle && quarantined == 0) {
+      _lastRunError = null;
+    }
 
     final SyncPhase phase;
     if (quarantined > 0) {
@@ -179,10 +186,14 @@ class SyncService {
   /// between an unawaited kick-off here and an explicit `pushOnce()`/
   /// `pullAll()` call made right after `start()` returns).
   Future<void> start(String userId) async {
-    if (_userId == userId) return;
+    if (_userId == userId) {
+      return;
+    }
     // A different uid arriving while one is active would otherwise install a
     // second set of timers and subscriptions on top of the first.
-    if (_userId != null) await stop();
+    if (_userId != null) {
+      await stop();
+    }
 
     if (!_backend.isConfigured) {
       // No backend in this build — stay honest rather than idling in a state
@@ -268,7 +279,9 @@ class SyncService {
   /// uploaded to the wrong account.
   Future<void> _claimLocalDatabaseFor(String userId) async {
     final owner = await _readCursor(_ownerKey);
-    if (owner == userId) return;
+    if (owner == userId) {
+      return;
+    }
 
     if (owner != null) {
       _log(
@@ -287,7 +300,9 @@ class SyncService {
   /// immediate push + pull cycle.
   Future<void> retryAll() async {
     final userId = _userId;
-    if (userId == null || !_backend.isConfigured) return;
+    if (userId == null || !_backend.isConfigured) {
+      return;
+    }
     _log('retryAll: unquarantining pending ops and forcing push + pull');
     await _db.customUpdate(
       'UPDATE pending_sync_ops SET attempts = 0, last_error = NULL, next_retry_at = NULL',
@@ -391,7 +406,9 @@ class SyncService {
 
   Future<void> pushOnce() async {
     final userId = _userId;
-    if (userId == null || _pushing) return;
+    if (userId == null || _pushing) {
+      return;
+    }
     _pushing = true;
     try {
       await _refreshState(syncing: true);
@@ -421,7 +438,9 @@ class SyncService {
           .get();
       var clean = true;
       for (final op in ops) {
-        if (!await _pushOne(op.data, userId)) clean = false;
+        if (!await _pushOne(op.data, userId)) {
+          clean = false;
+        }
       }
       await _refreshState(cleanCycle: clean);
     } finally {
@@ -684,7 +703,9 @@ class SyncService {
     }
 
     for (final entry in row.entries) {
-      if (consumed.contains(entry.key)) continue;
+      if (consumed.contains(entry.key)) {
+        continue;
+      }
       remote[entry.key] = entry.value;
     }
 
@@ -706,7 +727,9 @@ class SyncService {
     String userId,
   ) async {
     final spec = syncTableSpecsByName[table];
-    if (spec == null) return;
+    if (spec == null) {
+      return;
+    }
 
     for (final fk in spec.fkFields) {
       if (fk is SimpleFk) {
@@ -734,7 +757,9 @@ class SyncService {
     String userId,
   ) async {
     final spec = syncTableSpecsByName[parentTable];
-    if (spec == null) return;
+    if (spec == null) {
+      return;
+    }
 
     final isCustomFiltered =
         isCustomFilteredTableNames.contains(parentTable) &&
@@ -748,7 +773,9 @@ class SyncService {
         )
         .getSingleOrNull();
 
-    if (parentRow == null) return;
+    if (parentRow == null) {
+      return;
+    }
 
     var parentUuid = parentRow.data['sync_uuid'] as String?;
     if (parentUuid == null) {
@@ -786,7 +813,9 @@ class SyncService {
 
   Future<void> pullAll() async {
     final userId = _userId;
-    if (userId == null || _pulling) return;
+    if (userId == null || _pulling) {
+      return;
+    }
     _pulling = true;
     try {
       await _refreshState(syncing: true);
@@ -797,7 +826,9 @@ class SyncService {
       // re-created after the tombstone was written.
       var clean = await _pullTombstones(userId);
       for (final table in syncTableOrder) {
-        if (!await _pullTable(table, userId)) clean = false;
+        if (!await _pullTable(table, userId)) {
+          clean = false;
+        }
       }
       await _refreshState(cleanCycle: clean);
     } finally {
@@ -808,7 +839,9 @@ class SyncService {
   /// Returns whether the table's delta pull completed without error.
   Future<bool> _pullTable(String table, String userId) async {
     final spec = syncTableSpecsByName[table];
-    if (spec == null) return true;
+    if (spec == null) {
+      return true;
+    }
 
     final cursorRow = await _db
         .customSelect(
@@ -831,7 +864,9 @@ class SyncService {
       _log('SyncService pull failed for $table: $e');
       return false;
     }
-    if (remoteRows.isEmpty) return true;
+    if (remoteRows.isEmpty) {
+      return true;
+    }
 
     var latest = since;
     for (final remoteRow in remoteRows) {
@@ -839,7 +874,9 @@ class SyncService {
       final updatedAt = DateTime.tryParse(
         remoteRow['updated_at'] as String? ?? '',
       );
-      if (updatedAt != null && updatedAt.isAfter(latest)) latest = updatedAt;
+      if (updatedAt != null && updatedAt.isAfter(latest)) {
+        latest = updatedAt;
+      }
     }
 
     await _writeCursor(table, latest.toIso8601String());
@@ -877,9 +914,13 @@ class SyncService {
       while (page.isNotEmpty) {
         for (final tombstone in page) {
           final key = '${tombstone['entity_type']}/${tombstone['entity_id']}';
-          if (seen.add(key)) batch.add(tombstone);
+          if (seen.add(key)) {
+            batch.add(tombstone);
+          }
         }
-        if (page.length < tombstonePageSize) break;
+        if (page.length < tombstonePageSize) {
+          break;
+        }
         // Re-request the last page's final timestamp inclusively and dedupe in
         // memory, so a group of tombstones sharing one `deleted_at` (every
         // cascading delete produces one) is never cut in half by the page
@@ -898,7 +939,9 @@ class SyncService {
       return false;
     }
 
-    if (batch.isEmpty) return true;
+    if (batch.isEmpty) {
+      return true;
+    }
 
     final appliedThrough = await _applyTombstoneBatch(batch);
     if (appliedThrough != null) {
@@ -935,7 +978,9 @@ class SyncService {
             final byTime = (a['deleted_at'] as String).compareTo(
               b['deleted_at'] as String,
             );
-            if (byTime != 0) return byTime;
+            if (byTime != 0) {
+              return byTime;
+            }
             // Children before parents within one delete transaction: local FKs
             // include RESTRICT edges (set_bands -> bands, food_entries ->
             // foods, ...) where deleting the parent first throws.
@@ -976,13 +1021,15 @@ class SyncService {
               ],
             )
             .getSingleOrNull();
-        if (pending != null) continue;
+        if (pending != null) {
+          continue;
+        }
 
         try {
           await _db.customUpdate(
             'DELETE FROM $table WHERE sync_uuid = ?',
             variables: [Variable(id)],
-            updates: {},
+            updates: _db.allTables.toSet(),
           );
           appliedThrough = DateTime.parse(
             tombstone['deleted_at'] as String,
@@ -1039,7 +1086,9 @@ class SyncService {
       // Empty is ambiguous — a genuinely empty remote table looks exactly like
       // a failed request. Skipping leaves stale rows, which is recoverable;
       // the alternative wipes the table, which is not.
-      if (remoteIds.isEmpty) continue;
+      if (remoteIds.isEmpty) {
+        continue;
+      }
 
       await _db.transaction(() async {
         final watermark =
@@ -1073,11 +1122,13 @@ class SyncService {
 
         for (final row in localRows) {
           final uuid = row.data['sync_uuid'] as String;
-          if (remoteIds.contains(uuid) || pendingIds.contains(uuid)) continue;
+          if (remoteIds.contains(uuid) || pendingIds.contains(uuid)) {
+            continue;
+          }
           await _db.customUpdate(
             'DELETE FROM $table WHERE sync_uuid = ?',
             variables: [Variable(uuid)],
-            updates: {},
+            updates: _db.allTables.toSet(),
           );
         }
 
@@ -1116,8 +1167,40 @@ class SyncService {
           ],
         )
         .getSingleOrNull();
-    if (pending != null) return;
+    if (pending != null) {
+      return;
+    }
 
+    String? replacedTargetUuid;
+    if (table == 'nutrition_targets') {
+      final existing = await _db
+          .customSelect(
+            'SELECT sync_uuid FROM nutrition_targets WHERE applies_to = ? AND effective_from_date_iso = ?',
+            variables: [
+              Variable(remoteRow['applies_to'] as String? ?? 'global'),
+              Variable(
+                remoteRow['effective_from_date_iso'] as String? ?? '0001-01-01',
+              ),
+            ],
+          )
+          .getSingleOrNull();
+      replacedTargetUuid = existing?.data['sync_uuid'] as String?;
+      if (replacedTargetUuid != null && replacedTargetUuid != syncUuid) {
+        final localEdit = await _db
+            .customSelect(
+              'SELECT 1 FROM pending_sync_ops WHERE entity_type = ? AND entity_id = ? AND attempts < ?',
+              variables: [
+                Variable(table),
+                Variable(replacedTargetUuid),
+                Variable(maxPushAttempts),
+              ],
+            )
+            .getSingleOrNull();
+        if (localEdit != null) {
+          return;
+        }
+      }
+    }
     final local = <String, dynamic>{'sync_uuid': syncUuid};
 
     for (final fk in spec.fkFields) {
@@ -1159,9 +1242,21 @@ class SyncService {
       for (final entry in spec.columnRenames.entries) entry.value: entry.key,
     };
 
+    final changedTables = _db.allTables
+        .where((t) => t.actualTableName == table)
+        .toSet();
+    final localColumns = changedTables.single.$columns
+        .map((c) => c.$name)
+        .toSet();
     for (final entry in remoteRow.entries) {
-      if (consumedRemote.contains(entry.key)) continue;
+      if (consumedRemote.contains(entry.key)) {
+        continue;
+      }
       final localColumn = renameTargetToLocal[entry.key] ?? entry.key;
+      // A server may add nullable/defaulted fields before every device upgrades.
+      if (!localColumns.contains(localColumn)) {
+        continue;
+      }
       var value = entry.value;
       if ([...spec.dateTimeColumns, 'deleted_at'].contains(localColumn) &&
           value != null) {
@@ -1173,14 +1268,22 @@ class SyncService {
     final columns = local.keys.join(', ');
     final placeholders = List.filled(local.length, '?').join(', ');
     final updateAssignments = local.keys
-        .where((c) => c != 'sync_uuid')
+        .where((c) => c != 'sync_uuid' || table == 'nutrition_targets')
         .map((c) => '$c = excluded.$c')
         .join(', ');
     await _db.customUpdate(
       'INSERT INTO $table ($columns) VALUES ($placeholders) '
-      'ON CONFLICT(sync_uuid) DO UPDATE SET $updateAssignments',
+      'ON CONFLICT${table == 'nutrition_targets' ? '' : '(sync_uuid)'} DO UPDATE SET $updateAssignments',
       variables: local.values.map(Variable.new).toList(),
+      updates: changedTables,
     );
+
+    if (replacedTargetUuid != null && replacedTargetUuid != syncUuid) {
+      await _db.customUpdate(
+        'DELETE FROM pending_sync_ops WHERE entity_type = ? AND entity_id = ?',
+        variables: [Variable(table), Variable(replacedTargetUuid)],
+      );
+    }
 
     // The INSERT/UPDATE above just fired `trg_outbox_ins_$table` or
     // `trg_outbox_upd_$table` — those triggers can't tell a locally-authored
@@ -1201,7 +1304,9 @@ class SyncService {
   }
 
   String? _epochToIso(dynamic value) {
-    if (value == null) return null;
+    if (value == null) {
+      return null;
+    }
     final seconds = value as int;
     return DateTime.fromMillisecondsSinceEpoch(
       seconds * 1000,
@@ -1210,7 +1315,9 @@ class SyncService {
   }
 
   int? _isoToEpoch(String? value) {
-    if (value == null) return null;
+    if (value == null) {
+      return null;
+    }
     return DateTime.parse(value).toUtc().millisecondsSinceEpoch ~/ 1000;
   }
 }

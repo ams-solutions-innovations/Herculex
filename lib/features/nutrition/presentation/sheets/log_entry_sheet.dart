@@ -18,6 +18,8 @@ import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/food_insights.dart';
 import 'package:herculex/features/nutrition/domain/food_portion.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/custom_food_form_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/serving_size_picker_sheet.dart';
 import 'package:intl/intl.dart';
 
 /// Final step before logging/editing: choose grams (food) or servings (recipe), pick meal, or delete.
@@ -139,6 +141,7 @@ const Map<String, double> _kUnitToGrams = {
 };
 
 class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
+  late FoodData? _food = widget.food;
   late String _mealKey = widget.initialMealKey;
   late final TextEditingController _quantity;
   late String _selectedUnit;
@@ -158,11 +161,21 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
   void initState() {
     super.initState();
     final entry = widget.existingEntry;
+    if (_food == null && entry?.foodId != null) {
+      Future.microtask(() async {
+        final loaded = await ref
+            .read(nutritionRepositoryProvider)
+            .foodById(entry!.foodId!);
+        if (mounted && loaded != null) {
+          setState(() => _food = loaded);
+        }
+      });
+    }
     if (widget.isIngredient) {
       final grams =
           widget.existingIngredient?.grams ??
           widget.initialGrams ??
-          (widget.food == null ? 100 : FoodPortion.defaultAmount(widget.food!));
+          (_food == null ? 100 : FoodPortion.defaultAmount(_food!));
       _quantity = TextEditingController(
         text: grams % 1 == 0
             ? grams.toStringAsFixed(0)
@@ -184,8 +197,8 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
       _time = TimeOfDay.fromDateTime(entry.loggedAt);
     } else {
       _quantity = TextEditingController(
-        text: widget.food != null
-            ? FoodPortion.defaultAmount(widget.food!).toStringAsFixed(0)
+        text: _food != null
+            ? FoodPortion.defaultAmount(_food!).toStringAsFixed(0)
             : '1',
       );
       _selectedUnit = _defaultUnit;
@@ -203,7 +216,7 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
   /// guessing grams from the nutrition reference basis.
   String get _defaultUnit {
     if (widget.recipe != null) return 'servings';
-    final food = widget.food;
+    final food = _food;
     if (food == null) return 'g';
     return FoodPortion.defaultUnit(food);
   }
@@ -212,6 +225,43 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
   void dispose() {
     _quantity.dispose();
     super.dispose();
+  }
+
+  Future<void> _editOriginalFood({bool autoStartAiScan = false}) async {
+    var targetFood = _food;
+    if (targetFood == null && widget.existingEntry?.foodId != null) {
+      targetFood = await ref
+          .read(nutritionRepositoryProvider)
+          .foodById(widget.existingEntry!.foodId!);
+    }
+    if (targetFood == null || !mounted) return;
+    final updated = await CustomFoodFormSheet.show(
+      context,
+      existingFood: targetFood,
+      autoStartAiScan: autoStartAiScan,
+    );
+    if (updated == null || !mounted) return;
+    if (widget.existingEntry != null) {
+      await ref
+          .read(nutritionRepositoryProvider)
+          .refreshEntrySnapshotFromFood(widget.existingEntry!.id, updated);
+    }
+    ref.invalidate(foodByIdProvider(updated.id));
+    ref.invalidate(foodSearchProvider);
+    ref.invalidate(customFoodsProvider);
+    ref.invalidate(recentFoodsProvider);
+    ref.invalidate(entriesForDateProvider(widget.date));
+    ref.invalidate(dailyTotalsProvider(widget.date));
+    setState(() {
+      _food = updated;
+    });
+    if (mounted) {
+      AppNotice.show(
+        context,
+        'Original food "${updated.name}" updated',
+        kind: AppNoticeKind.success,
+      );
+    }
   }
 
   Future<void> _save() async {
@@ -237,9 +287,9 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     final repo = ref.read(nutritionRepositoryProvider);
 
     if (widget.isIngredient) {
-      final grams = widget.food == null
+      final grams = _food == null
           ? total * (_kUnitToGrams[_selectedUnit] ?? 1.0)
-          : FoodPortion.massForAmount(widget.food!, total, _selectedUnit);
+          : FoodPortion.massForAmount(_food!, total, _selectedUnit);
       if (grams == null) {
         AppNotice.show(
           context,
@@ -254,10 +304,10 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
           id: widget.existingIngredient!.id,
           grams: grams,
         );
-      } else if (widget.recipeId != null && widget.food != null) {
+      } else if (widget.recipeId != null && _food != null) {
         await repo.addIngredient(
           recipeId: widget.recipeId!,
-          foodId: widget.food!.id,
+          foodId: _food!.id,
           grams: grams,
         );
       }
@@ -267,7 +317,7 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     }
 
     final isFood =
-        widget.food != null ||
+        _food != null ||
         (widget.existingEntry != null && widget.existingEntry!.foodId != null);
 
     // Preserve named portions such as scoops and nuggets. The repository can
@@ -288,11 +338,11 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
       );
     } else {
       for (final date in {widget.date, ..._extraDays}) {
-        if (widget.food != null) {
+        if (_food != null) {
           await repo.logFood(
             date: date,
             mealKey: _mealKey,
-            foodId: widget.food!.id,
+            foodId: _food!.id,
             grams: grams ?? (_selectedUnit == 'g' ? total : null),
             portionAmount: total,
             portionUnit: _selectedUnit,
@@ -569,151 +619,33 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     BuildContext context,
     bool isFood,
     List<String> availableUnits,
-  ) {
+  ) async {
     Haptics.selection();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surfaceContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Serving Size & Unit',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _quantity,
-                    autofocus: true,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                    ],
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    decoration: InputDecoration(
-                      suffixText: isFood ? _selectedUnit : 'servings',
-                      suffixStyle: TextStyle(
-                        color: AppColors.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      filled: true,
-                      fillColor: AppColors.surfaceVariant,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: AppColors.outlineVariant),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: AppColors.outlineVariant),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(
-                          color: AppColors.primary,
-                          width: 1.5,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                  ),
-                  if (isFood) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      'Unit',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.secondary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final u in availableUnits)
-                          GestureDetector(
-                            onTap: () {
-                              Haptics.selection();
-                              _switchFoodUnit(u);
-                              setModalState(() {});
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _selectedUnit == u
-                                    ? AppColors.primary
-                                    : AppColors.surfaceVariant,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Text(
-                                u,
-                                style: TextStyle(
-                                  color: _selectedUnit == u
-                                      ? Colors.white
-                                      : AppColors.onSurface,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: const StadiumBorder(),
-                      ),
-                      child: const Text(
-                        'Done',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
+    final foodTitle =
+        _food?.name ??
+        widget.recipe?.name ??
+        widget.existingEntry?.snapshotName;
+    await ServingSizePickerSheet.show(
+      context,
+      quantityController: _quantity,
+      isFood: isFood,
+      selectedUnit: _selectedUnit,
+      availableUnits: availableUnits,
+      foodTitle: foodTitle,
+      onUnitSelected: (u) {
+        _switchFoodUnit(u);
+      },
+      onChanged: (val) {
+        if (mounted) setState(() {});
       },
     );
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _switchFoodUnit(String nextUnit) {
-    final food = widget.food;
+    final food = _food;
     if (food == null || nextUnit == _selectedUnit) {
       setState(() => _selectedUnit = nextUnit);
       return;
@@ -748,7 +680,7 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     final theme = Theme.of(context);
     final mealSlots = ref.watch(mealSlotsProvider);
     final isFood =
-        widget.food != null ||
+        _food != null ||
         (widget.existingEntry != null && widget.existingEntry!.foodId != null);
     final isEditing = widget.isIngredient
         ? (widget.existingIngredient != null)
@@ -765,17 +697,17 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
       pageTitle = 'Add Food';
     }
 
-    final title = widget.food?.name ?? widget.recipe?.name ?? 'Logged Item';
+    final title = _food?.name ?? widget.recipe?.name ?? 'Logged Item';
     final subtitle = isFood
-        ? (widget.food != null
-              ? '${FoodPortion.label(widget.food!)} · ${(widget.food!.kcalPer100g * FoodPortion.nutritionFactor(widget.food!, FoodPortion.defaultAmount(widget.food!), FoodPortion.defaultUnit(widget.food!))).toStringAsFixed(0)} kcal'
+        ? (_food != null
+              ? '${FoodPortion.label(_food!)} · ${(_food!.kcalPer100g * FoodPortion.nutritionFactor(_food!, FoodPortion.defaultAmount(_food!), FoodPortion.defaultUnit(_food!))).toStringAsFixed(0)} kcal'
               : 'Food item entry')
         : (widget.recipe != null
               ? '${widget.recipe!.servings} servings per recipe'
               : 'Recipe entry');
-    final baseAvailableUnits = widget.food == null
+    final baseAvailableUnits = _food == null
         ? const ['servings']
-        : FoodPortion.availableUnits(widget.food!);
+        : FoodPortion.availableUnits(_food!);
     final availableUnits = baseAvailableUnits.contains(_selectedUnit)
         ? baseAvailableUnits
         : [_selectedUnit, ...baseAvailableUnits];
@@ -789,7 +721,7 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
         )
         .label;
 
-    final food = widget.food;
+    final food = _food;
     final insights = food == null
         ? const <FoodInsight>[]
         : FoodInsights.forPer100g(
@@ -835,24 +767,62 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
           PopupMenuButton<_LogEntryAction>(
             tooltip: 'More options',
             onSelected: (action) {
-              if (action == _LogEntryAction.changeMeasure) {
-                _showServingSizePicker(context, isFood, availableUnits);
-              } else {
-                _delete();
+              switch (action) {
+                case _LogEntryAction.changeMeasure:
+                  _showServingSizePicker(context, isFood, availableUnits);
+                case _LogEntryAction.editOriginalFood:
+                  _editOriginalFood();
+                case _LogEntryAction.scanNutritionAi:
+                  _editOriginalFood(autoStartAiScan: true);
+                case _LogEntryAction.delete:
+                  _delete();
               }
             },
             itemBuilder: (_) => [
-              if (isFood)
+              if (isFood) ...[
                 const PopupMenuItem(
                   value: _LogEntryAction.changeMeasure,
-                  child: Text('Change measure'),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    leading: Icon(Icons.straighten_outlined, size: 20),
+                    title: Text('Change measure'),
+                  ),
                 ),
+                const PopupMenuItem(
+                  value: _LogEntryAction.editOriginalFood,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    leading: Icon(Icons.edit_outlined, size: 20),
+                    title: Text('Edit original food'),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: _LogEntryAction.scanNutritionAi,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    leading: Icon(Icons.document_scanner_outlined, size: 20),
+                    title: Text('Scan nutrition values (AI)'),
+                  ),
+                ),
+              ],
               if (isEditing)
                 PopupMenuItem(
                   value: _LogEntryAction.delete,
-                  child: Text(
-                    widget.isIngredient ? 'Remove from recipe' : 'Delete log',
-                    style: const TextStyle(color: Colors.redAccent),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    leading: const Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: Colors.redAccent,
+                    ),
+                    title: Text(
+                      widget.isIngredient ? 'Remove from recipe' : 'Delete log',
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
                   ),
                 ),
             ],
@@ -980,7 +950,7 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
             valueListenable: _quantity,
             builder: (context, _, _) {
               return _NutritionPreview(
-                food: widget.food,
+                food: _food,
                 recipe: widget.recipe,
                 amount: _totalAmount,
                 unit: isFood ? _selectedUnit : 'servings',
@@ -988,10 +958,10 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
               );
             },
           ),
-          if (widget.food != null && !widget.isIngredient) ...[
+          if (_food != null && !widget.isIngredient) ...[
             const SizedBox(height: 12),
             _FrequentlyPairedFoods(
-              food: widget.food!,
+              food: _food!,
               date: widget.date,
               mealKey: _mealKey,
             ),
@@ -1002,7 +972,12 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
   }
 }
 
-enum _LogEntryAction { changeMeasure, delete }
+enum _LogEntryAction {
+  changeMeasure,
+  editOriginalFood,
+  scanNutritionAi,
+  delete,
+}
 
 class _FrequentlyPairedFoods extends ConsumerWidget {
   const _FrequentlyPairedFoods({
@@ -1318,8 +1293,12 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
   String? _futureKey;
 
   Future<DailyTotals> _cachedResolve() {
+    final f = widget.food;
+    final foodStamp = f == null
+        ? 'null'
+        : '${f.id}:${f.kcalPer100g}:${f.proteinPer100g}:${f.carbsPer100g}:${f.fatPer100g}:${f.fiberPer100g}:${f.servingGrams}:${f.servingAmount}:${f.servingUnit}:${f.referenceBasis}:${f.sourceMetadataJson}';
     final key =
-        '${widget.food?.id}|${widget.recipe?.id}|${widget.amount}|${widget.unit}';
+        '$foodStamp|${widget.recipe?.id}|${widget.amount}|${widget.unit}';
     if (_futureKey != key || _future == null) {
       _futureKey = key;
       _future = _resolve();

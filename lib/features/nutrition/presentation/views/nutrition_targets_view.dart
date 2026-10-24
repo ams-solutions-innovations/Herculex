@@ -17,6 +17,8 @@ import 'package:herculex/features/nutrition/application/tdee_providers.dart';
 import 'package:herculex/features/nutrition/data/carb_cycle_service.dart';
 import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
+import 'package:herculex/features/nutrition/domain/meal.dart' show dateIso;
+import 'package:herculex/features/nutrition/presentation/dialogs/target_start_date_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/tdee_estimate_badge.dart';
 import 'package:herculex/features/physique/application/physique_providers.dart';
 import 'package:herculex/features/physique/presentation/widgets/restriction_notice.dart';
@@ -184,8 +186,12 @@ class _QuickPhasePlannerSectionState
       ref.read(physiqueEditorEligibilityProvider).coerce(_selectedPhase);
 
   void _onPhaseSelected(DietPhase phase) {
-    if (!ref.read(physiqueEditorEligibilityProvider).allows(phase)) return;
-    if (_selectedPhase == phase) return;
+    if (!ref.read(physiqueEditorEligibilityProvider).allows(phase)) {
+      return;
+    }
+    if (_selectedPhase == phase) {
+      return;
+    }
     setState(() {
       _selectedPhase = phase;
       final options = DietPhaseCalculator.paceOptionsFor(phase);
@@ -312,7 +318,9 @@ class _QuickPhasePlannerSectionState
                     ),
                 ],
               );
-              if (picked != null) _onPhaseSelected(picked);
+              if (picked != null) {
+                _onPhaseSelected(picked);
+              }
             },
           ),
 
@@ -341,7 +349,9 @@ class _QuickPhasePlannerSectionState
                     ),
                 ],
               );
-              if (picked != null) setState(() => _selectedPaceIndex = picked);
+              if (picked != null) {
+                setState(() => _selectedPaceIndex = picked);
+              }
             },
           ),
 
@@ -573,20 +583,47 @@ class _QuickPhasePlannerSectionState
                   ? null
                   : () async {
                       setState(() => _saving = true);
-                      await ref
-                          .read(phaseTargetsApplierProvider)
-                          .apply(
-                            phase: _effectivePhase,
-                            pace: currentPace,
-                            targets: targets,
-                          );
-                      if (!mounted) return;
-                      setState(() => _saving = false);
-                      AppNotice.showWith(
-                        ref,
-                        '${_effectivePhase.label} • ${targets.kcal} kcal',
-                        title: 'Targets updated',
+                      final start = await chooseTargetStartDate(
+                        context,
+                        now: ref.read(clockProvider).now(),
                       );
+                      if (!mounted) {
+                        return;
+                      }
+                      if (start == null) {
+                        setState(() => _saving = false);
+                        return;
+                      }
+                      try {
+                        await ref
+                            .read(phaseTargetsApplierProvider)
+                            .apply(
+                              phase: _effectivePhase,
+                              pace: currentPace,
+                              targets: targets,
+                              effectiveFrom: start,
+                            );
+                        if (!mounted) {
+                          return;
+                        }
+                        AppNotice.showWith(
+                          ref,
+                          '${_effectivePhase.label} • ${targets.kcal} kcal',
+                          title: 'Targets updated',
+                        );
+                      } on Object {
+                        if (context.mounted) {
+                          AppNotice.show(
+                            context,
+                            'Could not save your goals. Please try again.',
+                            kind: AppNoticeKind.error,
+                          );
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() => _saving = false);
+                        }
+                      }
                     },
             ),
           ),
@@ -741,7 +778,7 @@ class DailyTargetsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hx = context.hx;
-    final targets = ref.watch(nutritionTargetsProvider);
+    final targets = ref.watch(visibleNutritionTargetsProvider);
 
     return HxScreenShell(
       title: 'Daily targets',
@@ -836,6 +873,9 @@ class DailyTargetsView extends ConsumerWidget {
                                   carbsG: t.carbsG,
                                   fatG: t.fatG,
                                   fiberG: t.fiberG,
+                                  effectiveFrom: DateTime.parse(
+                                    t.effectiveFromDateIso,
+                                  ),
                                 );
                               },
                             );
@@ -904,7 +944,9 @@ class _TargetCard extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        target.label,
+                        target.effectiveFromDateIso == '0001-01-01'
+                            ? target.label
+                            : '${target.label} · from ${target.effectiveFromDateIso}',
                         style: TextStyle(
                           color: hx.onSurface,
                           fontWeight: FontWeight.bold,
@@ -1234,7 +1276,9 @@ class CarbCycleView extends ConsumerWidget {
           icon: Icons.auto_awesome_rounded,
           onTap: () async {
             final levels = carbCycle.asData?.value;
-            if (levels == null) return;
+            if (levels == null) {
+              return;
+            }
             await ref
                 .read(nutritionRepositoryProvider)
                 .saveCarbCyclePlan(
@@ -1294,6 +1338,7 @@ class TargetEditorView extends ConsumerStatefulWidget {
 }
 
 class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
+  bool _saving = false;
   String _scope = 'global';
   int? _weekday;
   _MacroMode _mode = _MacroMode.grams;
@@ -1340,7 +1385,32 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
       _maintenanceKcal.text = (maintenance ?? baseline?.kcal ?? t.kcal)
           .toString();
     } else {
-      if (baseline != null) {
+      final today = dateIso(ref.read(clockProvider).now());
+      final stored =
+          ref
+              .read(nutritionTargetsProvider)
+              .valueOrNull
+              ?.where(
+                (t) =>
+                    t.appliesTo == 'global' &&
+                    t.effectiveFromDateIso.compareTo(today) <= 0,
+              )
+              .toList()
+            ?..sort(
+              (a, b) =>
+                  b.effectiveFromDateIso.compareTo(a.effectiveFromDateIso),
+            );
+      final saved = stored == null || stored.isEmpty ? null : stored.first;
+      if (saved != null) {
+        _maintenanceKcal.text = (maintenance ?? saved.kcal).toString();
+        _kcal.text = saved.kcal.toString();
+        _protein.text = saved.proteinG.toString();
+        _carbs.text = saved.carbsG.toString();
+        _fat.text = saved.fatG.toString();
+        if (saved.fiberG != null) {
+          _fiber.text = saved.fiberG.toString();
+        }
+      } else if (baseline != null) {
         _maintenanceKcal.text = (maintenance ?? baseline.kcal).toString();
         _kcal.text = baseline.kcal.toString();
         _protein.text = baseline.proteinG.toString();
@@ -1376,11 +1446,15 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
   /// Recomputes every field from the maintenance figure for [_phase] (§5).
   void _applyPhase(DietPhase phase) {
     final eligibility = ref.read(physiqueEditorEligibilityProvider);
-    if (!eligibility.allows(phase)) return;
+    if (!eligibility.allows(phase)) {
+      return;
+    }
     final baseline = int.tryParse(_maintenanceKcal.text.trim());
     setState(() {
       _phase = phase;
-      if (baseline == null || baseline <= 0) return;
+      if (baseline == null || baseline <= 0) {
+        return;
+      }
       final t = DietPhaseCalculator.apply(
         phase: phase,
         eligibility: eligibility,
@@ -1398,13 +1472,17 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
   // Converts current mode inputs into final gram values. Returns null if inputs incomplete.
   ({int kcal, int protein, int carbs, int fat})? _resolve() {
     final kcal = int.tryParse(_kcal.text);
-    if (kcal == null || kcal <= 0) return null;
+    if (kcal == null || kcal <= 0) {
+      return null;
+    }
 
     if (_mode == _MacroMode.grams) {
       final p = int.tryParse(_protein.text);
       final c = int.tryParse(_carbs.text);
       final f = int.tryParse(_fat.text);
-      if (p == null || c == null || f == null) return null;
+      if (p == null || c == null || f == null) {
+        return null;
+      }
       return (kcal: kcal, protein: p, carbs: c, fat: f);
     }
 
@@ -1412,7 +1490,9 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
       final pp = double.tryParse(_proteinPct.text) ?? 0;
       final cp = double.tryParse(_carbsPct.text) ?? 0;
       final fp = double.tryParse(_fatPct.text) ?? 0;
-      if ((pp + cp + fp - 100).abs() > 1) return null;
+      if ((pp + cp + fp - 100).abs() > 1) {
+        return null;
+      }
       final p = (kcal * pp / 100 / 4).round();
       final c = (kcal * cp / 100 / 4).round();
       final f = (kcal * fp / 100 / 9).round();
@@ -1421,13 +1501,17 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
 
     // _MacroMode.perLb
     final bwKg = _bodyweightKg;
-    if (bwKg == null) return null;
+    if (bwKg == null) {
+      return null;
+    }
     final bwLb = bwKg * 2.20462;
     final gPerLb = double.tryParse(_proteinPerLb.text) ?? 1.0;
     final p = (bwLb * gPerLb).round();
     // Remaining kcal split 55% carbs / rest fat.
     final remainingKcal = kcal - p * 4;
-    if (remainingKcal < 0) return null;
+    if (remainingKcal < 0) {
+      return null;
+    }
     final c = (remainingKcal * 0.55 / 4).round();
     final f = ((remainingKcal - c * 4) / 9).round().clamp(0, 9999).toInt();
     return (kcal: kcal, protein: p, carbs: c, fat: f);
@@ -1439,14 +1523,22 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
       (double.tryParse(_fatPct.text) ?? 0);
 
   String get _scopeKey {
-    if (_scope == 'weekday' && _weekday != null) return 'weekday:$_weekday';
+    if (_scope == 'weekday' && _weekday != null) {
+      return 'weekday:$_weekday';
+    }
     return _scope;
   }
 
   String get _scopeLabel {
-    if (_scope == 'global') return 'General';
-    if (_scope == 'training_day') return 'Training day';
-    if (_scope == 'rest_day') return 'Rest day';
+    if (_scope == 'global') {
+      return 'General';
+    }
+    if (_scope == 'training_day') {
+      return 'Training day';
+    }
+    if (_scope == 'rest_day') {
+      return 'Rest day';
+    }
     if (_scope == 'weekday' && _weekday != null) {
       const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       return names[(_weekday! - 1).clamp(0, 6)];
@@ -1455,6 +1547,9 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
   }
 
   Future<void> _save() async {
+    if (_saving) {
+      return;
+    }
     final resolved = _resolve();
     if (resolved == null) {
       String msg = 'Fill in calories and all macro fields.';
@@ -1467,18 +1562,43 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
       AppNotice.show(context, msg, kind: AppNoticeKind.info);
       return;
     }
-    await ref
-        .read(nutritionRepositoryProvider)
-        .upsertTarget(
-          label: _scopeLabel,
-          appliesTo: _scopeKey,
-          kcal: resolved.kcal,
-          proteinG: resolved.protein,
-          carbsG: resolved.carbs,
-          fatG: resolved.fat,
-          fiberG: int.tryParse(_fiber.text),
+    setState(() => _saving = true);
+    try {
+      final start = await chooseTargetStartDate(
+        context,
+        now: ref.read(clockProvider).now(),
+      );
+      if (start == null || !mounted) {
+        return;
+      }
+      await ref
+          .read(nutritionRepositoryProvider)
+          .upsertTarget(
+            label: _scopeLabel,
+            appliesTo: _scopeKey,
+            kcal: resolved.kcal,
+            proteinG: resolved.protein,
+            carbsG: resolved.carbs,
+            fatG: resolved.fat,
+            fiberG: int.tryParse(_fiber.text),
+            effectiveFrom: start,
+          );
+      if (mounted) {
+        Navigator.of(context).pop(true);
+      }
+    } on Object {
+      if (mounted) {
+        AppNotice.show(
+          context,
+          'Could not save your goals. Please try again.',
+          kind: AppNoticeKind.error,
         );
-    if (mounted) Navigator.of(context).pop(true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
   }
 
   @override
@@ -2016,7 +2136,9 @@ class _CutBulkSheetState extends State<_CutBulkSheet> {
           reducePct: effectivePct,
           intervalDays: interval,
         );
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override

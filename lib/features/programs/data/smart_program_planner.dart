@@ -18,6 +18,7 @@ import 'package:herculex/features/programs/domain/session_segment.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
+import 'package:herculex/features/programs/domain/time_saving_policy.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/domain/warmup_resolver.dart';
 import 'package:herculex/features/workouts/domain/workout_duration_estimator.dart';
@@ -25,6 +26,7 @@ import 'package:herculex/features/workouts/domain/workout_duration_estimator.dar
 part 'smart_program_planner/anchor_lock.part.dart';
 part 'smart_program_planner/selection_explanation_writer.part.dart';
 part 'smart_program_planner/slot_candidate_resolution.part.dart';
+part 'smart_program_planner/time_saving.part.dart';
 
 class SmartProgramConfiguration {
   const SmartProgramConfiguration({
@@ -34,6 +36,7 @@ class SmartProgramConfiguration {
     this.gymId,
     this.mainMethodByDayLabel = const {},
     this.dayRoles = const {},
+    this.dayRolesByIndex = const {},
     this.musclePriorities = const {},
     this.muscleVolumeWeights = const {},
     this.weeklySetCaps = const {},
@@ -43,6 +46,7 @@ class SmartProgramConfiguration {
     this.includeGppConditioning,
     this.workoutDurationMinutes = 60,
     this.allowTimeSavingSetTechniques = false,
+    this.timeSavingTechnique = TimeSavingTechnique.automatic,
     this.includeAutomaticWarmups = false,
     this.primaryLiftSpecialization,
     this.excludedMuscles = const {},
@@ -62,6 +66,7 @@ class SmartProgramConfiguration {
   /// multiplier. This is what lets Concurrent mean e.g. Full Body A/B
   /// (volume/intensity) or A/B/C (heavy/medium/light).
   final Map<String, DayStressRole> dayRoles;
+  final Map<int, DayStressRole> dayRolesByIndex;
 
   /// An explicit plan from the builder takes precedence over an optional AI
   /// physique profile. Values use the same safe high/medium/maintenance
@@ -90,6 +95,7 @@ class SmartProgramConfiguration {
   /// technique on isolation work and only when the user explicitly permits it.
   final int workoutDurationMinutes;
   final bool allowTimeSavingSetTechniques;
+  final TimeSavingTechnique timeSavingTechnique;
 
   /// When enabled, the resolver prepends ramp-up sets to eligible compound
   /// barbell/dumbbell/kettlebell work. These are never counted as work sets.
@@ -204,6 +210,7 @@ class SmartProgramPlanner {
           );
           final stress =
               configuration.dayRoles[day.slotLabel ?? day.name] ??
+              configuration.dayRolesByIndex[day.orderIndex] ??
               inferredStress;
           await (_db.update(_db.programDays)..where((t) => t.id.equals(day.id)))
               .write(ProgramDaysCompanion(stressRole: Value(stress.id)));
@@ -321,10 +328,15 @@ class SmartProgramPlanner {
                       ),
                     ),
                   )
-                : _timePlanFor(
+                : _TimeSavingPlans._timePlanFor(
                     role: slot.role,
                     target: target,
                     configuration: configuration,
+                    exercise: catalogById[exerciseId]!,
+                    week: Periodization.plan(
+                      model,
+                      program.weeks,
+                    )[week.weekIndex],
                   );
             final isFirstHeavy = slot.role.isHeavy && !sawHeavyLift;
             if (slot.role.isHeavy) sawHeavyLift = true;
@@ -332,7 +344,6 @@ class SmartProgramPlanner {
               _DaySlotPlan(
                 slot: slot,
                 exerciseId: exerciseId,
-                target: target,
                 timePlan: timePlan,
                 isFirstHeavy: isFirstHeavy,
                 focusNote: focusNote,
@@ -347,6 +358,24 @@ class SmartProgramPlanner {
           final budget = Duration(
             minutes: (configuration.workoutDurationMinutes * 1.10).ceil(),
           );
+          if (configuration.allowTimeSavingSetTechniques &&
+              _estimateDayDuration(dayPlans, catalogById) > budget) {
+            // Also compress a 60-minute target when the full day would take
+            // longer: time pressure is relative to the actual session plan.
+            for (final plan in dayPlans) {
+              if (plan.timePlan.prescriptionCodecJson != null ||
+                  plan.timePlan.segment == SessionSegment.metcon)
+                continue;
+              plan.timePlan = _TimeSavingPlans._timePlanFor(
+                role: plan.slot.role,
+                target: plan.timePlan.target,
+                configuration: configuration,
+                exercise: catalogById[plan.exerciseId]!,
+                week: Periodization.plan(model, program.weeks)[week.weekIndex],
+                hasTimePressure: true,
+              );
+            }
+          }
           bool isTrimmableRole(SlotRole role) =>
               role == SlotRole.isolation || role == SlotRole.accessory;
           while (_estimateDayDuration(dayPlans, catalogById) > budget) {
@@ -356,6 +385,7 @@ class SmartProgramPlanner {
               (plan) =>
                   isTrimmableRole(plan.slot.role) &&
                   plan.timePlan.target.sets > 1 &&
+                  plan.timePlan.prescriptionCodecJson == null &&
                   plan.timePlan.segment != SessionSegment.metcon,
             );
             final isolationShrinkable = shrinkable.where(
@@ -386,6 +416,16 @@ class SmartProgramPlanner {
             if (dropTarget == null) break;
             dayPlans.remove(dropTarget);
           }
+          final projected = _estimateDayDuration(dayPlans, catalogById);
+          if (projected > budget && dayPlans.isNotEmpty) {
+            final first = dayPlans.first;
+            first.timePlan = first.timePlan.copyWith(
+              why:
+                  '${first.timePlan.why} Estimated session: ${projected.inMinutes} minutes, '
+                  'above your ${configuration.workoutDurationMinutes}-minute target. '
+                  'Main-lift rest and warm-ups are preserved; review the split or exercise count.',
+            );
+          }
 
           // Pass 2: insert exactly as the previous single-pass code did, now
           // sourced from the post-trim plan list.
@@ -393,7 +433,6 @@ class SmartProgramPlanner {
           for (final plan in dayPlans) {
             final slot = plan.slot;
             final exerciseId = plan.exerciseId;
-            final target = plan.target;
             final timePlan = plan.timePlan;
             final focusNote = plan.focusNote;
             final supersetGroup = slot.metconGroupKey == null
@@ -414,7 +453,7 @@ class SmartProgramPlanner {
                     targetRepsMax: Value(timePlan.target.repsMax),
                     targetRir: Value(timePlan.target.rir),
                     targetRpe: Value((10 - timePlan.target.rir)),
-                    restSeconds: Value(target.restSeconds),
+                    restSeconds: Value(timePlan.target.restSeconds),
                     setType: Value(timePlan.setType.id),
                     slotRole: Value(slot.role.id),
                     sessionSegment: Value(slot.segment?.id),
@@ -434,14 +473,27 @@ class SmartProgramPlanner {
                       timePlan.prescriptionCodecJson,
                     ),
                     variantConfigJson: Value(
-                      configuration.includeAutomaticWarmups
-                          ? jsonEncode({'autoWarmups': true})
+                      configuration.includeAutomaticWarmups ||
+                              timePlan.prescriptionCodecJson != null
+                          ? jsonEncode({
+                              'autoWarmups':
+                                  configuration.includeAutomaticWarmups,
+                              if (timePlan.isolationPrimer)
+                                'isolationPrimer': true,
+                              if (timePlan.prescriptionCodecJson != null &&
+                                  slot.metconFormat == null) ...{
+                                'timeSavingTechnique':
+                                    configuration.timeSavingTechnique.id,
+                                'timeSavingSessionMinutes':
+                                    configuration.workoutDurationMinutes,
+                              },
+                            })
                           : null,
                     ),
                   ),
                 );
             weeklySetsByMuscle[slot.muscleId] =
-                (weeklySetsByMuscle[slot.muscleId] ?? 0) + target.sets;
+                (weeklySetsByMuscle[slot.muscleId] ?? 0) + timePlan.target.sets;
           }
         }
 
@@ -1631,10 +1683,41 @@ class SmartProgramPlanner {
           ? 0.90
           : null,
       isFirstHeavyLiftInSession: plan.isFirstHeavy,
+      singleIsolationPrimer: plan.timePlan.isolationPrimer,
     );
     final isUnilateral = (exercise.movementPatternRaw ?? '')
         .toLowerCase()
         .contains('unilateral');
+    final prescription = SlotPrescriptionCodec.decode(
+      plan.timePlan.prescriptionCodecJson,
+    );
+    if (prescription != null) {
+      return Duration(
+            seconds: prescription.segments.fold<int>(
+              0,
+              (sum, segment) =>
+                  sum +
+                  WorkoutDurationEstimator.estimateExercise(
+                    workingSets: segment.sets,
+                    repsMin: segment.repsMin,
+                    repsMax: segment.repsMax,
+                    restSeconds:
+                        segment.restSeconds ?? plan.timePlan.target.restSeconds,
+                    setType: segment.setType,
+                    isUnilateral: isUnilateral,
+                    setTypeMeta: segment.meta,
+                  ).inSeconds,
+            ),
+          ) +
+          WorkoutDurationEstimator.estimateExercise(
+            workingSets: 0,
+            repsMin: 0,
+            repsMax: 0,
+            restSeconds: 0,
+            setType: SetType.standard,
+            warmupSteps: warmupSteps,
+          );
+    }
     return WorkoutDurationEstimator.estimateExercise(
       workingSets: plan.timePlan.target.sets,
       repsMin: plan.timePlan.target.repsMin,
@@ -1679,42 +1762,6 @@ class SmartProgramPlanner {
       base.repsMax,
       base.rir,
       base.restSeconds,
-    );
-  }
-
-  /// Keep time-saving work out of main lifts. One Myo activation set plus its
-  /// mini-sets is an explicit, legible alternative for short sessions—not a
-  /// hidden reduction in training quality.
-  static _TimePlan _timePlanFor({
-    required SlotRole role,
-    required _Target target,
-    required SmartProgramConfiguration configuration,
-  }) {
-    final canCompress =
-        configuration.allowTimeSavingSetTechniques &&
-        configuration.workoutDurationMinutes <= 45 &&
-        role == SlotRole.isolation;
-    if (!canCompress) return _TimePlan.standard(target);
-    const compressed = _Target(1, 12, 20, 0, 45);
-    const prescription = SlotPrescription(
-      name: 'Time-saving myo-reps',
-      segments: [
-        WorkSegment(
-          sets: 1,
-          repsMin: 12,
-          repsMax: 20,
-          intent: Intent.rir2,
-          setType: SetType.myoReps,
-          meta: {'activationReps': 15, 'miniSets': 3},
-        ),
-      ],
-    );
-    return _TimePlan(
-      target: compressed,
-      setType: SetType.myoReps,
-      why:
-          ' Myo-reps are used here because you chose a ${configuration.workoutDurationMinutes}-minute session.',
-      prescriptionCodecJson: SlotPrescriptionCodec.encode(prescription),
     );
   }
 
@@ -1851,6 +1898,7 @@ class _TimePlan {
     this.segment,
     this.supersetGroup,
     this.metconCapSeconds,
+    this.isolationPrimer = false,
   });
 
   const _TimePlan.standard(_Target target)
@@ -1860,6 +1908,7 @@ class _TimePlan {
   final SetType setType;
   final String why;
   final String? prescriptionCodecJson;
+  final bool isolationPrimer;
 
   /// Set only for metcon-segment slots (bypassing [_timePlanFor] entirely) —
   /// lets [_estimateSlotDuration] and the time-budget trim loop treat a
@@ -1868,14 +1917,15 @@ class _TimePlan {
   final int? supersetGroup;
   final int? metconCapSeconds;
 
-  _TimePlan copyWith({_Target? target}) => _TimePlan(
+  _TimePlan copyWith({_Target? target, String? why}) => _TimePlan(
     target: target ?? this.target,
     setType: setType,
-    why: why,
+    why: why ?? this.why,
     prescriptionCodecJson: prescriptionCodecJson,
     segment: segment,
     supersetGroup: supersetGroup,
     metconCapSeconds: metconCapSeconds,
+    isolationPrimer: isolationPrimer,
   );
 }
 
@@ -1884,14 +1934,12 @@ class _TimePlan {
 /// movement-order flag needed to feed [WarmupResolver] the same
 /// first-heavy-lift-in-session input the materialize-time resolver uses.
 /// [timePlan] is mutated in place by the time-budget trim loop between pass 1
-/// and pass 2 (D-05/D-07); [target] stays fixed since weekly-set-cap
-/// accounting and `restSeconds` are read from the pre-trim target, matching
-/// the previous single-pass behavior unchanged by this plan.
+/// and pass 2 (D-05/D-07). The final time plan supplies stored working volume
+/// and rest, including any compression or trimming.
 class _DaySlotPlan {
   _DaySlotPlan({
     required this.slot,
     required this.exerciseId,
-    required this.target,
     required this.timePlan,
     required this.isFirstHeavy,
     required this.focusNote,
@@ -1899,7 +1947,6 @@ class _DaySlotPlan {
 
   final _ResolvedSmartSlot slot;
   final int exerciseId;
-  final _Target target;
   _TimePlan timePlan;
   final bool isFirstHeavy;
   final _FocusNote focusNote;

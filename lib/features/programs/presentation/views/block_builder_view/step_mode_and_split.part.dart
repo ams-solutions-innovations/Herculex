@@ -13,7 +13,12 @@ mixin _StepModeAndSplitMixin on _BuilderStateBase {
           'How do you want to build?',
           'Every path uses the same safe programming engine.',
         ),
-        for (final mode in ProgramBuildMode.values)
+        for (final mode in const [
+          ProgramBuildMode.manual,
+          ProgramBuildMode.guided,
+          ProgramBuildMode.smart,
+          ProgramBuildMode.herculexAi,
+        ])
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: _radioCard(
@@ -32,6 +37,18 @@ mixin _StepModeAndSplitMixin on _BuilderStateBase {
               },
               selected: _buildMode == mode,
               onTap: () => setState(() => _buildMode = mode),
+              trailing: Icon(
+                switch (mode) {
+                  ProgramBuildMode.manual => Icons.edit_note_rounded,
+                  ProgramBuildMode.guided => Icons.lightbulb_outline_rounded,
+                  ProgramBuildMode.smart => Icons.auto_awesome_rounded,
+                  ProgramBuildMode.herculexAi => Icons.psychology_rounded,
+                },
+                color: _buildMode == mode
+                    ? AppColors.primary
+                    : AppColors.secondary,
+                size: 22,
+              ),
             ),
           ),
         if (_buildMode != ProgramBuildMode.manual) ...[
@@ -164,12 +181,14 @@ mixin _StepModeAndSplitMixin on _BuilderStateBase {
             status: _acceptedHerculexBrief != null ? 'Applied' : null,
             actionWidget: _acceptedHerculexBrief != null
                 ? PremiumButton(
+                    expand: true,
                     isPrimary: false,
                     icon: Icons.auto_awesome_rounded,
                     text: _generatingBrief ? 'Generating…' : 'Regenerate',
                     onTap: _generatingBrief ? () {} : _generateHerculexBrief,
                   )
                 : PremiumButton(
+                    expand: true,
                     isPrimary: true,
                     icon: Icons.auto_awesome_rounded,
                     text: _generatingBrief

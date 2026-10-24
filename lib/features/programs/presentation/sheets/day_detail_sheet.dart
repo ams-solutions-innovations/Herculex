@@ -13,13 +13,18 @@ import 'package:herculex/features/dashboard/application/dashboard_providers.dart
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
+import 'package:herculex/features/programs/domain/session_completion.dart';
+import 'package:herculex/features/programs/presentation/sheets/start_workout_adaptation.dart';
 import 'package:herculex/features/programs/presentation/sheets/template_picker_sheet.dart';
 import 'package:herculex/features/programs/presentation/sheets/template_scope_sheet.dart';
+import 'package:herculex/features/programs/presentation/sheets/weekly_adaptation_sheet.dart';
 import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
+import 'package:herculex/features/workout_report/application/workout_report_providers.dart';
 import 'package:herculex/features/workouts/application/calendar_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/presentation/views/template_builder_view.dart';
+import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 import 'package:intl/intl.dart';
 
 /// Everything you can do to one day of a block: see its sessions, attach or
@@ -178,7 +183,14 @@ class _SessionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final color = scheduleStatusColor(row.status);
+    final completion = row.isDone
+        ? (ref.watch(scheduleCompletionProvider).value?[row.id])
+        : null;
+    final partial = SessionCompletion.isPartial(completion);
+    final color = scheduleStatusColor(row.status, partial: partial);
+    final adaptationReason = ref
+        .watch(acceptedAdaptationReasonProvider(row.id))
+        .valueOrNull;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -215,7 +227,9 @@ class _SessionCard extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  row.statusLabel,
+                  partial
+                      ? '${row.statusLabel} · ${SessionCompletion.label(completion!)}'
+                      : row.statusLabel,
                   style: theme.textTheme.labelSmall?.copyWith(color: color),
                 ),
               ),
@@ -228,6 +242,28 @@ class _SessionCard extends ConsumerWidget {
               color: AppColors.secondary,
             ),
           ),
+          if (adaptationReason != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.tune_rounded, size: 16, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Adapted this week: $adaptationReason',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           _contentRow(context, ref, theme),
           const SizedBox(height: 8),
@@ -281,9 +317,23 @@ class _SessionCard extends ConsumerWidget {
                 _ActionChip(
                   icon: Icons.block_rounded,
                   label: 'Skip',
-                  onTap: () => ref
-                      .read(programsRepositoryProvider)
-                      .setScheduleStatus(row.id, ScheduleStatus.skipped),
+                  onTap: () async {
+                    final proposal = await ref
+                        .read(weeklyAdaptationRepositoryProvider)
+                        .proposeForSkippedWorkout(row.id);
+                    if (!context.mounted) return;
+                    if (proposal == null) {
+                      await ref
+                          .read(programsRepositoryProvider)
+                          .setScheduleStatus(row.id, ScheduleStatus.skipped);
+                      return;
+                    }
+                    await showWeeklyAdaptationSheet(
+                      context,
+                      repository: ref.read(weeklyAdaptationRepositoryProvider),
+                      proposal: proposal,
+                    );
+                  },
                 )
               else
                 _ActionChip(
@@ -354,6 +404,51 @@ class _SessionCard extends ConsumerWidget {
                 ],
               ),
             ),
+          ],
+        ),
+      );
+    }
+
+    if (!row.isEmpty) {
+      final items =
+          ref.watch(programDayExerciseSummariesProvider(row.day.id)).value ??
+          const [];
+      return Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            for (final item in items)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    item.exercise == null
+                        ? const ExerciseArtwork.fromSlug(slug: null, size: 36)
+                        : ExerciseArtwork(exercise: item.exercise!, size: 36),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      item.targetLabel,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       );
@@ -451,6 +546,8 @@ class _SessionCard extends ConsumerWidget {
     final navigator = Navigator.of(context);
     final service = ref.read(scheduledWorkoutServiceProvider);
     try {
+      await offerStartWorkoutAdaptation(context, ref, scheduleId: row.id);
+      if (!context.mounted) return;
       await service.startScheduledWorkoutById(row.id);
       // Transition directly to the active workout screen on the Workouts tab.
       ref.read(mainTabIndexProvider.notifier).state = 2;

@@ -60,11 +60,15 @@ fun isWidgetDataStale(prefs: SharedPreferences): Boolean {
 
 /** Local-time epoch day number, matching Dart's DateTime-based computation. */
 fun currentEpochDay(): Long {
-    val now = Calendar.getInstance()
-    now.set(Calendar.HOUR_OF_DAY, 0)
-    now.set(Calendar.MINUTE, 0)
-    now.set(Calendar.SECOND, 0)
-    now.set(Calendar.MILLISECOND, 0)
-    val offsetMs = now.get(Calendar.ZONE_OFFSET) + now.get(Calendar.DST_OFFSET)
-    return (now.timeInMillis + offsetMs) / 86_400_000L
+    return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        java.time.LocalDate.now().toEpochDay()
+    } else {
+        val now = Calendar.getInstance()
+        now.set(Calendar.HOUR_OF_DAY, 0)
+        now.set(Calendar.MINUTE, 0)
+        now.set(Calendar.SECOND, 0)
+        now.set(Calendar.MILLISECOND, 0)
+        val offsetMs = now.get(Calendar.ZONE_OFFSET) + now.get(Calendar.DST_OFFSET)
+        (now.timeInMillis + offsetMs) / 86_400_000L
+    }
 }

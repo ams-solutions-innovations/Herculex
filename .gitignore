@@ -77,3 +77,4 @@ app.*.map.json
 # pipeline (several GB of .webm and whisper weights). It once got committed
 # and made a push fail: GitHub rejects files over 100 MB.
 outputs/bodybuilding-blueprint/
+.codex-remote-attachments/

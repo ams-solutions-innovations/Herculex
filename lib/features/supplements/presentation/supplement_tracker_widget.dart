@@ -7,8 +7,8 @@ import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
 import 'package:herculex/features/supplements/application/supplement_providers.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
-import 'package:herculex/features/supplements/presentation/supplement_ai_scan_dialog.dart';
 import 'package:herculex/features/supplements/presentation/supplement_edit_sheet.dart';
+import 'package:herculex/features/supplements/presentation/supplement_scan_flow.dart';
 
 /// Dashboard widget — a checkbox-based daily supplement tracker.
 ///
@@ -99,8 +99,35 @@ class SupplementTrackerWidget extends ConsumerWidget {
                     ],
                   ),
                 ),
-                // Progress chip
-                if (state.totalCount > 0)
+                // Streak & Progress chips
+                if (state.totalCount > 0) ...[
+                  Builder(
+                    builder: (context) {
+                      final streak = ref
+                          .watch(supplementHabitStatsProvider)
+                          .currentStreak;
+                      if (streak <= 0) return const SizedBox.shrink();
+                      return Container(
+                        margin: const EdgeInsets.only(right: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '🔥 ${streak}d',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -125,6 +152,7 @@ class SupplementTrackerWidget extends ConsumerWidget {
                       ),
                     ),
                   ),
+                ],
                 // Add button
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline, size: 20),
@@ -360,12 +388,12 @@ class _ScheduleBadge extends StatelessWidget {
 
 // ── Empty state ────────────────────────────────────────────────────────────────
 
-class _EmptyState extends StatelessWidget {
+class _EmptyState extends ConsumerWidget {
   final VoidCallback onAdd;
   const _EmptyState({required this.onAdd});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return SizedBox(
       width: double.infinity,
@@ -391,7 +419,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              'Scan a tub or add one by hand to start tracking doses.',
+              'Scan a barcode (with AI fallback) or pick from the database.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: AppColors.secondary,
@@ -405,17 +433,9 @@ class _EmptyState extends StatelessWidget {
               alignment: WrapAlignment.center,
               children: [
                 FilledButton.icon(
-                  onPressed: () async {
-                    final result = await SupplementAiScanDialog.show(context);
-                    if (result != null && context.mounted) {
-                      await SupplementEditSheet.show(
-                        context,
-                        existing: result.toSupplement(),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.auto_awesome, size: 15),
-                  label: const Text('AI Foto sken'),
+                  onPressed: () => scanAndAddSupplement(context, ref),
+                  icon: const Icon(Icons.qr_code_scanner, size: 15),
+                  label: const Text('Scan'),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF9B59B6),
                     foregroundColor: Colors.white,
@@ -429,7 +449,7 @@ class _EmptyState extends StatelessWidget {
                 OutlinedButton.icon(
                   onPressed: onAdd,
                   icon: const Icon(Icons.add, size: 15),
-                  label: const Text('Ročni vnos'),
+                  label: const Text('Add'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF9B59B6),
                     side: BorderSide(

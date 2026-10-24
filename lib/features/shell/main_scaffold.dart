@@ -21,6 +21,7 @@ import 'package:herculex/features/profile/presentation/profile_view.dart';
 import 'package:herculex/features/shell/quick_add_menu.dart';
 import 'package:herculex/features/supplements/presentation/supplement_ai_scan_dialog.dart';
 import 'package:herculex/features/supplements/presentation/supplement_edit_sheet.dart';
+import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/presentation/dialogs/exercise_ai_scan_dialog.dart';
 import 'package:herculex/features/workouts/presentation/views/workouts_view.dart';
@@ -102,14 +103,17 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
 
       switch (type) {
         case AiScanContextType.supplement:
+          final barcode = pendingContext?.extra?['barcode'] as String?;
           final result = await SupplementAiScanDialog.show(
             context,
             initialImage: file,
+            barcode: barcode,
           );
           if (result != null && mounted) {
             await SupplementEditSheet.show(
               context,
-              existing: result.toSupplement(),
+              existing: result.toSupplement(barcode: barcode),
+              isNewDraft: true,
             );
           }
           break;
@@ -244,10 +248,15 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
     // on-screen keyboard. The workout view handles its own floating actions;
     // this covers the app-wide navigation bar rendered by this shell.
     final workoutInputFocused = ref.watch(workoutInputFocusedProvider);
+    final isDynamicRestVisible = ref.watch(
+      isDynamicRestTimerOverlayVisibleProvider,
+    );
     final hideWorkoutChrome =
         index == 2 &&
         hasActiveSession &&
-        (View.of(context).viewInsets.bottom > 0 || workoutInputFocused);
+        (View.of(context).viewInsets.bottom > 0 ||
+            workoutInputFocused ||
+            isDynamicRestVisible);
 
     ref.listen<int>(mainTabIndexProvider, (prev, next) {
       if (prev != next && ref.read(workoutInputFocusedProvider)) {

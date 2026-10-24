@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
@@ -16,7 +15,6 @@ import 'package:herculex/features/physique/domain/physique_roadmap.dart';
 import 'package:herculex/features/profile/data/dream_physique_service.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/services/ai/gemini_backend_service.dart';
-
 import '../../support/exif_jpeg_fixture.dart';
 import '../../support/fake_clock.dart';
 import '../../support/fake_face_detector.dart';
@@ -55,7 +53,9 @@ class _FakeService extends DreamPhysiqueService {
     this.targetImages = targetImages;
     this.profile = profile;
     final f = failure;
-    if (f != null) throw f;
+    if (f != null) {
+      throw f;
+    }
     return result;
   }
 }
@@ -116,6 +116,7 @@ class _ThrowingGoals extends PhysiqueGoalRepository {
     required double targetBfPercent,
     required List<RoadmapPhaseDraft> roadmap,
     NewPhotoRow? photo,
+    List<NewPhotoRow> photos = const [],
   }) => throw StateError('write failed');
 }
 
@@ -154,7 +155,9 @@ void main() {
   tearDown(() async {
     await db.close();
     for (final d in [docs, staging, pickerDir]) {
-      if (d.existsSync()) await d.delete(recursive: true);
+      if (d.existsSync()) {
+        await d.delete(recursive: true);
+      }
     }
   });
 

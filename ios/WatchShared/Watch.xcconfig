@@ -1,0 +1,4 @@
+// Keep embedded watch/widget versions identical to the Flutter companion.
+FLUTTER_BUILD_NAME = 1.0.0
+FLUTTER_BUILD_NUMBER = 1
+#include? "../Flutter/Generated.xcconfig"

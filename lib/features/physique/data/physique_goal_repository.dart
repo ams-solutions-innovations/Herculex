@@ -91,7 +91,7 @@ class StartGoalInput {
 }
 
 /// Persists physique goals, their analyses, proposed roadmaps and baseline
-/// photo rows. Goals are archived, never deleted (D-03).
+/// photo rows. Archived goals may be explicitly deleted with their history.
 class PhysiqueGoalRepository {
   PhysiqueGoalRepository(this._db, this._clock);
 
@@ -104,14 +104,20 @@ class PhysiqueGoalRepository {
 
   /// Non-legacy goals first, then greatest startedAt, then greatest id.
   static PhysiqueGoalData? _winner(List<PhysiqueGoalData> rows) {
-    if (rows.isEmpty) return null;
+    if (rows.isEmpty) {
+      return null;
+    }
     final sorted = [...rows]
       ..sort((a, b) {
         final la = a.source == _legacySource ? 1 : 0;
         final lb = b.source == _legacySource ? 1 : 0;
-        if (la != lb) return la - lb;
+        if (la != lb) {
+          return la - lb;
+        }
         final c = b.startedAt.compareTo(a.startedAt);
-        if (c != 0) return c;
+        if (c != 0) {
+          return c;
+        }
         return b.id.compareTo(a.id);
       });
     return sorted.first;
@@ -257,6 +263,7 @@ class PhysiqueGoalRepository {
     required double targetBfPercent,
     required List<RoadmapPhaseDraft> roadmap,
     NewPhotoRow? photo,
+    List<NewPhotoRow> photos = const [],
   }) {
     if (roadmap.isEmpty) {
       throw ArgumentError.value(roadmap, 'roadmap', 'must not be empty');
@@ -287,8 +294,8 @@ class PhysiqueGoalRepository {
               summaryJson: Value(analysis.summaryJson),
             ),
           );
-      if (photo != null) {
-        await _insertPhoto(goalId, photo, assessmentId, role: 'checkin');
+      for (final p in [...photos, if (photo != null) photo]) {
+        await _insertPhoto(goalId, p, assessmentId, role: 'checkin');
       }
 
       await (_db.update(
@@ -354,7 +361,9 @@ class PhysiqueGoalRepository {
     final rows = await _activeRows().get();
     var n = 0;
     for (final g in rows) {
-      if (g.id == exceptId) continue;
+      if (g.id == exceptId) {
+        continue;
+      }
       await (_db.update(
         _db.physiqueGoals,
       )..where((t) => t.id.equals(g.id))).write(
@@ -368,6 +377,50 @@ class PhysiqueGoalRepository {
     }
     return n;
   }
+
+  /// Cascading tombstones keep offline peers from resurrecting a deleted goal.
+  Future<String?> deleteArchivedGoal(int goalId) => _db.transaction(() async {
+    final goal = await (_db.select(
+      _db.physiqueGoals,
+    )..where((g) => g.id.equals(goalId))).getSingleOrNull();
+    if (goal == null) {
+      return null;
+    }
+    if (goal.status != 'archived') {
+      throw StateError('Only past goals can be deleted.');
+    }
+    if (goal.deletedAt != null) {
+      return goal.syncUuid;
+    }
+    final now = _clock.now();
+    await (_db.update(
+      _db.physiquePhotos,
+    )..where((p) => p.goalId.equals(goalId) & p.deletedAt.isNull())).write(
+      PhysiquePhotosCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+    );
+    await (_db.update(
+      _db.physiqueAssessments,
+    )..where((a) => a.goalId.equals(goalId) & a.deletedAt.isNull())).write(
+      PhysiqueAssessmentsCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+      ),
+    );
+    await (_db.update(
+      _db.physiqueRoadmapPhases,
+    )..where((p) => p.goalId.equals(goalId) & p.deletedAt.isNull())).write(
+      PhysiqueRoadmapPhasesCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+      ),
+    );
+    await (_db.update(
+      _db.physiqueGoals,
+    )..where((g) => g.id.equals(goalId))).write(
+      PhysiqueGoalsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+    );
+    return goal.syncUuid;
+  });
 
   Future<void> archiveGoal(int goalId) => _db.transaction(() async {
     final now = _clock.now();
@@ -385,7 +438,9 @@ class PhysiqueGoalRepository {
   /// Archives every active goal except the winner; returns how many.
   Future<int> reconcileSingleActive() => _db.transaction(() async {
     final winner = _winner(await _activeRows().get());
-    if (winner == null) return 0;
+    if (winner == null) {
+      return 0;
+    }
     return _archiveActive(_clock.now(), exceptId: winner.id);
   });
 
@@ -420,7 +475,9 @@ class PhysiqueGoalRepository {
         var inserted = 0;
         for (final p in photos) {
           final ref = p.legacyRef;
-          if (ref != null && !seen.add(ref)) continue;
+          if (ref != null && !seen.add(ref)) {
+            continue;
+          }
           await _insertPhoto(
             goalId,
             NewPhotoRow(

@@ -1,4 +1,5 @@
 import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/one_rep_max.dart';
 
 /// Best performance for one (equipment variant | accessory combo | gym) slice
@@ -70,10 +71,9 @@ class VariantPerformance {
         if (bestWeight == null || rs.effectiveKg > bestWeight.effectiveKg) {
           bestWeight = rs;
         }
-        final est = OneRepMax.estimate(
-          weightKg: rs.effectiveKg,
-          reps: rs.set.reps,
-        );
+        final est = isMachineAssistedPullup(rs.exercise.slug)
+            ? null
+            : OneRepMax.estimate(weightKg: rs.effectiveKg, reps: rs.set.reps);
         if (est != null && (bestE1Rm == null || est > bestE1Rm)) {
           bestE1Rm = est;
         }

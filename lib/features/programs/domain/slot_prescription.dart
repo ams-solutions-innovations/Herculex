@@ -7,6 +7,7 @@ import 'package:herculex/features/workouts/domain/set_type.dart';
 /// another member of that enum.
 enum Intent {
   technical('technical', 'Technical', rir: 5),
+  rir4('rir4', '4 RIR', rir: 4),
   rir3('rir3', '3 RIR', rir: 3),
   rir2('rir2', '2 RIR', rir: 2),
   rir1('rir1', '1 RIR', rir: 1),
@@ -215,9 +216,9 @@ class SlotPrescription {
     ),
     SlotPrescription(
       name: '2 to failure',
-      note: 'One primer set, then two all-out sets.',
+      note:
+          'Two working sets to technical failure; add light warm-ups separately.',
       segments: [
-        WorkSegment(sets: 1, repsMin: 6, repsMax: 8, intent: Intent.rir2),
         WorkSegment(sets: 2, repsMin: 6, repsMax: 12, intent: Intent.toFailure),
       ],
     ),

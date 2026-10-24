@@ -6,35 +6,42 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <ImageView
-        android:id="@+id/widget_canvas"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/widget_hx_placeholder"
-        android:scaleType="fitXY" />
+        android:layout_height="86dp"
+        android:layout_gravity="center">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="horizontal"
-        android:padding="16dp">
-
-        <FrameLayout
-            android:id="@+id/btn_scan_food"
-            android:layout_width="0dp"
+        <ImageView
+            android:id="@+id/widget_canvas"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="@drawable/widget_hx_pill_ripple"
-            android:contentDescription="@string/widget_scan_food" />
+            android:background="@drawable/widget_hx_placeholder"
+            android:scaleType="fitXY" />
 
-        <FrameLayout
-            android:id="@+id/btn_search_food"
-            android:layout_width="48dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/widget_hx_pill_ripple"
-            android:contentDescription="@string/widget_search_food" />
+            android:orientation="horizontal"
+            android:padding="8dp">
 
-    </LinearLayout>
+            <FrameLayout
+                android:id="@+id/btn_scan_food"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/widget_hx_pill_ripple"
+                android:contentDescription="@string/widget_scan_food" />
+
+            <FrameLayout
+                android:id="@+id/btn_search_food"
+                android:layout_width="70dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/widget_hx_pill_ripple"
+                android:contentDescription="@string/widget_search_food" />
+
+        </LinearLayout>
+
+    </FrameLayout>
 
 </FrameLayout>

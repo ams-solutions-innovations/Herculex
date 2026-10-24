@@ -20,6 +20,7 @@ import 'package:herculex/features/weekly_report/presentation/widgets/recovery_se
 import 'package:herculex/features/weekly_report/presentation/widgets/section_card_scaffold.dart';
 import 'package:herculex/features/weekly_report/presentation/widgets/tdee_shift_card.dart';
 import 'package:herculex/features/weekly_report/presentation/widgets/training_section_card.dart';
+import 'package:herculex/features/weekly_report/presentation/widgets/weekly_summary_hero.dart';
 import 'package:intl/intl.dart';
 
 /// One week's report (RPT-01 to RPT-05).
@@ -62,16 +63,58 @@ class _WeeklyReportViewState extends ConsumerState<WeeklyReportView> {
     setState(() => _result = result);
   }
 
+  /// Swaps this report for a neighbouring week, so back still returns to
+  /// wherever the user came from.
+  void _goTo(BuildContext context, IsoWeek target) {
+    context.pushReplacement(
+      AppPaths.weeklyReport(target.isoYear, target.isoWeek),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final week = widget.week;
     final row = ref.watch(weeklyReportProvider(week));
     final enabled = ref.watch(weeklyReportEnabledProvider);
 
+    final thisWeek = IsoWeek.fromDate(ref.watch(clockProvider).now());
+    final next = IsoWeek.fromDate(week.start.add(const Duration(days: 7)));
+
     return HxScreenShell(
       title: 'Week ${week.isoWeek}',
+      actions: [
+        IconButton(
+          tooltip: 'All weekly reports',
+          onPressed: () => context.push(AppRoutes.weeklyReports),
+          icon: const Icon(Icons.history_rounded),
+        ),
+      ],
       children: [
-        Text(_rangeLabel(week), style: ReportText.label(context)),
+        Row(
+          children: [
+            IconButton(
+              tooltip: 'Previous week',
+              visualDensity: VisualDensity.compact,
+              onPressed: () => _goTo(context, week.previous),
+              icon: const Icon(Icons.chevron_left_rounded),
+            ),
+            Expanded(
+              child: Text(
+                _rangeLabel(week),
+                textAlign: TextAlign.center,
+                style: ReportText.label(context),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Next week',
+              visualDensity: VisualDensity.compact,
+              onPressed: next.isAfter(thisWeek)
+                  ? null
+                  : () => _goTo(context, next),
+              icon: const Icon(Icons.chevron_right_rounded),
+            ),
+          ],
+        ),
         const SizedBox(height: HxSpace.x6),
         row.when(
           loading: () => const _Message('Loading report'),
@@ -131,6 +174,8 @@ class _ReportBody extends ConsumerWidget {
           ),
           const SizedBox(height: HxSpace.x4),
         ],
+        WeeklySummaryHero(payload: payload, week: week),
+        const SizedBox(height: HxSpace.x6),
         NutritionSectionCard(section: payload.nutrition),
         const SizedBox(height: HxSpace.x6),
         TrainingSectionCard(section: payload.training),

@@ -73,9 +73,14 @@ class TdeeDecisionActions {
     required int oldEstimateKcal,
     required int newEstimateKcal,
     required TdeeTargetProposal displayed,
+    DateTime? effectiveFrom,
   }) async {
-    if (!_actionable(week)) return TdeeActionResult.notActionable;
-    if (!_validKcal(displayed.kcal)) return TdeeActionResult.invalidInput;
+    if (!_actionable(week)) {
+      return TdeeActionResult.notActionable;
+    }
+    if (!_validKcal(displayed.kcal)) {
+      return TdeeActionResult.invalidInput;
+    }
 
     final resolved = await _resolveProposal(oldEstimateKcal, newEstimateKcal);
     final fresh = resolved.proposal;
@@ -85,7 +90,9 @@ class TdeeDecisionActions {
         fresh.appliesTo != displayed.appliesTo) {
       return TdeeActionResult.stale;
     }
-    if (!_validKcal(fresh.kcal)) return TdeeActionResult.invalidInput;
+    if (!_validKcal(fresh.kcal)) {
+      return TdeeActionResult.invalidInput;
+    }
 
     final label = await _labelFor(fresh.appliesTo);
     final done = await _reports.applyTdeeDecision(
@@ -100,6 +107,7 @@ class TdeeDecisionActions {
         carbsG: fresh.carbsG,
         fatG: fresh.fatG,
         fiberG: fresh.fiberG,
+        effectiveFrom: effectiveFrom,
       ),
     );
     return done ? TdeeActionResult.applied : TdeeActionResult.alreadyDecided;
@@ -110,8 +118,12 @@ class TdeeDecisionActions {
     required IsoWeek week,
     required int currentKcal,
   }) async {
-    if (!_actionable(week)) return TdeeActionResult.notActionable;
-    if (!_validKcal(currentKcal)) return TdeeActionResult.invalidInput;
+    if (!_actionable(week)) {
+      return TdeeActionResult.notActionable;
+    }
+    if (!_validKcal(currentKcal)) {
+      return TdeeActionResult.invalidInput;
+    }
     final done = await _reports.applyTdeeDecision(
       week,
       decision: 'kept',
@@ -170,7 +182,9 @@ final savedTargetLabelProvider = FutureProvider.autoDispose
     .family<String, String>((ref, appliesTo) async {
       final rows = await ref.watch(nutritionTargetsProvider.future);
       for (final row in rows) {
-        if (row.appliesTo == appliesTo) return row.label;
+        if (row.appliesTo == appliesTo) {
+          return row.label;
+        }
       }
       return fallbackTargetLabel;
     });

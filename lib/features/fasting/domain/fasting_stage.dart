@@ -44,10 +44,10 @@ class FastingStage {
     if (stages.isEmpty) {
       return const FastingStage(
         hour: 1,
-        stageName: 'Prebava in absorpcija',
-        stageCategory: 'Prebava',
+        stageName: 'Digestion & Absorption',
+        stageCategory: 'Digestion',
         shortMessage:
-            'Telo prebavlja zadnji obrok; glukoza in inzulin v krvi narasteta.',
+            'The body is digesting the last meal; blood glucose and insulin levels rise.',
       );
     }
 

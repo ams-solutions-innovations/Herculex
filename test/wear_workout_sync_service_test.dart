@@ -10,7 +10,6 @@ import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
 import 'package:herculex/features/workouts/data/wear_workout_sync_service.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'support/test_database.dart';
 
 /// Regression tests for the Phase 2 fixes in
@@ -125,7 +124,14 @@ void main() {
   // this instance's handler as a side effect — the returned value only
   // needs to be kept alive for the duration of the test.
   WearWorkoutSyncService buildService() {
-    return WearWorkoutSyncService(repo, WearSyncService(), db, readRef());
+    final service = WearWorkoutSyncService(
+      repo,
+      WearSyncService(),
+      db,
+      readRef(),
+    );
+    addTearDown(service.dispose);
+    return service;
   }
 
   Future<int> createExercise(String name) {
@@ -148,6 +154,7 @@ void main() {
     required int revision,
     required List<Map<String, dynamic>> exercises,
     int updatedAtEpochMs = 1000,
+    String? templateId,
   }) {
     return WearSyncEnvelope.wrap(
       entity: wearSyncEntityActiveWorkout,
@@ -156,6 +163,7 @@ void main() {
       origin: wearSyncOriginWatch,
       updatedAtEpochMs: updatedAtEpochMs,
       payload: {
+        if (templateId != null) 'template': {'id': templateId},
         'currentExerciseIndex': 0,
         'currentSetIndex': 0,
         'exercises': exercises,
@@ -183,6 +191,135 @@ void main() {
       'sets': 'not-a-list',
     };
   }
+
+  test(
+    'watch scheduled start links the exact occurrence and finish marks it done',
+    () async {
+      buildService();
+      final exerciseId = await createExercise('Scheduled Press');
+      final program = await db
+          .into(db.programs)
+          .insert(ProgramsCompanion.insert(name: 'Watch program'));
+      final week = await db
+          .into(db.programWeeks)
+          .insert(
+            ProgramWeeksCompanion.insert(programId: program, weekIndex: 0),
+          );
+      final day = await db
+          .into(db.programDays)
+          .insert(
+            ProgramDaysCompanion.insert(
+              programWeekId: week,
+              dayOfWeek: 1,
+              name: 'Press',
+            ),
+          );
+      final scheduleId = await db
+          .into(db.scheduledWorkouts)
+          .insert(
+            ScheduledWorkoutsCompanion.insert(
+              programId: Value(program),
+              programDayId: day,
+              dateIso: '2026-10-21',
+            ),
+          );
+      final payload = workoutEnvelopeJson(
+        entityId: 'watch-scheduled',
+        revision: 1,
+        templateId: 'scheduled_$scheduleId',
+        exercises: [validExercise(exerciseId, 'Scheduled Press')],
+      );
+      await emitWorkoutStarted(payload);
+      await pumpEventQueue(times: 100);
+      final session = await repo.watchActiveSession().first;
+      final schedule = await (db.select(
+        db.scheduledWorkouts,
+      )..where((s) => s.id.equals(scheduleId))).getSingle();
+      expect(session, isNotNull);
+      expect(schedule.completedSessionId, session!.id);
+      expect(schedule.status, 'in_progress');
+      await emitWorkoutEnded('watch-scheduled');
+      await pumpEventQueue(times: 100);
+      expect(
+        (await (db.select(
+          db.scheduledWorkouts,
+        )..where((s) => s.id.equals(scheduleId))).getSingle()).status,
+        'done',
+      );
+    },
+  );
+
+  test(
+    'a stale watch tile cannot reopen a skipped scheduled workout',
+    () async {
+      buildService();
+      final program = await db
+          .into(db.programs)
+          .insert(ProgramsCompanion.insert(name: 'Stale watch program'));
+      final week = await db
+          .into(db.programWeeks)
+          .insert(
+            ProgramWeeksCompanion.insert(programId: program, weekIndex: 0),
+          );
+      final day = await db
+          .into(db.programDays)
+          .insert(
+            ProgramDaysCompanion.insert(
+              programWeekId: week,
+              dayOfWeek: 1,
+              name: 'Skipped',
+            ),
+          );
+      final scheduleId = await db
+          .into(db.scheduledWorkouts)
+          .insert(
+            ScheduledWorkoutsCompanion.insert(
+              programId: Value(program),
+              programDayId: day,
+              dateIso: '2026-10-21',
+              status: const Value('skipped'),
+            ),
+          );
+      final existing = await repo.startSession(sessionUuid: 'phone-kept');
+      await emitWorkoutStarted(
+        workoutEnvelopeJson(
+          entityId: 'stale-watch',
+          revision: 1,
+          templateId: 'scheduled_$scheduleId',
+          exercises: [],
+        ),
+      );
+      await pumpEventQueue(times: 100);
+      expect((await repo.watchActiveSession().first)!.id, existing);
+      expect((await db.select(db.workoutSessions).get()), hasLength(1));
+      expect(
+        (await (db.select(
+          db.scheduledWorkouts,
+        )..where((s) => s.id.equals(scheduleId))).getSingle()).status,
+        'skipped',
+      );
+    },
+  );
+
+  test(
+    'disposing watch sync removes its callbacks and cancels pending pushes',
+    () async {
+      final service = buildService();
+      service.dispose();
+      expect(WearSyncService.onWatchWorkoutStarted, isNull);
+      expect(WearSyncService.onWatchWorkoutUpdated, isNull);
+      final sessionId = await repo.startSession(sessionUuid: 'disposed-sync');
+      final session = await (db.select(
+        db.workoutSessions,
+      )..where((s) => s.id.equals(sessionId))).getSingle();
+      service.scheduleOutboundSync(session);
+      await pumpEventQueue();
+      expect(
+        dispatchedCalls.where((c) => c.method == 'syncActiveSession'),
+        isEmpty,
+      );
+    },
+  );
 
   test(
     'a malformed exercise mid-payload rolls back the whole apply (transactional)',
@@ -841,6 +978,9 @@ void main() {
   test(
     'pushActiveSessionToWatch populates target weights, reps and performanceHint for uncompleted sets',
     () async {
+      await container
+          .read(sharedPreferencesProvider)
+          .setString('performance_hint_mode', 'last');
       final service = buildService();
       final exerciseId = await createExercise('Bench Press');
 
@@ -914,10 +1054,10 @@ void main() {
 
       final sets = ex['sets'] as List<dynamic>;
       expect(sets, hasLength(2));
-      expect(sets.first['weight'], 50.0);
-      expect(sets.first['reps'], 12);
-      expect(sets.last['weight'], 50.0);
-      expect(sets.last['reps'], 12);
+      expect(sets.first['weight'], 0.0);
+      expect(sets.first['reps'], 0);
+      expect(sets.last['weight'], 0.0);
+      expect(sets.last['reps'], 0);
     },
   );
 
@@ -1227,6 +1367,68 @@ void main() {
           .toList();
       // Must not dispatch an echo back to the watch!
       expect(syncCalls, isEmpty);
+    },
+  );
+  test(
+    'watch receives the same adaptive per-set load as phone while actual blanks stay blank',
+    () async {
+      final service = buildService();
+      final exerciseId = await createExercise('Adaptive Test Press');
+      final sessionId = await repo.startSession(
+        sessionUuid: 'adaptive-target-1',
+      );
+      final weId = await repo.addExerciseToSession(
+        sessionId: sessionId,
+        exerciseId: exerciseId,
+        equipmentVariant: 'barbell',
+      );
+      final first = (await repo.watchSetsForWorkoutExercise(weId).first).single;
+      final secondId = await repo.addSet(
+        workoutExerciseId: weId,
+        reps: 0,
+        weightKg: 0,
+      );
+      await (db.update(
+        db.setEntries,
+      )..where((t) => t.workoutExerciseId.equals(weId))).write(
+        const SetEntriesCompanion(
+          plannedWeightKg: Value(100),
+          plannedRepsMin: Value(5),
+          plannedRepsMax: Value(5),
+          plannedRpeX10: Value(80),
+        ),
+      );
+      await repo.updateSet(
+        setId: first.id,
+        weightKg: 100,
+        reps: 4,
+        rpeX10: 95,
+        isCompleted: true,
+      );
+      final session = (await repo.watchActiveSession().first)!;
+      await service.pushActiveSessionToWatch(session);
+      final call = dispatchedCalls.lastWhere(
+        (c) => c.method == 'syncActiveSession',
+      );
+      final args = call.arguments as Map<dynamic, dynamic>;
+      final envelope = WearSyncEnvelope.decode(
+        args['session_json'] as String,
+        fallbackEntity: wearSyncEntityActiveWorkout,
+        fallbackEntityId: 'adaptive-target-1',
+        fallbackOrigin: wearSyncOriginPhone,
+      );
+      final ex = (envelope.payload['exercises'] as List).single as Map;
+      final template = ex['template'] as Map;
+      final planned = (template['plannedSets'] as List).last as Map;
+      expect(planned['targetWeightKg'], 92.5);
+      expect(planned['targetReps'], 5);
+      expect(planned['targetRpe'], 8.0);
+      expect(template['performanceHint'], contains('92.5 kg × 5'));
+      final actual = (ex['sets'] as List).last as Map;
+      expect(actual['wireId'], 'set_$secondId');
+      expect(actual['weight'], 0.0);
+      expect(actual['reps'], 0);
+      expect(actual.containsKey('rpe'), false);
     },
   );
 }

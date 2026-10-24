@@ -12,6 +12,7 @@ class TargetRule {
 
   /// `global` | `training_day` | `rest_day` | `weekday:N` | `date:yyyy-mm-dd`
   final String appliesTo;
+  final String effectiveFromDateIso;
 
   const TargetRule({
     required this.kcal,
@@ -20,6 +21,7 @@ class TargetRule {
     required this.fatG,
     this.fiberG,
     required this.appliesTo,
+    this.effectiveFromDateIso = '0001-01-01',
   });
 
   MacroTargets get macros =>
@@ -48,17 +50,31 @@ class DietScheduleRule {
 class TargetResolver {
   /// Specificity rank — higher wins.
   static int _rank(String appliesTo) {
-    if (appliesTo.startsWith('date:')) return 4;
-    if (appliesTo.startsWith('weekday:')) return 3;
-    if (appliesTo == 'training_day' || appliesTo == 'rest_day') return 2;
-    if (appliesTo == 'global') return 1;
+    if (appliesTo.startsWith('date:')) {
+      return 4;
+    }
+    if (appliesTo.startsWith('weekday:')) {
+      return 3;
+    }
+    if (appliesTo == 'training_day' || appliesTo == 'rest_day') {
+      return 2;
+    }
+    if (appliesTo == 'global') {
+      return 1;
+    }
     return 0;
   }
 
   static bool _matches(String appliesTo, DateTime date, bool isTrainingDay) {
-    if (appliesTo == 'global') return true;
-    if (appliesTo == 'training_day') return isTrainingDay;
-    if (appliesTo == 'rest_day') return !isTrainingDay;
+    if (appliesTo == 'global') {
+      return true;
+    }
+    if (appliesTo == 'training_day') {
+      return isTrainingDay;
+    }
+    if (appliesTo == 'rest_day') {
+      return !isTrainingDay;
+    }
     if (appliesTo.startsWith('weekday:')) {
       final wd = int.tryParse(appliesTo.substring(8));
       return wd != null && date.weekday == wd;
@@ -83,9 +99,19 @@ class TargetResolver {
     TargetRule? best;
     var bestRank = -1;
     for (final r in rules) {
-      if (!_matches(r.appliesTo, date, isTrainingDay)) continue;
+      final selectedIso =
+          '${date.year.toString().padLeft(4, '0')}-'
+          '${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      if (r.effectiveFromDateIso.compareTo(selectedIso) > 0 ||
+          !_matches(r.appliesTo, date, isTrainingDay)) {
+        continue;
+      }
       final rank = _rank(r.appliesTo);
-      if (rank > bestRank) {
+      if (rank > bestRank ||
+          (rank == bestRank &&
+              (best == null ||
+                  r.effectiveFromDateIso.compareTo(best.effectiveFromDateIso) >
+                      0))) {
         best = r;
         bestRank = rank;
       }
@@ -95,7 +121,9 @@ class TargetResolver {
 
   /// Number of completed reduction steps elapsed under [schedule] by [date].
   static int reductionSteps(DietScheduleRule schedule, DateTime date) {
-    if (!schedule.active || schedule.intervalDays <= 0) return 0;
+    if (!schedule.active || schedule.intervalDays <= 0) {
+      return 0;
+    }
     final start = DateTime(
       schedule.startDate.year,
       schedule.startDate.month,
@@ -103,7 +131,9 @@ class TargetResolver {
     );
     final today = DateTime(date.year, date.month, date.day);
     final days = today.difference(start).inDays;
-    if (days < schedule.intervalDays) return 0;
+    if (days < schedule.intervalDays) {
+      return 0;
+    }
     return days ~/ schedule.intervalDays;
   }
 
@@ -117,7 +147,9 @@ class TargetResolver {
     required DateTime date,
   }) {
     final steps = reductionSteps(schedule, date);
-    if (steps == 0) return base;
+    if (steps == 0) {
+      return base;
+    }
     final factor = _pow(1 - schedule.reducePct / 100, steps);
     final newKcal = (base.kcal * factor).round();
     final protein = base.proteinG; // preserved on a cut
@@ -149,8 +181,12 @@ class TargetResolver {
       isTrainingDay: isTrainingDay,
     );
     final base = rule?.macros ?? fallback;
-    if (base == null) return null;
-    if (schedule == null) return base;
+    if (base == null) {
+      return null;
+    }
+    if (schedule == null) {
+      return base;
+    }
     return applySchedule(base: base, schedule: schedule, date: date);
   }
 

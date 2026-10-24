@@ -15,20 +15,24 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Text
 import androidx.compose.foundation.clickable
 import androidx.navigation.NavController
+import com.ams.herculex.ui.HxIcons
 import com.ams.herculex.ui.OneUiPillStyle
 import com.ams.herculex.workout.attachRotaryScroll
 
@@ -36,7 +40,7 @@ private data class NutrientRow(
     val id: String,
     val label: String,
     val unit: String,
-    val icon: String,
+    val icon: ImageVector,
     val color: Color,
     val style: OneUiPillStyle,
     val value: (NutritionData) -> Int,
@@ -44,11 +48,11 @@ private data class NutrientRow(
 )
 
 private val nutrientRows = listOf(
-    NutrientRow("calories", "kcal",     "",     "⚡", Color(0xFF42A5F5), OneUiPillStyle.RoyalBlue,    { it.calories }, { it.calorieGoal }),
-    NutrientRow("protein",  "Protein",  "g",    "🥩", Color(0xFFFFA726), OneUiPillStyle.Terracotta,   { it.protein  }, { it.proteinGoal }),
-    NutrientRow("carbs",    "Carbs",    "g",    "🌾", Color(0xFF26C6DA), OneUiPillStyle.SlateNavy,    { it.carbs    }, { it.carbsGoal  }),
-    NutrientRow("fats",     "Fat",      "g",    "🥑", Color(0xFFBA68C8), OneUiPillStyle.VioletIndigo, { it.fats     }, { it.fatGoal    }),
-    NutrientRow("water",    "Water",    "ml",   "💧", Color(0xFF80DEEA), OneUiPillStyle.AccentBlue,   { it.water    }, { it.waterGoal  }),
+    NutrientRow("calories", "kcal",     "",     HxIcons.Flame,   Color(0xFF42A5F5), OneUiPillStyle.RoyalBlue,    { it.calories }, { it.calorieGoal }),
+    NutrientRow("protein",  "Protein",  "g",    HxIcons.Protein, Color(0xFFFFA726), OneUiPillStyle.Terracotta,   { it.protein  }, { it.proteinGoal }),
+    NutrientRow("carbs",    "Carbs",    "g",    HxIcons.Carbs,   Color(0xFF26C6DA), OneUiPillStyle.SlateNavy,    { it.carbs    }, { it.carbsGoal  }),
+    NutrientRow("fats",     "Fat",      "g",    HxIcons.Fat,     Color(0xFFBA68C8), OneUiPillStyle.VioletIndigo, { it.fats     }, { it.fatGoal    }),
+    NutrientRow("water",    "Water",    "ml",   HxIcons.Drop,    Color(0xFF80DEEA), OneUiPillStyle.AccentBlue,   { it.water    }, { it.waterGoal  }),
 )
 
 @Composable
@@ -56,6 +60,10 @@ fun NutrientsScreen(
     navController: NavController,
     viewModel: NutritionViewModel,
 ) {
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
+
     val data  by viewModel.data.collectAsState()
     val goals by viewModel.goals.collectAsState()
     val listState = rememberScalingLazyListState()
@@ -102,7 +110,7 @@ fun NutrientsScreen(
 @Composable
 private fun NutrientItem(
     label: String,
-    icon: String,
+    icon: ImageVector,
     value: Int,
     goal: Int,
     unit: String,
@@ -127,7 +135,12 @@ private fun NutrientItem(
                 .background(style.badgeColor, shape = CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            Text(icon, fontSize = 16.sp)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = style.badgeIconColor ?: style.contentColor,
+                modifier = Modifier.size(22.dp),
+            )
         }
         Spacer(Modifier.width(10.dp))
 

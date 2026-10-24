@@ -475,7 +475,7 @@ void main() {
         compressed.every((row) => row.slotRole == SlotRole.isolation.id),
         isTrue,
       );
-      expect(compressed.every((row) => row.targetRir == 0), isTrue);
+      expect(compressed.every((row) => row.targetRir == 1), isTrue);
       expect(
         compressed.every((row) => row.prescriptionCodecJson != null),
         isTrue,

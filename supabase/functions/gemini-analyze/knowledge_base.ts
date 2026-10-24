@@ -1,16 +1,10 @@
 // Coaching-mentality corpus za Herculex AI (Phase 26, KB-01/KB-02).
 //
-// Ta datoteka je namerno majhna in placeholder: pravi "ucbenik" pride pozneje
-// kot deploy, ne kot sprememba formata. Segmenti so splosna, varna trenerska
-// drza (D-03) — ne konkretni programi, ne stevilke, ne nasveti, ki bi jih
-// smel povoziti uporabnikov `userNote`. Noben od 8 obstojecih `kind`-ov tega
-// se ne uvazi (D-04) — ta datoteka samo obstaja in je testirana.
+// Shared coaching principles for check-ins and weekly narratives. Program briefs
+// additionally use the routed Blueprint modules in programming_skills.ts.
 //
-// KNOWLEDGE_VERSION je locena os od `provenance.modelVersion` v index.ts:
-// modelVersion pove, KATERI Gemini model je odgovoril; KNOWLEDGE_VERSION bo
-// (v kasnejsi fazi) povedal, KATERA razlicica corpusa je bila vbrizgana.
-// Format `kb-YYYY.MM-N` (D-09) je stabilen ze zdaj, tudi ce je vsebina se
-// placeholder.
+// KNOWLEDGE_VERSION identifies the coaching corpus; modelVersion identifies
+// the Gemini model. Program briefs also record the selected skill IDs/version.
 
 export const core =
   "Favor compound, multi-joint movements over isolation work when time or " +
@@ -43,4 +37,4 @@ export const recovery =
   "evaluation, not to push through. Recovery capacity varies by individual " +
   "and by life stress, so plans should stay flexible rather than rigid.";
 
-export const KNOWLEDGE_VERSION = "kb-2026.10-1";
+export const KNOWLEDGE_VERSION = "kb-2026.10-2";

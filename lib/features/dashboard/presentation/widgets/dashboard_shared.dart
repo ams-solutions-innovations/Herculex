@@ -95,9 +95,102 @@ class DashboardPill extends ConsumerWidget {
   }
 }
 
-Widget dashboardTitle(BuildContext context, String text) => Text(
-  text,
-  style: Theme.of(
-    context,
-  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+Widget dashboardTitle(BuildContext context, String text) => Row(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    Icon(_dashboardTitleIcon(text), size: 17, color: context.hx.primary),
+    const SizedBox(width: HxSpace.x1),
+    Flexible(
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+      ),
+    ),
+  ],
 );
+
+IconData _dashboardTitleIcon(String title) {
+  final value = title.toLowerCase();
+  if (value.contains('volume')) return Icons.bar_chart_rounded;
+  if (value.contains('bodyweight')) return Icons.monitor_weight_outlined;
+  if (value.contains('workout') || value.contains('plan')) {
+    return Icons.fitness_center_rounded;
+  }
+  if (value.contains('calorie') || value.contains('remaining')) {
+    return Icons.local_fire_department_outlined;
+  }
+  if (value.contains('recovery') || value.contains('cns')) {
+    return Icons.favorite_border_rounded;
+  }
+  if (value.contains('nutrition') || value.contains('macro')) {
+    return Icons.restaurant_menu_rounded;
+  }
+  return Icons.insights_rounded;
+}
+
+/// Dynamically fades the left and right edges during horizontal swiping of
+/// stacked dashboard widgets so cards never get clipped with a harsh vertical
+/// straight line against the container boundary.
+class StackedEdgeFadeMask extends StatelessWidget {
+  const StackedEdgeFadeMask({
+    super.key,
+    required this.controller,
+    required this.child,
+  });
+
+  final PageController controller;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        double fadeFactor = 0.0;
+        if (controller.hasClients &&
+            controller.positions.length == 1 &&
+            controller.position.hasContentDimensions) {
+          final page = controller.page;
+          if (page != null) {
+            final offsetFromPage = (page - page.round()).abs();
+            final normalized = (offsetFromPage / 0.12).clamp(0.0, 1.0);
+            fadeFactor = Curves.easeOutCubic.transform(normalized);
+          }
+        }
+
+        return ShaderMask(
+          shaderCallback: (rect) {
+            if (rect.width <= 0 || rect.height <= 0 || fadeFactor <= 0.001) {
+              return const LinearGradient(
+                colors: [Colors.white, Colors.white],
+              ).createShader(rect);
+            }
+
+            final fadeWidth = (rect.width * 0.12).clamp(28.0, 44.0);
+            final fadeFraction = (fadeWidth / rect.width).clamp(0.01, 0.45);
+            final edgeAlpha = (1.0 - fadeFactor).clamp(0.0, 1.0);
+
+            return LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Colors.white.withValues(alpha: edgeAlpha),
+                Colors.white,
+                Colors.white,
+                Colors.white.withValues(alpha: edgeAlpha),
+              ],
+              stops: [0.0, fadeFraction, 1.0 - fadeFraction, 1.0],
+            ).createShader(rect);
+          },
+          blendMode: BlendMode.dstIn,
+          child: child,
+        );
+      },
+      child: child,
+    );
+  }
+}

@@ -72,8 +72,12 @@ void main() {
   _save('assets/images/app_icon_ios_dark.png', monochrome);
   _save('assets/images/app_icon_ios_tinted.png', monochrome);
 
-  final watchResDir = Directory('android/wear/src/main/res');
-  if (watchResDir.existsSync()) {
+  final resDirs = [
+    Directory('android/app/src/main/res'),
+    Directory('android/wear/src/main/res'),
+  ];
+  for (final resDir in resDirs) {
+    if (!resDir.existsSync()) continue;
     const sizes = {
       'mdpi': 48,
       'hdpi': 72,
@@ -82,9 +86,9 @@ void main() {
       'xxxhdpi': 192,
     };
     for (final entry in sizes.entries) {
-      final mipmap = Directory('${watchResDir.path}/mipmap-${entry.key}')
+      final mipmap = Directory('${resDir.path}/mipmap-${entry.key}')
         ..createSync(recursive: true);
-      final drawable = Directory('${watchResDir.path}/drawable-${entry.key}')
+      final drawable = Directory('${resDir.path}/drawable-${entry.key}')
         ..createSync(recursive: true);
       final standardResized = img.copyResize(
         master,
@@ -93,6 +97,8 @@ void main() {
       );
       _save('${mipmap.path}/ic_launcher.png', standardResized);
       _save('${mipmap.path}/ic_launcher_round.png', standardResized);
+      _save('${mipmap.path}/launcher_icon.png', standardResized);
+      _save('${mipmap.path}/launcher_icon_round.png', standardResized);
       _save(
         '${drawable.path}/ic_launcher_foreground.png',
         img.copyResize(foreground, width: entry.value, height: entry.value),

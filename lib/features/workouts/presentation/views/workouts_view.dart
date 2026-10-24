@@ -75,7 +75,9 @@ class _WorkoutsLandingState extends ConsumerState<_WorkoutsLanding> {
                     onTap: () async {
                       // Multi-gym (§10): pick the gym when more than one exists.
                       final gym = await GymPickerSheet.resolve(context, ref);
-                      if (gym.cancelled) return;
+                      if (gym.cancelled) {
+                        return;
+                      }
                       await ref
                           .read(workoutsRepositoryProvider)
                           .startSession(gymId: gym.gymId);
@@ -176,9 +178,13 @@ class _RecentTabState extends ConsumerState<_RecentTab> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      return;
+    }
     await ref.read(workoutsRepositoryProvider).deleteSession(session.id);
-    if (mounted) setState(() => _deleteMode = false);
+    if (mounted) {
+      setState(() => _deleteMode = false);
+    }
   }
 }
 
@@ -186,7 +192,9 @@ class _RecentTabState extends ConsumerState<_RecentTab> {
 /// so the list reads "Push Day", not the same date twice over.
 String _displayName(WorkoutSessionData session) {
   final name = session.name?.trim() ?? '';
-  if (name.isNotEmpty) return name;
+  if (name.isNotEmpty) {
+    return name;
+  }
   return DateFormat('EEE, MMM d').format(session.startedAt);
 }
 
@@ -251,55 +259,60 @@ class _SessionTile extends ConsumerWidget {
               : AppColors.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
-      child: ListTile(
-        onTap: deleteMode
-            ? onDelete
-            : () => context.push(AppPaths.workoutHistory(session.id)),
-        onLongPress: onLongPress,
-        title: Text(
-          _displayName(session),
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              [
-                DateFormat('EEE, MMM d').format(session.startedAt),
-                DateFormat('HH:mm').format(session.startedAt),
-                if (durationStr.isNotEmpty) durationStr,
-                if (session.sessionRpe != null) 'RPE ${session.sessionRpe}',
-              ].join(' • '),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.secondary,
-              ),
-            ),
-            if (exerciseSummary != null && exerciseSummary.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                exerciseSummary,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.onSurface,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ],
-        ),
-        trailing: IconButton(
-          icon: Icon(
-            deleteMode ? Icons.close : Icons.chevron_right,
-            color: deleteMode ? Colors.redAccent : null,
-          ),
-          tooltip: deleteMode ? 'Delete workout' : null,
-          onPressed: deleteMode
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          onTap: deleteMode
               ? onDelete
               : () => context.push(AppPaths.workoutHistory(session.id)),
+          onLongPress: onLongPress,
+          title: Text(
+            _displayName(session),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                [
+                  DateFormat('EEE, MMM d').format(session.startedAt),
+                  DateFormat('HH:mm').format(session.startedAt),
+                  if (durationStr.isNotEmpty) durationStr,
+                  if (session.sessionRpe != null) 'RPE ${session.sessionRpe}',
+                ].join(' • '),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.secondary,
+                ),
+              ),
+              if (exerciseSummary != null && exerciseSummary.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  exerciseSummary,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.onSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+          trailing: IconButton(
+            icon: Icon(
+              deleteMode ? Icons.close : Icons.chevron_right,
+              color: deleteMode ? Colors.redAccent : null,
+            ),
+            tooltip: deleteMode ? 'Delete workout' : null,
+            onPressed: deleteMode
+                ? onDelete
+                : () => context.push(AppPaths.workoutHistory(session.id)),
+          ),
         ),
       ),
     );

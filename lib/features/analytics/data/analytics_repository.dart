@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
-
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
 import 'package:herculex/features/workouts/domain/one_rep_max.dart';
 
@@ -120,7 +120,10 @@ class AnalyticsRepository {
       // or calories has no such number, and estimating one from the NOT NULL
       // zeros it stores would be a fabrication (EXR-05).
       final metric = LoggingMetric.fromId(ex.loggingMetric);
-      if (!metric.isRepBased || !metric.isLoaded) continue;
+      if (!metric.isRepBased ||
+          !metric.isLoaded ||
+          isMachineAssistedPullup(ex.slug))
+        continue;
       final est = OneRepMax.estimate(weightKg: set.weightKg, reps: set.reps);
       if (est == null) continue;
       final existing = best[ex.id];

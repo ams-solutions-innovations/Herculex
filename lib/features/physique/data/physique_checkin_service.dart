@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/physique/domain/check_in_verdict.dart';
 import 'package:herculex/features/physique/domain/physique_guardrails.dart';
@@ -13,6 +12,17 @@ const _quotaMessage =
 const _unavailableMessage =
     "Herculex AI isn't available right now. Save your photo without analysis "
     "and it will still count as this week's check-in.";
+
+class PhysiqueCheckInImage {
+  const PhysiqueCheckInImage({required this.jpeg, required this.pose});
+  final Uint8List jpeg;
+  final String pose;
+  Map<String, dynamic> toWire() => {
+    'bytes': jpeg,
+    'mimeType': 'image/jpeg',
+    'pose': pose,
+  };
+}
 
 /// The only data about the user that leaves the device besides photos.
 class PhysiqueCheckInContext {
@@ -71,8 +81,10 @@ class PhysiqueCheckInService {
   final PhysiqueCheckInBackend _backend;
 
   Future<PhysiqueCheckInAnalysis> analyze({
-    required List<Uint8List> baselineJpegs,
-    required Uint8List currentJpeg,
+    List<Uint8List> baselineJpegs = const [],
+    Uint8List? currentJpeg,
+    List<PhysiqueCheckInImage> baselineImages = const [],
+    List<PhysiqueCheckInImage> currentImages = const [],
     required PhysiqueCheckInContext context,
     required bool consentGranted,
     String? userNote,
@@ -83,22 +95,33 @@ class PhysiqueCheckInService {
         'Confirm the photo privacy notice before starting the analysis.',
       );
     }
-    if (baselineJpegs.isEmpty || currentJpeg.isEmpty) {
+    final baselines = baselineImages.isNotEmpty
+        ? baselineImages.map((p) => p.toWire()).toList()
+        : baselineJpegs
+              .where((b) => b.isNotEmpty)
+              .take(PhysiqueTuning.maxCheckInBaselinePhotos)
+              .map(
+                (b) => <String, dynamic>{'bytes': b, 'mimeType': 'image/jpeg'},
+              )
+              .toList();
+    final current = currentImages.isNotEmpty
+        ? currentImages.map((p) => p.toWire()).toList()
+        : currentJpeg == null || currentJpeg.isEmpty
+        ? <Map<String, dynamic>>[]
+        : <Map<String, dynamic>>[
+            {'bytes': currentJpeg, 'mimeType': 'image/jpeg'},
+          ];
+    if (baselines.isEmpty ||
+        baselines.length > 3 ||
+        current.isEmpty ||
+        current.length > 3 ||
+        [
+          ...baselines,
+          ...current,
+        ].any((p) => (p['bytes'] as List<int>).isEmpty)) {
       throw const PhysiqueCheckInException(
         PhysiqueCheckInFailure.invalidInput,
-        'A baseline photo and a current photo are required.',
-      );
-    }
-
-    final baselines = baselineJpegs
-        .where((b) => b.isNotEmpty)
-        .take(PhysiqueTuning.maxCheckInBaselinePhotos)
-        .map((b) => <String, dynamic>{'bytes': b, 'mimeType': 'image/jpeg'})
-        .toList();
-    if (baselines.isEmpty) {
-      throw const PhysiqueCheckInException(
-        PhysiqueCheckInFailure.invalidInput,
-        'A baseline photo and a current photo are required.',
+        'Choose one to three baseline and current photos.',
       );
     }
 
@@ -106,21 +129,30 @@ class PhysiqueCheckInService {
     try {
       raw = await _backend.analyzePhysiqueCheckIn(
         baselineImages: baselines,
-        currentImage: {'bytes': currentJpeg, 'mimeType': 'image/jpeg'},
+        currentImages: current,
         context: context.toWire(),
         userNote: userNote,
       );
     } catch (error) {
       final detail = error.toString();
-      if (detail.contains('are used up')) {
+      if (error is AiBackendException
+          ? error.kind == AiFailureKind.quota
+          : detail.contains('are used up')) {
         throw PhysiqueCheckInException(
           PhysiqueCheckInFailure.quotaExhausted,
           _quotaMessage,
         );
       }
-      throw const PhysiqueCheckInException(
+      if (error is AiBackendException &&
+          error.kind == AiFailureKind.invalidInput) {
+        throw PhysiqueCheckInException(
+          PhysiqueCheckInFailure.invalidInput,
+          error.message,
+        );
+      }
+      throw PhysiqueCheckInException(
         PhysiqueCheckInFailure.unavailable,
-        _unavailableMessage,
+        error is AiBackendException ? error.message : _unavailableMessage,
       );
     }
 
@@ -160,7 +192,9 @@ CheckInBand _parseBand(Object? raw) {
 }
 
 List<String> _parseLimitations(Object? raw) {
-  if (raw is! List) return const [];
+  if (raw is! List) {
+    return const [];
+  }
   return raw
       .whereType<String>()
       .map((e) => e.trim())
@@ -170,7 +204,9 @@ List<String> _parseLimitations(Object? raw) {
 }
 
 String? _optionalString(Object? v) {
-  if (v is! String) return null;
+  if (v is! String) {
+    return null;
+  }
   final t = v.trim();
   return t.isEmpty ? null : t;
 }
@@ -183,7 +219,9 @@ final _percentNumber = RegExp(
 /// Defense in depth for D-11: no false-precision percentage reaches the UI,
 /// even when the server predates its own normaliser.
 String _stripPercentages(Object? raw) {
-  if (raw is! String) return '';
+  if (raw is! String) {
+    return '';
+  }
   return raw
       .replaceAll(_percentNumber, '')
       .replaceAll('%', '')
