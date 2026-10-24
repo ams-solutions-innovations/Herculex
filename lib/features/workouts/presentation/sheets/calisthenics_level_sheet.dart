@@ -104,7 +104,7 @@ class CalisthenicsLevelSheet extends ConsumerWidget {
                         suggested
                             ? recommendation!.load
                             : level.variant == 'weighted'
-                            ? 1.25
+                            ? path.weightedStartingLoadKg
                             : 0,
                       ),
                     );

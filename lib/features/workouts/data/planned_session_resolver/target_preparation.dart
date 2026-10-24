@@ -183,18 +183,20 @@ extension _TargetPreparation on PlannedSessionResolver {
     // Keep warm-up and advanced-technique rows intact. Only the generic
     // working prescription is replaced with the authored progression dose.
     var remaining = CalisthenicsProgression.requiredSets;
+    final activeLevel = calisthenicsLevelFor(
+      recommendation.current.slug,
+      exercise.equipmentVariant,
+    );
+    final reps = activeLevel?.key == recommendation.current.key
+        ? recommendation.currentValue
+        : recommendation.value;
     final sets = <PlannedSetSnapshot>[];
     for (final set in exercise.sets) {
       final isWorking = !set.isWarmup && set.setType == 'standard';
       if (isWorking && remaining-- <= 0) continue;
       sets.add(
         isWorking
-            ? set.copyWith(
-                repsMin: recommendation.value,
-                repsMax: recommendation.value,
-                rpeX10: 80,
-                rir: 2,
-              )
+            ? set.copyWith(repsMin: reps, repsMax: reps, rpeX10: 80, rir: 2)
             : set,
       );
     }

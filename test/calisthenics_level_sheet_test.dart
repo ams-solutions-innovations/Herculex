@@ -38,7 +38,7 @@ void main() {
         ready: true,
         successes: 2,
         value: 5,
-        load: 1.25,
+        load: 5,
         reason: 'Ready to try weighted.',
       );
       CalisthenicsPick? result;
@@ -80,7 +80,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(result!.level.variant, 'weighted');
       expect(result!.value, 5);
-      expect(result!.load, 1.25);
+      expect(result!.load, 5);
     },
   );
 

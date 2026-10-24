@@ -203,9 +203,13 @@ class WorkoutTargetsRepository {
           level != null &&
           rec.current.key == level.key &&
           !level.seconds) {
+        final ordinals = <String, int>{};
         for (final set in sets.where(
           (s) => !s.isWarmup && s.setType == 'standard',
         )) {
+          final assistance = signature(set.id);
+          final ordinal = ordinals[assistance] ?? 0;
+          ordinals[assistance] = ordinal + 1;
           if (set.plannedRepsMin != null ||
               result[set.id]?.source == WorkoutTargetSource.adaptation)
             continue;
@@ -218,9 +222,31 @@ class WorkoutTargetsRepository {
             );
             continue;
           }
+          var reps = rec.currentValue;
+          // A skill threshold must not erase a stronger comparable set. Reset
+          // reps only when the actual target load increases.
+          final comparable = history
+              .where(
+                (s) =>
+                    !s.isWarmup &&
+                    s.setType == 'standard' &&
+                    signature(s.id) == assistance,
+              )
+              .toList();
+          final previous = comparable.isEmpty
+              ? null
+              : comparable[ordinal < comparable.length
+                    ? ordinal
+                    : comparable.length - 1];
+          final load = variant == 'weighted' ? rec.load : 0.0;
+          if (previous != null &&
+              load == previous.weightKg &&
+              previous.reps > reps) {
+            reps = previous.reps;
+          }
           result[set.id] = WorkoutTarget(
             weightKg: variant == 'weighted' ? rec.load : null,
-            reps: rec.ready ? level.max : rec.value,
+            reps: reps,
             source: WorkoutTargetSource.progression,
             reason: rec.reason,
           );

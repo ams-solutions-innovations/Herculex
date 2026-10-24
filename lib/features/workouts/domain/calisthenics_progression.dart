@@ -33,6 +33,8 @@ class CalisthenicsPath {
   final List<String> parallelSlugs;
   final List<String> prerequisites;
   Set<String> get slugs => {...levels.map((l) => l.slug), ...parallelSlugs};
+  double get weightedStartingLoadKg => id.startsWith('pull-up') ? 5 : 1.25;
+  double get weightedLoadStepKg => id.startsWith('pull-up') ? 2.5 : 1.25;
 }
 
 const calisthenicsPaths = <CalisthenicsPath>[
@@ -402,13 +404,19 @@ class CalisthenicsRecommendation {
     required this.load,
     required this.reason,
     this.assistance = '',
-  });
+    int? currentValue,
+  }) : _currentValue = currentValue;
   final CalisthenicsPath path;
   final CalisthenicsLevel current;
   final CalisthenicsLevel target;
   final bool ready;
   final int successes;
   final int value;
+  final int? _currentValue;
+
+  /// Target while staying on the current variation. Readiness alone does not
+  /// add weight or make the current movement harder.
+  int get currentValue => _currentValue ?? (ready ? current.max : value);
   final double load;
   final String reason;
   final String assistance;
@@ -509,16 +517,22 @@ class CalisthenicsProgression {
     final weakest = sets.isEmpty
         ? current.min
         : sets.map((s) => s.value).reduce((a, b) => a < b ? a : b);
-    final value = matching.isEmpty
-        ? current.min
-        : ready
-        ? target.min
-        : (weakest + (current.seconds ? 2 : 1)).clamp(current.min, current.max);
     final nextLoad = ready
-        ? (target.variant == 'weighted' ? 1.25 : 0.0)
+        ? (target.variant == 'weighted' ? path.weightedStartingLoadKg : 0.0)
         : current.variant == 'weighted' && successes == 2
-        ? load + 1.25
+        ? load + path.weightedLoadStepKg
         : load;
+    final cappedValue = (weakest + (current.seconds ? 2 : 1)).clamp(
+      current.min,
+      current.max,
+    );
+    final currentValue = sets.isEmpty
+        ? current.min
+        : current.seconds
+        ? cappedValue
+        : weakest > cappedValue
+        ? weakest
+        : cappedValue;
     final reason = ready
         ? 'Ready to try ${target.label}. Confirm controlled, pain-free full range before progressing.'
         : !foundations
@@ -526,7 +540,7 @@ class CalisthenicsProgression {
         : current.variant == 'band' && signature.isEmpty
         ? 'Log the assistance band on each set. Build reps, then try a lighter band before removing assistance.'
         : current.variant == 'weighted' && successes == 2
-        ? 'Two successful sessions: add 1.25 kg and rebuild from ${current.min} reps.'
+        ? 'Two successful sessions: add ${path.weightedLoadStepKg} kg and rebuild from ${current.min} reps.'
         : 'Build 3 × ${current.max}${current.seconds ? ' s' : ' reps'} twice, at least 24h apart, with the same setup and RPE ≤ 8 when logged ($successes/2).';
     return CalisthenicsRecommendation(
       path: path,
@@ -534,7 +548,12 @@ class CalisthenicsProgression {
       target: target,
       ready: ready,
       successes: successes,
-      value: nextLoad > load && !ready ? current.min : value,
+      value: nextLoad > load && !ready
+          ? current.min
+          : ready
+          ? target.min
+          : currentValue,
+      currentValue: nextLoad > load && !ready ? current.min : currentValue,
       load: nextLoad,
       reason: reason,
       assistance: signature,

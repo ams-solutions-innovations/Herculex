@@ -162,6 +162,77 @@ void main() {
       ),
     ],
   );
+  for (final (successfulSessions, achieved) in [
+    (1, [12, 12, 12, 12]),
+    (2, [12, 12, 12, 12]),
+    (1, [15, 14, 13, 12]),
+  ]) {
+    test(
+      'next retains $achieved pull-ups after $successfulSessions sessions',
+      () async {
+        final ex = await exercise(
+          'pull-up',
+          modality: 'bodyweight',
+          metric: 'reps',
+        );
+        for (var day = successfulSessions; day > 0; day--) {
+          final previous = await session(
+            ex,
+            daysAgo: day * 2,
+            variant: 'bodyweight',
+            weight: 0,
+            reps: 12,
+            count: 4,
+          );
+          final previousRows = await WorkoutsRepository(
+            db,
+            _Clock(),
+          ).watchSetsForWorkoutExercise(previous.id).first;
+          for (var i = 0; i < previousRows.length; i++) {
+            await (db.update(db.setEntries)
+                  ..where((t) => t.id.equals(previousRows[i].id)))
+                .write(SetEntriesCompanion(reps: Value(achieved[i])));
+          }
+        }
+        final current = await session(
+          ex,
+          daysAgo: 0,
+          variant: 'bodyweight',
+          weight: 0,
+          count: 4,
+          finished: false,
+        );
+        await (db.update(
+          db.setEntries,
+        )..where((t) => t.workoutExerciseId.equals(current.id))).write(
+          const SetEntriesCompanion(
+            plannedRepsMin: Value(null),
+            plannedRepsMax: Value(null),
+            plannedRpeX10: Value(null),
+          ),
+        );
+        final rows = await WorkoutsRepository(
+          db,
+          _Clock(),
+        ).watchSetsForWorkoutExercise(current.id).first;
+        final result = await targets.resolve(
+          exercise: ex,
+          workoutExercise: current,
+          sets: rows,
+        );
+        expect(result.values.map((t) => t.reps), achieved);
+        expect(result.values.map((t) => t.weightKg), everyElement(isNull));
+        final last = await targets.resolve(
+          exercise: ex,
+          workoutExercise: current,
+          sets: rows,
+          nextMode: false,
+        );
+        expect(last.values.map((t) => t.reps), achieved);
+      },
+    );
+  }
+
   test('newer history on different equipment cannot seed a target', () async {
     final ex = await exercise('test-press');
     await session(ex, daysAgo: 3, variant: 'barbell', weight: 80, reps: 4);
@@ -632,6 +703,67 @@ void main() {
       expect(sets.map((set) => set.plannedRpeX10), everyElement(80));
     },
   );
+  for (final successfulSessions in [1, 2]) {
+    test(
+      'smart pull-up plan retains 12 reps after $successfulSessions sessions',
+      () async {
+        final ex = await exercise(
+          'pull-up',
+          modality: 'bodyweight',
+          metric: 'reps',
+        );
+        for (var day = successfulSessions; day > 0; day--) {
+          await session(
+            ex,
+            daysAgo: day * 2,
+            variant: 'bodyweight',
+            weight: 0,
+            reps: 12,
+            count: 4,
+          );
+        }
+        final program = await db
+            .into(db.programs)
+            .insert(ProgramsCompanion.insert(name: 'Pull-up test'));
+        final slot = await db
+            .into(db.programExerciseSlots)
+            .insert(
+              ProgramExerciseSlotsCompanion.insert(
+                programId: program,
+                slotKey: 'pull-up-main',
+                daySlotLabel: 'Upper',
+                orderIndex: 0,
+              ),
+            );
+        final id = await PlannedSessionResolver(db).materialize(
+          plan(
+            ex,
+            variant: 'bodyweight',
+            weight: 0,
+            reps: 8,
+            programExerciseSlotId: slot,
+          ),
+          startedAt: _Clock().now(),
+        );
+        final we = await (db.select(
+          db.workoutExercises,
+        )..where((t) => t.sessionId.equals(id))).getSingle();
+        final rows = await WorkoutsRepository(
+          db,
+          _Clock(),
+        ).watchSetsForWorkoutExercise(we.id).first;
+        expect(we.equipmentVariant, 'bodyweight');
+        expect(rows.map((s) => s.plannedRepsMin), everyElement(12));
+        expect(rows.map((s) => s.plannedRepsMax), everyElement(12));
+        final result = await targets.resolve(
+          exercise: ex,
+          workoutExercise: we,
+          sets: rows,
+        );
+        expect(result.values.map((t) => t.reps), everyElement(12));
+      },
+    );
+  }
   test(
     'an achieved strict pull-up level continues to override the old assisted program',
     () async {

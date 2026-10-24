@@ -71,11 +71,11 @@ void main() {
     expect(result.target.variant, 'band');
     expect(result.ready, false);
   });
-  test('all three sets twice unlock weighted with a small starting load', () {
+  test('all three sets twice unlock weighted pull-ups with 5 kg', () {
     final result = recommend([performance(1, daysAgo: 2), performance(2)]);
     expect(result.ready, true);
     expect(result.target.variant, 'weighted');
-    expect(result.load, 1.25);
+    expect(result.load, 5);
     expect(result.value, 5);
   });
   test('one good set, warmups, partials and high RPE cannot unlock', () {
@@ -87,6 +87,28 @@ void main() {
     ]) {
       expect(recommend([performance(1, daysAgo: 2), bad]).ready, false);
     }
+  });
+
+  test('rep thresholds retain achieved reps until the variation changes', () {
+    final first = performance(1, value: 12, count: 4, daysAgo: 2);
+    final one = recommend([first]);
+    expect(one.value, 12);
+    expect(one.currentValue, 12);
+    final ready = recommend([first, performance(2, value: 12, count: 4)]);
+    expect(ready.ready, true);
+    expect(ready.currentValue, 12);
+    expect(
+      ready.value,
+      5,
+      reason: 'Lower reps belong to the weighted variation',
+    );
+    expect(ready.load, 5);
+    final weighted = recommend([
+      performance(1, key: 'pull-up:weighted', load: 10, value: 12, daysAgo: 2),
+      performance(2, key: 'pull-up:weighted', load: 10, value: 12),
+    ]);
+    expect(weighted.currentValue, 5);
+    expect(weighted.load, 12.5);
   });
   test('same session or less than 24 hours is not repeat success', () {
     expect(
@@ -162,7 +184,7 @@ void main() {
       first,
       performance(2, key: 'pull-up:weighted', load: 10),
     ]);
-    expect(result.load, 11.25);
+    expect(result.load, 12.5);
     expect(result.value, 5);
     expect(result.ready, false);
     expect(
@@ -172,6 +194,38 @@ void main() {
       ]).load,
       12,
     );
+  });
+
+  test('all pull-up paths start at 5 kg and progress by 2.5 kg', () {
+    for (final path in calisthenicsPaths.where(
+      (p) => p.id.startsWith('pull-up'),
+    )) {
+      final strict = path.levels.firstWhere((l) => l.variant == 'bodyweight');
+      final weighted = path.levels.firstWhere((l) => l.variant == 'weighted');
+      final ready = recommend([
+        performance(1, key: strict.key, daysAgo: 2),
+        performance(2, key: strict.key),
+      ], path);
+      expect(ready.ready, true, reason: path.id);
+      expect(ready.load, 5, reason: path.id);
+      for (final load in [5.0, 7.5]) {
+        final next = recommend([
+          performance(1, key: weighted.key, load: load, daysAgo: 2),
+          performance(2, key: weighted.key, load: load),
+        ], path);
+        expect(next.load, load + 2.5, reason: path.id);
+        expect(next.value, weighted.min);
+        expect(next.reason, contains('add 2.5 kg'));
+        final pending = recommend([
+          performance(1, key: weighted.key, load: load),
+        ], path);
+        expect(
+          pending.load,
+          load,
+          reason: 'One success keeps the current load',
+        );
+      }
+    }
   });
   test('kipping and rings never unlock bar strict levels', () {
     final path = calisthenicsPathFor('strict-muscle-up')!;
