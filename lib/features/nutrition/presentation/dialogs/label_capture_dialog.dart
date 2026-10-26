@@ -24,7 +24,10 @@ class LabelCaptureDialog extends ConsumerStatefulWidget {
     required this.meal,
     this.mealKey,
     required this.date,
+    this.recipeId,
   });
+
+  final int? recipeId;
 
   static Future<bool?> show(
     BuildContext context, {
@@ -32,6 +35,7 @@ class LabelCaptureDialog extends ConsumerStatefulWidget {
     required Meal meal,
     String? mealKey,
     required DateTime date,
+    int? recipeId,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
@@ -42,6 +46,7 @@ class LabelCaptureDialog extends ConsumerStatefulWidget {
         meal: meal,
         mealKey: mealKey,
         date: date,
+        recipeId: recipeId,
       ),
     );
   }
@@ -176,14 +181,23 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
         servingUnit: portionUnit,
         sourceMetadataJson: metadata,
       );
-      await repo.logFood(
-        date: widget.date,
-        meal: widget.meal,
-        mealKey: widget.mealKey,
-        foodId: food.id,
-        portionAmount: portionAmount,
-        portionUnit: portionUnit,
-      );
+      if (widget.recipeId != null) {
+        await repo.addIngredient(
+          recipeId: widget.recipeId!,
+          foodId: food.id,
+          grams: serving ?? 100.0,
+        );
+        ref.invalidate(recipeIngredientsProvider(widget.recipeId!));
+      } else {
+        await repo.logFood(
+          date: widget.date,
+          meal: widget.meal,
+          mealKey: widget.mealKey,
+          foodId: food.id,
+          portionAmount: portionAmount,
+          portionUnit: portionUnit,
+        );
+      }
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {

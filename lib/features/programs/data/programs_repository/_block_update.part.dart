@@ -12,8 +12,16 @@ extension ProgramsBlockUpdate on ProgramsRepository {
     int weeks = 3,
   }) async {
     final today = DateTime(now.year, now.month, now.day);
-    final thisMonday = today.subtract(Duration(days: today.weekday - 1));
-    final from = thisMonday.subtract(Duration(days: 7 * weeks));
+    final thisMonday = DateTime(
+      today.year,
+      today.month,
+      today.day - (today.weekday - 1),
+    );
+    final from = DateTime(
+      thisMonday.year,
+      thisMonday.month,
+      thisMonday.day - 7 * weeks,
+    );
     final rows =
         await (_db.select(_db.scheduledWorkouts)..where(
               (t) =>
@@ -26,8 +34,16 @@ extension ProgramsBlockUpdate on ProgramsRepository {
     return [
       for (var i = 0; i < weeks; i++)
         () {
-          final start = from.add(Duration(days: 7 * i));
-          final end = start.add(const Duration(days: 7));
+          final start = DateTime(
+            from.year,
+            from.month,
+            from.day + 7 * i,
+          );
+          final end = DateTime(
+            start.year,
+            start.month,
+            start.day + 7,
+          );
           final inWeek = rows.where((row) {
             final date = DateTime.parse(row.dateIso);
             return !date.isBefore(start) && date.isBefore(end);

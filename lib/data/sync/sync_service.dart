@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:herculex/data/local/local_data_wipe.dart';
 import 'package:herculex/data/local/migrations/sync_backfill.dart'
     show isCustomFilteredTableNames;
 import 'package:herculex/data/sync/sync_backend_service.dart';
@@ -274,9 +275,11 @@ class SyncService {
   /// [pullAll] only ever iterates [syncTableOrder], so the row is inert to
   /// the rest of the sync path).
   ///
-  /// On a uid change the outbox and every cursor are cleared: the previous
-  /// user's unpushed local edits are deliberately dropped rather than
-  /// uploaded to the wrong account.
+  /// On a uid change (`owner != null && owner != userId`), all local user rows,
+  /// photos, outbox ops, and cursors from the previous account are wiped so the
+  /// incoming user never sees or accidentally syncs the previous user's data.
+  /// When `owner == null` (first sign-in from guest/offline mode), local data
+  /// is preserved and claimed by [userId].
   Future<void> _claimLocalDatabaseFor(String userId) async {
     final owner = await _readCursor(_ownerKey);
     if (owner == userId) {
@@ -286,10 +289,9 @@ class SyncService {
     if (owner != null) {
       _log(
         'local database owner changed ($owner -> $userId); '
-        'clearing outbox and cursors',
+        'wiping previous account local user data, outbox and cursors',
       );
-      await _db.customUpdate('DELETE FROM pending_sync_ops');
-      await _db.customUpdate('DELETE FROM sync_cursors');
+      await wipeAllLocalUserData(_db);
       _lastSyncedAt = null;
       _lastRunError = null;
     }

@@ -1,14 +1,29 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/features/physique/application/physique_providers.dart';
+import 'package:herculex/features/physique/data/physique_photo_sanitizer.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/services/ai/gemini_backend_service.dart';
 
 final bodyFatAiServiceProvider = Provider<BodyFatAiService>((ref) {
   final backend = ref.watch(geminiBackendProvider);
-  return BodyFatAiService(backend);
+  final sanitizer = ref.watch(physiquePhotoSanitizerProvider);
+  return BodyFatAiService(backend, sanitizer: sanitizer);
 });
+
+class BodyFatAiException implements Exception {
+  final String message;
+  final bool recoverable;
+
+  const BodyFatAiException(this.message, {this.recoverable = true});
+
+  @override
+  String toString() => message;
+}
 
 class BodyFatAiResult {
   final double estimatedBfPercent;
@@ -39,7 +54,13 @@ class BodyFatAiResult {
     Map<String, dynamic> json, {
     double? userWeightKg,
   }) {
-    final bf = (json['estimatedBfPercent'] as num?)?.toDouble() ?? 15.0;
+    final rawBf = json['estimatedBfPercent'];
+    if (rawBf is! num || !rawBf.toDouble().isFinite) {
+      throw const FormatException(
+        'Body fat response is missing estimatedBfPercent.',
+      );
+    }
+    final bf = rawBf.toDouble();
     final min = (json['bfRangeMin'] as num?)?.toDouble();
     final max = (json['bfRangeMax'] as num?)?.toDouble();
     final conf = (json['confidence'] as num?)?.toDouble();
@@ -72,13 +93,15 @@ class BodyFatAiResult {
 }
 
 class BodyFatAiService {
-  final GeminiBackend _backend;
+  static const int maxPhotos = 4;
 
-  BodyFatAiService(this._backend);
+  final GeminiBackend _backend;
+  final PhysiquePhotoSanitizer? _sanitizer;
+
+  BodyFatAiService(this._backend, {PhysiquePhotoSanitizer? sanitizer})
+    : _sanitizer = sanitizer;
 
   /// Anthropometric US Navy Tape Measure Formula.
-  /// For men: 495 / (1.0324 - 0.19077 * log10(waist - neck) + 0.15456 * log10(height)) - 450
-  /// For women: 495 / (1.29579 - 0.35004 * log10(waist + hip - neck) + 0.22100 * log10(height)) - 450
   static double? calculateNavyBodyFat({
     required double heightCm,
     required double waistCm,
@@ -98,9 +121,7 @@ class BodyFatAiService {
         final bf = (495.0 / denom) - 450.0;
         return bf.clamp(3.0, 50.0);
       } else {
-        final hip =
-            hipsCm ??
-            (waistCm * 1.15); // Fallback approximation if hips not logged
+        final hip = hipsCm ?? (waistCm * 1.15);
         final val = waistCm + hip - neckCm;
         if (val <= 0) return null;
         final denom =
@@ -123,8 +144,10 @@ class BodyFatAiService {
     required int ageYears,
     required bool isMale,
   }) {
+    if (heightCm < 100.0) return isMale ? 15.0 : 22.0;
     final heightM = heightCm / 100.0;
     final bmi = weightKg / (heightM * heightM);
+    if (bmi < 10.0 || bmi > 80.0) return isMale ? 15.0 : 22.0;
     final sexVal = isMale ? 1 : 0;
     final bf = (1.20 * bmi) + (0.23 * ageYears) - (10.8 * sexVal) - 5.4;
     return bf.clamp(isMale ? 4.0 : 8.0, 55.0);
@@ -132,10 +155,25 @@ class BodyFatAiService {
 
   Future<BodyFatAiResult> estimateBodyFat({
     required List<File> imageFiles,
+    bool consentGranted = false,
+    bool blurFaces = false,
     Profile? profile,
     Map<String, double>? measurements,
     String? userNote,
   }) async {
+    if (imageFiles.isNotEmpty && !consentGranted) {
+      throw const BodyFatAiException(
+        'Confirm the photo privacy notice before starting the analysis.',
+        recoverable: false,
+      );
+    }
+    if (imageFiles.length > maxPhotos) {
+      throw const BodyFatAiException(
+        'Select up to 4 photos for body fat analysis.',
+        recoverable: false,
+      );
+    }
+
     final isMale = profile?.sex != BiologicalSex.female;
     final weightKg = profile?.weightKg;
     final heightCm = profile?.heightCm;
@@ -146,7 +184,6 @@ class BodyFatAiService {
     final hipsCm = measurements?['hips'];
     final chestCm = measurements?['chest'];
 
-    // Biometrics payload for Gemini
     final biometrics = <String, dynamic>{
       'sex': isMale ? 'male' : 'female',
       ...?heightCm != null ? {'heightCm': heightCm} : null,
@@ -158,7 +195,6 @@ class BodyFatAiService {
       ...?chestCm != null ? {'chestCm': chestCm} : null,
     };
 
-    // Calculate reference mathematical baselines
     double? navyBf;
     if (heightCm != null && waistCm != null && neckCm != null) {
       navyBf = calculateNavyBodyFat(
@@ -176,22 +212,31 @@ class BodyFatAiService {
     }
 
     double? bmiBf;
-    if (weightKg != null && heightCm != null) {
+    if (weightKg != null &&
+        heightCm != null &&
+        weightKg > 0 &&
+        heightCm >= 100.0) {
       bmiBf = calculateBmiBodyFat(
         weightKg: weightKg,
         heightCm: heightCm,
         ageYears: age,
         isMale: isMale,
       );
-      if (bmiBf != null) {
-        biometrics['bmiFormulaReferenceBf'] = double.parse(
-          bmiBf.toStringAsFixed(1),
+      biometrics['bmiFormulaReferenceBf'] = double.parse(
+        bmiBf.toStringAsFixed(1),
+      );
+    }
+
+    // Formula-only mode (no images uploaded): require real anthropometric data
+    // rather than inventing a 15% / 22% placeholder.
+    if (imageFiles.isEmpty) {
+      final estimated = navyBf ?? bmiBf;
+      if (estimated == null) {
+        throw const BodyFatAiException(
+          'Enter your height and weight (or waist and neck measurements) first, or attach a physique photo.',
+          recoverable: false,
         );
       }
-    }
-    // If no images provided, return instant mathematical estimate
-    if (imageFiles.isEmpty) {
-      final estimated = navyBf ?? bmiBf ?? (isMale ? 15.0 : 22.0);
       final fatMass = weightKg != null ? weightKg * (estimated / 100.0) : null;
       final leanMass = weightKg != null && fatMass != null
           ? weightKg - fatMass
@@ -222,15 +267,29 @@ class BodyFatAiService {
     try {
       final imagesPayload = <Map<String, dynamic>>[];
       for (final file in imageFiles) {
-        if (await file.exists()) {
-          final bytes = await file.readAsBytes();
-          final mime = _mimeType(file.path);
-          imagesPayload.add({'bytes': bytes, 'mimeType': mime});
+        if (!await file.exists()) continue;
+        final Uint8List sanitizedBytes;
+        if (blurFaces && _sanitizer != null) {
+          final staged = await _sanitizer.stage(file, blurFaces: true);
+          try {
+            sanitizedBytes = await _sanitizer.analysisBytes(staged.file);
+          } finally {
+            await _sanitizer.discard(staged);
+          }
+        } else {
+          final rawBytes = await file.readAsBytes();
+          sanitizedBytes = await Isolate.run(
+            () => downscaleForAnalysis(rawBytes),
+          );
         }
+        imagesPayload.add({'bytes': sanitizedBytes, 'mimeType': 'image/jpeg'});
       }
 
       if (imagesPayload.isEmpty) {
-        throw Exception('Selected images do not exist on device.');
+        throw const BodyFatAiException(
+          'Selected photos are no longer available on this device.',
+          recoverable: false,
+        );
       }
 
       final resultJson = await _backend.estimateBodyFat(
@@ -239,40 +298,28 @@ class BodyFatAiService {
         userNote: userNote,
       );
 
-      return BodyFatAiResult.fromJson(resultJson, userWeightKg: weightKg);
-    } catch (e) {
-      // Fallback in case of network or API error
-      final fallbackBf = navyBf ?? bmiBf ?? (isMale ? 15.0 : 22.0);
-      final fatMass = weightKg != null ? weightKg * (fallbackBf / 100.0) : null;
-      final leanMass = weightKg != null && fatMass != null
-          ? weightKg - fatMass
-          : null;
-
-      return BodyFatAiResult(
-        estimatedBfPercent: double.parse(fallbackBf.toStringAsFixed(1)),
-        bfRangeMin: double.parse((fallbackBf - 2.0).toStringAsFixed(1)),
-        bfRangeMax: double.parse((fallbackBf + 2.0).toStringAsFixed(1)),
-        confidence: 0.70,
-        explanation:
-            'Estimate generated using biometric formulas (US Navy / BMI) due to AI server unavailability: $e',
-        fatDistribution: 'Standard distribution based on your profile.',
-        leanMassKg: leanMass != null
-            ? double.parse(leanMass.toStringAsFixed(1))
-            : null,
-        fatMassKg: fatMass != null
-            ? double.parse(fatMass.toStringAsFixed(1))
-            : null,
-        recommendations:
-            'Check server connection for full multimodal visual analysis.',
-        isAiGenerated: false,
+      try {
+        return BodyFatAiResult.fromJson(resultJson, userWeightKg: weightKg);
+      } on FormatException {
+        throw const BodyFatAiException(
+          'Herculex AI returned an incomplete body fat estimate. Your photos are still selected; please try again.',
+        );
+      }
+    } on BodyFatAiException {
+      rethrow;
+    } on PhotoSanitizeException {
+      throw const BodyFatAiException(
+        'One of the selected photos could not be processed. Please choose a valid JPEG, PNG, or WebP image.',
+        recoverable: false,
+      );
+    } catch (error) {
+      final detail = error.toString().replaceFirst('Exception: ', '').trim();
+      final message = detail.isEmpty
+          ? 'Herculex AI body fat analysis is temporarily unavailable.'
+          : detail;
+      throw BodyFatAiException(
+        '$message Your photos are still selected; please try again.',
       );
     }
-  }
-
-  String _mimeType(String path) {
-    final lower = path.toLowerCase();
-    if (lower.endsWith('.png')) return 'image/png';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    return 'image/jpeg';
   }
 }

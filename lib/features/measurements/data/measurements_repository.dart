@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:herculex/core/storage/local_photo_store.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/profile/data/local_profile_repository.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
@@ -287,6 +288,12 @@ class MeasurementsRepository {
   }
 
   Future<void> deletePhoto(int id) async {
+    final existing = await (_db.select(
+      _db.progressPhotos,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
     await (_db.delete(_db.progressPhotos)..where((t) => t.id.equals(id))).go();
+    if (existing != null) {
+      await LocalPhotoStore.deleteStored(existing.filePath);
+    }
   }
 }

@@ -77,6 +77,14 @@ class SettingsView extends ConsumerWidget {
             ),
             const HxSettingsDivider(),
             HxSettingsTile(
+              icon: Icons.folder_open_rounded,
+              label: 'Data & Library',
+              subtitle: 'Cloud sync, JSON export, gyms, custom items',
+              chevron: true,
+              onTap: () => context.push(AppRoutes.settingsData),
+            ),
+            const HxSettingsDivider(),
+            HxSettingsTile(
               icon: Icons.person_outline_rounded,
               label: 'Account',
               subtitle: email ?? 'Sign in, sign out, delete data',

@@ -16,12 +16,14 @@ class GeminiPhotoAnalysisDialog extends ConsumerStatefulWidget {
     required this.meal,
     this.mealKey,
     required this.date,
+    this.recipeId,
   });
 
   final File imageFile;
   final Meal meal;
   final String? mealKey;
   final DateTime date;
+  final int? recipeId;
 
   static Future<bool?> show(
     BuildContext context, {
@@ -29,6 +31,7 @@ class GeminiPhotoAnalysisDialog extends ConsumerStatefulWidget {
     required Meal meal,
     String? mealKey,
     required DateTime date,
+    int? recipeId,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
@@ -39,6 +42,7 @@ class GeminiPhotoAnalysisDialog extends ConsumerStatefulWidget {
         meal: meal,
         mealKey: mealKey,
         date: date,
+        recipeId: recipeId,
       ),
     );
   }
@@ -157,14 +161,23 @@ class _GeminiPhotoAnalysisDialogState
         ),
       );
 
-      await repo.logFood(
-        date: widget.date,
-        meal: widget.meal,
-        mealKey: widget.mealKey,
-        foodId: food.id,
-        portionAmount: portionAmount,
-        portionUnit: portionUnit,
-      );
+      if (widget.recipeId != null) {
+        await repo.addIngredient(
+          recipeId: widget.recipeId!,
+          foodId: food.id,
+          grams: servingGrams,
+        );
+        ref.invalidate(recipeIngredientsProvider(widget.recipeId!));
+      } else {
+        await repo.logFood(
+          date: widget.date,
+          meal: widget.meal,
+          mealKey: widget.mealKey,
+          foodId: food.id,
+          portionAmount: portionAmount,
+          portionUnit: portionUnit,
+        );
+      }
 
       if (!mounted) return;
       Navigator.of(context).pop(true);

@@ -1484,7 +1484,11 @@ class ProgramsRepository {
                 .toList()
               ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
 
-        final date = startDate.add(Duration(days: occ.dayOffset));
+        final date = DateTime(
+          startDate.year,
+          startDate.month,
+          startDate.day + occ.dayOffset,
+        );
         final dateIso = _formatDateIso(date);
         if (fromIso != null && dateIso.compareTo(fromIso) < 0) continue;
 

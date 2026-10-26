@@ -23,6 +23,12 @@ class TrendSeries {
   /// here; `TdeeTuning.ewmaAlpha` points at it.
   static const double defaultEwmaAlpha = 0.1;
 
+  /// Longest gap (in days) across which two weigh-ins are linearly
+  /// interpolated. A gap of 8+ days (more than a full week without a weigh-in)
+  /// is a break in tracking, so the trend re-anchors at the new weigh-in
+  /// rather than dragging a stale pre-break weight into the active window.
+  static const int maxInterpolatedGapDays = 7;
+
   static const int _msPerDay = 86400000;
 
   /// Days since the epoch for the calendar date of [date] (time ignored).
@@ -52,7 +58,7 @@ class TrendSeries {
     if (byDay.isEmpty) return TrendSeries._(0, const []);
 
     final days = byDay.keys.toList()..sort();
-    final firstDay = days.first;
+    var firstDay = days.first;
     final values = <double>[];
     var trend = byDay[firstDay]!;
     values.add(trend);
@@ -62,6 +68,14 @@ class TrendSeries {
       final w0 = byDay[d0]!;
       final w1 = byDay[d1]!;
       final gap = d1 - d0;
+      if (gap > maxInterpolatedGapDays) {
+        firstDay = d1;
+        values
+          ..clear()
+          ..add(w1);
+        trend = w1;
+        continue;
+      }
       for (var step = 1; step <= gap; step++) {
         final interpolated = w0 + (w1 - w0) * step / gap;
         trend = trend + alpha * (interpolated - trend);

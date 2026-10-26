@@ -44,9 +44,10 @@ abstract final class TdeeTuning {
   static const double stepShiftFraction = 0.25;
 
   /// Qualifying recalibrations needed to promote classifier -> observed (D-03).
-  /// They must be at least [cadenceDays] apart: hysteresis counts elapsed
-  /// time, not rows, so forced or trigger-driven runs a day apart never count.
-  static const int hysteresisCycles = 2;
+  /// Since the 14-day window gates already enforce two full weeks of food and
+  /// weight adherence, promoting on the first qualifying recalibration avoids
+  /// holding a fully-adherent user in low confidence for an extra week.
+  static const int hysteresisCycles = 1;
 
   /// Extra days an observed estimate is held after its gates stop passing
   /// before falling back to the classifier (D-04).
@@ -57,19 +58,6 @@ abstract final class TdeeTuning {
 
   /// The newest food-logged day AND the newest weigh-in must each be at most
   /// this many whole calendar days before `asOf` (age 0..6 passes, 7 fails).
-  ///
-  /// D-04 gives a 7-day cadence plus a 7-day grace, so the last fresh observed
-  /// row is held until it is 14 days old and then falls back. For the hold to
-  /// start at the first cadence run after logging stops, that run (7 days after
-  /// the last fresh row) must be able to fail qualification. With a recency of
-  /// 6, a user who logged up to the day of the last run has newest data 7 days
-  /// old at the next run, fails the gate, and the row is held (aging) for one
-  /// more cycle before the fallback at 14 days. A value of 7 or more would let
-  /// a week-old window count as fresh and push the fallback a further cycle
-  /// out, defeating the grace period. A user who logs on most days always has
-  /// the newest data within 6 days. Worst case from the last log to the
-  /// fallback is about three weeks. Claude's-discretion value, not a CONTEXT
-  /// decision.
   static const int observedRecencyDays = cadenceDays - 1;
 
   /// A change is material when it exceeds the bigger of this floor or
@@ -204,14 +192,14 @@ abstract final class TdeeEstimator {
       final inWindow = [
         for (final d in weighDays)
           if (d >= windowStart && d <= asOfDay) d,
-      ];
+      ]..sort();
       if (inWindow.length < needWeighIns) continue;
       if (!inWindow.any((d) => d < half) || !inWindow.any((d) => d >= half)) {
         continue;
       }
 
-      final start = max(windowStart, firstDay);
-      final end = min(asOfDay, lastDay);
+      final start = max(windowStart, max(firstDay, inWindow.first));
+      final end = min(asOfDay, min(lastDay, inWindow.last));
       final span = end - start;
       if (span < _ceilShare(TdeeTuning.minSpanFraction, w)) continue;
 
@@ -240,9 +228,13 @@ abstract final class TdeeEstimator {
       }
 
       final coverage = logged.length / (span + 1);
+      final highWeighInsNeeded = max(
+        TdeeTuning.minWeighIns,
+        (3 * (span + 1) + 6) ~/ 7,
+      );
       final high =
           coverage >= TdeeTuning.highConfidenceCoverage &&
-          inWindow.length >= 3 * weeks;
+          inWindow.length >= highWeighInsNeeded;
       return ObservedEstimate(
         kcal: tdee.round(),
         windowDays: w,
@@ -262,20 +254,6 @@ abstract final class TdeeEstimator {
   ///
   /// PHYS-04 boundary: this only estimates maintenance. Any aggressive-deficit
   /// gate (Phase 23) belongs at or after `DietPhaseCalculator.apply`, not here.
-  ///
-  /// - Observed data qualifies and the user is already on observed (fresh or
-  ///   held): the fresh observed result, at once (D-15).
-  /// - Qualifies and [TdeeTuning.hysteresisCycles] qualifying runs at least
-  ///   [TdeeTuning.cadenceDays] apart have happened: promoted to observed
-  ///   (D-03). Otherwise the row is the classifier/cold-start value with
-  ///   `observedQualified` true, meaning "promotion pending". A forced run
-  ///   restarts the clock, by design.
-  /// - Does not qualify but the newest fresh observed row is younger than
-  ///   [TdeeTuning.observedHoldMaxAgeDays]: that estimate is held (D-04).
-  /// - Otherwise: classifier if available, else cold start seeded by the
-  ///   onboarding activity level. A Profile reset (D-14) only changes the seed,
-  ///   which the classifier multiplier blends in by data sparsity; it never
-  ///   touches history, and an observed user never reads the seed (D-15).
   static TdeeEstimateResult recalibrate({
     required DateTime asOf,
     required Set<String> foodLoggedDays,
@@ -358,10 +336,11 @@ abstract final class TdeeEstimator {
   /// D-03 hysteresis by elapsed time: the newest `hysteresisCycles - 1` rows
   /// must all be qualified non-observed rows, each at least `cadenceDays`
   /// whole calendar days before the next-newer timestamp (the first one before
-  /// [asOf]). With the default of 2 cycles that reduces to "the newest row is
-  /// a qualified non-observed row dated 7 or more days before [asOf]".
+  /// [asOf]). With [TdeeTuning.hysteresisCycles] == 1, promotion happens as
+  /// soon as the 14-day window gates pass.
   static bool _promotionDue(DateTime asOf, List<TdeeEstimateResult> history) {
     final needed = TdeeTuning.hysteresisCycles - 1;
+    if (needed <= 0) return true;
     if (history.length < needed) return false;
     var newer = asOf;
     for (var i = 0; i < needed; i++) {

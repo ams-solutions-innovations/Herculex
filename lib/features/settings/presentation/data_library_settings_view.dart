@@ -6,30 +6,49 @@ import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/features/profile/presentation/widgets/sync_status_badge.dart';
+import 'package:herculex/features/settings/data/user_data_export_service.dart';
 import 'package:herculex/features/settings/presentation/sheets/auth_sheet.dart';
 import 'package:herculex/features/settings/presentation/sheets/sync_detail_sheet.dart';
 
 /// Cloud sync, export, and the user's own libraries (gyms, exercises, foods …).
-class DataLibrarySettingsView extends ConsumerWidget {
+class DataLibrarySettingsView extends ConsumerStatefulWidget {
   const DataLibrarySettingsView({super.key});
 
-  void _exportData(BuildContext context) {
-    // Tell the user the export has started
+  @override
+  ConsumerState<DataLibrarySettingsView> createState() =>
+      _DataLibrarySettingsViewState();
+}
+
+class _DataLibrarySettingsViewState
+    extends ConsumerState<DataLibrarySettingsView> {
+  bool _exporting = false;
+
+  Future<void> _exportData() async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
     AppNotice.show(
       context,
-      'Exporting data as JSON...',
+      'Preparing JSON export...',
       kind: AppNoticeKind.info,
     );
-    final notices = AppNotice.of(context);
-    // In a real implementation this would fetch from Drift and use path_provider to save a file.
-    Future.delayed(const Duration(seconds: 1), () {
-      if (!context.mounted) return;
-      notices.show('Data export saved to Downloads folder.');
-    });
+    try {
+      await ref.read(userDataExportServiceProvider).exportAndShare();
+      if (!mounted) return;
+      AppNotice.show(context, 'Data export ready.');
+    } catch (e) {
+      if (!mounted) return;
+      AppNotice.show(
+        context,
+        'Could not export data. Please try again.',
+        kind: AppNoticeKind.error,
+      );
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final signedIn = ref.watch(authSessionProvider).valueOrNull != null;
 
     return HxScreenShell(
@@ -40,8 +59,6 @@ class DataLibrarySettingsView extends ConsumerWidget {
         const SizedBox(height: 10),
         HxSettingsCard(
           children: [
-            // Its own row: this reports cloud sync, and hanging it off the
-            // Samsung Health tile read as that integration's status.
             HxSettingsTile(
               icon: Icons.cloud_outlined,
               label: 'Cloud sync',
@@ -53,9 +70,9 @@ class DataLibrarySettingsView extends ConsumerWidget {
             const HxSettingsDivider(),
             HxSettingsTile(
               icon: Icons.download_rounded,
-              label: 'Export Data (JSON)',
-              chevron: true,
-              onTap: () => _exportData(context),
+              label: _exporting ? 'Exporting Data...' : 'Export Data (JSON)',
+              chevron: !_exporting,
+              onTap: _exporting ? null : _exportData,
             ),
           ],
         ),

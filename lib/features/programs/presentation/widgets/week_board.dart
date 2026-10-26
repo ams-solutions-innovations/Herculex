@@ -26,8 +26,8 @@ class WeekBoard extends ConsumerWidget {
   static DateTime mondayOf(DateTime day) => DateTime(
     day.year,
     day.month,
-    day.day,
-  ).subtract(Duration(days: day.weekday - DateTime.monday));
+    day.day - (day.weekday - DateTime.monday),
+  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,7 +55,7 @@ class WeekBoard extends ConsumerWidget {
         children: [
           for (var i = 0; i < 7; i++)
             () {
-              final date = monday.add(Duration(days: i));
+              final date = DateTime(monday.year, monday.month, monday.day + i);
               final iso = _iso(date);
               return DayColumnCard(
                 key: ValueKey('day_$iso'),

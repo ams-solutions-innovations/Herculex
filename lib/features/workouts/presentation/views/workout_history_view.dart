@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/storage/local_photo_store.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
@@ -48,11 +49,25 @@ class WorkoutHistoryView extends ConsumerWidget {
     );
     await ref.read(pendingAiScanServiceProvider).clearPendingContext();
     if (image == null) return;
-    await ref
-        .read(workoutsRepositoryProvider)
-        .updateSessionPhoto(sessionId, image.path);
-    ref.invalidate(workoutSessionProvider(sessionId));
-    ref.invalidate(sessionSummaryProvider(sessionId));
+    try {
+      final relativePath = await LocalPhotoStore.savePickedPhoto(
+        File(image.path),
+        folder: LocalPhotoStore.workoutPhotosFolder,
+      );
+      await ref
+          .read(workoutsRepositoryProvider)
+          .updateSessionPhoto(sessionId, relativePath);
+      ref.invalidate(workoutSessionProvider(sessionId));
+      ref.invalidate(sessionSummaryProvider(sessionId));
+    } catch (_) {
+      if (context.mounted) {
+        AppNotice.show(
+          context,
+          'Could not save workout photo. Please try another image.',
+          kind: AppNoticeKind.error,
+        );
+      }
+    }
   }
 
   Future<void> _syncToHealth(
@@ -211,7 +226,10 @@ class WorkoutHistoryView extends ConsumerWidget {
                 (5.0 * weight * (minutes / 60.0)).round().clamp(10, 3000);
 
             final photo = session?.photoPath;
-            final hasPhoto = photo != null && File(photo).existsSync();
+            final photoFile = photo == null
+                ? null
+                : LocalPhotoStore.resolveSync(photo);
+            final hasPhoto = photoFile != null && photoFile.existsSync();
 
             return Column(
               children: [
@@ -390,7 +408,7 @@ class WorkoutHistoryView extends ConsumerWidget {
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: Image.file(
-                                  File(photo),
+                                  photoFile,
                                   height: 130,
                                   width: double.infinity,
                                   fit: BoxFit.cover,

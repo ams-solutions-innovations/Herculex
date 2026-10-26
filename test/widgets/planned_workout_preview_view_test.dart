@@ -32,7 +32,11 @@ class _FakeScheduledWorkoutService extends Fake
   ) async => previewResult;
 
   @override
-  Future<int> startScheduledWorkoutById(int scheduleId, {int? gymId}) async {
+  Future<int> startScheduledWorkoutById(
+    int scheduleId, {
+    int? gymId,
+    bool allowEarly = false,
+  }) async {
     lastStartedScheduleId = scheduleId;
     startCalls++;
     return 999;

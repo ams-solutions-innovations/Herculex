@@ -18,12 +18,10 @@ class SttLanguageOption {
 }
 
 const kSupportedSttLanguages = [
-  SttLanguageOption(localeId: 'sl_SI', name: 'Slovenščina', flag: '🇸🇮'),
   SttLanguageOption(localeId: 'en_US', name: 'English (US)', flag: '🇺🇸'),
   SttLanguageOption(localeId: 'en_GB', name: 'English (UK)', flag: '🇬🇧'),
   SttLanguageOption(localeId: 'de_DE', name: 'Deutsch', flag: '🇩🇪'),
   SttLanguageOption(localeId: 'it_IT', name: 'Italiano', flag: '🇮🇹'),
-  SttLanguageOption(localeId: 'hr_HR', name: 'Hrvatski', flag: '🇭🇷'),
   SttLanguageOption(localeId: 'es_ES', name: 'Español', flag: '🇪🇸'),
   SttLanguageOption(localeId: 'fr_FR', name: 'Français', flag: '🇫🇷'),
 ];
@@ -47,7 +45,8 @@ class SpeechToTextService extends ChangeNotifier {
   static const String _prefKey = 'stt_selected_locale';
 
   SpeechToTextService([this._prefs]) {
-    _selectedLocaleId = _prefs?.getString(_prefKey) ?? 'sl_SI';
+    final saved = _prefs?.getString(_prefKey);
+    _selectedLocaleId = (saved == null || saved == 'sl_SI') ? 'en_US' : saved;
   }
 
   bool get isInitialized => _isInitialized;

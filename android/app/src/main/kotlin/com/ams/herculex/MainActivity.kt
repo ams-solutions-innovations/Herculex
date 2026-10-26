@@ -371,6 +371,14 @@ class MainActivity : FlutterFragmentActivity() {
                         result.success(null)
                     }
 
+                    "clearAll" -> {
+                        editor.clear()
+                        editor.apply()
+                        refreshWidgets(*HxWidgetProvider.ALL_PROVIDERS)
+                        syncCnsToWear(0, "—")
+                        result.success(null)
+                    }
+
                     "takePendingAction" -> {
                         // Dart's first call after registering its handler. Anything a
                         // widget tap queued before that point (cold start) is handed

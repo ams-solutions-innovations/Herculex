@@ -154,12 +154,12 @@ class _ShareCard extends StatelessWidget {
             ],
           ),
           if (summary.photoPath != null &&
-              File(summary.photoPath!).existsSync()) ...[
+              LocalPhotoStore.resolveSync(summary.photoPath!).existsSync()) ...[
             const SizedBox(height: 16),
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: Image.file(
-                File(summary.photoPath!),
+                LocalPhotoStore.resolveSync(summary.photoPath!),
                 height: 140,
                 width: double.infinity,
                 fit: BoxFit.cover,

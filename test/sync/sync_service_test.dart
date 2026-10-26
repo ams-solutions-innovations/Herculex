@@ -663,20 +663,25 @@ void main() {
   });
 
   group('account switch', () {
-    test("a second account does not inherit the first's outbox", () async {
+    test("a second account does not inherit the first's local rows or outbox", () async {
       await sync.start(userId);
       gyms = GymsRepository(db);
-      backend.upsertFailuresRemaining = 1;
-      await gyms.createGym("First User's Gym");
+      // One already-synced gym + one unpushed gym from user-1.
+      await gyms.createGym("First User's Synced Gym");
       await sync.pushOnce();
+      backend.upsertFailuresRemaining = 1;
+      await gyms.createGym("First User's Pending Gym");
+      await sync.pushOnce();
+      expect(await db.select(db.gyms).get(), hasLength(2));
       expect(await db.select(db.pendingSyncOps).get(), hasLength(1));
 
       await sync.stop();
       backend.upsertCalls.clear();
       await sync.start('user-2');
 
-      // The outbox and every cursor were cleared on the uid change, so nothing
-      // of user-1's is uploaded under user-2's id.
+      // User-1's local rows, outbox, and cursors were completely wiped on uid
+      // change, so user-2 neither sees user-1's data nor uploads it.
+      expect(await db.select(db.gyms).get(), isEmpty);
       expect(await db.select(db.pendingSyncOps).get(), isEmpty);
       expect(backend.upsertCalls, isEmpty);
     });

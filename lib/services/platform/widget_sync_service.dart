@@ -219,4 +219,19 @@ class WidgetSyncService {
       debugPrint('[WidgetSync] syncTheme failed: ${e.message}');
     }
   }
+
+  /// Clears all cached home-screen widget payloads so wiped or deleted user
+  /// data cannot linger on the launcher screen.
+  Future<void> clearAll() async {
+    _lastData.clear();
+    try {
+      await _channel.invokeMethod('clearAll');
+    } on PlatformException catch (e) {
+      debugPrint('[WidgetSync] clearAll failed: ${e.message}');
+    } on MissingPluginException {
+      // Headless unit tests do not register platform channels.
+    } catch (_) {
+      // Safe no-op when Flutter bindings are not initialized in pure Dart tests.
+    }
+  }
 }

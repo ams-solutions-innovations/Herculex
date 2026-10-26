@@ -16,6 +16,7 @@ import 'package:herculex/features/analytics/presentation/views/muscle_volume_ove
 import 'package:herculex/features/analytics/presentation/views/personal_records_view.dart';
 import 'package:herculex/features/buddy/presentation/buddy_join_scanner_view.dart';
 import 'package:herculex/features/buddy/presentation/gym_buddy_hub_view.dart';
+import 'package:herculex/features/fasting/presentation/fasting_history_view.dart';
 import 'package:herculex/features/fasting/presentation/fasting_schedule_view.dart';
 import 'package:herculex/features/fasting/presentation/fasting_view.dart';
 import 'package:herculex/features/gamification/presentation/level_system_view.dart';
@@ -197,6 +198,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.fastingSchedule,
         builder: (_, _) => const FastingScheduleView(),
+      ),
+      GoRoute(
+        path: AppRoutes.fastingHistory,
+        builder: (_, _) => const FastingHistoryView(),
       ),
       GoRoute(path: AppRoutes.gyms, builder: (_, _) => const GymsView()),
       GoRoute(

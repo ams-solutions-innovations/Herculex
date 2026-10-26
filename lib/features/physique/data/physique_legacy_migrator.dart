@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
+import 'package:herculex/core/storage/local_photo_store.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
@@ -115,8 +116,12 @@ class PhysiqueLegacyMigrator {
     // Stage every pending row through the sanitiser (EXIF stripped on copy).
     final migrated = <(ProgressPhotoData, NewPhotoRow)>[];
     final unrecoverable = <int>[];
+    final docsDir = await _store.documentsDirectory();
     for (final row in pending) {
-      final file = File(row.filePath);
+      final file = await LocalPhotoStore.resolve(
+        row.filePath,
+        documentsDirectory: docsDir,
+      );
       if (!file.existsSync()) {
         unrecoverable.add(row.id);
         continue;
@@ -208,11 +213,17 @@ class PhysiqueLegacyMigrator {
 
   Future<void> _deleteOriginal(ProgressPhotoData row) async {
     try {
-      final file = File(row.filePath);
-      if (file.existsSync()) await file.delete();
-    } catch (_) {
-      // Best effort; the row is the record and is removed below.
-    }
+      final docsDir = await _store.documentsDirectory();
+      final file = await LocalPhotoStore.resolve(
+        row.filePath,
+        documentsDirectory: docsDir,
+      );
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } on FileSystemException {
+      // Tolerant cleanup: row was already migrated to physique_photos.
+    } catch (_) {}
     await (_db.delete(
       _db.progressPhotos,
     )..where((p) => p.id.equals(row.id))).go();

@@ -12,15 +12,28 @@ import 'package:intl/intl.dart';
 /// status icon flips to an X), then tap to delete. All three funnel through
 /// the same confirm dialog and repository call.
 class FastingHistory extends ConsumerStatefulWidget {
-  const FastingHistory({super.key});
+  const FastingHistory({
+    super.key,
+    this.showAll = false,
+    this.showHeader = true,
+  });
+
+  final bool showAll;
+  final bool showHeader;
 
   @override
   ConsumerState<FastingHistory> createState() => _FastingHistoryState();
 }
 
 class _FastingHistoryState extends ConsumerState<FastingHistory> {
-  bool _showAllHistory = false;
+  late bool _showAllHistory;
   bool _deleteMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _showAllHistory = widget.showAll;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,17 +44,19 @@ class _FastingHistoryState extends ConsumerState<FastingHistory> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Center(
-          child: Text(
-            "RECENT SESSIONS",
-            textAlign: TextAlign.center,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: hx.secondary,
-              letterSpacing: 1.0,
+        if (widget.showHeader) ...[
+          Center(
+            child: Text(
+              "RECENT SESSIONS",
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: hx.secondary,
+                letterSpacing: 1.0,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
+        ],
         historyAsync.when(
           data: (history) {
             if (history.isEmpty) {
@@ -74,10 +89,10 @@ class _FastingHistoryState extends ConsumerState<FastingHistory> {
               );
             }
 
-            final visibleCount = _showAllHistory || history.length <= 10
+            final visibleCount = widget.showAll || _showAllHistory || history.length <= 10
                 ? history.length
                 : 10;
-            final hasMore = history.length > visibleCount;
+            final hasMore = !widget.showAll && !_showAllHistory && history.length > visibleCount;
 
             return GestureDetector(
               behavior: HitTestBehavior.translucent,

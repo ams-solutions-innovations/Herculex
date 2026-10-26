@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/storage/local_photo_store.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -174,16 +175,20 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
       await ref.read(pendingAiScanServiceProvider).clearPendingContext();
       if (image == null) return;
       Haptics.selection();
+      final relativePath = await LocalPhotoStore.savePickedPhoto(
+        File(image.path),
+        folder: LocalPhotoStore.workoutPhotosFolder,
+      );
       await ref
           .read(workoutsRepositoryProvider)
-          .updateSessionPhoto(widget.sessionId, image.path);
+          .updateSessionPhoto(widget.sessionId, relativePath);
       ref.invalidate(sessionSummaryProvider(widget.sessionId));
       ref.invalidate(workoutSessionProvider(widget.sessionId));
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         AppNotice.show(
           context,
-          'Error selecting image: $e',
+          'Could not save workout photo. Please try another image.',
           kind: AppNoticeKind.error,
         );
       }
@@ -530,8 +535,11 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
       ).writeAsBytes(bytes);
 
       final files = [XFile(file.path, mimeType: 'image/png')];
-      if (s.photoPath != null && File(s.photoPath!).existsSync()) {
-        files.add(XFile(s.photoPath!));
+      if (s.photoPath != null) {
+        final photoFile = LocalPhotoStore.resolveSync(s.photoPath!);
+        if (photoFile.existsSync()) {
+          files.add(XFile(photoFile.path));
+        }
       }
 
       await Share.shareXFiles(

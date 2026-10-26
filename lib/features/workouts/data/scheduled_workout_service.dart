@@ -49,11 +49,12 @@ class TodaysScheduledWorkout {
 class ScheduledWorkoutService {
   final AppDatabase _db;
   final Clock _clock;
+  final ProgramsRepository _programs;
 
   ScheduledWorkoutService(
     this._db,
     this._clock,
-    ProgramsRepository _,
+    this._programs,
     TemplatesRepository _,
   );
 
@@ -95,6 +96,158 @@ class ScheduledWorkoutService {
       )
       .watch()
       .asyncMap((_) => _workoutsForDay(day));
+
+  bool _isRepairing = false;
+
+  /// Watches either today's active/planned workout, or the nearest upcoming
+  /// scheduled workout if today has none (or if today's workout is done).
+  ///
+  /// Runs [autoRepairDriftedSchedules] at most once before subscribing, then
+  /// uses pure read-only queries on table invalidations so reactive stream
+  /// emissions can never trigger a self-feeding SQLite write loop.
+  Stream<TodaysScheduledWorkout?> watchNextWorkout(DateTime day) async* {
+    await autoRepairDriftedSchedules(day);
+    final dayIso = _dateIso(day);
+    yield* _db
+        .customSelect(
+          'SELECT id FROM scheduled_workouts WHERE date_iso >= ? AND deleted_at IS NULL '
+          'AND status IN (?, ?, ?, ?) ORDER BY date_iso ASC, order_index ASC, id ASC LIMIT 10',
+          variables: [
+            Variable.withString(dayIso),
+            Variable.withString(ScheduleStatus.inProgress),
+            Variable.withString(ScheduleStatus.planned),
+            Variable.withString(ScheduleStatus.moved),
+            Variable.withString(ScheduleStatus.done),
+          ],
+          readsFrom: {
+            _db.scheduledWorkouts,
+            _db.programDays,
+            _db.programs,
+            _db.programWeeks,
+            _db.programDayExercises,
+            _db.workoutTemplates,
+            _db.templateExercises,
+            _db.templateSets,
+            _db.rotationAssignments,
+            _db.adaptationOverrides,
+            _db.adaptationProposals,
+            _db.programExerciseSlots,
+            _db.programSlotPoolMembers,
+            _db.prescriptionTemplates,
+          },
+        )
+        .watch()
+        .asyncMap((_) => _nextWorkoutWithoutRepair(day));
+  }
+
+  Future<TodaysScheduledWorkout?> nextWorkout([DateTime? asOf]) async {
+    final day = asOf ?? _clock.now();
+    await autoRepairDriftedSchedules(day);
+    return _nextWorkoutWithoutRepair(day);
+  }
+
+  Future<TodaysScheduledWorkout?> _nextWorkoutWithoutRepair(
+    DateTime day,
+  ) async {
+    final dayIso = _dateIso(day);
+
+    // 1. Check workouts for today.
+    final todayWorkouts = await _workoutsForDay(day);
+    for (final w in todayWorkouts) {
+      if (w.isInProgress) return w;
+    }
+    for (final w in todayWorkouts) {
+      if (!w.isDone) return w;
+    }
+
+    if (todayWorkouts.isNotEmpty) {
+      return todayWorkouts.last;
+    }
+
+    // 2. Today has no workout scheduled. Find next upcoming workout.
+    final nextSchedules =
+        await (_db.select(_db.scheduledWorkouts)
+              ..where(
+                (t) =>
+                    t.dateIso.isBiggerThanValue(dayIso) &
+                    t.deletedAt.isNull() &
+                    t.status.isIn([
+                      ScheduleStatus.planned,
+                      ScheduleStatus.moved,
+                      ScheduleStatus.inProgress,
+                    ]),
+              )
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.dateIso),
+                (t) => OrderingTerm.asc(t.orderIndex),
+                (t) => OrderingTerm.asc(t.id),
+              ])
+              ..limit(1))
+            .get();
+
+    if (nextSchedules.isEmpty) return null;
+    return _resolveSchedule(nextSchedules.first);
+  }
+
+  /// Self-heals upcoming schedules (`date_iso >= today`) if DST date shifts
+  /// caused weekly program occurrences to land on the wrong weekday.
+  Future<void> autoRepairDriftedSchedules([DateTime? asOf]) async {
+    if (_isRepairing) return;
+    _isRepairing = true;
+    try {
+      final targetDay = asOf ?? _clock.now();
+      final todayIso = _dateIso(targetDay);
+
+      final activeProgram =
+          await (_db.select(_db.programs)
+                ..where((t) => t.isActive.equals(true) & t.archived.equals(false)))
+              .getSingleOrNull();
+      if (activeProgram == null || activeProgram.scheduleMode != 'weekly') {
+        return;
+      }
+
+      final startIso = activeProgram.startDateIso;
+      if (startIso == null) return;
+
+      final rows = await (_db.customSelect(
+        'SELECT s.id, s.date_iso, d.day_of_week '
+        'FROM scheduled_workouts s '
+        'JOIN program_days d ON s.program_day_id = d.id '
+        'WHERE s.program_id = ? AND s.date_iso >= ? AND s.status = ? '
+        'AND s.deleted_at IS NULL AND s.completed_session_id IS NULL '
+        'ORDER BY s.date_iso ASC LIMIT 20',
+        variables: [
+          Variable.withInt(activeProgram.id),
+          Variable.withString(todayIso),
+          Variable.withString(ScheduleStatus.planned),
+        ],
+      )).get();
+
+      bool hasDrift = false;
+      for (final row in rows) {
+        final dateIso = row.read<String>('date_iso');
+        final expectedDayOfWeek = row.read<int>('day_of_week');
+        final actualWeekday = DateTime.parse(dateIso).weekday;
+        if (actualWeekday != expectedDayOfWeek) {
+          hasDrift = true;
+          break;
+        }
+      }
+
+      if (hasDrift) {
+        final start = DateTime.parse(startIso);
+        await _programs.materializeProgram(
+          activeProgram.id,
+          start,
+          from: targetDay,
+        );
+      }
+    } catch (_) {
+      // Non-fatal self-healing attempt
+    } finally {
+      _isRepairing = false;
+    }
+  }
 
   Future<List<TodaysScheduledWorkout>> _workoutsForDay(DateTime day) async {
     final schedules =
@@ -210,12 +363,17 @@ class ScheduledWorkoutService {
   Future<int> startScheduledWorkout(
     TodaysScheduledWorkout today, {
     int? gymId,
-  }) => startScheduledWorkoutById(today.schedule.id, gymId: gymId);
+    bool allowEarly = false,
+  }) => startScheduledWorkoutById(today.schedule.id, gymId: gymId, allowEarly: allowEarly);
 
   /// Starts the exact scheduled occurrence, or returns its existing open
   /// session when the user taps Resume. The existing link is never replaced;
   /// that protects in-progress logging from a duplicate materialization.
-  Future<int> startScheduledWorkoutById(int scheduleId, {int? gymId}) async {
+  Future<int> startScheduledWorkoutById(
+    int scheduleId, {
+    int? gymId,
+    bool allowEarly = false,
+  }) async {
     final today = await workoutForSchedule(scheduleId);
     if (today == null) {
       throw StateError('This scheduled workout no longer exists.');
@@ -226,10 +384,21 @@ class ScheduledWorkoutService {
         'This scheduled workout is no longer available to start.',
       );
     }
-    if (today.schedule.dateIso != _dateIso(_clock.now())) {
-      throw StateError(
-        'This workout can only be started on its scheduled day.',
-      );
+    final todayIso = _dateIso(_clock.now());
+    if (today.schedule.dateIso != todayIso) {
+      if (!allowEarly) {
+        throw StateError(
+          'This workout can only be started on its scheduled day.',
+        );
+      }
+      await (_db.update(_db.scheduledWorkouts)
+            ..where((t) => t.id.equals(today.schedule.id)))
+          .write(
+            ScheduledWorkoutsCompanion(
+              dateIso: Value(todayIso),
+              status: const Value(ScheduleStatus.moved),
+            ),
+          );
     }
 
     final linkedSessionId = today.schedule.completedSessionId;

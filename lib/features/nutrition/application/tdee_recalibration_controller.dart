@@ -65,7 +65,6 @@ class TdeeRecalibrator {
         stepsByDate: data.stepsByDate,
         force: force,
       );
-      if (reason == RecalibrationReason.none) return null;
 
       final level = profile.activityLevel;
       final multiplier = MacroTargets.multiplierFor(level);
@@ -90,6 +89,12 @@ class TdeeRecalibrator {
         },
         history: past,
       );
+
+      if (reason == RecalibrationReason.none &&
+          (past.isEmpty || !_isUpgrade(past.first, result))) {
+        return null;
+      }
+
       await _history.record(result);
       return result;
     } catch (_) {
@@ -97,6 +102,29 @@ class TdeeRecalibrator {
     } finally {
       _running = false;
     }
+  }
+
+  /// True when [next] promotes the method (e.g. coldStart/classifier ->
+  /// observed, or held -> fresh observed) or improves confidence over
+  /// [current], allowing an immediate upgrade without waiting for the 7-day
+  /// cadence.
+  static bool _isUpgrade(TdeeEstimateResult current, TdeeEstimateResult next) {
+    if (current.method != TdeeMethod.observed &&
+        next.method == TdeeMethod.observed) {
+      return true;
+    }
+    if (current.isHeld && !next.isHeld && next.method == TdeeMethod.observed) {
+      return true;
+    }
+    if (current.method == TdeeMethod.coldStart &&
+        next.method == TdeeMethod.classifier) {
+      return true;
+    }
+    if (current.method == next.method &&
+        next.confidence.index < current.confidence.index) {
+      return true;
+    }
+    return false;
   }
 
   /// Step values for the last [ActivityClassifier.windowDays] days ending on
@@ -150,7 +178,8 @@ class TdeeResumeObserver with WidgetsBindingObserver {
 /// manually resets their ActivityLevel. There is no background scheduler in
 /// this project, so a user who never opens or resumes the app is not
 /// recalibrated. Resume calls are non-forced, so they are gated to once per
-/// calendar day by `TdeeEstimator.shouldRecalibrate`.
+/// calendar day by `TdeeEstimator.shouldRecalibrate` unless new logs promote
+/// the method or confidence.
 final tdeeRecalibrationControllerProvider = Provider<void>((ref) {
   // Keep the estimate stream warm without rebuilding this provider: a
   // `ref.watch` here would rebuild (and loop) every time a row is recorded.

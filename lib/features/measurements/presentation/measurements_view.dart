@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/storage/local_photo_store.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -230,13 +232,27 @@ class _MeasurementsViewState extends ConsumerState<MeasurementsView> {
     await ref.read(pendingAiScanServiceProvider).clearPendingContext();
     if (file == null || !mounted) return;
 
-    await ref
-        .read(measurementsRepositoryProvider)
-        .addPhoto(
-          dateIso: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-          pose: pose,
-          filePath: file.path,
-        );
+    try {
+      final relativePath = await LocalPhotoStore.savePickedPhoto(
+        File(file.path),
+        folder: LocalPhotoStore.progressPhotosFolder,
+      );
+      if (!mounted) return;
+      await ref
+          .read(measurementsRepositoryProvider)
+          .addPhoto(
+            dateIso: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+            pose: pose,
+            filePath: relativePath,
+          );
+    } catch (_) {
+      if (!mounted) return;
+      AppNotice.show(
+        context,
+        'Could not save photo. Please choose another image.',
+        kind: AppNoticeKind.error,
+      );
+    }
   }
 }
 
@@ -530,7 +546,7 @@ class _PhotoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final file = File(photo.filePath);
+    final file = LocalPhotoStore.resolveSync(photo.filePath);
     return Stack(
       fit: StackFit.expand,
       children: [

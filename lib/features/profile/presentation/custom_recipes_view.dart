@@ -7,6 +7,7 @@ import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/nutrition/presentation/dialogs/rambler_recipe_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/views/recipe_builder_view.dart';
 
 class CustomRecipesView extends ConsumerWidget {
@@ -57,6 +58,35 @@ class CustomRecipesView extends ConsumerWidget {
     );
   }
 
+  Future<void> _openRamblerRecipe(BuildContext context, WidgetRef ref) async {
+    final result = await RamblerRecipeDialog.show(context);
+    if (result == null || !context.mounted) return;
+
+    if (result.recipeId != null) {
+      final recipes = await ref.read(recipesProvider.future);
+      final created = recipes.firstWhere(
+        (r) => r.id == result.recipeId,
+        orElse: () => RecipeData(
+          id: result.recipeId!,
+          name: result.recipeName,
+          servings: result.servings,
+          notes: result.instructions,
+          createdAt: DateTime.now(),
+        ),
+      );
+      if (!context.mounted) return;
+      AppNotice.show(
+        context,
+        'Recipe "${created.name}" created with Rambler AI',
+      );
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => RecipeBuilderView(existingRecipe: created),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -65,13 +95,28 @@ class CustomRecipesView extends ConsumerWidget {
 
     return HxScreenShell(
       title: 'Custom Recipes',
-      pinnedBottom: SizedBox(
-        width: double.infinity,
-        child: PremiumButton(
-          text: 'NEW RECIPE',
-          isPrimary: true,
-          icon: Icons.add_rounded,
-          onTap: () => _openRecipeBuilder(context),
+      pinnedBottom: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: PremiumButton(
+                text: 'RAMBLER AI',
+                isPrimary: false,
+                icon: Icons.mic_rounded,
+                onTap: () => _openRamblerRecipe(context, ref),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: PremiumButton(
+                text: 'NEW RECIPE',
+                isPrimary: true,
+                icon: Icons.add_rounded,
+                onTap: () => _openRecipeBuilder(context),
+              ),
+            ),
+          ],
         ),
       ),
       children: [
@@ -101,11 +146,44 @@ class CustomRecipesView extends ConsumerWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Tap the button below to build your first recipe with custom ingredients.',
+                        'Speak or describe a recipe with Rambler AI to add ingredients and servings automatically, or build one manually.',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: hx.secondary,
                         ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          FilledButton.icon(
+                            icon: const Icon(Icons.mic_rounded, size: 18),
+                            label: const Text('Rambler AI'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF64B5F6),
+                              foregroundColor: Colors.black87,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 12,
+                              ),
+                              shape: const StadiumBorder(),
+                            ),
+                            onPressed: () => _openRamblerRecipe(context, ref),
+                          ),
+                          const SizedBox(width: 10),
+                          FilledButton.tonalIcon(
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            label: const Text('Manual'),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 12,
+                              ),
+                              shape: const StadiumBorder(),
+                            ),
+                            onPressed: () => _openRecipeBuilder(context),
+                          ),
+                        ],
                       ),
                     ],
                   ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/storage/local_photo_store.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
@@ -37,6 +38,8 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
 
   bool _analyzing = false;
   bool _saving = false;
+  bool _privacyConsentGranted = false;
+  bool _blurFaces = true;
   String? _error;
   BodyFatAiResult? _result;
   Map<String, double> _latestMeasurements = {};
@@ -79,6 +82,13 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
 
   Future<void> _pickFromGalleryOrCamera(ImageSource source) async {
     Haptics.light();
+    if (_selectedFiles.length >= BodyFatAiService.maxPhotos) {
+      setState(
+        () => _error =
+            'You can select up to ${BodyFatAiService.maxPhotos} photos.',
+      );
+      return;
+    }
     try {
       await ref
           .read(pendingAiScanServiceProvider)
@@ -91,31 +101,40 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
         maxHeight: 1024,
         imageQuality: 85,
       );
-      await ref.read(pendingAiScanServiceProvider).clearPendingContext();
       if (picked != null && mounted) {
         setState(() {
           _selectedFiles.add(File(picked.path));
           _error = null;
         });
       }
-    } catch (e) {
-      setState(() => _error = 'Error selecting image: $e');
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _error =
+              'Could not select image. Please check photo permissions and try again.',
+        );
+      }
+    } finally {
+      await ref.read(pendingAiScanServiceProvider).clearPendingContext();
     }
   }
 
   void _toggleSavedPhoto(ProgressPhotoData photo) {
     Haptics.selection();
-    final file = File(photo.filePath);
+    final file = LocalPhotoStore.resolveSync(photo.filePath);
     setState(() {
       final existingIndex = _selectedFiles.indexWhere(
         (f) => f.path == file.path,
       );
       if (existingIndex >= 0) {
         _selectedFiles.removeAt(existingIndex);
+        _error = null;
+      } else if (_selectedFiles.length >= BodyFatAiService.maxPhotos) {
+        _error = 'You can select up to ${BodyFatAiService.maxPhotos} photos.';
       } else {
         _selectedFiles.add(file);
+        _error = null;
       }
-      _error = null;
     });
   }
 
@@ -132,6 +151,8 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
 
       final result = await aiService.estimateBodyFat(
         imageFiles: _selectedFiles,
+        consentGranted: _privacyConsentGranted,
+        blurFaces: _blurFaces,
         profile: profile,
         measurements: _latestMeasurements,
         userNote: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
@@ -173,11 +194,11 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
         'Body fat (${_result!.estimatedBfPercent.toStringAsFixed(1)}%) saved!',
       );
       Navigator.of(context).pop(true);
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Error saving: $e';
+        _error = 'Could not save body fat measurement. Please try again.';
       });
     }
   }
@@ -285,6 +306,11 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                       _buildPhotoSection(theme),
                       const SizedBox(height: 20),
 
+                      if (_selectedFiles.isNotEmpty) ...[
+                        _buildPrivacyControls(theme),
+                        const SizedBox(height: 20),
+                      ],
+
                       // ── Note Field ──
                       Text(
                         'Note on condition / photo (optional)',
@@ -314,15 +340,22 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                         width: double.infinity,
                         height: 52,
                         child: FilledButton.icon(
-                          onPressed: _runAnalysis,
+                          onPressed:
+                              (_selectedFiles.isNotEmpty &&
+                                  !_privacyConsentGranted)
+                              ? null
+                              : _runAnalysis,
                           icon: const Icon(Icons.auto_awesome),
-                          label: Text(
-                            _selectedFiles.isNotEmpty
-                                ? 'Analyze (${_selectedFiles.length} photos) with Herculex AI'
-                                : 'Calculate estimate from measurements & profile',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
+                          label: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              _selectedFiles.isNotEmpty
+                                  ? 'Analyze (${_selectedFiles.length} photos) with Herculex AI'
+                                  : 'Calculate estimate from measurements & profile',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           style: FilledButton.styleFrom(
@@ -379,11 +412,14 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                                   ),
                                 )
                               : const Icon(Icons.check_circle_outline),
-                          label: Text(
-                            _saving ? 'Saving...' : 'Save to Body Measurements',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                          label: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              _saving ? 'Saving...' : 'Save to Body Measurements',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           style: FilledButton.styleFrom(
@@ -518,12 +554,17 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Physique Photos (${_selectedFiles.length} selected)',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                'Physique Photos (${_selectedFiles.length}/${BodyFatAiService.maxPhotos} selected)',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
+            const SizedBox(width: 8),
             Row(
               children: [
                 IconButton(
@@ -619,7 +660,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final photo = _savedPhotos[index];
-                final file = File(photo.filePath);
+                final file = LocalPhotoStore.resolveSync(photo.filePath);
                 final isSelected = _selectedFiles.any(
                   (f) => f.path == file.path,
                 );
@@ -699,6 +740,68 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
     );
   }
 
+  Widget _buildPrivacyControls(ThemeData theme) {
+    return Material(
+      color: AppColors.surfaceContainer,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          SwitchListTile(
+            key: const Key('body-fat-blur-faces'),
+            value: _blurFaces,
+            onChanged: (value) => setState(() => _blurFaces = value),
+            title: Text(
+              'Blur face on device before upload',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Text(
+              'Detects and pixelates your face locally before sending photos.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 2,
+            ),
+          ),
+          const Divider(height: 1),
+          CheckboxListTile(
+            key: const Key('body-fat-privacy-consent'),
+            value: _privacyConsentGranted,
+            onChanged: (value) =>
+                setState(() => _privacyConsentGranted = value ?? false),
+            controlAffinity: ListTileControlAffinity.leading,
+            title: Text(
+              'I agree to send these photos to Herculex AI (powered by Google Gemini)',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Text(
+              'EXIF and GPS metadata are stripped on your device. Photos are used only for this analysis and are not stored on Herculex servers.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildResultCards(ThemeData theme, Profile? profile) {
     final r = _result!;
     return Column(
@@ -726,45 +829,53 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.auto_awesome,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          r.isAiGenerated
-                              ? 'Herculex AI Multimodal Estimate'
-                              : 'Biometric Calculation',
-                          style: const TextStyle(
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.auto_awesome,
+                            size: 14,
                             color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              r.isAiGenerated
+                                  ? 'AI Multimodal Estimate'
+                                  : 'Biometric Calculation',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  if (r.confidence != null)
+                  if (r.confidence != null) ...[
+                    const SizedBox(width: 8),
                     Text(
-                      'Confidence: ${(r.confidence! * 100).toStringAsFixed(0)} %',
+                      'Confidence: ${(r.confidence! * 100).toStringAsFixed(0)}%',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: AppColors.secondary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                  ],
                 ],
               ),
               const SizedBox(height: 16),
@@ -870,26 +981,34 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: AppColors.secondary,
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.secondary,
+                  ),
                 ),
               ),
+              const SizedBox(width: 4),
               Icon(icon, size: 16, color: accentColor),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
           Text(
             subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: theme.textTheme.labelSmall?.copyWith(
               color: AppColors.secondary.withValues(alpha: 0.8),
               fontSize: 10,
@@ -922,10 +1041,12 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
             children: [
               Icon(icon, size: 18, color: AppColors.primary),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

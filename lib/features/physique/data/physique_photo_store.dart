@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:herculex/core/storage/local_photo_store.dart';
 import 'package:uuid/uuid.dart';
 
 /// Thrown when a relative photo path could escape the physique sandbox.
@@ -22,6 +23,9 @@ class PhysiquePhotoStore {
   static const String rootFolderName = 'physique';
 
   final Future<Directory> Function() _documentsDirectory;
+
+  /// Returns the sandbox root directory used by this store.
+  Future<Directory> documentsDirectory() => _documentsDirectory();
 
   String _checkGoalUuid(String goalUuid) {
     if (goalUuid.isEmpty ||
@@ -76,6 +80,7 @@ class PhysiquePhotoStore {
       await delete(relative);
       rethrow;
     }
+    await LocalPhotoStore.excludeFromBackup();
     return relative;
   }
 
@@ -103,6 +108,7 @@ class PhysiquePhotoStore {
         // Best effort: the sanitised copy already lives in the sandbox.
       }
     }
+    await LocalPhotoStore.excludeFromBackup();
     return relative;
   }
 

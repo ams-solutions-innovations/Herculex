@@ -168,4 +168,123 @@ void main() {
       expect(allSessionsAfterPreview, hasLength(1));
     },
   );
+
+  test(
+    'historical drifted planned rows do not trigger infinite loop, while future drifted rows self-heal once',
+    () async {
+      final programsRepo = ProgramsRepository(db);
+      final templatesRepo = TemplatesRepository(db);
+      final service = ScheduledWorkoutService(
+        db,
+        clock,
+        programsRepo,
+        templatesRepo,
+      );
+
+      final exerciseId = await db
+          .into(db.exerciseCatalog)
+          .insert(
+            ExerciseCatalogCompanion.insert(
+              name: 'Bench Press Drift Test',
+              primaryMuscle: 'Chest',
+              equipment: 'barbell',
+              mechanics: 'compound',
+              force: 'push',
+              plane: 'horizontal',
+            ),
+          );
+
+      // testDate is 2026-09-14 (Monday, weekday 1).
+      final programId = await db
+          .into(db.programs)
+          .insert(
+            ProgramsCompanion.insert(
+              name: 'Weekly Drift Program',
+              isActive: const Value(true),
+              scheduleMode: const Value('weekly'),
+              startDateIso: const Value('2026-09-07'),
+            ),
+          );
+
+      final weekId = await db
+          .into(db.programWeeks)
+          .insert(
+            ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+          );
+
+      // Expected Monday (dayOfWeek = 1)
+      final mondayDayId = await db
+          .into(db.programDays)
+          .insert(
+            ProgramDaysCompanion.insert(
+              programWeekId: weekId,
+              dayOfWeek: 1,
+              name: 'Monday Push',
+            ),
+          );
+
+      await db
+          .into(db.programDayExercises)
+          .insert(
+            ProgramDayExercisesCompanion.insert(
+              programDayId: mondayDayId,
+              exerciseId: exerciseId,
+              orderIndex: 0,
+              slotRole: Value(SlotRole.main.id),
+              targetSets: const Value(3),
+            ),
+          );
+
+      // Historical uncompleted planned row on a drifted Tuesday ('2026-09-08' -> weekday 2 != 1).
+      // Previously this remained untouched by materializeProgram (from: today) and caused an infinite loop!
+      final pastScheduleId = await db
+          .into(db.scheduledWorkouts)
+          .insert(
+            ScheduledWorkoutsCompanion.insert(
+              programId: Value(programId),
+              programDayId: mondayDayId,
+              dateIso: '2026-09-08',
+              status: const Value(ScheduleStatus.planned),
+            ),
+          );
+
+      // Future drifted planned row on Tuesday ('2026-09-15' -> weekday 2 != 1).
+      await db
+          .into(db.scheduledWorkouts)
+          .insert(
+            ScheduledWorkoutsCompanion.insert(
+              programId: Value(programId),
+              programDayId: mondayDayId,
+              dateIso: '2026-09-15',
+              status: const Value(ScheduleStatus.planned),
+            ),
+          );
+
+      final emissions = <TodaysScheduledWorkout?>[];
+      final sub = service.watchNextWorkout(testDate).listen(emissions.add);
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      await sub.cancel();
+
+      // Must settle cleanly (not spin infinitely) and resolve Monday 2026-09-14!
+      expect(emissions, isNotEmpty);
+      expect(emissions.length, lessThanOrEqualTo(3));
+      expect(emissions.last?.schedule.dateIso, '2026-09-14');
+
+      // Past row was left intact and did not re-trigger repair.
+      final pastRow = await (db.select(
+        db.scheduledWorkouts,
+      )..where((t) => t.id.equals(pastScheduleId))).getSingle();
+      expect(pastRow.dateIso, '2026-09-08');
+
+      // Future drifted 2026-09-15 planned row was repaired to Monday dates >= 2026-09-14.
+      final driftedFuture =
+          await (db.select(db.scheduledWorkouts)..where(
+                (t) =>
+                    t.dateIso.equals('2026-09-15') &
+                    t.deletedAt.isNull(),
+              ))
+              .get();
+      expect(driftedFuture, isEmpty);
+    },
+  );
 }

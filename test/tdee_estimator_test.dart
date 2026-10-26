@@ -112,6 +112,20 @@ void main() {
       expect(s.firstDate, DateTime(2026, 9, 20));
       expect(s.lastDate, DateTime(2026, 9, 25));
     });
+
+    test('re-anchors across a tracking break longer than 7 days', () {
+      final s = TrendSeries.fromLogs([
+        WeightLog(day(-35), 84.5),
+        WeightLog(day(-20), 86.0),
+        WeightLog(day(-15), 86.0),
+        WeightLog(day(-10), 86.0),
+        WeightLog(day(-5), 86.0),
+        WeightLog(day(-2), 86.0),
+      ]);
+      expect(s.firstDate, day(-20));
+      expect(s.valueOn(day(-20)), closeTo(86.0, 1e-9));
+      expect(s.valueOn(day(-2)), closeTo(86.0, 1e-9));
+    });
   });
 
   group('estimateObserved: formula and window selection', () {
@@ -389,31 +403,30 @@ void main() {
 
   final classifierKcal = (bmr * classification.multiplier).round();
 
-  group('recalibrate: promotion and hysteresis (D-03)', () {
-    test('qualifying with empty history is not promoted', () {
+  group('recalibrate: promotion (D-03)', () {
+    test('qualifying data promotes to observed immediately', () {
       final r = recal(at: asOf);
-      expect(r.method, TdeeMethod.classifier);
+      expect(r.method, TdeeMethod.observed);
       expect(r.observedQualified, isTrue);
-      expect(r.kcal, classifierKcal);
+      expect(r.kcal, 2500);
+      expect(r.confidence, TdeeConfidence.high);
       expect(r.estimatedAt, asOf);
     });
 
-    test('qualifying with empty history and no classifier is cold start', () {
+    test('qualifying with no classifier still promotes to observed', () {
       final r = recal(at: asOf, classified: ActivityClassification.unavailable);
-      expect(r.method, TdeeMethod.coldStart);
+      expect(r.method, TdeeMethod.observed);
       expect(r.observedQualified, isTrue);
-      expect(r.kcal, seedKcal.round());
-      expect(r.confidence, TdeeConfidence.low);
-      expect(r.windowDays, 0);
-      expect(r.inputs, seedInputs);
+      expect(r.kcal, 2500);
+      expect(r.confidence, TdeeConfidence.high);
     });
 
-    test('a qualified row at least 7 days old promotes', () {
-      for (final age in [7, 20]) {
+    test('promotes from any previous history row once data qualifies', () {
+      for (final age in [1, 6, 7, 20]) {
         final r = recal(
           at: asOf,
           history: [
-            row(method: TdeeMethod.classifier, qualified: true, ageDays: age),
+            row(method: TdeeMethod.classifier, qualified: false, ageDays: age),
           ],
         );
         expect(r.method, TdeeMethod.observed, reason: 'age $age');
@@ -424,65 +437,14 @@ void main() {
       }
     });
 
-    test('a coldStart qualified row promotes too', () {
+    test('a coldStart row promotes once data qualifies', () {
       final r = recal(
         at: asOf,
         history: [
-          row(method: TdeeMethod.coldStart, qualified: true, ageDays: 8),
+          row(method: TdeeMethod.coldStart, qualified: false, ageDays: 8),
         ],
       );
       expect(r.method, TdeeMethod.observed);
-    });
-
-    test('a qualified row 1 or 6 days old does not promote', () {
-      for (final age in [1, 6]) {
-        final r = recal(
-          at: asOf,
-          history: [
-            row(method: TdeeMethod.classifier, qualified: true, ageDays: age),
-          ],
-        );
-        expect(r.method, TdeeMethod.classifier, reason: 'age $age');
-        expect(r.observedQualified, isTrue, reason: 'pending promotion');
-      }
-    });
-
-    test('an unqualified previous row does not promote', () {
-      final r = recal(
-        at: asOf,
-        history: [
-          row(method: TdeeMethod.classifier, qualified: false, ageDays: 10),
-        ],
-      );
-      expect(r.method, TdeeMethod.classifier);
-      expect(r.observedQualified, isTrue);
-    });
-
-    test('two qualifying runs one day apart never promote', () {
-      final r0 = recal(at: day(0));
-      final r1 = recal(at: day(1), history: [r0]);
-      expect(r1.method, isNot(TdeeMethod.observed));
-      expect(r1.observedQualified, isTrue);
-    });
-
-    test('two qualifying runs 7 days apart promote', () {
-      final r0 = recal(at: day(0));
-      final r7 = recal(at: day(7), history: [r0]);
-      expect(r7.method, TdeeMethod.observed);
-    });
-
-    test('a forced run restarts the 7-day clock', () {
-      final r0 = recal(at: day(0));
-      final r1 = recal(at: day(1), history: [r0]); // forced run
-      // Day 7 sees the day-1 row only 6 days old.
-      final r7 = recal(at: day(7), history: [r1, r0]);
-      expect(r7.method, isNot(TdeeMethod.observed));
-      // With the day-1 row as the newest, day 8 is exactly 7 days later.
-      final r8 = recal(at: day(8), history: [r1, r0]);
-      expect(r8.method, TdeeMethod.observed);
-      // When the day-7 run is persisted, the next promotion is day 14.
-      final r14 = recal(at: day(14), history: [r7, r1, r0]);
-      expect(r14.method, TdeeMethod.observed);
     });
 
     test('an already-observed user stays observed and fresh at once', () {
@@ -757,7 +719,7 @@ void main() {
       expect(
         check(
           history: [last(6)],
-          steps: steps({...prev, -3: 9990, -2: 9990, -1: 9990, 0: 9990}),
+          steps: steps({...prev, -3: 9990, -2: 9990, -1: 9990, -0: 9990}),
         ),
         RecalibrationReason.none,
       );

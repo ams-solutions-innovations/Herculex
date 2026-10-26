@@ -1,15 +1,25 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/features/physique/domain/physique_guardrails.dart';
 import 'package:herculex/features/profile/data/dream_physique_service.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/services/ai/gemini_backend_service.dart';
+import 'package:image/image.dart' as img;
+
+Uint8List _makeJpegWithExif({int seed = 40}) {
+  final image = img.Image(width: 24, height: 24);
+  img.fill(image, color: img.ColorRgb8(seed, 120, 200));
+  image.exif.imageIfd['Artist'] = 'Sensitive Author';
+  image.exif.gpsIfd['GPSLatitudeRef'] = 'N';
+  return Uint8List.fromList(img.encodeJpg(image, quality: 90));
+}
 
 void main() {
   group('DreamPhysiqueService', () {
     test(
-      'Correctly maps backend response into DreamPhysiqueAnalysisResult',
+      'Correctly maps backend response into DreamPhysiqueAnalysisResult and strips EXIF/GPS metadata',
       () async {
         final fakeBackend = _MockGeminiBackend();
         final service = DreamPhysiqueService(fakeBackend);
@@ -17,11 +27,11 @@ void main() {
         final tempDir = await Directory.systemTemp.createTemp('dp_test_');
         addTearDown(() => tempDir.delete(recursive: true));
         final currentFile = File('${tempDir.path}/current.jpg');
-        await currentFile.writeAsBytes([1, 2, 3]);
+        await currentFile.writeAsBytes(_makeJpegWithExif(seed: 30));
         final targetFile = File('${tempDir.path}/target.jpg');
-        await targetFile.writeAsBytes([4, 5, 6]);
+        await targetFile.writeAsBytes(_makeJpegWithExif(seed: 60));
         final targetFileTwo = File('${tempDir.path}/target-two.jpg');
-        await targetFileTwo.writeAsBytes([7, 8, 9]);
+        await targetFileTwo.writeAsBytes(_makeJpegWithExif(seed: 90));
 
         const profile = Profile(
           goal: FitnessGoal.muscleGain,
@@ -65,7 +75,22 @@ void main() {
         expect(result.isAiGenerated, isTrue);
         expect(result.targetAestheticStyle, contains('V-taper'));
         expect(fakeBackend.calledDreamPhysique, isTrue);
+        expect(fakeBackend.receivedCurrentImages, hasLength(1));
         expect(fakeBackend.receivedTargetImages, hasLength(2));
+
+        for (final payload in [
+          ...fakeBackend.receivedCurrentImages!,
+          ...fakeBackend.receivedTargetImages!,
+        ]) {
+          expect(payload['mimeType'], 'image/jpeg');
+          final sentBytes = Uint8List.fromList(
+            (payload['bytes'] as List<int>),
+          );
+          final decoded = img.decodeJpg(sentBytes);
+          expect(decoded, isNotNull);
+          expect(decoded!.exif.imageIfd.isEmpty, isTrue);
+          expect(decoded.exif.gpsIfd.isEmpty, isTrue);
+        }
       },
     );
 
@@ -78,9 +103,9 @@ void main() {
       );
       addTearDown(() => tempDir.delete(recursive: true));
       final currentFile = File('${tempDir.path}/curr.jpg');
-      await currentFile.writeAsBytes([1]);
+      await currentFile.writeAsBytes(_makeJpegWithExif(seed: 10));
       final targetFile = File('${tempDir.path}/targ.jpg');
-      await targetFile.writeAsBytes([2]);
+      await targetFile.writeAsBytes(_makeJpegWithExif(seed: 20));
 
       const profile = Profile(
         goal: FitnessGoal.muscleGain,
@@ -223,6 +248,7 @@ void main() {
 
 class _MockGeminiBackend implements GeminiBackend {
   bool calledDreamPhysique = false;
+  List<Map<String, dynamic>>? receivedCurrentImages;
   List<Map<String, dynamic>>? receivedTargetImages;
 
   @override
@@ -233,6 +259,7 @@ class _MockGeminiBackend implements GeminiBackend {
     String? userNote,
   }) async {
     calledDreamPhysique = true;
+    receivedCurrentImages = currentImages;
     receivedTargetImages = targetImages;
     return {
       'estimatedMonths': 8,

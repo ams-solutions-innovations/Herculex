@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/features/physique/data/physique_photo_sanitizer.dart';
 import 'package:herculex/features/physique/domain/physique_guardrails.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/services/ai/gemini_backend_service.dart';
@@ -332,18 +334,14 @@ class DreamPhysiqueService {
     };
 
     try {
-      final currentPayload = <Map<String, dynamic>>[];
+      final availableCurrentFiles = <File>[];
       for (final file in currentImages) {
         if (await file.exists()) {
-          final bytes = await file.readAsBytes();
-          currentPayload.add({
-            'bytes': bytes,
-            'mimeType': _mimeType(file.path),
-          });
+          availableCurrentFiles.add(file);
         }
       }
 
-      if (currentPayload.isEmpty) {
+      if (availableCurrentFiles.isEmpty) {
         throw const DreamPhysiqueAnalysisException(
           'Select at least one available photo of your current physique.',
           recoverable: false,
@@ -356,14 +354,13 @@ class DreamPhysiqueService {
           recoverable: false,
         );
       }
-      if (currentPayload.length + targetImages.length > 4) {
+      if (availableCurrentFiles.length + targetImages.length > 4) {
         throw const DreamPhysiqueAnalysisException(
           'Use at most four photos across your current and target physiques.',
           recoverable: false,
         );
       }
 
-      final targetPayload = <Map<String, dynamic>>[];
       for (final file in targetImages) {
         if (!await file.exists()) {
           throw const DreamPhysiqueAnalysisException(
@@ -371,10 +368,20 @@ class DreamPhysiqueService {
             recoverable: false,
           );
         }
-        targetPayload.add({
-          'bytes': await file.readAsBytes(),
-          'mimeType': _mimeType(file.path),
-        });
+      }
+
+      final currentPayload = <Map<String, dynamic>>[];
+      for (final file in availableCurrentFiles) {
+        final raw = await file.readAsBytes();
+        final sanitized = await Isolate.run(() => downscaleForAnalysis(raw));
+        currentPayload.add({'bytes': sanitized, 'mimeType': 'image/jpeg'});
+      }
+
+      final targetPayload = <Map<String, dynamic>>[];
+      for (final file in targetImages) {
+        final raw = await file.readAsBytes();
+        final sanitized = await Isolate.run(() => downscaleForAnalysis(raw));
+        targetPayload.add({'bytes': sanitized, 'mimeType': 'image/jpeg'});
       }
 
       final resultJson = await _backend.analyzeDreamPhysique(
@@ -393,6 +400,11 @@ class DreamPhysiqueService {
       }
     } on DreamPhysiqueAnalysisException {
       rethrow;
+    } on PhotoSanitizeException {
+      throw const DreamPhysiqueAnalysisException(
+        'One of the selected photos could not be processed. Please choose a valid JPEG, PNG, or WebP image.',
+        recoverable: false,
+      );
     } catch (error) {
       final detail = error.toString().replaceFirst('Exception: ', '').trim();
       final message = detail.isEmpty
@@ -402,13 +414,6 @@ class DreamPhysiqueService {
         '$message Your selections were kept; please try again.',
       );
     }
-  }
-
-  String _mimeType(String path) {
-    final lower = path.toLowerCase();
-    if (lower.endsWith('.png')) return 'image/png';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    return 'image/jpeg';
   }
 }
 

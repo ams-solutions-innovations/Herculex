@@ -319,17 +319,30 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     );
   }
 
-  void _exportData(BuildContext context) {
+  bool _exporting = false;
+
+  Future<void> _exportData(BuildContext context) async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
     AppNotice.show(
       context,
-      'Exporting data as JSON...',
+      'Preparing JSON export...',
       kind: AppNoticeKind.info,
     );
-    final notices = AppNotice.of(context);
-    Future.delayed(const Duration(seconds: 1), () {
-      if (!mounted) return;
-      notices.show('Data export saved to Downloads folder.');
-    });
+    try {
+      await ref.read(userDataExportServiceProvider).exportAndShare();
+      if (!context.mounted) return;
+      AppNotice.show(context, 'Data export ready.');
+    } catch (_) {
+      if (!context.mounted) return;
+      AppNotice.show(
+        context,
+        'Could not export data. Please try again.',
+        kind: AppNoticeKind.error,
+      );
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
   }
 
   Future<void> _save() async {
@@ -422,6 +435,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         ? null
         : 'End of ${target.phase!.label.toLowerCase()}'
               '${dream != null && dream != target.targetKg ? ' · dream ${weightFormat.format(dream)}' : ''}';
+    final heightVal = double.tryParse(_heightCtrl.text.trim());
+    final heightHelper = (isMetric && heightVal != null && heightVal < 100)
+        ? 'Check height entry (e.g. 176)'
+        : null;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 120),
@@ -463,6 +480,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 label: isMetric ? 'Height (cm)' : 'Height (in)',
                 hint: isMetric ? 'cm' : 'in',
                 controller: _heightCtrl,
+                helper: heightHelper,
                 onChanged: _onFieldChanged,
               ),
             ),
@@ -495,7 +513,8 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         const SizedBox(height: 8),
         // BMI chip (read-only, calculated)
         if (widget.profile?.weightKg != null &&
-            widget.profile?.heightCm != null)
+            widget.profile?.heightCm != null &&
+            widget.profile!.heightCm! >= 100)
           Center(
             child: _BmiChip(
               weightKg: widget.profile!.weightKg!,
@@ -694,9 +713,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             const HxSettingsDivider(),
             HxSettingsTile(
               icon: Icons.download_rounded,
-              label: 'Export Data (JSON)',
-              chevron: true,
-              onTap: () => _exportData(context),
+              label: _exporting ? 'Exporting Data...' : 'Export Data (JSON)',
+              chevron: !_exporting,
+              onTap: _exporting ? null : () => _exportData(context),
             ),
           ],
         ),
@@ -782,9 +801,11 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     );
   }
 
-  /// Body-fat estimate computed from the profile: US Navy tape formula when
-  /// waist and neck are logged, otherwise the BMI-based Deurenberg formula.
+  /// Body-fat chip: uses the latest logged measurement (e.g. from AI scan or
+  /// manual log) as highest priority. If no log exists, falls back to US Navy
+  /// or BMI-based Deurenberg formula.
   Widget _bodyFatChip(Map<String, double> latest) {
+    final measuredBf = latest['body_fat'];
     final draft = _draft();
     final height = draft.heightCm;
     final weight = draft.weightKg;
@@ -796,8 +817,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         : ref.read(heightFormatProvider).toCm(waistDisplay);
     final neckCm = latest['neck'];
 
-    double? bf;
-    if (height != null && waistCm != null && neckCm != null) {
+    double? bf = (measuredBf != null && measuredBf > 0) ? measuredBf : null;
+    bool isEstimate = false;
+
+    if (bf == null && height != null && waistCm != null && neckCm != null) {
       bf = BodyFatAiService.calculateNavyBodyFat(
         heightCm: height,
         waistCm: waistCm,
@@ -805,39 +828,59 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         hipsCm: latest['hips'],
         isMale: isMale,
       );
+      isEstimate = true;
     }
-    if (bf == null && height != null && weight != null && age != null) {
+    if (bf == null &&
+        height != null &&
+        weight != null &&
+        age != null &&
+        height >= 100) {
       bf = BodyFatAiService.calculateBmiBodyFat(
         weightKg: weight,
         heightCm: height,
         ageYears: age,
         isMale: isMale,
       );
+      isEstimate = true;
     }
     if (bf == null) return const SizedBox.shrink();
 
     final color = context.hx.primary;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.percent_rounded, size: 16, color: color),
-          const SizedBox(width: 8),
-          Text(
-            'Body fat ~${bf.toStringAsFixed(1)}%',
-            style: TextStyle(
+    return GestureDetector(
+      onTap: () {
+        Haptics.selection();
+        context.push(AppPaths.measurementDetail('body_fat'));
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isEstimate
+                  ? Icons.percent_rounded
+                  : Icons.pie_chart_outline_rounded,
+              size: 16,
               color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Text(
+              isEstimate
+                  ? 'Body fat ~${bf.toStringAsFixed(1)}%'
+                  : 'Body fat ${bf.toStringAsFixed(1)}%',
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

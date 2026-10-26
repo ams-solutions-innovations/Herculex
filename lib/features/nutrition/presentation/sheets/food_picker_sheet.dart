@@ -21,6 +21,7 @@ import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:herculex/features/nutrition/presentation/dialogs/gemini_photo_analysis_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/dialogs/label_capture_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/dialogs/rambler_food_dialog.dart';
+import 'package:herculex/features/nutrition/presentation/dialogs/rambler_recipe_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/custom_food_form_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/log_entry_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/views/barcode_scanner_view.dart';
@@ -32,10 +33,16 @@ import 'package:image_picker/image_picker.dart';
 
 /// Tabbed bottom sheet: All · My Meals · My Recipes · My Foods.
 class FoodPickerSheet extends ConsumerStatefulWidget {
-  final DateTime date;
-  final String mealKey;
+  final DateTime? date;
+  final String? mealKey;
+  final int? recipeId;
 
-  const FoodPickerSheet({super.key, required this.date, required this.mealKey});
+  const FoodPickerSheet({
+    super.key,
+    this.date,
+    this.mealKey,
+    this.recipeId,
+  });
 
   static Future<bool?> show(
     BuildContext context, {
@@ -50,6 +57,22 @@ class FoodPickerSheet extends ConsumerStatefulWidget {
     );
   }
 
+  static Future<bool?> showForRecipe(
+    BuildContext context, {
+    required int recipeId,
+  }) {
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FoodPickerSheet(
+        recipeId: recipeId,
+        date: DateTime.now(),
+        mealKey: 'recipe',
+      ),
+    );
+  }
+
   @override
   ConsumerState<FoodPickerSheet> createState() => _FoodPickerSheetState();
 }
@@ -59,7 +82,10 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
   late final _tabs = TabController(length: 4, vsync: this);
   final _queryCtrl = TextEditingController();
   String? _query;
-  late String _activeMealKey = widget.mealKey;
+  bool get _isRecipeMode => widget.recipeId != null;
+  DateTime get _effectiveDate => widget.date ?? DateTime.now();
+  String get _effectiveMealKey => widget.mealKey ?? 'recipe';
+  late String _activeMealKey = _effectiveMealKey;
   FoodSuggestionParams? _stableSuggestionParams;
   List<int>? _stableSuggestedFoodIds;
   List<int>? _stableRecentFoodIds;
@@ -102,15 +128,47 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
   }
 
   Future<void> _logFood(FoodData f) async {
+    if (_isRecipeMode) {
+      final grams = await LogEntrySheet.forIngredient(
+        context,
+        food: f,
+        recipeId: widget.recipeId,
+      );
+      if (grams != null && mounted) {
+        ref.invalidate(recipeIngredientsProvider(widget.recipeId!));
+      }
+      return;
+    }
     await LogEntrySheet.forFood(
       context,
       food: f,
-      date: widget.date,
+      date: _effectiveDate,
       initialMealKey: _activeMealKey,
     );
   }
 
   Future<void> _quickLogFood(FoodData f) async {
+    if (_isRecipeMode) {
+      Haptics.success();
+      final repo = ref.read(nutritionRepositoryProvider);
+      final amount = FoodPortion.defaultAmount(f);
+      final unit = FoodPortion.defaultUnit(f);
+      final grams = FoodPortion.massForAmount(f, amount, unit) ?? 100.0;
+      await repo.addIngredient(
+        recipeId: widget.recipeId!,
+        foodId: f.id,
+        grams: grams,
+      );
+      ref.invalidate(recipeIngredientsProvider(widget.recipeId!));
+      if (mounted) {
+        AppNotice.show(
+          context,
+          'Added ${f.name} (${grams.round()}g) to recipe',
+          kind: AppNoticeKind.success,
+        );
+      }
+      return;
+    }
     final proceed = await confirmEndFastOnFoodLog(context, ref);
     if (!proceed || !mounted) return;
 
@@ -119,7 +177,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
     final amount = FoodPortion.defaultAmount(f);
     final unit = FoodPortion.defaultUnit(f);
     await repo.logFood(
-      date: widget.date,
+      date: _effectiveDate,
       mealKey: _activeMealKey,
       foodId: f.id,
       portionAmount: amount,
@@ -128,22 +186,54 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
   }
 
   Future<void> _logRecipe(RecipeData r) async {
+    if (_isRecipeMode) {
+      final ingredients = await ref.read(
+        recipeIngredientsProvider(r.id).future,
+      );
+      if (ingredients.isEmpty) {
+        if (mounted) {
+          AppNotice.show(context, 'This recipe has no ingredients to import');
+        }
+        return;
+      }
+      final repo = ref.read(nutritionRepositoryProvider);
+      for (final ing in ingredients) {
+        await repo.addIngredient(
+          recipeId: widget.recipeId!,
+          foodId: ing.foodId,
+          grams: ing.grams,
+        );
+      }
+      ref.invalidate(recipeIngredientsProvider(widget.recipeId!));
+      if (mounted) {
+        Haptics.success();
+        AppNotice.show(
+          context,
+          'Imported ${ingredients.length} ingredients from ${r.name}',
+          kind: AppNoticeKind.success,
+        );
+      }
+      return;
+    }
     await LogEntrySheet.forRecipe(
       context,
       recipe: r,
-      date: widget.date,
+      date: _effectiveDate,
       initialMealKey: _activeMealKey,
     );
   }
 
   Future<void> _quickLogRecipe(RecipeData r) async {
+    if (_isRecipeMode) {
+      return _logRecipe(r);
+    }
     final proceed = await confirmEndFastOnFoodLog(context, ref);
     if (!proceed || !mounted) return;
 
     Haptics.success();
     final repo = ref.read(nutritionRepositoryProvider);
     await repo.logRecipe(
-      date: widget.date,
+      date: _effectiveDate,
       mealKey: _activeMealKey,
       recipeId: r.id,
       servings: 1.0,
@@ -288,7 +378,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                 ? AiScanContextType.nutritionLabel
                 : AiScanContextType.food,
             mealKey: _activeMealKey,
-            dateIso: widget.date.toIso8601String(),
+            dateIso: _effectiveDate.toIso8601String(),
           ),
         );
 
@@ -308,7 +398,8 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
         imageFile: File(picked.path),
         meal: Meal.fromName(_activeMealKey),
         mealKey: _activeMealKey,
-        date: widget.date,
+        date: _effectiveDate,
+        recipeId: widget.recipeId,
       );
     } else {
       if (!mounted) return;
@@ -317,24 +408,57 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
         imageFile: File(picked.path),
         meal: Meal.fromName(_activeMealKey),
         mealKey: _activeMealKey,
-        date: widget.date,
+        date: _effectiveDate,
+        recipeId: widget.recipeId,
       );
     }
 
     if (logged == true && mounted) {
+      if (_isRecipeMode) {
+        ref.invalidate(recipeIngredientsProvider(widget.recipeId!));
+      }
       Navigator.of(context).pop(true);
     }
   }
 
   Future<void> _openRambler() async {
+    if (_isRecipeMode) {
+      final recipeId = widget.recipeId;
+      Navigator.of(context).pop();
+      final result = await RamblerRecipeDialog.show(
+        context,
+        existingRecipeId: recipeId,
+      );
+      if (result != null && mounted && recipeId != null) {
+        ref.invalidate(recipeIngredientsProvider(recipeId));
+      }
+      return;
+    }
     final logged = await RamblerFoodDialog.show(
       context,
-      date: widget.date,
+      date: _effectiveDate,
       initialMealKey: _activeMealKey,
     );
     if (logged == true && mounted) {
       Navigator.of(context).pop(true);
     }
+  }
+
+  Future<void> _openRamblerRecipe() async {
+    final result = await RamblerRecipeDialog.show(context);
+    if (result == null || !mounted || result.recipeId == null) return;
+    final recipes = await ref.read(recipesProvider.future);
+    final created = recipes.firstWhere(
+      (r) => r.id == result.recipeId,
+      orElse: () => RecipeData(
+        id: result.recipeId!,
+        name: result.recipeName,
+        servings: result.servings,
+        notes: result.instructions,
+        createdAt: DateTime.now(),
+      ),
+    );
+    if (mounted) _logRecipe(created);
   }
 
   void _showMealSelector(BuildContext context, List<MealSlot> slots) {
@@ -436,7 +560,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
               ),
               const SizedBox(height: 8),
 
-              // ── Header with Meal Dropdown Selector ───────────────────────────
+              // ── Header with Meal Dropdown Selector / Recipe Title ─────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -444,31 +568,52 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                     icon: const Icon(Icons.arrow_back),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  InkWell(
-                    onTap: () => _showMealSelector(context, slots),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+                  if (_isRecipeMode)
+                    Text(
+                      'Add Ingredient',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.onSurface,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            activeMealLabel,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                    )
+                  else
+                    InkWell(
+                      onTap: () => _showMealSelector(context, slots),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              activeMealLabel,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(Icons.arrow_drop_down, color: AppColors.primary),
-                        ],
+                            const SizedBox(width: 4),
+                            Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 48), // Balance spacing
+                  if (_isRecipeMode)
+                    TextButton.icon(
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Custom'),
+                      onPressed: () async {
+                        final food = await CustomFoodFormSheet.show(context);
+                        if (food != null && mounted) {
+                          _logFood(food);
+                        }
+                      },
+                    )
+                  else
+                    const SizedBox(width: 48), // Balance spacing
                 ],
               ),
               const SizedBox(height: 8),
@@ -1045,8 +1190,16 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
           children: [
             Expanded(
               child: _ActionCard(
+                icon: Icons.auto_awesome_rounded,
+                title: 'Rambler Recipe',
+                onTap: _openRamblerRecipe,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _ActionCard(
                 icon: Icons.soup_kitchen_outlined,
-                title: 'Create a Recipe',
+                title: 'Create Recipe',
                 onTap: () async {
                   final created = await Navigator.push<RecipeData>(
                     context,
@@ -1058,11 +1211,11 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                 },
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: _ActionCard(
                 icon: Icons.menu_book_outlined,
-                title: 'Discover Recipes',
+                title: 'Discover',
                 onTap: () {
                   Haptics.selection();
                   AppNotice.show(

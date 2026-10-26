@@ -17,7 +17,8 @@ class _PhotoSection extends StatelessWidget {
     final theme = Theme.of(context);
     final s = summary;
     final photo = s.photoPath;
-    final hasPhoto = photo != null && File(photo).existsSync();
+    final photoFile = photo == null ? null : LocalPhotoStore.resolveSync(photo);
+    final hasPhoto = photoFile != null && photoFile.existsSync();
 
     return Container(
       width: 320,
@@ -73,7 +74,7 @@ class _PhotoSection extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Image.file(
-                File(photo),
+                photoFile,
                 height: 180,
                 width: double.infinity,
                 fit: BoxFit.cover,

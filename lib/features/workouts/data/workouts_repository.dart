@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
+import 'package:herculex/core/storage/local_photo_store.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/core/utils/failures.dart';
 import 'package:herculex/data/local/database.dart';
@@ -589,9 +590,15 @@ class WorkoutsRepository {
   }
 
   Future<void> updateSessionPhoto(int sessionId, String? photoPath) async {
+    final existing = await (_db.select(
+      _db.workoutSessions,
+    )..where((t) => t.id.equals(sessionId))).getSingleOrNull();
     await (_db.update(_db.workoutSessions)
           ..where((t) => t.id.equals(sessionId)))
         .write(WorkoutSessionsCompanion(photoPath: Value(photoPath)));
+    if (existing?.photoPath != null && existing!.photoPath != photoPath) {
+      await LocalPhotoStore.deleteStored(existing.photoPath);
+    }
   }
 
   Future<void> updateSessionCalories(int sessionId, int? caloriesBurned) async {
@@ -601,6 +608,9 @@ class WorkoutsRepository {
   }
 
   Future<void> deleteSession(int sessionId) async {
+    final existing = await (_db.select(
+      _db.workoutSessions,
+    )..where((t) => t.id.equals(sessionId))).getSingleOrNull();
     await _db.transaction(() async {
       await (_db.delete(
         _db.workoutReports,
@@ -657,6 +667,9 @@ class WorkoutsRepository {
         _db.workoutSessions,
       )..where((t) => t.id.equals(sessionId))).go();
     });
+    if (existing?.photoPath != null) {
+      await LocalPhotoStore.deleteStored(existing!.photoPath);
+    }
   }
 
   Stream<List<WorkoutSessionData>> watchRecentSessions({int limit = 25}) {

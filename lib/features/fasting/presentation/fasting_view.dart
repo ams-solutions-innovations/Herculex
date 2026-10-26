@@ -9,7 +9,6 @@ import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/fasting/domain/fasting_plan.dart';
 import 'package:herculex/features/fasting/presentation/widgets/active_fast_panel.dart';
 import 'package:herculex/features/fasting/presentation/widgets/clock_dial_background.dart';
-import 'package:herculex/features/fasting/presentation/widgets/fasting_history.dart';
 import 'package:herculex/features/fasting/presentation/widgets/fasting_insights.dart';
 import 'package:herculex/features/fasting/presentation/widgets/start_fast_panel.dart';
 import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
@@ -98,7 +97,8 @@ class _FastingViewState extends ConsumerState<FastingView> {
             const SizedBox(height: HxSpace.x8),
             const Divider(),
             const SizedBox(height: HxSpace.x6),
-            const FastingHistory(),
+            const _FastingHistoryEntryCard(),
+            const SizedBox(height: HxSpace.x6),
           ],
         ),
       ],
@@ -133,5 +133,84 @@ class _FastingViewState extends ConsumerState<FastingView> {
           planName: planName,
           enabled: notifEnabled,
         );
+  }
+}
+
+/// Navigation entry card at the bottom of the Fasting screen that links to
+/// the dedicated [FastingHistoryView] page.
+class _FastingHistoryEntryCard extends ConsumerWidget {
+  const _FastingHistoryEntryCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final hx = context.hx;
+    final historyAsync = ref.watch(fastingHistoryProvider);
+    final history = historyAsync.asData?.value;
+    final count = history?.length;
+
+    final subtitle = count != null
+        ? (count == 0
+            ? 'No recorded sessions yet'
+            : '$count session${count == 1 ? '' : 's'} recorded')
+        : 'View past sessions & records';
+
+    return InkWell(
+      onTap: () => context.push(AppRoutes.fastingHistory),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        decoration: BoxDecoration(
+          color: hx.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: hx.outlineVariant.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: hx.domainFasting.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.history_rounded,
+                color: hx.domainFasting,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Fasting History',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: hx.secondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: hx.secondary,
+              size: 24,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

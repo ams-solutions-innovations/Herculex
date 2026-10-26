@@ -144,11 +144,11 @@ class ScheduleRange {
     final monday = DateTime(
       day.year,
       day.month,
-      day.day,
-    ).subtract(Duration(days: day.weekday - DateTime.monday));
+      day.day - (day.weekday - DateTime.monday),
+    );
     return ScheduleRange(
       fromIso: _iso(monday),
-      toIso: _iso(monday.add(const Duration(days: 6))),
+      toIso: _iso(DateTime(monday.year, monday.month, monday.day + 6)),
       programId: programId,
     );
   }
@@ -158,10 +158,16 @@ class ScheduleRange {
   factory ScheduleRange.monthGrid(DateTime day, {int? programId}) {
     final first = DateTime(day.year, day.month, 1);
     final last = DateTime(day.year, day.month + 1, 0);
-    final gridStart = first.subtract(
-      Duration(days: first.weekday - DateTime.monday),
+    final gridStart = DateTime(
+      first.year,
+      first.month,
+      first.day - (first.weekday - DateTime.monday),
     );
-    final gridEnd = last.add(Duration(days: DateTime.sunday - last.weekday));
+    final gridEnd = DateTime(
+      last.year,
+      last.month,
+      last.day + (DateTime.sunday - last.weekday),
+    );
     return ScheduleRange(
       fromIso: _iso(gridStart),
       toIso: _iso(gridEnd),

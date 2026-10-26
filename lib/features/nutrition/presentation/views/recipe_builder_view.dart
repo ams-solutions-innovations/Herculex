@@ -8,13 +8,16 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
-import 'package:herculex/design_system/tokens/hx_colors.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/domain/barcode_utils.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/food_insights.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
-import 'package:herculex/features/nutrition/presentation/sheets/custom_food_form_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/dialogs/rambler_recipe_dialog.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/food_picker_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/log_entry_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/views/barcode_scanner_view.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/barcode_resolution_flow.dart';
 
 class RecipeBuilderView extends ConsumerStatefulWidget {
   final RecipeData? existingRecipe;
@@ -76,24 +79,161 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
     setState(() {});
   }
 
-  Future<void> _addIngredient() async {
-    await _ensureRecipe();
-    if (!mounted) return;
-    final food = await _showFoodPicker();
-    if (food == null || !mounted) return;
-    await LogEntrySheet.forIngredient(context, food: food, recipeId: _recipeId);
+  Future<void> _updateRecipeMetadata() async {
+    if (_recipeId == null) return;
+    final name = _name.text.trim().isEmpty
+        ? (widget.isMeal ? 'Untitled meal' : 'Untitled recipe')
+        : _name.text.trim();
+    final servings = int.tryParse(_servings.text.trim()) ?? 1;
+    final notes = _notes.text.trim().isEmpty ? null : _notes.text.trim();
+    await ref.read(nutritionRepositoryProvider).updateRecipe(
+      id: _recipeId!,
+      name: name,
+      servings: servings > 0 ? servings : 1,
+      notes: notes,
+    );
+    ref.invalidate(_recipeMacrosProvider(_recipeId!));
   }
 
-  Future<FoodData?> _showFoodPicker() async {
-    return showModalBottomSheet<FoodData>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).bottomSheetTheme.backgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (_) => _IngredientPickerSheet(),
+  Future<void> _openRamblerRecipe() async {
+    await _ensureRecipe();
+    if (!mounted) return;
+
+    final result = await RamblerRecipeDialog.show(
+      context,
+      existingRecipeId: _recipeId,
+      initialRecipeName: _name.text.trim().isEmpty ? null : _name.text.trim(),
+      initialServings: int.tryParse(_servings.text.trim()) ?? 1,
+      initialNotes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
     );
+
+    if (result == null || !mounted) return;
+
+    if ((_name.text.trim().isEmpty ||
+            _name.text.trim() == 'Untitled recipe' ||
+            _name.text.trim() == 'Untitled meal') &&
+        result.recipeName.isNotEmpty) {
+      _name.text = result.recipeName;
+    }
+    if (result.servings > 0) {
+      _servings.text = result.servings.toString();
+    }
+    if (_notes.text.trim().isEmpty &&
+        (result.instructions?.isNotEmpty ?? false)) {
+      _notes.text = result.instructions!;
+    }
+
+    ref.invalidate(recipeIngredientsProvider(_recipeId!));
+    ref.invalidate(_recipeMacrosProvider(_recipeId!));
+
+    setState(() {});
+    AppNotice.show(
+      context,
+      'Added ${result.items.length} ${result.items.length == 1 ? 'ingredient' : 'ingredients'} to recipe',
+    );
+  }
+
+  Future<void> _addIngredient() async {
+    await _ensureRecipe();
+    if (!mounted || _recipeId == null) return;
+    await FoodPickerSheet.showForRecipe(context, recipeId: _recipeId!);
+    if (mounted) {
+      ref.invalidate(recipeIngredientsProvider(_recipeId!));
+      ref.invalidate(_recipeMacrosProvider(_recipeId!));
+      setState(() {});
+    }
+  }
+
+  Future<void> _scanBarcode() async {
+    await _ensureRecipe();
+    if (!mounted || _recipeId == null) return;
+    final scanned = await BarcodeScannerView.show(context);
+    if (scanned == null || !mounted) return;
+    var normalized = normalizeBarcode(scanned);
+    if (normalized == null) {
+      final corrected = await _manualBarcodeDialog(initial: scanned);
+      if (corrected == null || !mounted) return;
+      normalized = normalizeBarcode(corrected);
+      if (normalized == null) return;
+    }
+    final code = normalized.value;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    final food = await ref
+        .read(nutritionRepositoryProvider)
+        .lookupBarcode(code);
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    final FoodData targetFood;
+    if (food == null) {
+      final created = await resolveUnknownBarcode(context, ref, code);
+      if (created == null || !mounted) return;
+      targetFood = created;
+    } else {
+      targetFood = food;
+    }
+    await LogEntrySheet.forIngredient(
+      context,
+      food: targetFood,
+      recipeId: _recipeId,
+    );
+    if (mounted) {
+      ref.invalidate(recipeIngredientsProvider(_recipeId!));
+      ref.invalidate(_recipeMacrosProvider(_recipeId!));
+      setState(() {});
+    }
+  }
+
+  Future<String?> _manualBarcodeDialog({String initial = ''}) async {
+    final controller = TextEditingController(text: initial);
+    String? error;
+    final value = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Correct barcode'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('This code is not a valid retail barcode.'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  hintText: 'EAN-13, UPC-A, EAN-8 or GTIN-14',
+                  errorText: error,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final normalized = normalizeBarcode(controller.text);
+                if (normalized == null) {
+                  setState(() => error = 'Invalid length or check digit');
+                  return;
+                }
+                Navigator.of(dialogContext).pop(normalized.value);
+              },
+              child: const Text('Use code'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    return value;
   }
 
   Future<void> _save() async {
@@ -146,6 +286,16 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
           ? (widget.isMeal ? 'Edit Meal' : 'Edit Recipe')
           : (widget.isMeal ? 'Create a Meal' : 'Create a Recipe'),
       actions: [
+        IconButton(
+          tooltip: 'Rambler AI',
+          icon: const Icon(Icons.mic_rounded),
+          onPressed: _openRamblerRecipe,
+        ),
+        IconButton(
+          tooltip: 'Scan Barcode',
+          icon: const Icon(Icons.qr_code_scanner_rounded),
+          onPressed: _scanBarcode,
+        ),
         IconButton(
           tooltip: 'Add Ingredient',
           icon: const Icon(Icons.add_rounded),
@@ -233,6 +383,146 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
               borderSide: BorderSide(color: AppColors.primary, width: 2),
             ),
           ),
+          onChanged: (_) => _updateRecipeMetadata(),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Servings & Serving Size ─────────────────────────────────────────
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Servings',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.remove, size: 16),
+                          visualDensity: VisualDensity.compact,
+                          color: AppColors.onSurface,
+                          onPressed: () {
+                            final current =
+                                int.tryParse(_servings.text.trim()) ?? 1;
+                            if (current > 1) {
+                              Haptics.selection();
+                              setState(() {
+                                _servings.text = (current - 1).toString();
+                              });
+                              _updateRecipeMetadata();
+                            }
+                          },
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _servings,
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                            ),
+                            onChanged: (_) {
+                              _updateRecipeMetadata();
+                            },
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add, size: 16),
+                          visualDensity: VisualDensity.compact,
+                          color: AppColors.onSurface,
+                          onPressed: () {
+                            final current =
+                                int.tryParse(_servings.text.trim()) ?? 1;
+                            Haptics.selection();
+                            setState(() {
+                              _servings.text = (current + 1).toString();
+                            });
+                            _updateRecipeMetadata();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: ingredients.when(
+                data: (list) {
+                  final totalGrams =
+                      list.fold<double>(0, (sum, ing) => sum + ing.grams);
+                  final servings = int.tryParse(_servings.text.trim()) ?? 1;
+                  final perServingGrams = (servings > 0 && totalGrams > 0)
+                      ? (totalGrams / servings).round()
+                      : 0;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Serving Size',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.secondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        height: 46,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        alignment: Alignment.centerLeft,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color:
+                                AppColors.outlineVariant.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Text(
+                          perServingGrams > 0
+                              ? '~$perServingGrams g / serving'
+                              : '1 serving',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.onSurface,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
 
@@ -293,26 +583,144 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            TextButton.icon(
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add'),
-              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-              onPressed: _addIngredient,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.mic_rounded, size: 15),
+                  label: const Text('Rambler'),
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: _openRamblerRecipe,
+                ),
+                const SizedBox(width: 6),
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.qr_code_scanner_rounded, size: 15),
+                  label: const Text('Scan'),
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: _scanBarcode,
+                ),
+                const SizedBox(width: 6),
+                FilledButton.icon(
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Add'),
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: _addIngredient,
+                ),
+              ],
             ),
           ],
         ),
         ingredients.when(
           data: (list) {
             if (list.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Text(
-                  widget.isMeal
-                      ? 'No items added yet.'
-                      : 'No ingredients added yet.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.secondary,
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainer,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.outlineVariant.withValues(alpha: 0.35),
                   ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.restaurant_menu_rounded,
+                      size: 32,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.isMeal
+                          ? 'No Items in Meal Yet'
+                          : 'No Ingredients Yet',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Add ingredients by speaking with Rambler AI, scanning a barcode, or searching the catalogue.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        FilledButton.icon(
+                          icon: const Icon(Icons.mic_rounded, size: 16),
+                          label: const Text('Rambler AI'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF64B5F6),
+                            foregroundColor: Colors.black87,
+                            visualDensity: VisualDensity.compact,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                          ),
+                          onPressed: _openRamblerRecipe,
+                        ),
+                        FilledButton.tonalIcon(
+                          icon: const Icon(
+                            Icons.qr_code_scanner_rounded,
+                            size: 16,
+                          ),
+                          label: const Text('Scan Code'),
+                          style: FilledButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                          ),
+                          onPressed: _scanBarcode,
+                        ),
+                        FilledButton.tonalIcon(
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text('Add Food'),
+                          style: FilledButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                          ),
+                          onPressed: _addIngredient,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               );
             }
@@ -346,6 +754,7 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
         TextField(
           controller: _notes,
           maxLines: 3,
+          onChanged: (_) => _updateRecipeMetadata(),
           decoration: InputDecoration(
             hintText: 'Add instructions for making this meal…',
             hintStyle: theme.textTheme.bodyMedium?.copyWith(
@@ -919,334 +1328,6 @@ class _MacroPill extends StatelessWidget {
           fontSize: 10.5,
           fontWeight: FontWeight.w600,
           color: color,
-        ),
-      ),
-    );
-  }
-}
-
-class _IngredientPickerSheet extends ConsumerStatefulWidget {
-  const _IngredientPickerSheet();
-
-  @override
-  ConsumerState<_IngredientPickerSheet> createState() =>
-      _IngredientPickerSheetState();
-}
-
-class _IngredientPickerSheetState
-    extends ConsumerState<_IngredientPickerSheet> {
-  String? _query;
-  final _ctrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final queryText = (_query ?? '').trim();
-    final hasQuery = queryText.isNotEmpty;
-
-    return DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (_, controller) => Stack(
-        children: [
-          Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Add Ingredient',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton.icon(
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Custom Food'),
-                      onPressed: () async {
-                        final food = await CustomFoodFormSheet.show(context);
-                        if (food != null && context.mounted) {
-                          Navigator.of(context).pop(food);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: hasQuery
-                    ? _buildSearchResults(controller, theme, queryText)
-                    : _buildDefaultList(controller, theme),
-              ),
-            ],
-          ),
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: math.max(24.0, MediaQuery.paddingOf(context).bottom + 14.0),
-            child: _buildFloatingSearchBar(theme),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchResults(
-    ScrollController controller,
-    ThemeData theme,
-    String query,
-  ) {
-    final searchAsync = ref.watch(foodSearchProvider(query));
-    return searchAsync.when(
-      data: (list) {
-        if (list.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                'No foods found matching "$query".',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.secondary),
-              ),
-            ),
-          );
-        }
-        return ListView.separated(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
-          itemCount: list.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (_, i) => _buildFoodTile(list[i], theme),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-    );
-  }
-
-  Widget _buildDefaultList(ScrollController controller, ThemeData theme) {
-    final recentsAsync = ref.watch(recentlyLoggedFoodsProvider);
-    final allFoodsAsync = ref.watch(foodSearchProvider(null));
-
-    final recents = recentsAsync.asData?.value ?? [];
-    final allFoods = allFoodsAsync.asData?.value ?? [];
-
-    if (recentsAsync.isLoading && allFoodsAsync.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (recents.isEmpty && allFoods.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            'No foods found. Use the search bar below or create a custom food.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.secondary),
-          ),
-        ),
-      );
-    }
-
-    final recentIds = recents.map((f) => f.id).toSet();
-    final remainingFoods = allFoods
-        .where((f) => !recentIds.contains(f.id))
-        .toList();
-
-    return ListView(
-      controller: controller,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
-      children: [
-        // ── Most Frequent / Recent Foods ──
-        if (recents.isNotEmpty) ...[
-          _buildSectionHeader(
-            icon: Icons.history_rounded,
-            title: 'Frequently Used',
-            subtitle: 'Most common & recent',
-            iconColor: AppColors.primary,
-            theme: theme,
-          ),
-          for (final f in recents) ...[
-            _buildFoodTile(f, theme),
-            const Divider(height: 1),
-          ],
-          const SizedBox(height: 8),
-        ],
-
-        // ── All Foods ──
-        if (remainingFoods.isNotEmpty) ...[
-          _buildSectionHeader(
-            icon: Icons.restaurant_menu,
-            title: 'All Foods',
-            subtitle: 'Catalogue',
-            iconColor: AppColors.secondary,
-            theme: theme,
-          ),
-          for (final f in remainingFoods) ...[
-            _buildFoodTile(f, theme),
-            const Divider(height: 1),
-          ],
-        ],
-      ],
-    );
-  }
-
-  Widget _buildSectionHeader({
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    Color? iconColor,
-    required ThemeData theme,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(2, 10, 2, 8),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: iconColor ?? AppColors.primary),
-          const SizedBox(width: 6),
-          Text(
-            title,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.1,
-            ),
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(width: 6),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.secondary,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFoodTile(FoodData food, ThemeData theme) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(
-        food.name,
-        style: theme.textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      subtitle: Text(
-        '${food.kcalPer100g.toStringAsFixed(0)} kcal/100g · P: ${food.proteinPer100g.toStringAsFixed(1)}g · C: ${food.carbsPer100g.toStringAsFixed(1)}g · F: ${food.fatPer100g.toStringAsFixed(1)}g',
-        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
-      ),
-      trailing: Icon(Icons.add_circle_outline, color: AppColors.primary),
-      onTap: () => Navigator.of(context).pop(food),
-    );
-  }
-
-  Widget _buildFloatingSearchBar(ThemeData theme) {
-    final hx = context.hx;
-    final isDark = hx.isDark;
-    final hasQuery = _ctrl.text.isNotEmpty;
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color.alphaBlend(
-              hx.primary.withValues(alpha: isDark ? 0.16 : 0.08),
-              hx.surfaceContainer,
-            ),
-            Color.alphaBlend(
-              hx.primary.withValues(alpha: isDark ? 0.06 : 0.03),
-              isDark ? hx.surfaceContainerLowest : hx.surfaceVariant,
-            ),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: hx.primary.withValues(alpha: isDark ? 0.35 : 0.25),
-          width: 1.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: hx.primary.withValues(alpha: isDark ? 0.18 : 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-            spreadRadius: 0.5,
-          ),
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.40)
-                : Colors.black.withValues(alpha: 0.08),
-            blurRadius: isDark ? 14 : 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: _ctrl,
-        onChanged: (v) => setState(() => _query = v),
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: hx.onSurface,
-          fontWeight: FontWeight.w500,
-        ),
-        decoration: InputDecoration(
-          hintText: 'Search for a food or ingredient',
-          hintStyle: theme.textTheme.bodyMedium?.copyWith(
-            color: hx.secondary.withValues(alpha: 0.85),
-          ),
-          prefixIcon: Icon(Icons.search_rounded, size: 22, color: hx.primary),
-          suffixIcon: hasQuery
-              ? IconButton(
-                  icon: Icon(Icons.close, size: 20, color: hx.secondary),
-                  onPressed: () {
-                    _ctrl.clear();
-                    setState(() => _query = null);
-                  },
-                  tooltip: 'Clear',
-                )
-              : null,
-          filled: true,
-          fillColor: Colors.transparent,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(28),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(28),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(28),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
-          ),
         ),
       ),
     );

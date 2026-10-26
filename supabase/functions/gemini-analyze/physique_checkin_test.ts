@@ -37,6 +37,22 @@ Deno.test("imageConsentError accepts valid consent and ignores other kinds", () 
     imageConsentError({ kind: "dream_physique" }),
     "Confirm the current Dream Physique photo privacy notice before uploading images.",
   );
+  assertEquals(imageConsentError({ kind: "body_fat_estimate", images: [] }), null);
+  assertEquals(
+    imageConsentError({
+      kind: "body_fat_estimate",
+      images: [{ data: "abc", mimeType: "image/jpeg" }],
+    }),
+    "Confirm the current photo privacy notice before uploading body fat images.",
+  );
+  assertEquals(
+    imageConsentError({
+      kind: "body_fat_estimate",
+      images: [{ data: "abc", mimeType: "image/jpeg" }],
+      privacyConsent: consent,
+    }),
+    null,
+  );
 });
 
 Deno.test("normalizePhysiqueCheckinResult whitelists keys and clamps the band", () => {

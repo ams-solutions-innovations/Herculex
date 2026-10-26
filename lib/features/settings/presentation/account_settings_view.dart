@@ -115,7 +115,7 @@ class AccountSettingsView extends ConsumerWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Clear all data?'),
         content: const Text(
-          'This will permanently delete your profile, workouts, nutrition logs, and all other local data. This cannot be undone.',
+          'This will permanently delete your profile, workouts, nutrition logs, photos, and all other local data on this device. Your cloud account is untouched. This cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -134,9 +134,7 @@ class AccountSettingsView extends ConsumerWidget {
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    // Clearing the profile drops the user back to onboarding via the router
-    // redirect (which watches profileProvider).
-    await ref.read(localProfileRepositoryProvider).clear();
+    await ref.read(accountDeletionServiceProvider).clearAllLocalDataOnly();
   }
 
   @override

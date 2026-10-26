@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/domain/tdee_calibration_series.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
+import 'package:herculex/features/physique/presentation/physique_text.dart';
 import 'package:herculex/features/physique/presentation/widgets/chart_card_frame.dart';
 import 'package:herculex/features/physique/presentation/widgets/chart_style.dart';
 import 'package:intl/intl.dart';
@@ -19,12 +20,74 @@ Color calibrationMethodColor(HxColors hx, TdeeMethod method) =>
       TdeeMethod.coldStart => hx.onSurfaceVariant,
     };
 
-/// A rounded axis range around [lo]..[hi] with at least [minSpan] of height.
-({double min, double max}) _range(double lo, double hi, double minSpan) {
-  final pad = math.max((hi - lo) * 0.15, minSpan / 2);
-  final mid = (hi + lo) / 2;
-  final half = math.max((hi - lo) / 2 + pad, minSpan / 2);
-  return (min: mid - half, max: mid + half);
+/// Clean axis bounds where [min] and [max] are exact multiples of [interval],
+/// preventing `fl_chart` from drawing colliding min/max edge labels next to
+/// interior interval ticks.
+({double min, double max, double interval}) _niceAxis(
+  double lo,
+  double hi, {
+  required List<double> steps,
+  required double minPad,
+}) {
+  final span = math.max(hi - lo, 0.0);
+  // Small clearance so points on or near a grid line have breathing room
+  // without jumping an entire extra step when floor/ceil already adds padding.
+  final pad = math.max(span * 0.04, minPad);
+  final targetLo = lo - pad;
+  final targetHi = hi + pad;
+
+  for (final step in steps) {
+    var minVal = (targetLo / step).floorToDouble() * step;
+    var maxVal = (targetHi / step).ceilToDouble() * step;
+    if (maxVal - minVal < 2 * step) {
+      final mid = ((lo + hi) / 2 / step).roundToDouble() * step;
+      minVal = mid - step;
+      maxVal = mid + step;
+    }
+    final count = ((maxVal - minVal) / step).round();
+    if (count <= 4) {
+      return (min: minVal, max: maxVal, interval: step);
+    }
+  }
+
+  final fallback = steps.last;
+  final minVal = (targetLo / fallback).floorToDouble() * fallback;
+  final maxVal = math.max(
+    minVal + 2 * fallback,
+    (targetHi / fallback).ceilToDouble() * fallback,
+  );
+  return (min: minVal, max: maxVal, interval: fallback);
+}
+
+/// Clean zero-based axis where [max] is an exact 3x or 4x multiple of
+/// [interval], so calorie labels are always round numbers (e.g. 0, 1,000,
+/// 2,000, 3,000, 4,000) and never fractional thirds like 1,233 / 2,467.
+({double max, double interval}) _niceZeroAxis(double peak) {
+  const steps = <double>[200, 250, 500, 750, 1000, 1250, 1500, 2000, 2500];
+  final target = math.max(peak * 1.12, 600.0);
+  for (final step in steps) {
+    for (final divisions in const [3, 4]) {
+      final maxVal = divisions * step;
+      if (maxVal >= target) {
+        return (max: maxVal, interval: step);
+      }
+    }
+  }
+  final step = (target / 4 / 500).ceilToDouble() * 500;
+  return (max: step * 4, interval: step);
+}
+
+/// Up to 4 evenly-spaced integer day indices across `0..maxIndex` so X-axis
+/// date labels never overlap on either `LineChart` or `BarChart`.
+Set<int> _xTickIndices(int maxIndex) {
+  if (maxIndex <= 0) return const {0};
+  if (maxIndex <= 3) return {for (var i = 0; i <= maxIndex; i++) i};
+  return {
+    0,
+    (maxIndex / 3).round(),
+    (maxIndex * 2 / 3).round(),
+    maxIndex,
+  };
 }
 
 // ── Estimate history ─────────────────────────────────────────────────────────
@@ -81,11 +144,17 @@ class EstimateHistoryChart extends StatelessWidget {
         e.estimatedAt.difference(t0).inHours / 24.0;
     final spots = [for (final e in points) FlSpot(xOf(e), e.kcal.toDouble())];
     final kcals = points.map((e) => e.kcal.toDouble());
-    final yr = _range(kcals.reduce(math.min), kcals.reduce(math.max), 200);
-    final spanDays = math.max(spots.last.x, 1.0);
+    final yr = _niceAxis(
+      kcals.reduce(math.min),
+      kcals.reduce(math.max),
+      steps: const [50, 100, 200, 250, 500, 1000],
+      minPad: 50,
+    );
+    final spanDays = math.max(spots.last.x.ceilToDouble(), 1.0);
     final first = points.first.kcal;
     final last = points.last.kcal;
     final delta = last - first;
+    final bottomInterval = math.max((spanDays / 3).roundToDouble(), 1.0);
 
     return PhysiqueChartCard(
       title: 'Maintenance over time',
@@ -103,17 +172,27 @@ class EstimateHistoryChart extends StatelessWidget {
           maxX: spanDays,
           minY: yr.min,
           maxY: yr.max,
-          gridData: PhysiqueChartStyle.grid(context),
+          clipData: const FlClipData.all(),
+          gridData: PhysiqueChartStyle.grid(
+            context,
+            horizontalInterval: yr.interval,
+          ),
           borderData: PhysiqueChartStyle.noBorder,
-          titlesData: PhysiqueChartStyle.titles(
+          titlesData: _buildTitles(
             context,
             leftLabel: (v) => _ints.format(v.round()),
-            bottomLabel: (v) => DateFormat(
-              'd MMM',
-            ).format(t0.add(Duration(hours: (v * 24).round()))),
-            leftInterval: math.max(((yr.max - yr.min) / 3), 1),
-            bottomInterval: math.max(spanDays / 3, 1),
+            leftInterval: yr.interval,
             leftReserved: 48,
+            bottomInterval: bottomInterval,
+            bottomLabel: (v, meta) {
+              if ((v - meta.max).abs() > 1e-4 &&
+                  (meta.max - v) < bottomInterval * 0.5) {
+                return null;
+              }
+              return DateFormat(
+                'd MMM',
+              ).format(t0.add(Duration(hours: (v * 24).round())));
+            },
           ),
           lineTouchData: PhysiqueChartStyle.touch(
             context,
@@ -179,9 +258,16 @@ class WeightTrendChart extends StatelessWidget {
       ...series.weighIns.map((p) => p.y),
       ...series.trend.map((p) => p.y),
     ];
-    final yr = _range(ys.reduce(math.min), ys.reduce(math.max), 1.0);
+    final yr = _niceAxis(
+      ys.reduce(math.min),
+      ys.reduce(math.max),
+      steps: const [0.2, 0.5, 1.0, 1.5, 2.0, 2.5, 5.0, 10.0],
+      minPad: 0.2,
+    );
     final trendDelta = series.trend.last.y - series.trend.first.y;
     final sign = trendDelta > 0 ? '+' : '';
+    final maxIndex = math.max(series.days - 1, 1);
+    final ticks = _xTickIndices(maxIndex);
 
     return PhysiqueChartCard(
       title: 'Weight trend',
@@ -196,16 +282,26 @@ class WeightTrendChart extends StatelessWidget {
         duration: PhysiqueChartStyle.animationDuration(context),
         LineChartData(
           minX: 0,
-          maxX: (series.days - 1).toDouble(),
+          maxX: maxIndex.toDouble(),
           minY: yr.min,
           maxY: yr.max,
-          gridData: PhysiqueChartStyle.grid(context),
-          borderData: PhysiqueChartStyle.noBorder,
-          titlesData: _dayTitles(
+          clipData: const FlClipData.all(),
+          gridData: PhysiqueChartStyle.grid(
             context,
-            series,
+            horizontalInterval: yr.interval,
+          ),
+          borderData: PhysiqueChartStyle.noBorder,
+          titlesData: _buildTitles(
+            context,
             leftLabel: (v) => v.toStringAsFixed(1),
-            leftInterval: math.max((yr.max - yr.min) / 3, 0.1),
+            leftInterval: yr.interval,
+            leftReserved: 44,
+            bottomInterval: 1,
+            bottomLabel: (v, _) {
+              final idx = v.round();
+              if ((v - idx).abs() > 1e-3 || !ticks.contains(idx)) return null;
+              return DateFormat('d MMM').format(series.dateAt(idx.toDouble()));
+            },
           ),
           lineTouchData: PhysiqueChartStyle.touch(
             context,
@@ -220,6 +316,17 @@ class WeightTrendChart extends StatelessWidget {
               curveSmoothness: 0.2,
               barWidth: 3,
               color: hx.primary,
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    hx.primary.withValues(alpha: 0.14),
+                    hx.primary.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
               dotData: PhysiqueChartStyle.lastPointDot(
                 context,
                 color: hx.primary,
@@ -233,9 +340,10 @@ class WeightTrendChart extends StatelessWidget {
                 show: true,
                 getDotPainter: (spot, percent, bar, index) =>
                     FlDotCirclePainter(
-                      radius: 3,
+                      radius: 3.5,
                       color: hx.onSurfaceVariant,
-                      strokeWidth: 0,
+                      strokeWidth: 1.5,
+                      strokeColor: hx.surfaceContainerLowest,
                     ),
               ),
             ),
@@ -259,7 +367,7 @@ class IntakeChart extends StatelessWidget {
     final hx = context.hx;
     final legend = [
       ChartLegendItem(color: hx.domainNutrition, label: 'Logged day'),
-      ChartLegendItem(color: hx.outline, label: 'Average'),
+      ChartLegendItem(color: hx.onSurfaceVariant, label: 'Average'),
     ];
     const empty = 'Log your food and your daily intake shows up here.';
     final mean = series.meanIntake;
@@ -275,7 +383,12 @@ class IntakeChart extends StatelessWidget {
     }
 
     final top = series.intake.map((p) => p.y).reduce(math.max);
-    final maxY = (math.max(top, mean) * 1.15 / 100).ceilToDouble() * 100;
+    final axis = _niceZeroAxis(math.max(top, mean));
+    final byDay = <int, double>{
+      for (final p in series.intake) p.x.round(): p.y,
+    };
+    final maxIndex = math.max(series.days - 1, 0);
+    final ticks = _xTickIndices(maxIndex);
 
     return PhysiqueChartCard(
       title: 'Daily intake',
@@ -285,76 +398,142 @@ class IntakeChart extends StatelessWidget {
           '${series.intake.length} of ${series.days} days logged. Days '
           'without food are skipped, not counted as zero.',
       emptyText: empty,
-      plot: BarChart(
-        duration: PhysiqueChartStyle.animationDuration(context),
-        BarChartData(
-          minY: 0,
-          maxY: maxY,
-          alignment: BarChartAlignment.spaceBetween,
-          gridData: PhysiqueChartStyle.grid(context),
-          borderData: PhysiqueChartStyle.noBorder,
-          titlesData: _dayTitles(
-            context,
-            series,
-            leftLabel: (v) => _ints.format(v.round()),
-            leftInterval: maxY / 3,
-            leftReserved: 48,
-          ),
-          extraLinesData: ExtraLinesData(
-            horizontalLines: [
-              HorizontalLine(
-                y: mean,
-                color: hx.outline,
-                strokeWidth: 1.5,
-                dashArray: const [6, 4],
+      plot: LayoutBuilder(
+        builder: (context, constraints) {
+          final plotWidth = math.max(constraints.maxWidth - 48, 120.0);
+          final rodWidth = (plotWidth / math.max(series.days, 1) * 0.62).clamp(
+            4.0,
+            14.0,
+          );
+          return BarChart(
+            duration: PhysiqueChartStyle.animationDuration(context),
+            BarChartData(
+              minY: 0,
+              maxY: axis.max,
+              alignment: BarChartAlignment.spaceBetween,
+              gridData: PhysiqueChartStyle.grid(
+                context,
+                horizontalInterval: axis.interval,
               ),
-            ],
-          ),
-          barTouchData: BarTouchData(
-            touchTooltipData: BarTouchTooltipData(
-              getTooltipColor: (_) => hx.surfaceContainer,
-              getTooltipItem: (group, groupIndex, rod, rodIndex) => BarTooltipItem(
-                '${_ints.format(rod.toY.round())} kcal\n'
-                '${DateFormat('d MMM').format(series.dateAt(group.x.toDouble()))}',
-                TextStyle(color: hx.onSurface, fontWeight: FontWeight.w600),
+              borderData: PhysiqueChartStyle.noBorder,
+              titlesData: _buildTitles(
+                context,
+                leftLabel: (v) => _ints.format(v.round()),
+                leftInterval: axis.interval,
+                leftReserved: 48,
+                bottomInterval: 1,
+                bottomLabel: (v, _) {
+                  final idx = v.round();
+                  if (!ticks.contains(idx)) return null;
+                  return DateFormat(
+                    'd MMM',
+                  ).format(series.dateAt(idx.toDouble()));
+                },
               ),
-            ),
-          ),
-          barGroups: [
-            for (final p in series.intake)
-              BarChartGroupData(
-                x: p.x.round(),
-                barRods: [
-                  BarChartRodData(
-                    toY: p.y,
-                    width: math.max(3, 220 / series.days),
-                    color: hx.domainNutrition,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(3),
-                    ),
+              extraLinesData: ExtraLinesData(
+                extraLinesOnTop: true,
+                horizontalLines: [
+                  HorizontalLine(
+                    y: mean,
+                    color: hx.onSurfaceVariant.withValues(alpha: 0.75),
+                    strokeWidth: 1.5,
+                    dashArray: const [6, 4],
                   ),
                 ],
               ),
-          ],
-        ),
+              barTouchData: BarTouchData(
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipColor: (_) => hx.surfaceContainer,
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    if (!byDay.containsKey(group.x)) return null;
+                    return BarTooltipItem(
+                      '${_ints.format(rod.toY.round())} kcal\n'
+                      '${DateFormat('d MMM').format(series.dateAt(group.x.toDouble()))}',
+                      TextStyle(
+                        color: hx.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              barGroups: [
+                for (var i = 0; i < series.days; i++)
+                  BarChartGroupData(
+                    x: i,
+                    barRods: [
+                      BarChartRodData(
+                        toY: byDay[i] ?? 0,
+                        width: rodWidth,
+                        color: byDay.containsKey(i)
+                            ? hx.domainNutrition
+                            : Colors.transparent,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(3),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-FlTitlesData _dayTitles(
-  BuildContext context,
-  CalibrationSeries series, {
+FlTitlesData _buildTitles(
+  BuildContext context, {
   required String Function(double) leftLabel,
   required double leftInterval,
-  double leftReserved = 44,
+  required double leftReserved,
+  required double bottomInterval,
+  required String? Function(double, TitleMeta) bottomLabel,
 }) {
-  return PhysiqueChartStyle.titles(
-    context,
-    leftLabel: leftLabel,
-    bottomLabel: (v) => DateFormat('d MMM').format(series.dateAt(v)),
-    leftInterval: leftInterval,
-    bottomInterval: math.max((series.days / 3).floorToDouble(), 1),
-    leftReserved: leftReserved,
+  final style = PhysiqueText.label(context, color: context.hx.secondary);
+  return FlTitlesData(
+    topTitles: const AxisTitles(),
+    rightTitles: const AxisTitles(),
+    leftTitles: AxisTitles(
+      sideTitles: SideTitles(
+        showTitles: true,
+        reservedSize: leftReserved,
+        interval: leftInterval,
+        getTitlesWidget: (value, meta) {
+          if ((value - meta.min).abs() > 1e-4 &&
+              (value - meta.min) < leftInterval * 0.5) {
+            return const SizedBox.shrink();
+          }
+          if ((meta.max - value).abs() > 1e-4 &&
+              (meta.max - value) < leftInterval * 0.5) {
+            return const SizedBox.shrink();
+          }
+          return SideTitleWidget(
+            axisSide: meta.axisSide,
+            child: Text(leftLabel(value), style: style),
+          );
+        },
+      ),
+    ),
+    bottomTitles: AxisTitles(
+      sideTitles: SideTitles(
+        showTitles: true,
+        reservedSize: 30,
+        interval: bottomInterval,
+        getTitlesWidget: (value, meta) {
+          final text = bottomLabel(value, meta);
+          if (text == null) return const SizedBox.shrink();
+          return SideTitleWidget(
+            axisSide: meta.axisSide,
+            fitInside: SideTitleFitInsideData.fromTitleMeta(
+              meta,
+              distanceFromEdge: 0,
+            ),
+            child: Text(text, style: style),
+          );
+        },
+      ),
+    ),
   );
 }

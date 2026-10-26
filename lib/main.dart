@@ -7,6 +7,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:herculex/app/app.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/error/app_error_handler.dart';
+import 'package:herculex/core/storage/local_photo_store.dart';
 import 'package:herculex/core/utils/env.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
@@ -36,6 +37,7 @@ Future<void> main() async {
     tz.setLocalLocation(tz.getLocation(deviceTz.identifier));
   } catch (_) {}
   WearSyncService.initialize();
+  await LocalPhotoStore.initialize();
 
   // The widget channel carries inbound deep links (`openActiveWorkout`,
   // `openScanner`, ...) but its handler is only registered once

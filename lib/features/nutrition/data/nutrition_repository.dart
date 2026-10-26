@@ -311,6 +311,143 @@ class NutritionRepository {
         );
   }
 
+  /// Reuses an existing custom food with the same `'Rambler AI'` brand,
+  /// case-insensitive name, and macro profile within 0.2 per 100 g so repeated
+  /// AI meal/recipe logging does not pollute `foods` with identical duplicates.
+  Future<FoodData> findOrCreateRamblerFood({
+    required String name,
+    required double kcalPer100g,
+    double proteinPer100g = 0,
+    double carbsPer100g = 0,
+    double fatPer100g = 0,
+    double? servingGrams,
+    double? servingAmount,
+    String? servingUnit,
+    String? servingLabel,
+  }) async {
+    final trimmedName = name.trim();
+    final candidates =
+        await (_db.select(_db.foods)
+              ..where(
+                (t) =>
+                    t.isCustom.equals(true) &
+                    t.deletedAt.isNull() &
+                    t.brand.equals('Rambler AI'),
+              ))
+            .get();
+    final lowerName = trimmedName.toLowerCase();
+    for (final c in candidates) {
+      if (c.name.trim().toLowerCase() == lowerName &&
+          (c.kcalPer100g - kcalPer100g).abs() <= 0.5 &&
+          (c.proteinPer100g - proteinPer100g).abs() <= 0.2 &&
+          (c.carbsPer100g - carbsPer100g).abs() <= 0.2 &&
+          (c.fatPer100g - fatPer100g).abs() <= 0.2) {
+        return c;
+      }
+    }
+    return createCustomFood(
+      name: trimmedName,
+      brand: 'Rambler AI',
+      kcalPer100g: kcalPer100g,
+      proteinPer100g: proteinPer100g,
+      carbsPer100g: carbsPer100g,
+      fatPer100g: fatPer100g,
+      servingGrams: servingGrams,
+      servingAmount: servingAmount,
+      servingUnit: servingUnit,
+      servingLabel: servingLabel,
+    );
+  }
+
+  /// Atomically creates or updates a recipe and upserts its Rambler-parsed
+  /// ingredients inside a single SQLite transaction.
+  Future<int> saveRamblerRecipe({
+    int? existingRecipeId,
+    required String name,
+    required int servings,
+    String? notes,
+    required List<
+      ({
+        String name,
+        double kcalPer100g,
+        double proteinPer100g,
+        double carbsPer100g,
+        double fatPer100g,
+        double servingGrams,
+        double portionAmount,
+        String portionUnit,
+        String servingLabel,
+      })
+    >
+    ingredients,
+  }) {
+    return _db.transaction(() async {
+      final int targetRecipeId;
+      if (existingRecipeId != null) {
+        targetRecipeId = existingRecipeId;
+        await updateRecipe(
+          id: targetRecipeId,
+          name: name,
+          servings: servings,
+          notes: notes,
+        );
+      } else {
+        targetRecipeId = await createRecipe(
+          name: name,
+          servings: servings,
+          notes: notes,
+        );
+      }
+
+      final existingIngredients =
+          await (_db.select(_db.recipeIngredients)
+                ..where((t) => t.recipeId.equals(targetRecipeId)))
+              .get();
+      final byFoodId = {for (final ing in existingIngredients) ing.foodId: ing};
+
+      for (final item in ingredients) {
+        final food = await findOrCreateRamblerFood(
+          name: item.name,
+          kcalPer100g: item.kcalPer100g,
+          proteinPer100g: item.proteinPer100g,
+          carbsPer100g: item.carbsPer100g,
+          fatPer100g: item.fatPer100g,
+          servingGrams: item.servingGrams,
+          servingAmount: item.portionAmount,
+          servingUnit: item.portionUnit,
+          servingLabel: item.servingLabel,
+        );
+        final existing = byFoodId[food.id];
+        if (existing != null) {
+          await updateIngredient(id: existing.id, grams: item.servingGrams);
+        } else {
+          await addIngredient(
+            recipeId: targetRecipeId,
+            foodId: food.id,
+            grams: item.servingGrams,
+          );
+          final refreshed =
+              await (_db.select(_db.recipeIngredients)
+                    ..where(
+                      (t) =>
+                          t.recipeId.equals(targetRecipeId) &
+                          t.foodId.equals(food.id),
+                    )
+                    ..orderBy([
+                      (t) =>
+                          OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+                    ])
+                    ..limit(1))
+                  .getSingleOrNull();
+          if (refreshed != null) {
+            byFoodId[food.id] = refreshed;
+          }
+        }
+      }
+      return targetRecipeId;
+    });
+  }
+
   Future<void> removeIngredient(int id) async {
     await (_db.delete(
       _db.recipeIngredients,

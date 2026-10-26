@@ -794,9 +794,6 @@ double _estimateEntryAlcoholGrams(dynamic entry, double kcal, dynamic macros) {
     'schnapps',
     'sake',
     'soju',
-    'pivo',
-    'vino',
-    'žganje',
     'alcohol',
   ];
 

@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,7 +25,11 @@ class _FakeScheduledWorkoutService extends Fake
   PlannedSessionSnapshot? previewResult;
 
   @override
-  Future<int> startScheduledWorkoutById(int scheduleId, {int? gymId}) async {
+  Future<int> startScheduledWorkoutById(
+    int scheduleId, {
+    int? gymId,
+    bool allowEarly = false,
+  }) async {
     lastStartedScheduleId = scheduleId;
     startCalls++;
     return 999;

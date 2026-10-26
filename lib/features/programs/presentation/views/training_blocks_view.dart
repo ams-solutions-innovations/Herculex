@@ -478,7 +478,7 @@ class _PeriodNavigator extends ConsumerWidget {
     Haptics.light();
     final notifier = ref.read(selectedBlockDateProvider.notifier);
     notifier.state = mode == BlocksViewMode.week
-        ? date.add(Duration(days: 7 * direction))
+        ? DateTime(date.year, date.month, date.day + 7 * direction)
         : DateTime(date.year, date.month + direction, 1);
   }
 }

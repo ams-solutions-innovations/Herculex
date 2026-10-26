@@ -86,6 +86,11 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     Future<void>.microtask(() {
       ref.read(authRepositoryProvider).hydrate();
     });
+    Future<void>.microtask(() async {
+      try {
+        await ref.read(scheduledWorkoutServiceProvider).autoRepairDriftedSchedules();
+      } catch (_) {}
+    });
     WorkoutNotificationService.onNotificationTap = () {
       ref.read(mainTabIndexProvider.notifier).state = 2;
     };

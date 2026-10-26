@@ -151,6 +151,7 @@ final accountDeletionServiceProvider = Provider<AccountDeletionService>((ref) {
     authRepository: ref.watch(authRepositoryProvider),
     database: ref.watch(appDatabaseProvider),
     preferences: ref.watch(sharedPreferencesProvider),
+    localProfileRepository: ref.watch(localProfileRepositoryProvider),
   );
 });
 

@@ -100,12 +100,12 @@ void main() {
       'Permissions',
       'Notifications',
       'Preferences',
+      'Data & Library',
       'Account',
       'About & Attribution',
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
-    expect(find.text('Data & Library'), findsNothing);
   });
 
   testWidgets('hub shows the signed-in email under Account', (tester) async {

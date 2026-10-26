@@ -91,7 +91,11 @@ class MonthCalendar extends ConsumerWidget {
             ),
             itemCount: dayCount,
             itemBuilder: (context, i) {
-              final date = gridStart.add(Duration(days: i));
+              final date = DateTime(
+                gridStart.year,
+                gridStart.month,
+                gridStart.day + i,
+              );
               final iso = _iso(date);
               return _DayCell(
                 date: date,

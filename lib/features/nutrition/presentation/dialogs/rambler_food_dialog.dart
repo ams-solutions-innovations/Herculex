@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -49,6 +51,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
 
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
+  SpeechToTextService? _stt;
 
   @override
   void initState() {
@@ -70,12 +73,18 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
 
     // Pre-initialize STT
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(speechToTextServiceProvider).initialize();
+      if (!mounted) return;
+      _stt = ref.read(speechToTextServiceProvider);
+      _stt?.initialize();
     });
   }
 
   @override
   void dispose() {
+    final stt = _stt;
+    if (stt != null && stt.isListening) {
+      unawaited(stt.stopListening());
+    }
     _pulseCtrl.dispose();
     _focusNode.dispose();
     _textCtrl.dispose();
@@ -166,9 +175,8 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
       final repo = ref.read(nutritionRepositoryProvider);
 
       for (final item in _editableItems) {
-        final food = await repo.createCustomFood(
+        final food = await repo.findOrCreateRamblerFood(
           name: item.name,
-          brand: 'Rambler AI',
           kcalPer100g: item.kcalPer100g,
           proteinPer100g: item.proteinPer100g,
           carbsPer100g: item.carbsPer100g,
@@ -709,7 +717,11 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
             icon: const Icon(Icons.refresh, size: 16),
             label: const Text('Re-enter / Edit text'),
             onPressed: () {
-              setState(() => _result = null);
+              setState(() {
+                _result = null;
+                _editableItems = [];
+                _error = null;
+              });
             },
           ),
         ),

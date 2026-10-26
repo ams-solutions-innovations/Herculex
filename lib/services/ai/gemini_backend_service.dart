@@ -352,6 +352,11 @@ class SupabaseGeminiBackend
       'images': payloadImages,
       'biometrics': biometrics,
       'userNote': userNote,
+      if (payloadImages.isNotEmpty)
+        'privacyConsent': {
+          'version': dreamPhysiqueImageConsentVersion,
+          'granted': true,
+        },
     });
     return _resultMap(data);
   }

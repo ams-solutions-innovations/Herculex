@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/storage/local_photo_store.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -62,7 +63,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
           _loadingData = false;
           // Auto-select latest saved front photo if available
           if (photos.isNotEmpty) {
-            final first = File(photos.first.filePath);
+            final first = LocalPhotoStore.resolveSync(photos.first.filePath);
             if (first.existsSync()) {
               _currentFiles.add(first);
             }
@@ -201,7 +202,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
 
   void _toggleSavedPhoto(ProgressPhotoData photo) {
     Haptics.selection();
-    final file = File(photo.filePath);
+    final file = LocalPhotoStore.resolveSync(photo.filePath);
     final existingIndex = _currentFiles.indexWhere(
       (selected) => selected.path == file.path,
     );
@@ -554,7 +555,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final photo = _savedPhotos[index];
-                final file = File(photo.filePath);
+                final file = LocalPhotoStore.resolveSync(photo.filePath);
                 final isSelected = _currentFiles.any(
                   (f) => f.path == file.path,
                 );

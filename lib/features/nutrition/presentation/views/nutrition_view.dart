@@ -8,6 +8,7 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/hx_nav_bar.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/application/goals_providers.dart';
 import 'package:herculex/features/nutrition/application/meal_slots_provider.dart';
 import 'package:herculex/features/nutrition/application/nutrient_settings_provider.dart';
@@ -91,6 +92,15 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
     }
 
     final isToday = DateUtils.isSameDay(date, DateTime.now());
+    final showMicronutrients = ref.watch(micronutrientsVisibleProvider);
+    final totals =
+        ref.watch(dailyTotalsProvider(date)).asData?.value ?? DailyTotals.empty;
+    final hasMicros = showMicronutrients && totals.hasMicros;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final navBarTopInSafeArea = bottomInset > 0 ? 68.0 : 76.0;
+    final buttonBottom = hasMicros
+        ? (navBarTopInSafeArea + HxSpace.x2)
+        : (HxNavBar.clearance + 12);
 
     return Scaffold(
       body: SafeArea(
@@ -114,10 +124,12 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
                 ),
               ],
             ),
-            Positioned(
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
               left: 0,
               right: 0,
-              bottom: HxNavBar.clearance + 12,
+              bottom: buttonBottom,
               child: Center(
                 child: IgnorePointer(
                   ignoring: isToday,

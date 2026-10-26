@@ -199,8 +199,10 @@ final List<SyncTableSpec> syncTableSpecs = [
       SimpleFk(localColumn: 'gym_id', parentTable: 'gyms'),
       SimpleFk(localColumn: 'micro_workout_id', parentTable: 'micro_workouts'),
     ],
-    // Phone<->watch wire-protocol identity (v22) — unrelated to cloud sync.
-    localOnlyColumns: ['session_uuid'],
+    // Phone<->watch wire-protocol identity (v22) and local sandbox photo path
+    // — neither should sync across devices (remote devices do not have the
+    // local file on disk).
+    localOnlyColumns: ['session_uuid', 'photo_path'],
     dateTimeColumns: ['started_at', 'ended_at'],
   ),
   const SyncTableSpec('programs'),

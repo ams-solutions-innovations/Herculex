@@ -23,8 +23,6 @@ import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/physique/application/goal_target_provider.dart';
 import 'package:herculex/features/physique/presentation/save_goal_target.dart';
 import 'package:herculex/features/profile/data/local_profile_repository.dart';
-import 'package:herculex/features/programs/application/block_update_controller.dart';
-import 'package:herculex/features/programs/presentation/widgets/block_adjustment_card.dart';
 import 'package:herculex/features/profile/domain/greek_avatar.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/profile/presentation/widgets/activity_level_section.dart';
@@ -33,6 +31,9 @@ import 'package:herculex/features/profile/presentation/widgets/dream_physique_su
 import 'package:herculex/features/profile/presentation/widgets/greek_avatar_badge.dart';
 import 'package:herculex/features/profile/presentation/widgets/greek_avatar_picker_sheet.dart';
 import 'package:herculex/features/profile/presentation/widgets/sync_status_badge.dart';
+import 'package:herculex/features/programs/application/block_update_controller.dart';
+import 'package:herculex/features/programs/presentation/widgets/block_adjustment_card.dart';
+import 'package:herculex/features/settings/data/user_data_export_service.dart';
 import 'package:herculex/features/settings/presentation/sheets/auth_sheet.dart';
 import 'package:herculex/features/settings/presentation/sheets/sync_detail_sheet.dart';
 import 'package:herculex/features/settings/presentation/widgets/appearance_toggles.dart';

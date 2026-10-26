@@ -163,13 +163,13 @@ void main() {
     test('logging stopped: fresh -> held -> fallback (fixture L)', () async {
       final seed = MacroTargets.seedMaintenanceKcal(_profile)!.round();
 
-      // 1. First run with qualifying data stays pending on coldStart.
+      // 1. First run with qualifying data promotes immediately to observed.
       final r1 = await runOn(2026, 2, 15);
-      expect(r1!.method, TdeeMethod.coldStart);
+      expect(r1!.method, TdeeMethod.observed);
       expect(r1.observedQualified, isTrue);
       expect(await recalibrator.run(), isNull);
 
-      // 2. Seven days later the second qualifying run promotes.
+      // 2. Seven days later stays observed.
       final r2 = await runOn(2026, 2, 22);
       expect(r2!.method, TdeeMethod.observed);
       expect(r2.observedQualified, isTrue);
@@ -201,6 +201,20 @@ void main() {
       expect(await recalibrator.run(), isNull);
 
       expect((await rows()).length, 5);
+    });
+
+    test('upgrades a same-day coldStart row once qualifying logs arrive', () async {
+      clock.time = _noon(2026, 2, 15);
+      // App opened before logging: writes a coldStart row.
+      final initial = await recalibrator.run();
+      expect(initial!.method, TdeeMethod.coldStart);
+
+      // User logs 15 days of food and weight on the same day.
+      await logThrough(DateTime(2026, 2, 15));
+      final upgraded = await recalibrator.run();
+      expect(upgraded, isNotNull);
+      expect(upgraded!.method, TdeeMethod.observed);
+      expect(upgraded.confidence, TdeeConfidence.high);
     });
 
     test('force writes a row even on the same day', () async {

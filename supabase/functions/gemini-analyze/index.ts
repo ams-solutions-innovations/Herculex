@@ -192,16 +192,26 @@ const imageKinds = new Set<GeminiKind>(["dream_physique", "physique_checkin"]);
 /// Shared consent gate for every image-bearing physique kind. Returns the
 /// 400 message, or null when the request may proceed.
 export function imageConsentError(payload: GeminiRequest): string | null {
-  if (!payload.kind || !imageKinds.has(payload.kind)) return null;
+  const isBodyFatWithImages =
+    payload.kind === "body_fat_estimate" &&
+    Array.isArray(payload.images) &&
+    payload.images.length > 0;
+  if (!payload.kind || (!imageKinds.has(payload.kind) && !isBodyFatWithImages)) {
+    return null;
+  }
   if (
     payload.privacyConsent?.granted === true &&
     payload.privacyConsent.version === dreamPhysiqueConsentVersion
   ) {
     return null;
   }
-  return payload.kind === "dream_physique"
-    ? "Confirm the current Dream Physique photo privacy notice before uploading images."
-    : "Confirm the current photo privacy notice before uploading check-in images.";
+  if (payload.kind === "dream_physique") {
+    return "Confirm the current Dream Physique photo privacy notice before uploading images.";
+  }
+  if (isBodyFatWithImages) {
+    return "Confirm the current photo privacy notice before uploading body fat images.";
+  }
+  return "Confirm the current photo privacy notice before uploading check-in images.";
 }
 
 const canonicalProgrammingMuscleIds = new Set([
@@ -265,7 +275,11 @@ const canonicalDayStressRoleIds = new Set([
   "mixed",
 ]);
 
-Deno.serve(async (req) => {
+if (import.meta.main) {
+  Deno.serve(handleRequest);
+}
+
+async function handleRequest(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -633,7 +647,7 @@ Deno.serve(async (req) => {
       : "Herculex AI analysis failed. Please try again.";
     return json({ error: safeMessage }, 502);
   }
-});
+}
 
 // Dream Physique is the only image workflow whose output can later influence
 // programming. Validate and whitelist its response here instead of trusting a

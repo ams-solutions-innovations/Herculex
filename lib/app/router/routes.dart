@@ -39,6 +39,7 @@ abstract final class AppRoutes {
   // Fasting
   static const fasting = '/fasting';
   static const fastingSchedule = '/fasting/schedule';
+  static const fastingHistory = '/fasting/history';
 
   // Analytics
   static const insights = '/insights';
