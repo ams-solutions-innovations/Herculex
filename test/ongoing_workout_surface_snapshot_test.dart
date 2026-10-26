@@ -26,6 +26,23 @@ void main() {
       expect(snapshot.valueLabel, '82.5 kg x 8 reps');
     });
 
+    test('carries the target set RPE for the bubble pill', () {
+      OngoingWorkoutSurfaceSnapshot build(int? rpeX10) =>
+          buildOngoingWorkoutSurfaceSnapshot(
+            target: ActiveWorkoutNotificationTarget(
+              exerciseName: 'Bench Press',
+              set: _set(rpeX10: rpeX10),
+              totalSets: 3,
+            ),
+            formatWeight: _formatKg,
+            loadStepKg: 2.5,
+          );
+
+      expect(build(85).rpeLabel, '8.5');
+      expect(build(80).rpeLabel, '8');
+      expect(build(null).rpeLabel, isNull);
+    });
+
     test('builds expanded action labels from the configured load step', () {
       final snapshot = buildOngoingWorkoutSurfaceSnapshot(
         target: ActiveWorkoutNotificationTarget(

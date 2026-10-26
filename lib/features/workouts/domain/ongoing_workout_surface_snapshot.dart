@@ -12,6 +12,9 @@ class OngoingWorkoutSurfaceSnapshot {
   final double? weightKg;
   final String? weightLabel;
   final int? reps;
+
+  /// RPE of the target set, stored ×10 (85 = 8.5); null when not logged.
+  final int? rpeX10;
   final double loadStepKg;
   final String loadStepLabel;
   final List<OngoingWorkoutSurfaceAction> actions;
@@ -41,11 +44,16 @@ class OngoingWorkoutSurfaceSnapshot {
     required this.loadStepLabel,
     required this.actions,
     this.subtitle = '',
+    this.rpeX10,
     this.lastSetSummary,
     this.setNumber,
   });
 
   bool get isWarmup => setNumber?.isWarmup ?? false;
+
+  /// The target set's RPE for the bubble's RPE pill (`8.5`, `8`); null when
+  /// none is logged.
+  String? get rpeLabel => rpeX10 == null ? null : _formatRpe(rpeX10!);
 
   /// Compact number for the bubble's set pill: `W1`, `2`.
   String get setNumberShort =>
@@ -94,6 +102,7 @@ OngoingWorkoutSurfaceSnapshot buildOngoingWorkoutSurfaceSnapshot({
     weightKg: target?.set.weightKg,
     weightLabel: target == null ? null : formatWeight(target.set.weightKg),
     reps: target?.set.reps,
+    rpeX10: target?.set.rpeX10,
     loadStepKg: loadStepKg,
     loadStepLabel: loadStepLabel,
     actions: buildOngoingWorkoutSurfaceActions(loadStepLabel: loadStepLabel),
