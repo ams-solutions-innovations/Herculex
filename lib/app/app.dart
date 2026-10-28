@@ -80,6 +80,12 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   bool _appBackgrounded = false;
   bool _bubblePermissionGranted = false;
 
+  /// Bumped on every [_syncBubble] call. Syncs overlap — a set edit, the
+  /// target listener and the stats listener all fire for one write — and each
+  /// awaits a query, so an older one can finish last and push stale values.
+  /// Only the newest call is allowed to reach the native side.
+  int _bubbleSyncGeneration = 0;
+
   @override
   void initState() {
     super.initState();
@@ -384,6 +390,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     if (!WorkoutBubbleService.instance.isSupported) {
       return;
     }
+    final generation = ++_bubbleSyncGeneration;
     final sessionAsync = ref.read(activeSessionProvider);
     final visible = shouldShowWorkoutBubble(
       activeSession: sessionAsync,
@@ -401,7 +408,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     }
 
     final resolved = snapshot ?? await _surfaceSnapshotFor(session);
-    if (!mounted) {
+    if (!mounted || generation != _bubbleSyncGeneration) {
       return;
     }
     // An awaited query above can outlive the session it was started for.
@@ -437,7 +444,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
           ? weightFormat.formatValue(resolved.weightKg!)
           : '-',
       reps: resolved.reps != null ? '${resolved.reps}' : '-',
-      rpe: 'RPE',
+      rpe: resolved.rpeLabel ?? 'RPE',
       totalSetsText: setsText,
       tonnageText: tonnageText,
       lastSetText: resolved.lastSetSummary,
@@ -601,20 +608,26 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       return false;
     }
     final targetSet = target.set;
+    // Value edits go to the set the popup was showing, not whatever the
+    // target has become since — a "Done" a moment earlier moves the target
+    // on before the popup re-renders. Toggles need the current row, so a
+    // stale toggle is dropped instead; the resync then shows the real state.
+    final editSetId = targetSetId ?? targetSet.id;
+    final isStale = targetSetId != null && targetSetId != targetSet.id;
 
     if (actionId == 'edit_weight' && value != null) {
       final weightFormat = ref.read(weightFormatProvider);
       final parsed = double.tryParse(value.replaceAll(',', '.'));
       if (parsed != null && parsed >= 0) {
         final kg = weightFormat.toKg(parsed);
-        await repo.updateSet(setId: targetSet.id, weightKg: kg);
+        await repo.updateSet(setId: editSetId, weightKg: kg);
         await _syncWorkoutNotificationFor(session);
         return true;
       }
     } else if (actionId == 'edit_reps' && value != null) {
       final parsed = int.tryParse(value);
       if (parsed != null && parsed >= 0) {
-        await repo.updateSet(setId: targetSet.id, reps: parsed);
+        await repo.updateSet(setId: editSetId, reps: parsed);
         await _syncWorkoutNotificationFor(session);
         return true;
       }
@@ -622,14 +635,14 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       final parsed = double.tryParse(value.replaceAll(',', '.'));
       if (parsed != null && parsed >= 0) {
         final rpeX10 = (parsed * 10).round();
-        await repo.updateSet(setId: targetSet.id, rpeX10: rpeX10);
+        await repo.updateSet(setId: editSetId, rpeX10: rpeX10);
         await _syncWorkoutNotificationFor(session);
         return true;
       }
     } else if (actionId == 'toggle_warmup') {
       // Tapping the bubble's set number flips the target set between a
       // warmup and a working set — the same switch the set-type menu makes.
-      if (targetSet.id > 0) {
+      if (!isStale && targetSet.id > 0) {
         await repo.updateSet(
           setId: targetSet.id,
           isWarmup: !targetSet.isWarmup,
@@ -638,6 +651,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       }
       return true;
     } else if (actionId == 'complete_set') {
+      if (isStale) {
+        return true;
+      }
       final newCompleted = !targetSet.isCompleted;
       await repo.updateSet(setId: targetSet.id, isCompleted: newCompleted);
       await _syncWorkoutNotificationFor(session);
@@ -1057,6 +1073,14 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       ) {
         if (next.hasValue) {
           _syncNotification();
+        }
+      });
+      // Sets / volume in the bubble come from this stream, which emits after
+      // the target query a set edit triggers — without this the popup's
+      // totals lag one edit behind.
+      ref.listen(activeSessionStatsProvider(activeSession.id), (_, next) {
+        if (next.hasValue && _appBackgrounded) {
+          unawaited(_syncBubble());
         }
       });
     }
