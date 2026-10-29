@@ -136,7 +136,7 @@ void main() {
   });
 
   testWidgets(
-    'ProfileView renders sex dropdown, appearance, notifications, data and library',
+    'ProfileView renders sex picker, appearance, notifications, data and library',
     (tester) async {
       final profileContainer = await pump(
         tester,
@@ -144,19 +144,17 @@ void main() {
         profile: _profile,
       );
 
-      // Biological sex dropdown
+      // Biological sex row opens a bottom sheet
       expect(find.text('Biological sex'), findsOneWidget);
-      final sexDropdown = find.byType(PopupMenuButton<BiologicalSex>);
-      expect(sexDropdown, findsOneWidget);
-
-      await tester.tap(sexDropdown);
+      await tester.tap(find.text('Biological sex'));
       await tester.pumpAndSettle();
-      expect(find.text('Male'), findsOneWidget);
-      expect(find.text('Female'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Male'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Female'), findsOneWidget);
 
-      // Select Male to close popup menu
-      await tester.tap(find.text('Male'));
+      // Select Male to close the sheet
+      await tester.tap(find.widgetWithText(ListTile, 'Male'));
       await tester.pumpAndSettle();
+      expect(find.widgetWithText(ListTile, 'Female'), findsNothing);
 
       // App Appearance section
       expect(find.text('App Appearance'), findsOneWidget);
