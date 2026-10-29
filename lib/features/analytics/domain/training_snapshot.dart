@@ -125,12 +125,17 @@ class TrainingSnapshot {
     AppDatabase db, {
     DateTime? from,
     DateTime? until,
+    int? sessionId,
+    bool includeWarmups = false,
   }) async {
-    final bounded = from != null || until != null;
+    final bounded = from != null || until != null || sessionId != null;
     final sessions =
         await (db.select(db.workoutSessions)..where(
               (t) =>
                   t.deletedAt.isNull() &
+                  (sessionId == null
+                      ? const Constant(true)
+                      : t.id.equals(sessionId)) &
                   (from == null
                       ? const Constant(true)
                       : t.startedAt.isBiggerOrEqualValue(from)) &
@@ -222,7 +227,7 @@ class TrainingSnapshot {
 
     final resolved = <ResolvedSet>[];
     for (final set in setRows) {
-      if (!set.isCompleted || set.isWarmup) continue;
+      if (!set.isCompleted || (!includeWarmups && set.isWarmup)) continue;
       final we = weById[set.workoutExerciseId];
       if (we == null) continue;
       final session = sessionById[we.sessionId];

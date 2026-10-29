@@ -85,7 +85,7 @@ void main() {
           .insert(
             ScheduledWorkoutsCompanion.insert(
               dateIso: iso,
-              programDayId: dayId,
+              programDayId: Value(dayId),
             ),
           );
     }
@@ -98,7 +98,7 @@ void main() {
 
       final today = await svc.todaysWorkout();
       expect(today, isNotNull);
-      expect(today!.programDay.name, 'Leg Day');
+      expect(today!.programDay!.name, 'Leg Day');
       expect(today.exerciseCount, 2);
       expect(today.isDone, isFalse);
     });

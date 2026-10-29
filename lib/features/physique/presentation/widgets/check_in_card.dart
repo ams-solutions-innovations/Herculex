@@ -5,8 +5,6 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
-import 'package:herculex/design_system/components/hx_card.dart';
-import 'package:herculex/design_system/components/hx_pill.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/physique/application/physique_capture_providers.dart';
@@ -21,6 +19,7 @@ import 'package:herculex/features/physique/presentation/sheets/check_in_history_
 import 'package:herculex/features/physique/presentation/sheets/check_in_sheet.dart';
 import 'package:herculex/features/physique/presentation/widgets/load_state_views.dart';
 import 'package:herculex/features/physique/presentation/widgets/photo_thumbnail.dart';
+import 'package:herculex/features/physique/presentation/widgets/physique_design_kit.dart';
 import 'package:herculex/features/physique/presentation/widgets/verdict_block.dart';
 import 'package:herculex/services/ai/gemini_backend_service.dart';
 import 'package:intl/intl.dart';
@@ -51,51 +50,136 @@ class CheckInCard extends ConsumerWidget {
     final checkIns = checkInsAsync.asData?.value;
     final photos = photosAsync.asData?.value;
 
-    Widget body;
     if (goal == null || checkIns == null || photos == null) {
       final failed =
           goalAsync.hasError || checkInsAsync.hasError || photosAsync.hasError;
-      body = failed
-          ? PhysiqueLoadError(
-              onRetry: () {
-                ref.invalidate(physiqueGoalProvider(goalId));
-                ref.invalidate(physiqueCheckInsProvider(goalId));
-                ref.invalidate(physiquePhotosProvider(goalId));
-              },
-            )
-          : const PhysiqueLoading();
-    } else {
-      body = _Content(
-        goal: goal,
-        checkIns: checkIns,
-        photos: photos,
-        advancePromptVisible: advancePromptVisible,
-      );
-    }
-
-    return SizedBox(
-      width: double.infinity,
-      child: HxCard(
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: physiqueCard(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: HxSpace.x2,
-              runSpacing: HxSpace.x1,
-              children: [
-                Text(
-                  'Check-in',
-                  style: PhysiqueText.heading(context, color: hx.onSurface),
-                ),
-                const HxTextPill(label: 'Herculex AI'),
-              ],
+            Text(
+              'Check-in',
+              style: PhysiqueText.heading(context, color: hx.onSurface),
             ),
             const SizedBox(height: HxSpace.x4),
-            body,
+            if (failed)
+              PhysiqueLoadError(
+                onRetry: () {
+                  ref.invalidate(physiqueGoalProvider(goalId));
+                  ref.invalidate(physiqueCheckInsProvider(goalId));
+                  ref.invalidate(physiquePhotosProvider(goalId));
+                },
+              )
+            else
+              const PhysiqueLoading(),
           ],
         ),
+      );
+    }
+
+    final active = goal.status == 'active';
+    final hasBaseline = photos.any((p) => p.role == 'baseline');
+    final last = ref
+        .watch(physiqueLastCheckInAtProvider(goal.id))
+        .asData
+        ?.value;
+    final now = ref.watch(clockProvider).now();
+    final eligible =
+        !hasBaseline ||
+        CheckInCapPolicy.isEligible(now: now, lastCheckInAt: last);
+    final latest = checkIns.firstOrNull;
+    final onTrack =
+        latest != null &&
+        CheckInVerdict.fromWire(latest.verdict) == CheckInVerdict.onTrack;
+    final next = eligible ? null : CheckInCapPolicy.nextEligibleDate(last);
+
+    final (IconData icon, Color tint, String title, String sub) = !active
+        ? (
+            Icons.photo_library_outlined,
+            hx.secondary,
+            'Check-ins',
+            '${checkIns.length} ${checkIns.length == 1 ? 'check-in' : 'check-ins'} · Herculex AI',
+          )
+        : !hasBaseline
+        ? (
+            Icons.add_a_photo_outlined,
+            hx.primaryText,
+            'Set your baseline',
+            'One photo so Herculex AI has something to compare with',
+          )
+        : eligible
+        ? (
+            Icons.photo_camera_outlined,
+            hx.primaryText,
+            'Check-in ready',
+            'Front, side and back photo + weigh-in',
+          )
+        : (
+            onTrack ? Icons.check_circle_rounded : Icons.schedule_rounded,
+            onTrack ? hx.success : hx.secondary,
+            'Checked in',
+            'Next check-in ${DateFormat('EEE d MMM').format(next!)}',
+          );
+    final border = active && eligible
+        ? hx.primary.withValues(alpha: 0.45)
+        : onTrack
+        ? hx.success.withValues(alpha: 0.35)
+        : hx.outlineVariant;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: physiqueCard(context, border: border),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: tint.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, size: 22, color: tint),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      sub,
+                      style: TextStyle(
+                        color: hx.secondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _Content(
+            goal: goal,
+            checkIns: checkIns,
+            photos: photos,
+            advancePromptVisible: advancePromptVisible,
+          ),
+        ],
       ),
     );
   }
@@ -417,8 +501,12 @@ class _ActionButton extends ConsumerWidget {
     final eligible =
         !hasBaseline ||
         CheckInCapPolicy.isEligible(now: now, lastCheckInAt: last);
-    final label = hasBaseline ? 'Add check-in' : 'Add baseline photo';
+    final label = hasBaseline ? 'Weekly check-in' : 'Add baseline photo';
     void open() => CheckInSheet.show(context, goal: goal);
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+    );
+    const text = TextStyle(fontSize: 15, fontWeight: FontWeight.w800);
 
     if (!eligible) {
       final next = CheckInCapPolicy.nextEligibleDate(last)!;
@@ -431,11 +519,13 @@ class _ActionButton extends ConsumerWidget {
         excludeSemantics: true,
         child: SizedBox(
           width: double.infinity,
+          height: 50,
           child: FilledButton.icon(
             onPressed: null,
             style: FilledButton.styleFrom(
               disabledForegroundColor: hx.onSurfaceVariant,
               disabledBackgroundColor: hx.surfaceVariant,
+              shape: shape,
             ),
             icon: const Icon(Icons.schedule_rounded, size: 20),
             label: Text(
@@ -446,11 +536,23 @@ class _ActionButton extends ConsumerWidget {
         ),
       );
     }
+    const icon = Icon(Icons.photo_camera_outlined, size: 20);
     return SizedBox(
       width: double.infinity,
+      height: 50,
       child: advancePromptVisible
-          ? OutlinedButton(onPressed: open, child: Text(label))
-          : FilledButton(onPressed: open, child: Text(label)),
+          ? OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(shape: shape, textStyle: text),
+              onPressed: open,
+              icon: icon,
+              label: Text(label),
+            )
+          : FilledButton.icon(
+              style: FilledButton.styleFrom(shape: shape, textStyle: text),
+              onPressed: open,
+              icon: icon,
+              label: Text(label),
+            ),
     );
   }
 }

@@ -26,8 +26,36 @@ class PlannedWorkoutPreviewData {
 /// alone — matching [sessionSummaryProvider]'s pattern for a route-pushed
 /// detail view. Reuses [ScheduledWorkoutService] end-to-end rather than
 /// re-deriving plan resolution or the "started" check.
+final plannedWorkoutRevisionProvider = StreamProvider.autoDispose<int>((
+  ref,
+) async* {
+  final db = ref.watch(appDatabaseProvider);
+  var revision = 0;
+  await for (final _
+      in db
+          .customSelect(
+            'SELECT 1',
+            readsFrom: {
+              db.scheduledWorkouts,
+              db.programDayExercises,
+              db.programDays,
+              db.programWeeks,
+              db.templateExercises,
+              db.templateSets,
+              db.trainingCoachingOverrides,
+              db.trainingCoachingProposals,
+              db.adaptationOverrides,
+              db.adaptationProposals,
+            },
+          )
+          .watch()) {
+    yield revision++;
+  }
+});
+
 final plannedWorkoutPreviewProvider = FutureProvider.autoDispose
     .family<PlannedWorkoutPreviewData?, int>((ref, scheduleId) async {
+      ref.watch(plannedWorkoutRevisionProvider);
       final service = ref.watch(scheduledWorkoutServiceProvider);
       final today = await service.workoutForSchedule(scheduleId);
       if (today == null) return null;

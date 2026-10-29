@@ -246,12 +246,12 @@ void main() {
     );
     await settle(tester, frames: 36);
 
-    expect(find.text('Workout Complete'), findsOneWidget);
+    expect(find.text('Workout complete'), findsOneWidget);
     expect(find.textContaining('Leg day'), findsWidgets);
     // The headline numbers are on the page; the share card is not.
-    expect(find.text('Time'), findsOneWidget);
-    expect(find.text('Volume'), findsOneWidget);
-    expect(find.text('Sets'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('TOTAL VOLUME'), findsOneWidget);
+    expect(find.text('SETS'), findsOneWidget);
     expect(find.text('Share'), findsOneWidget);
     expect(find.text('More details'), findsOneWidget);
     expect(find.text('WORKOUT PHOTO'), findsNothing);

@@ -1,14 +1,18 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/core/storage/local_photo_store.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/hx_top_tabs.dart';
+import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
@@ -16,11 +20,13 @@ import 'package:herculex/features/gamification/application/gamification_provider
 import 'package:herculex/features/health/application/health_providers.dart';
 import 'package:herculex/features/programs/domain/session_completion.dart';
 import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
+import 'package:herculex/features/training_coaching/presentation/widgets/training_coaching_panel.dart';
 import 'package:herculex/features/workout_report/application/workout_report_providers.dart';
 import 'package:herculex/features/workout_report/presentation/workout_report_card.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/circuit_stats.dart';
 import 'package:herculex/features/workouts/domain/session_summary.dart';
+import 'package:herculex/features/workouts/presentation/widgets/fullscreen_workout_kit.dart';
 import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -29,6 +35,7 @@ import 'package:share_plus/share_plus.dart';
 
 part 'workout_finish_view/_cards.part.dart';
 part 'workout_finish_view/_photo.part.dart';
+part 'workout_finish_view/_share.part.dart';
 part 'workout_finish_view/_summary.part.dart';
 
 /// Background options for the shareable card (§2).
@@ -259,86 +266,138 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hx = context.hx;
     final summaryAsync = ref.watch(sessionSummaryProvider(widget.sessionId));
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: SafeArea(
-        child: summaryAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e')),
-          data: (s) => Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 440),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _staggered(0, _finishHeader(s, theme)),
-                          const SizedBox(height: 20),
-                          _staggered(
-                            1,
-                            _FinishStats(
-                              summary: s,
-                              sessionId: widget.sessionId,
-                              weightFormat: ref.watch(weightFormatProvider),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _staggered(
-                            2,
-                            WorkoutReportCard(sessionId: widget.sessionId),
-                          ),
-                          const SizedBox(height: 16),
-                          _staggered(3, _detailsSection(s, theme)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              _staggered(
-                4,
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                  child: SizedBox(
-                    height: 52,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size.fromHeight(52),
-                            ),
-                            onPressed: _sharing
-                                ? null
-                                : () => _openSharePreview(s),
-                            icon: const Icon(Icons.ios_share_rounded),
-                            label: const Text('Share'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: FilledButton(
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size.fromHeight(52),
-                            ),
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Done'),
-                          ),
-                        ),
+      backgroundColor: hx.background,
+      body: summaryAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error: $e')),
+        data: (s) => Stack(
+          children: [
+            Positioned(
+              left: -60,
+              right: -60,
+              top: 0,
+              height: 420,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: const Alignment(0, -0.4),
+                      colors: [
+                        hx.primary.withValues(alpha: 0.22),
+                        hx.primary.withValues(alpha: 0),
                       ],
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+            SafeArea(
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 440),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _staggered(0, _finishHeader(s, theme)),
+                              const SizedBox(height: 22),
+                              _staggered(
+                                1,
+                                _VolumeCard(
+                                  summary: s,
+                                  sessionId: widget.sessionId,
+                                  weightFormat: ref.watch(weightFormatProvider),
+                                ),
+                              ),
+                              if (s.achievements.isNotEmpty) ...[
+                                const SizedBox(height: 26),
+                                _staggered(
+                                  2,
+                                  _RecordsSection(achievements: s.achievements),
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                              _staggered(
+                                3,
+                                WorkoutReportCard(sessionId: widget.sessionId),
+                              ),
+                              TrainingCoachingPanel(
+                                sessionId: widget.sessionId,
+                              ),
+                              const SizedBox(height: 16),
+                              _staggered(4, _detailsSection(s, theme)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  _staggered(5, _bottomBar(s)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Share and Done, over a fade so the scrolling content slides under.
+  Widget _bottomBar(SessionSummary s) {
+    final hx = context.hx;
+    final shape = RoundedRectangleBorder(borderRadius: HxRadius.lgAll);
+    const label = TextStyle(fontSize: 16, fontWeight: FontWeight.w800);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: const [0, 0.3],
+          colors: [hx.background.withValues(alpha: 0), hx.background],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(56),
+                  foregroundColor: hx.onSurface,
+                  side: BorderSide(color: hx.outline),
+                  shape: shape,
+                  textStyle: label,
+                ),
+                onPressed: _sharing ? null : () => _openSharePreview(s),
+                icon: const Icon(Icons.ios_share_rounded),
+                label: const Text('Share'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 2,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(56),
+                  backgroundColor: hx.primary,
+                  foregroundColor: hx.onPrimary,
+                  shape: shape,
+                  textStyle: label,
+                ),
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Done'),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -347,29 +406,30 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
   Widget _finishHeader(SessionSummary summary, ThemeData theme) => Column(
     children: [
       _Burst(controller: _intro),
-      const SizedBox(height: 8),
+      const SizedBox(height: 14),
       Text(
-        'Workout Complete',
+        'Workout complete',
         textAlign: TextAlign.center,
-        style: theme.textTheme.headlineMedium?.copyWith(
-          fontWeight: FontWeight.w800,
-        ),
+        style: theme.textTheme.displayLarge?.copyWith(letterSpacing: -0.8),
       ),
       const SizedBox(height: 4),
       Text(
-        '${summary.name} · ${DateFormat('d MMMM').format(summary.startedAt)}',
+        '${summary.name} · ${DateFormat('EEEE, d MMMM').format(summary.startedAt)}',
         textAlign: TextAlign.center,
-        style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: context.hx.secondary,
+          fontSize: 13.5,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     ],
   );
 
   Widget _detailsSection(SessionSummary summary, ThemeData theme) => Container(
     decoration: BoxDecoration(
-      color: AppColors.surfaceContainerLowest,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: HxRadius.lgAll,
       border: Border.all(
-        color: AppColors.outlineVariant.withValues(alpha: 0.32),
+        color: context.hx.outlineVariant.withValues(alpha: 0.6),
       ),
     ),
     child: ExpansionTile(
@@ -378,25 +438,50 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
       childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
       shape: const RoundedRectangleBorder(),
       collapsedShape: const RoundedRectangleBorder(),
-      leading: Icon(Icons.tune_rounded, color: AppColors.primary, size: 20),
+      leading: Icon(
+        Icons.tune_rounded,
+        color: context.hx.primaryText,
+        size: 20,
+      ),
       title: Text(
         'More details',
         style: theme.textTheme.titleSmall?.copyWith(
           fontWeight: FontWeight.w700,
+          fontSize: 14,
         ),
       ),
       subtitle: Text(
-        'Photo, health sync and circuits',
-        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+        'Photo, health sync, ≈${summary.caloriesBurned} kcal',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: context.hx.secondary,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       children: [
+        ListTile(
+          leading: Icon(
+            Icons.local_fire_department_outlined,
+            color: context.hx.primaryText,
+          ),
+          title: Text('≈${summary.caloriesBurned} kcal'),
+          subtitle: const Text(
+            'Active energy estimate. Work and brief recovery count separately; '
+            'resting calories are excluded. Estimates are rounded down.',
+          ),
+        ),
         _PhotoSection(
           summary: summary,
           onPick: _pickPhoto,
           onRemove: _removePhoto,
         ),
         const SizedBox(height: 12),
-        _healthSyncCard(summary, theme),
+        _HealthSyncCard(
+          summary: summary,
+          syncing: _syncingHealth,
+          synced: _healthSyncSuccess == true,
+          onSync: () => _syncToHealth(summary),
+        ),
         _circuitsSummarySection(widget.sessionId, theme),
       ],
     ),
@@ -427,91 +512,6 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
       },
       loading: () => const SizedBox.shrink(),
       error: (e, st) => const SizedBox.shrink(),
-    );
-  }
-
-  Widget _healthSyncCard(SessionSummary s, ThemeData theme) {
-    final isSynced = _healthSyncSuccess == true;
-
-    return Container(
-      width: 320,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isSynced
-              ? const Color(0xFF30D158).withValues(alpha: 0.4)
-              : AppColors.outlineVariant.withValues(alpha: 0.25),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color:
-                  (isSynced ? const Color(0xFF30D158) : const Color(0xFF4285F4))
-                      .withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              isSynced ? Icons.check_circle_rounded : Icons.favorite_rounded,
-              color: isSynced
-                  ? const Color(0xFF30D158)
-                  : const Color(0xFF4285F4),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Health Connect / Samsung Health',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  isSynced
-                      ? 'Synced (${s.caloriesBurned} kcal)'
-                      : '${s.caloriesBurned} kcal · ${s.durationLabel}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: isSynced
-                        ? const Color(0xFF30D158)
-                        : AppColors.secondary,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          TextButton(
-            onPressed: _syncingHealth ? null : () => _syncToHealth(s),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              visualDensity: VisualDensity.compact,
-            ),
-            child: _syncingHealth
-                ? const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(
-                    isSynced ? 'Retry' : 'Sync',
-                    style: TextStyle(
-                      color: isSynced ? AppColors.secondary : AppColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-          ),
-        ],
-      ),
     );
   }
 

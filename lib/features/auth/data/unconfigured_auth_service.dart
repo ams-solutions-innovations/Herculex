@@ -48,6 +48,10 @@ class UnconfiguredAuthService implements AuthProviderService {
   Future<void> sendPasswordReset(String email) async =>
       throw UnsupportedError(_message);
 
+  @override
+  Future<void> updatePassword(String newPassword) async =>
+      throw UnsupportedError(_message);
+
   /// Signing out of nothing is a no-op, not an error — `signOut()` runs on
   /// paths that must not throw (e.g. clearing local state).
   @override

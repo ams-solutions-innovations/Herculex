@@ -7,8 +7,11 @@ import 'package:herculex/core/utils/failures.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_biomechanics.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
+import 'package:herculex/features/training_coaching/data/workout_behavior_repository.dart';
 import 'package:herculex/features/workout_report/data/workout_report_journal.dart';
 import 'package:herculex/features/workout_report/data/workout_report_repository.dart';
+import 'package:herculex/features/workouts/data/exercise_history_repository.dart';
+import 'package:herculex/features/workouts/data/workout_energy_service.dart';
 import 'package:herculex/features/workouts/domain/active_workout_notification_target.dart';
 import 'package:herculex/features/workouts/domain/calisthenics_set_plan.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
@@ -160,7 +163,10 @@ class WorkoutsRepository {
   final AppDatabase _db;
   final Clock _clock;
 
-  WorkoutsRepository(this._db, this._clock);
+  final Future<int> Function(WorkoutSessionData session, DateTime end)?
+  calorieEstimator;
+
+  WorkoutsRepository(this._db, this._clock, {this.calorieEstimator});
 
   // ── Exercise catalog ───────────────────────────────────────────────────
 
@@ -564,15 +570,25 @@ class WorkoutsRepository {
           .write(WorkoutSessionsCompanion(name: Value(autoName)));
     }
 
+    final resolvedEnd = endedAt ?? _clock.now();
+    final resolvedCalories =
+        caloriesBurned ??
+        (session == null
+            ? 0
+            : calorieEstimator != null
+            ? await calorieEstimator!(session, resolvedEnd)
+            : (await WorkoutEnergyService(
+                _db,
+                _clock,
+              ).estimate(session: session, endedAt: resolvedEnd)).activeKcal);
+
     await (_db.update(
       _db.workoutSessions,
     )..where((t) => t.id.equals(sessionId))).write(
       WorkoutSessionsCompanion(
-        endedAt: Value(endedAt ?? _clock.now()),
+        endedAt: Value(resolvedEnd),
         sessionRpe: Value(sessionRpe),
-        caloriesBurned: caloriesBurned != null
-            ? Value(caloriesBurned)
-            : const Value.absent(),
+        caloriesBurned: Value(resolvedCalories),
         photoPath: photoPath != null ? Value(photoPath) : const Value.absent(),
       ),
     );
@@ -584,6 +600,7 @@ class WorkoutsRepository {
         .write(const ScheduledWorkoutsCompanion(status: Value('done')));
     try {
       await WorkoutReportRepository(_db, _clock).generate(sessionId);
+      await WorkoutBehaviorRepository(_db, _clock).capture(sessionId);
     } catch (_) {
       // Report retries when the finish screen or history opens.
     }
@@ -612,6 +629,21 @@ class WorkoutsRepository {
       _db.workoutSessions,
     )..where((t) => t.id.equals(sessionId))).getSingleOrNull();
     await _db.transaction(() async {
+      await ExerciseHistoryRepository(_db, _clock).forgetSession(sessionId);
+      final coaching = await (_db.select(
+        _db.trainingCoachingProposals,
+      )..where((p) => p.sourceSessionId.equals(sessionId))).get();
+      if (coaching.isNotEmpty) {
+        await (_db.delete(
+          _db.trainingCoachingOverrides,
+        )..where((o) => o.proposalId.isIn(coaching.map((p) => p.id)))).go();
+        await (_db.delete(
+          _db.trainingCoachingProposals,
+        )..where((p) => p.sourceSessionId.equals(sessionId))).go();
+      }
+      await (_db.delete(
+        _db.workoutBehaviorSnapshots,
+      )..where((s) => s.sessionId.equals(sessionId))).go();
       await (_db.delete(
         _db.workoutReports,
       )..where((r) => r.sessionId.equals(sessionId))).go();
@@ -808,6 +840,7 @@ class WorkoutsRepository {
       throw NotFoundFailure('No exercise in the catalogue with id $exerciseId');
     }
 
+    await WorkoutReportJournal(_db, _clock).capture(sessionId);
     final workoutExerciseId = await _db
         .into(_db.workoutExercises)
         .insert(
@@ -877,6 +910,10 @@ class WorkoutsRepository {
           );
     }
 
+    await WorkoutReportJournal(
+      _db,
+      _clock,
+    ).forExercise(workoutExerciseId, 'add_exercise');
     return workoutExerciseId;
   }
 
@@ -1193,9 +1230,10 @@ class WorkoutsRepository {
                 ..where((t) => t.completedSessionId.equals(we.sessionId)))
               .getSingleOrNull();
       if (schedule == null) return;
-      final day = await (_db.select(
-        _db.programDays,
-      )..where((t) => t.id.equals(schedule.programDayId))).getSingleOrNull();
+      final day =
+          await (_db.select(_db.programDays)
+                ..where((t) => t.id.equals(schedule.programDayId ?? -1)))
+              .getSingleOrNull();
       final effectiveTemplateId =
           schedule.templateIdOverride ?? day?.templateId;
       if (effectiveTemplateId == null) return;

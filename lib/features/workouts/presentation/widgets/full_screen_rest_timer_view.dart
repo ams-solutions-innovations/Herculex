@@ -4,25 +4,40 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
-import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
 import 'package:herculex/features/workouts/application/workout_target_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/set_numbering.dart';
+import 'package:herculex/features/workouts/domain/superset_tags.dart';
+import 'package:herculex/features/workouts/presentation/widgets/fullscreen_workout_kit.dart';
 
-/// Full-screen countdown view for rest periods during live workouts.
+part 'full_screen_rest_timer_view/_pieces.part.dart';
+
+/// Full-screen countdown between sets: a big ring, quick adjustments, what
+/// comes next, and the effort of the set just done.
+///
+/// [restDone] keeps the screen up after the countdown ran out, turned green,
+/// until the lifter taps "Start next set".
 class FullScreenRestTimerView extends ConsumerWidget {
   final WorkoutSessionData session;
   final RestTimerState restTimer;
+  final bool restDone;
   final ExerciseCatalogData? currentExercise;
   final WorkoutExerciseData currentWe;
   final List<WorkoutExerciseData> exercises;
   final List<SetEntryData> currentSets;
-  final int activeSetIndex;
+
+  /// The set the rest follows, read fresh so a just-saved RPE shows.
   final SetEntryData? lastCompletedSet;
+  final ExerciseCatalogData? lastCompletedExercise;
+
+  /// `set 3` / `warm-up 1` — where [lastCompletedSet] sits in its exercise.
+  final String? lastCompletedSetLabel;
   final VoidCallback onMinimize;
+  final VoidCallback onStartNext;
   final Future<void> Function(SetEntryData set) onOpenRpe;
   final VoidCallback? onFinishWorkout;
 
@@ -30,672 +45,402 @@ class FullScreenRestTimerView extends ConsumerWidget {
     super.key,
     required this.session,
     required this.restTimer,
+    this.restDone = false,
     required this.currentExercise,
     required this.currentWe,
     required this.exercises,
     required this.currentSets,
-    required this.activeSetIndex,
     this.lastCompletedSet,
+    this.lastCompletedExercise,
+    this.lastCompletedSetLabel,
     required this.onMinimize,
+    required this.onStartNext,
     required this.onOpenRpe,
     this.onFinishWorkout,
   });
 
-  String _fmtSeconds(int totalSeconds) {
-    if (totalSeconds < 0) totalSeconds = 0;
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  /// `1:04` — minutes are not padded, matching the workout header.
+  static String format(int totalSeconds) {
+    final s = totalSeconds < 0 ? 0 : totalSeconds;
+    return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final hx = context.hx;
     final now = ref.watch(clockProvider).now();
-    final remaining = restTimer.remainingSecondsFrom(now);
-    final progress = restTimer.progressFrom(now).clamp(0.0, 1.0);
-    final weightFmt = ref.watch(weightFormatProvider);
+    final remaining = restDone ? 0 : restTimer.remainingSecondsFrom(now);
+    final target = restTimer.targetSeconds;
+    final timeUp = restDone || (restTimer.isRunning && remaining <= 0);
+    final ringColor = timeUp ? hx.success : hx.primary;
 
-    // Identify next set / exercise details for "Up Next" preview
-    final nextUncompletedSet = currentSets.firstWhereOrNull(
-      (s) => !s.isCompleted,
-    );
-    final bool hasUpcomingSetInSameEx = nextUncompletedSet != null;
-
-    final catalog =
-        ref
-            .watch(exerciseCatalogProvider(const ExerciseCatalogFilter()))
-            .asData
-            ?.value ??
-        const [];
-
-    WorkoutExerciseData? nextExerciseWe;
-    ExerciseCatalogData? nextExerciseCatalog;
-    if (!hasUpcomingSetInSameEx) {
-      final currentExIdx = exercises.indexWhere((e) => e.id == currentWe.id);
-      if (currentExIdx >= 0 && currentExIdx < exercises.length - 1) {
-        nextExerciseWe = exercises[currentExIdx + 1];
-        nextExerciseCatalog = catalog.firstWhereOrNull(
-          (e) => e.id == nextExerciseWe?.exerciseId,
-        );
-      }
-    }
-
-    final bool isWorkoutComplete =
-        !hasUpcomingSetInSameEx && nextExerciseWe == null;
-
-    // Set numbers
-    final setNumbers = numberSets(currentSets);
-    final nextSetNumber = nextUncompletedSet != null
-        ? setNumbers[currentSets.indexOf(nextUncompletedSet)]
-        : null;
-
-    final targets = ref.watch(workoutTargetsProvider(currentWe.id)).valueOrNull;
-    final nextTarget = (nextUncompletedSet != null && targets != null)
-        ? targets[nextUncompletedSet.id]
-        : null;
+    final upNext = _upNext(context, ref);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── Top Navigation / Control Bar ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 16, 4),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.35),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.timer_outlined,
-                          color: AppColors.primary,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'REST COUNTDOWN',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                      ],
-                    ),
+      backgroundColor: hx.background,
+      body: Stack(
+        children: [
+          Positioned(
+            left: -80,
+            right: -80,
+            top: 40,
+            height: 480,
+            child: IgnorePointer(
+              child: AnimatedContainer(
+                duration: HxMotion.base,
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    colors: [
+                      ringColor.withValues(alpha: 0.22),
+                      ringColor.withValues(alpha: 0),
+                    ],
                   ),
-                  const Spacer(),
-                  // Minimize button to return to workout overview
-                  FilledButton.tonalIcon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.surfaceContainer,
-                      foregroundColor: AppColors.onSurface,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    icon: const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 22,
-                    ),
-                    label: const Text(
-                      'Workout',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
-                    ),
-                    onPressed: () {
-                      Haptics.selection();
-                      onMinimize();
-                    },
-                  ),
-                ],
+                ),
               ),
             ),
-
-            // ── Flexible Adaptive Center Layout ──
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final availableHeight = constraints.maxHeight;
-                  final isCompact = availableHeight < 560;
-                  final circleSize = isCompact
-                      ? 180.0
-                      : (availableHeight < 680 ? 210.0 : 230.0);
-                  final trackSize = circleSize - 10.0;
-                  final strokeWidth = isCompact ? 8.0 : 10.0;
-                  final timerFontSize = isCompact
-                      ? 48.0
-                      : (availableHeight < 680 ? 56.0 : 64.0);
-
-                  return SingleChildScrollView(
-                    physics: const ClampingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: availableHeight),
-                      child: IntrinsicHeight(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                // ── REST · elapsed · back to the workout ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: hx.primary.withValues(alpha: 0.12),
+                          borderRadius: HxRadius.pillAll,
+                          border: Border.all(
+                            color: hx.primary.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const SizedBox(height: 4),
-
-                            // ── Hero Circular Countdown Display ──
-                            Center(
-                              child: SizedBox(
-                                width: circleSize,
-                                height: circleSize,
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    // Outer Circular Track
-                                    SizedBox(
-                                      width: trackSize,
-                                      height: trackSize,
-                                      child: CircularProgressIndicator(
-                                        value: progress,
-                                        strokeWidth: strokeWidth,
-                                        strokeCap: StrokeCap.round,
-                                        backgroundColor: AppColors
-                                            .outlineVariant
-                                            .withValues(alpha: 0.2),
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              AppColors.primary,
-                                            ),
-                                      ),
-                                    ),
-                                    // Centered Text Details
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                      ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            restTimer.exerciseName != null
-                                                ? restTimer.exerciseName!
-                                                      .toUpperCase()
-                                                : 'RESTING',
-                                            style: theme.textTheme.labelMedium
-                                                ?.copyWith(
-                                                  color: AppColors.secondary,
-                                                  fontWeight: FontWeight.bold,
-                                                  letterSpacing: 1.2,
-                                                  fontSize: isCompact ? 10 : 11,
-                                                ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 2),
-                                          FittedBox(
-                                            fit: BoxFit.scaleDown,
-                                            child: Text(
-                                              _fmtSeconds(remaining),
-                                              style: theme
-                                                  .textTheme
-                                                  .displayLarge
-                                                  ?.copyWith(
-                                                    color: AppColors.primary,
-                                                    fontWeight: FontWeight.w900,
-                                                    fontSize: timerFontSize,
-                                                    fontFeatures: const [
-                                                      FontFeature.tabularFigures(),
-                                                    ],
-                                                    letterSpacing: -1.5,
-                                                    height: 1.0,
-                                                  ),
-                                            ),
-                                          ),
-                                          if (restTimer.targetSeconds > 0) ...[
-                                            const SizedBox(height: 4),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                    vertical: 3,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    AppColors.surfaceContainer,
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              child: Text(
-                                                'of ${_fmtSeconds(restTimer.targetSeconds)} target',
-                                                style: TextStyle(
-                                                  color: AppColors.secondary,
-                                                  fontSize: isCompact ? 11 : 12,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                            Icon(
+                              Icons.self_improvement_rounded,
+                              size: 15,
+                              color: hx.primaryText,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'REST',
+                              style: workoutKicker(
+                                context,
+                                color: hx.primaryText,
+                                spacing: 1.2,
                               ),
                             ),
-
-                            // ── Quick Adjustment Buttons (-15s, +30s, +60s) ──
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      WorkoutElapsedText(
+                        startedAt: session.startedAt,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontFamily: Theme.of(
+                            context,
+                          ).textTheme.displaySmall?.fontFamily,
+                          color: hx.secondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Material(
+                        color: hx.surfaceContainer,
+                        shape: StadiumBorder(
+                          side: BorderSide(color: hx.outlineVariant),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () {
+                            Haptics.selection();
+                            onMinimize();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(8, 9, 14, 9),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                FilledButton.tonal(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: remaining > 15
-                                        ? AppColors.surfaceContainer
-                                        : AppColors.surfaceContainer.withValues(
-                                            alpha: 0.4,
-                                          ),
-                                    foregroundColor: remaining > 15
-                                        ? AppColors.secondary
-                                        : AppColors.secondary.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 8,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                  ),
-                                  onPressed: remaining > 15
-                                      ? () {
-                                          Haptics.light();
-                                          ref
-                                              .read(restTimerProvider.notifier)
-                                              .addSeconds(-15);
-                                        }
-                                      : null,
-                                  child: const Text(
-                                    '-15s',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                    ),
-                                  ),
+                                Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  size: 22,
+                                  color: hx.onSurface,
                                 ),
-                                const SizedBox(width: 10),
-                                FilledButton.tonal(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: AppColors.primary
-                                        .withValues(alpha: 0.18),
-                                    foregroundColor: AppColors.primary,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 18,
-                                      vertical: 8,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                  ),
-                                  onPressed: () {
-                                    Haptics.light();
-                                    ref
-                                        .read(restTimerProvider.notifier)
-                                        .addSeconds(30);
-                                  },
-                                  child: const Text(
-                                    '+30s',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                FilledButton.tonal(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: AppColors.surfaceContainer,
-                                    foregroundColor: AppColors.secondary,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                  ),
-                                  onPressed: () {
-                                    Haptics.light();
-                                    ref
-                                        .read(restTimerProvider.notifier)
-                                        .addSeconds(60);
-                                  },
-                                  child: const Text(
-                                    '+1m',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                    ),
+                                Text(
+                                  'Workout',
+                                  style: TextStyle(
+                                    color: hx.onSurface,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13,
                                   ),
                                 ),
                               ],
                             ),
-
-                            // ── Up Next Preview Card ──
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceContainer,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: isWorkoutComplete
-                                      ? AppColors.primary.withValues(
-                                          alpha: 0.35,
-                                        )
-                                      : AppColors.outlineVariant.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                ),
-                              ),
-                              child: isWorkoutComplete
-                                  ? Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 3,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.amber.withValues(
-                                              alpha: 0.18,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: const Text(
-                                            'WORKOUT FINISHED 🏆',
-                                            style: TextStyle(
-                                              color: Colors.amber,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 0.8,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          'All Exercises Completed!',
-                                          style: theme.textTheme.titleMedium
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Great session! Rest up or finish now.',
-                                          style: TextStyle(
-                                            color: AppColors.secondary,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  : Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 3,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.primary
-                                                    .withValues(alpha: 0.18),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                hasUpcomingSetInSameEx
-                                                    ? (nextSetNumber
-                                                                  ?.isWarmup ==
-                                                              true
-                                                          ? 'UP NEXT • WARMUP'
-                                                          : 'UP NEXT • SET ${nextSetNumber?.ordinal ?? 1}')
-                                                    : 'UP NEXT • NEXT EXERCISE',
-                                                style: TextStyle(
-                                                  color: AppColors.primary,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.w800,
-                                                  letterSpacing: 0.8,
-                                                ),
-                                              ),
-                                            ),
-                                            const Spacer(),
-                                            if (nextUncompletedSet != null)
-                                              Text(
-                                                equipmentVariantLabel(
-                                                  currentWe.equipmentVariant ??
-                                                      currentExercise
-                                                          ?.modality ??
-                                                      'barbell',
-                                                ),
-                                                style: TextStyle(
-                                                  color: AppColors.secondary,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          hasUpcomingSetInSameEx
-                                              ? (currentExercise?.name ??
-                                                    'Exercise')
-                                              : (nextExerciseCatalog?.name ??
-                                                    'Next Exercise'),
-                                          style: theme.textTheme.titleMedium
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 2),
-                                        if (nextUncompletedSet != null) ...[
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                Icons.fitness_center_rounded,
-                                                size: 15,
-                                                color: AppColors.secondary,
-                                              ),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                nextUncompletedSet.weightKg >
-                                                            0 ||
-                                                        nextTarget?.weightKg !=
-                                                            null
-                                                    ? '${weightFmt.formatValue(nextUncompletedSet.weightKg > 0 ? nextUncompletedSet.weightKg : (nextTarget?.weightKg ?? 0))} × ${nextUncompletedSet.reps > 0 ? nextUncompletedSet.reps : (nextTarget?.reps ?? 0)} reps'
-                                                    : '${nextUncompletedSet.reps > 0 ? nextUncompletedSet.reps : (nextTarget?.reps ?? 0)} reps',
-                                                style: TextStyle(
-                                                  color: AppColors.onSurface,
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ] else if (nextExerciseCatalog !=
-                                            null) ...[
-                                          Text(
-                                            equipmentVariantLabel(
-                                              nextExerciseWe
-                                                      ?.equipmentVariant ??
-                                                  nextExerciseCatalog.modality,
-                                            ),
-                                            style: TextStyle(
-                                              color: AppColors.secondary,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                            ),
-
-                            // ── Last Set RPE Status / Prompt ──
-                            if (lastCompletedSet != null)
-                              Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {
-                                    Haptics.selection();
-                                    onOpenRpe(lastCompletedSet!);
-                                  },
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 9,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: lastCompletedSet!.rpeX10 != null
-                                          ? Colors.purple.withValues(
-                                              alpha: 0.12,
-                                            )
-                                          : AppColors.surfaceContainerLowest,
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: lastCompletedSet!.rpeX10 != null
-                                            ? Colors.purple.withValues(
-                                                alpha: 0.35,
-                                              )
-                                            : AppColors.outlineVariant
-                                                  .withValues(alpha: 0.3),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          lastCompletedSet!.rpeX10 != null
-                                              ? Icons.check_circle_rounded
-                                              : Icons.star_border_rounded,
-                                          color:
-                                              lastCompletedSet!.rpeX10 != null
-                                              ? Colors.purple
-                                              : AppColors.secondary,
-                                          size: 18,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            lastCompletedSet!.rpeX10 != null
-                                                ? 'Set effort logged: RPE ${(lastCompletedSet!.rpeX10! / 10).toStringAsFixed(1)}'
-                                                : 'Rate effort for completed set (RPE)',
-                                            style: TextStyle(
-                                              color:
-                                                  lastCompletedSet!.rpeX10 !=
-                                                      null
-                                                  ? Colors.purple
-                                                  : AppColors.secondary,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                        Text(
-                                          lastCompletedSet!.rpeX10 != null
-                                              ? 'Edit'
-                                              : 'Rate',
-                                          style: TextStyle(
-                                            color: AppColors.primary,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                            const SizedBox(height: 4),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              ),
-            ),
+                    ],
+                  ),
+                ),
 
-            // ── Bottom Action: Start Next Set / Finish Workout ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 58,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                // ── Ring + adjustments ──
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final ring = (constraints.maxHeight - 90).clamp(
+                        160.0,
+                        280.0,
+                      );
+                      return SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 22),
+                          child: Column(
+                            children: [
+                              _RestRing(
+                                size: ring,
+                                fraction: target <= 0
+                                    ? 0
+                                    : (remaining / target).clamp(0.0, 1.0),
+                                color: ringColor,
+                                label: timeUp ? 'REST DONE · GO' : 'RESTING',
+                                time: format(remaining),
+                                caption: target > 0
+                                    ? 'of ${format(target)}'
+                                    : null,
+                              ),
+                              const SizedBox(height: 22),
+                              if (!timeUp)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    _AdjustButton(
+                                      label: '−15s',
+                                      onTap: remaining > 15
+                                          ? () => ref
+                                                .read(
+                                                  restTimerProvider.notifier,
+                                                )
+                                                .addSeconds(-15)
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _AdjustButton(
+                                      label: '+30s',
+                                      accent: true,
+                                      onTap: () => ref
+                                          .read(restTimerProvider.notifier)
+                                          .addSeconds(30),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _AdjustButton(
+                                      label: '+1m',
+                                      onTap: () => ref
+                                          .read(restTimerProvider.notifier)
+                                          .addSeconds(60),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  icon: Icon(
-                    isWorkoutComplete
-                        ? Icons.emoji_events_rounded
-                        : Icons.play_arrow_rounded,
-                    size: 26,
+                ),
+
+                // ── Up next + last set's effort ──
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
+                      upNext,
+                      if (lastCompletedSet != null) ...[
+                        const SizedBox(height: 8),
+                        _LastEffortRow(
+                          set: lastCompletedSet!,
+                          exerciseName: lastCompletedExercise?.name,
+                          setLabel: lastCompletedSetLabel,
+                          onTap: () {
+                            Haptics.selection();
+                            onOpenRpe(lastCompletedSet!);
+                          },
+                        ),
+                      ],
+                    ],
                   ),
-                  label: Text(
-                    isWorkoutComplete ? 'FINISH WORKOUT 🏆' : 'START NEXT SET',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  onPressed: () {
-                    Haptics.medium();
-                    ref.read(restTimerProvider.notifier).cancel();
-                    if (isWorkoutComplete && onFinishWorkout != null) {
-                      onFinishWorkout!();
-                    }
-                  },
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+                  child: _isWorkoutComplete && onFinishWorkout != null
+                      ? WorkoutHeroButton(
+                          label: 'Finish workout',
+                          trailingIcon: Icons.emoji_events_rounded,
+                          color: hx.success,
+                          foreground: successInk,
+                          onPressed: () {
+                            Haptics.medium();
+                            ref.read(restTimerProvider.notifier).cancel();
+                            onFinishWorkout!();
+                          },
+                        )
+                      : WorkoutHeroButton(
+                          label: 'Start next set',
+                          leadingIcon: Icons.play_arrow_rounded,
+                          color: timeUp ? hx.success : null,
+                          onPressed: () {
+                            Haptics.medium();
+                            ref.read(restTimerProvider.notifier).cancel();
+                            onStartNext();
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool get _isWorkoutComplete =>
+      !currentSets.any((s) => !s.isCompleted) && _nextExercise == null;
+
+  WorkoutExerciseData? get _nextExercise {
+    final i = exercises.indexWhere((e) => e.id == currentWe.id);
+    return i >= 0 && i < exercises.length - 1 ? exercises[i + 1] : null;
+  }
+
+  Widget _upNext(BuildContext context, WidgetRef ref) {
+    final hx = context.hx;
+    final weightFmt = ref.watch(weightFormatProvider);
+    final nextSet = currentSets.firstWhereOrNull((s) => !s.isCompleted);
+
+    String label;
+    String name;
+    String equipment = '';
+    String detail = '';
+    String? tag;
+
+    if (nextSet != null) {
+      final switched =
+          lastCompletedSet != null &&
+          lastCompletedSet!.workoutExerciseId != currentWe.id;
+      final number = numberSets(currentSets)[currentSets.indexOf(nextSet)];
+      label = switched
+          ? (currentWe.supersetGroup != null
+                ? 'UP NEXT · SUPERSET'
+                : 'UP NEXT · NEXT EXERCISE')
+          : number.isWarmup
+          ? 'UP NEXT · WARM-UP ${number.ordinal}'
+          : 'UP NEXT · SET ${number.ordinal} OF ${number.ofKind}';
+      if (switched) tag = supersetTags(exercises)[currentWe.id];
+      name = currentExercise?.name ?? 'Exercise';
+      equipment = equipmentVariantLabel(
+        currentWe.equipmentVariant ?? currentExercise?.modality ?? 'barbell',
+      );
+      final t = ref
+          .watch(workoutTargetsProvider(currentWe.id))
+          .valueOrNull?[nextSet.id];
+      final kg = nextSet.weightKg > 0 ? nextSet.weightKg : t?.weightKg;
+      final reps = nextSet.reps > 0 ? nextSet.reps : t?.reps;
+      detail = [
+        if (kg != null && kg > 0) weightFmt.formatValue(kg),
+        if (reps != null && reps > 0) '$reps',
+      ].join(' × ');
+    } else if (_nextExercise case final next?) {
+      final catalog =
+          ref
+              .watch(exerciseCatalogProvider(const ExerciseCatalogFilter()))
+              .asData
+              ?.value ??
+          const <ExerciseCatalogData>[];
+      final ex = catalog.firstWhereOrNull((e) => e.id == next.exerciseId);
+      label = 'UP NEXT · NEXT EXERCISE';
+      name = ex?.name ?? 'Next exercise';
+      equipment = ex == null
+          ? ''
+          : equipmentVariantLabel(next.equipmentVariant ?? ex.modality);
+    } else {
+      label = 'ALL SETS DONE';
+      name = 'Finish when ready';
+    }
+
+    final display = Theme.of(context).textTheme.displaySmall;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: hx.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: hx.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                label,
+                style: workoutKicker(
+                  context,
+                  color: hx.primaryText,
+                  size: 10.5,
                 ),
               ),
-            ),
-          ],
-        ),
+              if (tag != null) ...[
+                const SizedBox(width: 8),
+                _SupersetTag(tag: tag),
+              ],
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  equipment,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: hx.secondary,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: display?.copyWith(fontSize: 21, height: 1.15),
+                ),
+              ),
+              if (detail.isNotEmpty) ...[
+                const SizedBox(width: 12),
+                Text(
+                  detail,
+                  style: display?.copyWith(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w600,
+                    color: hx.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }

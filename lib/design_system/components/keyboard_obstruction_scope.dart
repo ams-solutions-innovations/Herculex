@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 
 /// Hides [child] when [hidden] is true, sliding it out below the screen edge
 /// and making it non-interactive and invisible to assistive tech while it's
@@ -30,6 +31,10 @@ class KeyboardObstructionScope extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A desktop browser has no on-screen keyboard to clear, so focusing a
+    // field must not make the Finish button or the navigation disappear.
+    final caps = PlatformCapabilities.current();
+    final hidden = this.hidden && !(caps.isWeb && !caps.isMobileBrowser);
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOutCubic,

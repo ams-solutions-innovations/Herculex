@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:herculex/features/workouts/data/portable_workout_plan.dart';
 import 'package:drift/drift.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
@@ -165,7 +166,9 @@ class PlannedSessionSnapshot {
 /// result into immutable `planned_*` columns; later program edits cannot alter
 /// a workout that has already started.
 class PlannedSessionResolver {
-  PlannedSessionResolver(this._db);
+  PlannedSessionResolver(this._db, {Clock clock = const SystemClock()})
+    : _clock = clock;
+  final Clock _clock;
 
   final AppDatabase _db;
 
@@ -174,6 +177,31 @@ class PlannedSessionResolver {
   Future<PlannedSessionSnapshot> resolveScheduledWorkout(
     ScheduledWorkoutData schedule,
   ) async {
+    final coaching =
+        await (_db.select(_db.trainingCoachingOverrides).join([
+                innerJoin(
+                  _db.trainingCoachingProposals,
+                  _db.trainingCoachingProposals.id.equalsExp(
+                    _db.trainingCoachingOverrides.proposalId,
+                  ),
+                ),
+              ])
+              ..where(
+                _db.trainingCoachingOverrides.scheduleId.equals(schedule.id) &
+                    _db.trainingCoachingOverrides.deletedAt.isNull() &
+                    _db.trainingCoachingProposals.deletedAt.isNull() &
+                    _db.trainingCoachingProposals.status.isIn([
+                      'trial',
+                      'review',
+                      'kept',
+                    ]),
+              )
+              ..orderBy([
+                OrderingTerm.desc(_db.trainingCoachingProposals.decidedAt),
+                OrderingTerm.desc(_db.trainingCoachingProposals.syncUuid),
+              ])
+              ..limit(1))
+            .getSingleOrNull();
     final override =
         await (_db.select(_db.adaptationOverrides).join([
                 innerJoin(
@@ -204,11 +232,37 @@ class PlannedSessionResolver {
         scheduledDate != null &&
         !scheduledDate.isBefore(weekStart) &&
         !scheduledDate.isAfter(weekStart.add(const Duration(days: 6)));
+    if (coaching != null) {
+      final coachProposal = coaching.readTable(_db.trainingCoachingProposals);
+      final valid =
+          schedule.completedSessionId != null ||
+          coachProposal.expiresAt == null ||
+          coachProposal.expiresAt!.isAfter(_clock.now());
+      final newerWeeklyDecision =
+          isCurrentWeekOverride &&
+          proposal?.decidedAt != null &&
+          (coachProposal.decidedAt == null ||
+              proposal!.decidedAt!.isAfter(coachProposal.decidedAt!));
+      if (valid && !newerWeeklyDecision) {
+        return PortableWorkoutPlan(
+          _db,
+        ).decode(coaching.readTable(_db.trainingCoachingOverrides).planJson);
+      }
+    }
     if (planJson != null && isCurrentWeekOverride) {
       return _fromAdapted(AdaptedSessionPlan.decode(planJson));
     }
+    if (schedule.oneOffPlanJson != null &&
+        schedule.templateIdOverride == null) {
+      return PortableWorkoutPlan(_db).decode(schedule.oneOffPlanJson!);
+    }
+    if (schedule.programDayId == null) {
+      if (schedule.templateIdOverride != null)
+        return resolveTemplate(schedule.templateIdOverride!);
+      throw StateError('This one-time workout has no plan.');
+    }
     return resolveProgramDay(
-      schedule.programDayId,
+      schedule.programDayId!,
       templateOverride: schedule.templateIdOverride,
     );
   }
@@ -574,8 +628,27 @@ class PlannedSessionResolver {
                   plannedRepsMin: Value(set.repsMin),
                   durationSeconds: Value(
                     CalisthenicsSetPlan.decode(
-                      set.setTypeMetaJson,
-                    )?.durationSeconds,
+                          set.setTypeMetaJson,
+                        )?.durationSeconds ??
+                        (SetPrescriptionMetadata.decode(
+                                  set.setTypeMetaJson,
+                                )['targetDurationSeconds']
+                                as num?)
+                            ?.toInt(),
+                  ),
+                  distanceM: Value(
+                    (SetPrescriptionMetadata.decode(
+                              set.setTypeMetaJson,
+                            )['targetDistanceM']
+                            as num?)
+                        ?.toDouble(),
+                  ),
+                  calories: Value(
+                    (SetPrescriptionMetadata.decode(
+                              set.setTypeMetaJson,
+                            )['targetCalories']
+                            as num?)
+                        ?.toInt(),
                   ),
                   plannedRepsMax: Value(set.repsMax),
                   plannedWeightKg: Value(set.weightKg),
@@ -765,6 +838,7 @@ class PlannedSessionResolver {
         out.add(
           PlannedSetSnapshot(
             index: index++,
+            weightKg: (segment.meta['coachingWeightKg'] as num?)?.toDouble(),
             repsMin: segment.repsMin,
             repsMax: segment.repsMax,
             isWarmup: false,

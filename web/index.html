@@ -1,46 +1,74 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
+    Replaced by the `--base-href` argument of `flutter build web`. The app is
+    served from the root of app.herculex.app, so it stays "/".
   -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Herculex — log workouts, meals and fasts, follow adaptive programs and track recovery. Sign in to sync with your phone.">
+  <!-- The app sits behind a sign-in; herculex.app is the page to index. -->
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#091322" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#e4effc" media="(prefers-color-scheme: light)">
+  <meta name="color-scheme" content="dark light">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Herculex">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" href="favicon.png">
 
   <title>Herculex</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Same page gradient and splash the app paints (HxColors, Classic Blue)
+       so there is no white flash while Flutter loads. */
+    html, body { margin: 0; height: 100%; }
+    body { background: linear-gradient(to bottom right, #0d1b2a, #091322, #040913); }
+    #splash {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 32px;
+      background: linear-gradient(to bottom right, #0d1b2a, #091322, #040913);
+      transition: opacity 200ms ease-out;
+    }
+    #splash.done { opacity: 0; pointer-events: none; }
+    #splash svg { width: 120px; height: auto; color: #0a84ff; }
+    #splash .spinner {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 4px solid rgba(10, 132, 255, 0.2); border-top-color: #0a84ff;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-color-scheme: light) {
+      body, #splash { background: linear-gradient(to bottom right, #dcebfb, #e4effc, #edf4fd); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #splash .spinner { animation-duration: 3s; }
+    }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <div id="splash" aria-label="Loading Herculex" role="progressbar">
+    <svg viewBox="190 330 874 566" fill="currentColor" aria-hidden="true">
+      <g id="h">
+        <rect x="200" y="515" width="48" height="226" rx="20"/>
+        <rect x="261" y="453" width="83" height="349" rx="34"/>
+        <path d="M362 538Q362 525 373 518L510 441V861Q510 881 490 881H382Q362 881 362 861Z"/>
+        <path d="M362 428Q362 413 375 406L478 350Q510 334 510 368V410L362 506Z"/>
+      </g>
+      <use href="#h" transform="matrix(-1 0 0 1 1254 0)"/>
+      <rect x="500" y="575" width="254" height="101"/>
+    </svg>
+    <div class="spinner"></div>
+  </div>
+  <script src="splash.js"></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

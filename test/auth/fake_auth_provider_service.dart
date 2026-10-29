@@ -72,6 +72,12 @@ class FakeAuthProviderService implements AuthProviderService {
   Future<void> sendPasswordReset(String email) async =>
       passwordResetEmail = email;
 
+  String? updatedPassword;
+
+  @override
+  Future<void> updatePassword(String newPassword) async =>
+      updatedPassword = newPassword;
+
   @override
   Future<void> signOut() async {
     signOutCalls++;

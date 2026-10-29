@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/features/labs/data/labs_ai_service.dart';
 import 'package:herculex/features/labs/data/labs_data_source.dart';
 import 'package:herculex/features/labs/data/labs_pdf_service.dart';
@@ -37,7 +38,11 @@ final labsDataSourceProvider = Provider<LabsDataSource>(
     ref.watch(labsRepositoryProvider),
   ),
 );
-final labsPdfProvider = Provider<LabsPdfService>((ref) => LabsPdfService());
+final labsPdfProvider = Provider<LabsPdfService>(
+  (ref) => LabsPdfService(
+    canSaveFiles: ref.watch(platformCapabilitiesProvider).hasFileSystem,
+  ),
+);
 final labsSourceChangesProvider = StreamProvider<int>((ref) {
   if (!labsEnabled || !ref.watch(labsConsentProvider).enabled) {
     return const Stream.empty();
@@ -236,10 +241,10 @@ class LabsReportRunner {
           previous.last.fingerprint == snapshot.fingerprint) {
         continue;
       }
-      final file = await pdf.save(snapshot);
+      final file = pdf.canSaveFiles ? await pdf.save(snapshot) : null;
       if (jsonEncode(repo.consent.toJson()) != token ||
           repo.privacyEpoch != epoch) {
-        if (await file.exists()) {
+        if (file != null && await file.exists()) {
           await file.delete();
         }
         return;

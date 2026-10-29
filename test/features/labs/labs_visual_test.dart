@@ -92,12 +92,11 @@ void main() {
       await tester.ensureVisible(find.text('Sleep duration').first);
       await tester.tap(find.text('Sleep duration').first);
       await tester.pumpAndSettle();
-      // The plain-language conclusion and chart lead; the statistics open
-      // on demand.
-      await tester.ensureVisible(find.text('Numbers & method'));
-      await tester.tap(find.text('Numbers & method'));
-      await tester.pumpAndSettle();
-      expect(find.text('How to read this'), findsOneWidget);
+      // The change, chart, halves and coverage lead; the reading guide
+      // follows on the same page.
+      await tester.ensureVisible(find.text('HOW TO READ THIS'));
+      expect(find.text('HOW TO READ THIS'), findsOneWidget);
+      expect(find.text('Test this with an experiment'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await _save(
         tester,

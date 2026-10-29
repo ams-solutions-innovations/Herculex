@@ -70,6 +70,16 @@ object ExerciseUsageTracker {
         }
     }
 
+    /** Read and parse usage once when ranking the whole catalog. */
+    fun getUsageCounts(context: Context): Map<String, Int> = try {
+        val json = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_USAGE_COUNTS, "{}") ?: "{}"
+        val counts = JSONObject(json)
+        counts.keys().asSequence().associateWith { counts.optInt(it, 0) }
+    } catch (_: Exception) {
+        emptyMap()
+    }
+
     /**
      * Returns the ordered list of recently used exercise keys.
      */

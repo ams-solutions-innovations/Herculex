@@ -40,6 +40,7 @@ class SupplementsView extends ConsumerWidget {
     return HxScreenShell(
       title: 'Supplements',
       titleIcon: Icons.medication_outlined,
+      showBack: false,
       children: [
         stateAsync.when(
           data: (state) => _Body(

@@ -137,6 +137,36 @@ void main() {
   });
 
   test(
+    'workout HR reads interval telemetry and tolerates permission denial',
+    () async {
+      adapter.data[HealthDataType.HEART_RATE] = [
+        _numericPoint(
+          type: HealthDataType.HEART_RATE,
+          value: 140,
+          from: now.subtract(const Duration(minutes: 1)),
+          to: now,
+        ),
+      ];
+      final samples = await service.readWorkoutHeartRates(
+        now.subtract(const Duration(hours: 1)),
+        now,
+      );
+      expect(samples.single.bpm, 140);
+      adapter.errors[HealthDataType.HEART_RATE] = Exception(
+        'permission denied',
+      );
+      expect(
+        await service.readWorkoutHeartRates(
+          now.subtract(const Duration(hours: 1)),
+          now,
+        ),
+        isEmpty,
+      );
+      expect(await service.readWorkoutHeartRates(now, now), isEmpty);
+    },
+  );
+
+  test(
     'empty platform data is explicit and does not insert synthetic zeros',
     () async {
       final read = await service.runDailySync();

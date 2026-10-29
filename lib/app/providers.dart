@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/core/utils/env.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/sync/supabase_sync_backend_service.dart';
@@ -13,6 +14,8 @@ import 'package:herculex/features/auth/domain/auth_provider_service.dart';
 import 'package:herculex/features/auth/domain/auth_session.dart';
 import 'package:herculex/features/gyms/data/gyms_repository.dart';
 import 'package:herculex/features/measurements/data/measurements_repository.dart';
+import 'package:herculex/features/nutrition/data/food_catalogue_source.dart';
+import 'package:herculex/features/nutrition/data/remote_food_catalogue_source.dart';
 import 'package:herculex/features/physique/data/physique_summary_bridge.dart';
 import 'package:herculex/features/profile/data/local_profile_repository.dart';
 import 'package:herculex/features/profile/data/dream_physique_summary_repository.dart';
@@ -44,10 +47,29 @@ final syncBackendServiceProvider = Provider<SyncBackendService>((ref) {
 /// the outbox and pulling remote deltas, sign-out stops both. Something must
 /// `ref.watch(syncServiceProvider)` once at app startup for this to run at
 /// all (see `HerculexApp.build()`), since Riverpod providers are lazy.
+/// Where catalogue foods come from: the bundled import on phones, the shared
+/// `food_catalogue` table (fetched on demand, cached locally) on the web.
+final foodCatalogueSourceProvider = Provider<FoodCatalogueSource>((ref) {
+  if (ref.watch(platformCapabilitiesProvider).hasBundledFoodCatalogue ||
+      !Env.hasSupabase) {
+    return const BundledFoodCatalogueSource();
+  }
+  return RemoteFoodCatalogueSource(
+    ref.watch(appDatabaseProvider),
+    SupabaseFoodCatalogueRemote(Supabase.instance.client),
+  );
+});
+
 final syncServiceProvider = Provider<SyncService>((ref) {
+  final caps = ref.watch(platformCapabilitiesProvider);
   final service = SyncService(
     db: ref.watch(appDatabaseProvider),
     backend: ref.watch(syncBackendServiceProvider),
+    // Without the bundled catalogue, a pulled food entry has to bring its
+    // catalogue food along or it would resolve to no food at all.
+    cataloguePrefetcher: caps.hasBundledFoodCatalogue
+        ? null
+        : ref.watch(foodCatalogueSourceProvider),
   );
   ref.onDispose(service.dispose);
 
@@ -68,6 +90,30 @@ final syncServiceProvider = Provider<SyncService>((ref) {
 /// from an empty outbox table without ever contacting a backend (RB-02).
 final syncStateProvider = StreamProvider<SyncState>((ref) {
   return ref.watch(syncServiceProvider).stateStream;
+});
+
+/// Whether this build gates the app behind a signed-in account: the web,
+/// when it has a backend to sign in to. A web build without Supabase
+/// credentials (local development) runs local-only like a phone instead of
+/// stopping at a sign-in screen nobody can get past.
+final accountRequiredProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(platformCapabilitiesProvider).requiresAccount &&
+      Env.hasSupabase,
+);
+
+/// Whether the local database holds the signed-in account yet.
+///
+/// Always true where the device owns its data (phones work offline-first and
+/// keep it across sessions). On the web a fresh browser starts empty, so this
+/// stays false until the first full cloud pull — the router parks on
+/// `/restoring`, and startup code that writes defaults waits for it.
+final initialSyncReadyProvider = StreamProvider<bool>((ref) {
+  if (!ref.watch(platformCapabilitiesProvider).requiresInitialSync ||
+      !ref.watch(accountRequiredProvider)) {
+    return Stream.value(true);
+  }
+  return ref.watch(syncServiceProvider).initialPullDoneStream;
 });
 
 final localProfileRepositoryProvider = Provider<LocalProfileRepository>((ref) {
@@ -185,7 +231,15 @@ final measurementsRepositoryProvider = Provider<MeasurementsRepository>((ref) {
   final profileRepo = ref.watch(localProfileRepositoryProvider);
   final repo = MeasurementsRepository(db, profileRepo);
   profileRepo.setMeasurementsRepository(repo);
-  repo.syncOnStartup();
+  if (ref.read(platformCapabilitiesProvider).requiresInitialSync) {
+    // Seeding a bodyweight row from the profile into an empty browser
+    // database would duplicate the one the first pull is about to deliver.
+    ref.listen<AsyncValue<bool>>(initialSyncReadyProvider, (_, next) {
+      if (next.valueOrNull ?? false) repo.syncOnStartup();
+    }, fireImmediately: true);
+  } else {
+    repo.syncOnStartup();
+  }
   return repo;
 });
 

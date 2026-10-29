@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -60,7 +61,14 @@ class TemplatesView extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                for (final c in circuits) _CircuitTile(circuit: c),
+                HxMasonry(
+                  minColumnWidth: 420,
+                  maxColumns: 2,
+                  gap: 16,
+                  children: [
+                    for (final c in circuits) _CircuitTile(circuit: c),
+                  ],
+                ),
                 const SizedBox(height: 24),
               ],
             );
@@ -84,7 +92,14 @@ class TemplatesView extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    for (final f in folders) _FolderTile(folder: f),
+                    HxMasonry(
+                      minColumnWidth: 420,
+                      maxColumns: 2,
+                      gap: 16,
+                      children: [
+                        for (final f in folders) _FolderTile(folder: f),
+                      ],
+                    ),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -107,7 +122,14 @@ class TemplatesView extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                for (final t in templates) _TemplateTile(template: t),
+                HxMasonry(
+                  minColumnWidth: 420,
+                  maxColumns: 2,
+                  gap: 16,
+                  children: [
+                    for (final t in templates) _TemplateTile(template: t),
+                  ],
+                ),
               ],
             );
           },
@@ -499,17 +521,19 @@ class _CircuitActionSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          _SheetAction(
-            icon: Icons.play_arrow_rounded,
-            label: 'Start Circuit Workout',
-            color: AppColors.primary,
-            onTap: () async {
-              Navigator.pop(context);
-              final repo = ref.read(circuitsRepositoryProvider);
-              await repo.startSessionFromCircuit(circuit.id);
-            },
-          ),
-          const SizedBox(height: 8),
+          if (ref.read(platformCapabilitiesProvider).hasLiveWorkout) ...[
+            _SheetAction(
+              icon: Icons.play_arrow_rounded,
+              label: 'Start Circuit Workout',
+              color: AppColors.primary,
+              onTap: () async {
+                Navigator.pop(context);
+                final repo = ref.read(circuitsRepositoryProvider);
+                await repo.startSessionFromCircuit(circuit.id);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
           _SheetAction(
             icon: Icons.edit_outlined,
             label: 'Edit Circuit',
@@ -676,17 +700,19 @@ class _TemplateActionSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          _SheetAction(
-            icon: Icons.play_arrow_rounded,
-            label: 'Start Workout',
-            color: AppColors.primary,
-            onTap: () async {
-              Navigator.pop(context);
-              final repo = ref.read(templatesRepositoryProvider);
-              await repo.startSessionFromTemplate(template.id);
-            },
-          ),
-          const SizedBox(height: 8),
+          if (ref.read(platformCapabilitiesProvider).hasLiveWorkout) ...[
+            _SheetAction(
+              icon: Icons.play_arrow_rounded,
+              label: 'Start Workout',
+              color: AppColors.primary,
+              onTap: () async {
+                Navigator.pop(context);
+                final repo = ref.read(templatesRepositoryProvider);
+                await repo.startSessionFromTemplate(template.id);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
           _SheetAction(
             icon: Icons.edit_outlined,
             label: 'Edit Template',

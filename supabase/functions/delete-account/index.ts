@@ -33,7 +33,7 @@
 // personal data, and the cascade already anonymizes them.
 
 import { callerUserId } from "../_shared/auth.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { withCors } from "../_shared/cors.ts";
 import { json } from "../_shared/json.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -41,11 +41,8 @@ const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 const photoBucket = "user-photos";
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
+// withCors answers the preflight and checks the browser origin.
+Deno.serve(withCors(async (req) => {
   if (req.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -115,7 +112,7 @@ Deno.serve(async (req) => {
   }
 
   return json({ ok: true });
-});
+}));
 
 /// Removes everything under `<user_id>/` in the private photo bucket.
 ///

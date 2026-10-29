@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,6 +41,38 @@ import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Text
 import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+private data class ExerciseGroups(
+    val frequent: List<ExerciseTemplate>,
+    val recent: List<ExerciseTemplate>,
+    val remaining: List<ExerciseTemplate>,
+)
+
+private fun loadExerciseGroups(context: android.content.Context): ExerciseGroups {
+    val all = ExerciseCatalog.getAll(context)
+    val occurrences = mutableMapOf<String, Int>()
+    for (workout in WorkoutStore.getWorkouts(context)) {
+        for (exercise in workout.exercises) {
+            val key = ExerciseUsageTracker.exerciseKey(exercise)
+            occurrences[key] = (occurrences[key] ?: 0) + 1
+        }
+    }
+    val counts = ExerciseUsageTracker.getUsageCounts(context)
+    val frequent = all.map { exercise ->
+        val key = ExerciseUsageTracker.exerciseKey(exercise)
+        exercise to ((occurrences[key] ?: 0) * 10 + (counts[key] ?: 0) * 3)
+    }.filter { it.second > 0 }.sortedByDescending { it.second }.map { it.first }
+    val frequentKeys = frequent.map { ExerciseUsageTracker.exerciseKey(it) }.toSet()
+    val byKey = mutableMapOf<String, ExerciseTemplate>()
+    all.forEach { byKey.putIfAbsent(ExerciseUsageTracker.exerciseKey(it), it) }
+    val recent = ExerciseUsageTracker.getRecentKeys(context).mapNotNull { byKey[it] }
+        .filter { ExerciseUsageTracker.exerciseKey(it) !in frequentKeys }
+    val excluded = frequentKeys + recent.map { ExerciseUsageTracker.exerciseKey(it) }
+    val remaining = all.filter { ExerciseUsageTracker.exerciseKey(it) !in excluded }.sortedBy { it.name }
+    return ExerciseGroups(frequent, recent, remaining)
+}
 
 /// Equipment the phone says this exercise can actually be performed with.
 private fun equipmentPromptOptions(template: ExerciseTemplate): List<String> =
@@ -63,50 +96,12 @@ fun SelectExerciseScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedExerciseTemplate by remember { mutableStateOf<ExerciseTemplate?>(null) }
 
-    val allExercises = remember { ExerciseCatalog.getAll(context) }
-    val savedWorkouts = remember { WorkoutStore.getWorkouts(context) }
-
-    // Calculate occurrences in user's workout routines / templates
-    val templateOccurrences = remember(savedWorkouts) {
-        val map = mutableMapOf<String, Int>()
-        for (w in savedWorkouts) {
-            for (ex in w.exercises) {
-                val key = ExerciseUsageTracker.exerciseKey(ex)
-                map[key] = (map[key] ?: 0) + 1
-            }
-        }
-        map
+    val groups by produceState<ExerciseGroups?>(initialValue = null, context) {
+        value = withContext(Dispatchers.IO) { loadExerciseGroups(context.applicationContext) }
     }
-
-    // 1. Frequent exercises (routines + logged history score)
-    val frequentExercises = remember(allExercises, templateOccurrences) {
-        allExercises
-            .map { ex -> ex to ExerciseUsageTracker.calculateScore(context, ex, templateOccurrences) }
-            .filter { it.second > 0 }
-            .sortedByDescending { it.second }
-            .map { it.first }
-    }
-    val frequentKeys = remember(frequentExercises) {
-        frequentExercises.map { ExerciseUsageTracker.exerciseKey(it) }.toSet()
-    }
-
-    // 2. Recent exercises (not already in frequent list)
-    val recentExercises = remember(allExercises, frequentKeys) {
-        val recentKeys = ExerciseUsageTracker.getRecentKeys(context)
-        recentKeys.mapNotNull { rk ->
-            allExercises.firstOrNull { ExerciseUsageTracker.exerciseKey(it) == rk }
-        }.filter { !frequentKeys.contains(ExerciseUsageTracker.exerciseKey(it)) }
-    }
-    val frequentAndRecentKeys = remember(frequentKeys, recentExercises) {
-        frequentKeys + recentExercises.map { ExerciseUsageTracker.exerciseKey(it) }.toSet()
-    }
-
-    // 3. Remaining catalog exercises
-    val remainingExercises = remember(allExercises, frequentAndRecentKeys) {
-        allExercises
-            .filter { !frequentAndRecentKeys.contains(ExerciseUsageTracker.exerciseKey(it)) }
-            .sortedBy { it.name }
-    }
+    val frequentExercises = groups?.frequent.orEmpty()
+    val recentExercises = groups?.recent.orEmpty()
+    val remainingExercises = groups?.remaining.orEmpty()
 
     // Filtered lists when searching
     val filteredFrequent = remember(searchQuery, frequentExercises) {
@@ -195,6 +190,10 @@ fun SelectExerciseScreen(
                         }
                     )
                 }
+            }
+
+            if (groups == null) {
+                item { Text("Loading exercises…", color = Color.LightGray, fontSize = 12.sp) }
             }
 
             // ── Section 1: Most Frequent Exercises ────────────────────────

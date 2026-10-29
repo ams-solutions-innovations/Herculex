@@ -111,7 +111,7 @@ void main() {
           .insert(
             ScheduledWorkoutsCompanion.insert(
               dateIso: '2026-01-01',
-              programDayId: programDayId,
+              programDayId: Value(programDayId),
               completedSessionId: Value(sessionId),
               status: const Value(ScheduleStatus.done),
             ),
@@ -344,7 +344,7 @@ void main() {
           .insert(
             ScheduledWorkoutsCompanion.insert(
               dateIso: '2026-01-01',
-              programDayId: dayId,
+              programDayId: Value(dayId),
               programId: const Value(null),
             ),
           );
@@ -353,7 +353,7 @@ void main() {
           .insert(
             ScheduledWorkoutsCompanion.insert(
               dateIso: '2026-01-02',
-              programDayId: dayId,
+              programDayId: Value(dayId),
               programId: Value(programId),
             ),
           );
@@ -445,7 +445,7 @@ void main() {
           .insert(
             ScheduledWorkoutsCompanion.insert(
               dateIso: '2026-01-01',
-              programDayId: dayId,
+              programDayId: Value(dayId),
             ),
           );
 
@@ -567,7 +567,7 @@ void main() {
             .insert(
               ScheduledWorkoutsCompanion.insert(
                 dateIso: '2026-01-01',
-                programDayId: dayId,
+                programDayId: Value(dayId),
                 templateIdOverride: Value(templateId),
               ),
             );

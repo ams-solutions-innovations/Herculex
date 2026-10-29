@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
@@ -15,9 +16,9 @@ class ScheduledWorkoutRow {
   });
 
   final ScheduledWorkoutData schedule;
-  final ProgramDayData day;
-  final ProgramWeekData week;
-  final ProgramData program;
+  final ProgramDayData? day;
+  final ProgramWeekData? week;
+  final ProgramData? program;
 
   /// The template this session will be built from — the schedule's one-off
   /// override if set, otherwise the program day's live link. Null means the
@@ -53,7 +54,7 @@ class ScheduledWorkoutRow {
     return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
   }
 
-  bool get isRestDay => day.isRest;
+  bool get isRestDay => day?.isRest ?? false;
   bool get isDone => schedule.status == ScheduleStatus.done;
   bool get isInProgress => schedule.status == ScheduleStatus.inProgress;
   bool get isSkipped => schedule.status == ScheduleStatus.skipped;
@@ -67,16 +68,17 @@ class ScheduledWorkoutRow {
 
   bool get isEmpty => exerciseCount == 0;
 
-  bool get isPlannedDeload => Periodization.isPlannedDeload(
-    model: PeriodizationModel.fromId(program.periodizationModel),
-    totalWeeks: program.weeks,
-    weekIndex: week.weekIndex,
+  bool get isPlannedDeload => program != null && week != null && Periodization.isPlannedDeload(
+    model: PeriodizationModel.fromId(program!.periodizationModel),
+    totalWeeks: program!.weeks,
+    weekIndex: week!.weekIndex,
   );
 
   String get title {
-    final slot = day.slotLabel?.trim();
+    final slot = day?.slotLabel?.trim();
     if (slot != null && slot.isNotEmpty) return slot;
-    final name = day.name.trim();
+    if (schedule.oneOffPlanJson != null) return (jsonDecode(schedule.oneOffPlanJson!) as Map)['name'] as String;
+    final name = day?.name.trim() ?? '';
     return name.isEmpty ? 'Training session' : name;
   }
 
@@ -85,13 +87,14 @@ class ScheduledWorkoutRow {
   /// The periodization phase of the week this session falls in, or a deload
   /// label for an explicitly prescribed deload.
   String get phaseLabel {
+    if (schedule.oneOffPlanJson != null) return 'Optional';
     if (isPlannedDeload) return 'Deload';
-    final phase = week.blockPhase;
+    final phase = week?.blockPhase;
     return switch (phase) {
       'accumulation' => 'Accumulation',
       'transmutation' => 'Transmutation',
       'realization' => 'Realization',
-      _ => 'Week ${week.weekIndex + 1}',
+      _ => 'Week ${week!.weekIndex + 1}',
     };
   }
 }

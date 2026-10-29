@@ -73,7 +73,7 @@ void main() {
     'Tapping the month grid day cell invokes onSelect(date) with no scheduleId',
     (tester) async {
       final row = await createTestRow(scheduleId: 101);
-      final range = ScheduleRange.monthGrid(anchor, programId: row.program.id);
+      final range = ScheduleRange.monthGrid(anchor, programId: row.program!.id);
 
       DateTime? capturedDate;
       int? capturedScheduleId;
@@ -99,7 +99,7 @@ void main() {
               body: SingleChildScrollView(
                 child: MonthCalendar(
                   anchor: anchor,
-                  programId: row.program.id,
+                  programId: row.program!.id,
                   selected: anchor,
                   onSelect: (date, {scheduleId}) {
                     capturedDate = date;
@@ -134,7 +134,7 @@ void main() {
     'Tapping a SessionTile in the selected-day list invokes onSelect(date, scheduleId: row.id)',
     (tester) async {
       final row = await createTestRow(scheduleId: 202);
-      final range = ScheduleRange.monthGrid(anchor, programId: row.program.id);
+      final range = ScheduleRange.monthGrid(anchor, programId: row.program!.id);
 
       DateTime? capturedDate;
       int? capturedScheduleId;
@@ -159,7 +159,7 @@ void main() {
               body: SingleChildScrollView(
                 child: MonthCalendar(
                   anchor: anchor,
-                  programId: row.program.id,
+                  programId: row.program!.id,
                   selected: anchor,
                   onSelect: (date, {scheduleId}) {
                     capturedDate = date;

@@ -162,7 +162,7 @@ void main() {
           .insert(
             ScheduledWorkoutsCompanion.insert(
               dateIso: today,
-              programDayId: dayId,
+              programDayId: Value(dayId),
               completedSessionId: Value(sessionId),
               status: const Value('done'),
               programId: Value(programId),

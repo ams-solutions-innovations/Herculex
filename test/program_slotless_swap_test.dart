@@ -151,7 +151,7 @@ void main() {
         .insert(
           ScheduledWorkoutsCompanion.insert(
             dateIso: '2026-10-21',
-            programDayId: f.dayIds[1],
+            programDayId: Value(f.dayIds[1]),
             programId: Value(f.programId),
           ),
         );
@@ -203,7 +203,7 @@ void main() {
         .insert(
           ScheduledWorkoutsCompanion.insert(
             dateIso: '2026-10-14',
-            programDayId: f.dayIds[0],
+            programDayId: Value(f.dayIds[0]),
             completedSessionId: Value(sessionId),
           ),
         );
@@ -234,7 +234,7 @@ void main() {
           .insert(
             ScheduledWorkoutsCompanion.insert(
               dateIso: '2026-10-14',
-              programDayId: f.dayIds[0],
+              programDayId: Value(f.dayIds[0]),
               programId: Value(f.programId),
               status: Value(status),
               completedSessionId: Value(completedSessionId),

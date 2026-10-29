@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:herculex/data/local/local_data_wipe.dart';
 import 'package:herculex/data/local/migrations/sync_backfill.dart'
     show isCustomFilteredTableNames;
+import 'package:herculex/data/sync/catalogue_ref_prefetcher.dart';
 import 'package:herculex/data/sync/sync_backend_service.dart';
 import 'package:herculex/data/sync/sync_id_resolver.dart';
 import 'package:herculex/data/sync/sync_table_specs.dart';
@@ -31,6 +32,11 @@ const int maxPushAttempts = 8;
 const String _ownerKey = '__owner_uid__';
 const String _lastSyncedKey = '__last_synced__';
 const String _tombstoneKey = '__tombstones__';
+
+/// Written once the first [SyncService.pullAll] for the owning account has
+/// fetched every table. Wiped together with the other cursors when the
+/// database changes hands, so a new owner starts over.
+const String _initialPullKey = '__initial_pull_done__';
 
 /// The Postgres table `record_sync_tombstone()` writes to
 /// (`0005_sync_tombstones.sql`). Never pulled as a normal entity — it has no
@@ -59,27 +65,79 @@ class SyncService {
     required GeneratedDatabase db,
     required SyncBackendService backend,
     Connectivity? connectivity,
+    CatalogueRefPrefetcher? cataloguePrefetcher,
   }) : _db = db,
        _backend = backend,
        _resolver = SyncIdResolver(db),
-       _connectivity = connectivity ?? Connectivity();
+       _connectivity = connectivity ?? Connectivity(),
+       _cataloguePrefetcher = cataloguePrefetcher;
 
   final GeneratedDatabase _db;
   final SyncBackendService _backend;
   final SyncIdResolver _resolver;
   final Connectivity _connectivity;
 
+  /// Set where the food catalogue isn't bundled (the web); see
+  /// [CatalogueRefPrefetcher].
+  final CatalogueRefPrefetcher? _cataloguePrefetcher;
+
   String? _userId;
   Timer? _pushTimer;
   Timer? _pullTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   StreamSubscription<String>? _realtimeSub;
+  StreamSubscription<Set<TableUpdate>>? _writeSub;
+  Timer? _pushDebounce;
   bool _pushing = false;
   bool _pulling = false;
+
+  /// A realtime hint or a resume arrived while a pull was already running;
+  /// one more pull follows it, so the change that prompted it is not left
+  /// waiting for the 5-minute timer.
+  bool _pullAgain = false;
+  DateTime? _lastResumeSync;
+
+  /// How long after the last local write a push is attempted. Long enough to
+  /// batch a burst of edits (a set being typed, a template being built), short
+  /// enough that another device sees the change within moments instead of at
+  /// the next 20-second tick.
+  static const _writePushDelay = Duration(seconds: 2);
+
+  /// Ignore a second resume this soon after the first: a tab regaining focus
+  /// can fire several lifecycle events at once.
+  static const _resumeSyncCooldown = Duration(seconds: 10);
 
   final _stateController = StreamController<SyncState>.broadcast();
   SyncState _state = const SyncState(phase: SyncPhase.disabled);
   String? _lastRunError;
+
+  final _initialPullController = StreamController<bool>.broadcast();
+  bool _initialPullDone = false;
+
+  /// Set by [_pullTable] when the backend fetch itself failed (offline, auth,
+  /// server error) as opposed to a row that would not apply locally.
+  bool _fetchFailedThisCycle = false;
+
+  /// Whether this local database has completed one full pull for the
+  /// signed-in account. A browser starts empty, so the web app waits for this
+  /// before showing the account or letting startup code write defaults that
+  /// would duplicate rows still on their way down. Seeded on every listen.
+  Stream<bool> get initialPullDoneStream async* {
+    yield _initialPullDone;
+    yield* _initialPullController.stream;
+  }
+
+  bool get initialPullDone => _initialPullDone;
+
+  void _setInitialPullDone(bool done) {
+    if (_initialPullDone == done) {
+      return;
+    }
+    _initialPullDone = done;
+    if (!_initialPullController.isClosed) {
+      _initialPullController.add(done);
+    }
+  }
 
   /// The last error from a push or pull attempt, and whether a cycle has
   /// completed cleanly — this is the only thing the UI is allowed to derive a
@@ -206,6 +264,7 @@ class SyncService {
     await _claimLocalDatabaseFor(userId);
     _userId = userId;
     _lastSyncedAt = await _readLastSyncedAt();
+    _setInitialPullDone(await _readCursor(_initialPullKey) != null);
 
     // Every periodic/on-change kick goes through [_fireAndLog] rather than
     // dropping the Future on the floor. `pushOnce` and `pullAll` are both
@@ -232,10 +291,13 @@ class SyncService {
         .realtimeHints([...syncTableOrder, tombstoneTable], userId: userId)
         // Routed through [pullAll] rather than straight into [_pullTable] so
         // a hint landing mid-cycle can't interleave writes with the running
-        // pull and race its cursor upsert — the `_pulling` guard makes the
-        // hint a no-op while a pull is already in flight, and the 5-minute
-        // timer picks up anything that hint would have covered.
+        // pull and race its cursor upsert — the `_pulling` guard defers it
+        // to one follow-up pull (`_pullAgain`) instead of dropping it.
         .listen((_) => pullAll());
+    // Any local write may have filled the outbox (the SQLite triggers do it,
+    // so there is no hook closer than the table-update stream). Push soon
+    // after the last one rather than at the next 20-second tick.
+    _writeSub = _db.tableUpdates().listen((_) => _schedulePush());
 
     await pushOnce();
     await pullAll();
@@ -245,15 +307,22 @@ class SyncService {
     _userId = null;
     _pushTimer?.cancel();
     _pullTimer?.cancel();
+    _pushDebounce?.cancel();
     _pushTimer = null;
     _pullTimer = null;
+    _pushDebounce = null;
+    _pullAgain = false;
+    _lastResumeSync = null;
     await _connectivitySub?.cancel();
     await _realtimeSub?.cancel();
+    await _writeSub?.cancel();
     _connectivitySub = null;
     _realtimeSub = null;
+    _writeSub = null;
     _lastSyncedAt = null;
     _lastRunError = null;
     _backend.dispose();
+    _setInitialPullDone(false);
     _emit(const SyncState(phase: SyncPhase.disabled));
   }
 
@@ -263,6 +332,7 @@ class SyncService {
   Future<void> dispose() async {
     await stop();
     await _stateController.close();
+    await _initialPullController.close();
   }
 
   // ── Local-database ownership ───────────────────────────────────────────
@@ -813,12 +883,42 @@ class SyncService {
 
   // ── Pull ───────────────────────────────────────────────────────────────
 
+  /// Catches up after the app (or a browser tab) comes back to the
+  /// foreground: realtime hints sent while it was away are never replayed, so
+  /// without this a phone could wait up to 5 minutes to see a web edit.
+  Future<void> syncOnResume() async {
+    if (_userId == null) {
+      return;
+    }
+    final now = DateTime.now();
+    final last = _lastResumeSync;
+    if (last != null && now.difference(last) < _resumeSyncCooldown) {
+      return;
+    }
+    _lastResumeSync = now;
+    await pushOnce();
+    await pullAll();
+  }
+
+  void _schedulePush() {
+    if (_userId == null) {
+      return;
+    }
+    _pushDebounce?.cancel();
+    _pushDebounce = Timer(_writePushDelay, () => _fireAndLog('push', pushOnce));
+  }
+
   Future<void> pullAll() async {
     final userId = _userId;
-    if (userId == null || _pulling) {
+    if (userId == null) {
+      return;
+    }
+    if (_pulling) {
+      _pullAgain = true;
       return;
     }
     _pulling = true;
+    _fetchFailedThisCycle = false;
     try {
       await _refreshState(syncing: true);
       // Tombstones FIRST. A hard-deleted row cannot appear in any row pull, so
@@ -826,15 +926,36 @@ class SyncService {
       // are therefore always fresher than any tombstone and have to be applied
       // last, where they win. Reversing this order deletes rows that were
       // re-created after the tombstone was written.
-      var clean = await _pullTombstones(userId);
+      final tombstonesPulled = await _pullTombstones(userId);
+      var clean = tombstonesPulled;
       for (final table in syncTableOrder) {
         if (!await _pullTable(table, userId)) {
           clean = false;
         }
       }
+      // Every table reached the server, so the account is here. A row that
+      // failed to apply locally doesn't hold this back — it is retried on
+      // every cycle and surfaced through [state] — but a failed fetch does,
+      // or a browser could open an account that is only half downloaded.
+      if (!_initialPullDone &&
+          tombstonesPulled &&
+          !_fetchFailedThisCycle &&
+          _userId == userId) {
+        await _writeCursor(
+          _initialPullKey,
+          DateTime.now().toUtc().toIso8601String(),
+        );
+        _setInitialPullDone(true);
+      }
       await _refreshState(cleanCycle: clean);
     } finally {
       _pulling = false;
+      if (_pullAgain) {
+        _pullAgain = false;
+        if (_userId != null) {
+          _fireAndLog('pull', pullAll);
+        }
+      }
     }
   }
 
@@ -863,26 +984,88 @@ class SyncService {
       // pull failure is exactly the "looks synced, isn't" behavior RB-02 is
       // about.
       _lastRunError = e.toString();
+      _fetchFailedThisCycle = true;
       _log('SyncService pull failed for $table: $e');
       return false;
     }
     if (remoteRows.isEmpty) {
       return true;
     }
-
-    var latest = since;
-    for (final remoteRow in remoteRows) {
-      await _applyPulledRow(table, spec, remoteRow);
-      final updatedAt = DateTime.tryParse(
-        remoteRow['updated_at'] as String? ?? '',
-      );
-      if (updatedAt != null && updatedAt.isAfter(latest)) {
-        latest = updatedAt;
-      }
+    if (!await _prefetchCatalogueRefs(spec, remoteRows)) {
+      return false;
     }
 
+    var latest = since;
+    var failed = false;
+    // One transaction per table: a first pull can be thousands of rows, and
+    // on the web every separate write is its own commit to the browser's
+    // storage. Rows are still applied one by one inside it.
+    await _db.transaction(() async {
+      for (final remoteRow in remoteRows) {
+        try {
+          await _applyPulledRow(table, spec, remoteRow);
+        } catch (e) {
+          // A row the local schema rejects (a constraint Postgres doesn't
+          // share, a parent that hasn't arrived) used to escape from here and
+          // abort the pull of this table *and every table after it*, on every
+          // cycle. Now only this table's cursor stops short of the row, so it
+          // is retried next time, and the rest of the account keeps syncing.
+          if (!failed) {
+            _lastRunError = 'Could not apply a $table row: $e';
+            _log(
+              'SyncService could not apply $table row ${remoteRow['id']}: $e',
+            );
+          }
+          failed = true;
+          continue;
+        }
+        if (failed) {
+          continue;
+        }
+        final updatedAt = DateTime.tryParse(
+          remoteRow['updated_at'] as String? ?? '',
+        );
+        if (updatedAt != null && updatedAt.isAfter(latest)) {
+          latest = updatedAt;
+        }
+      }
+    });
+
     await _writeCursor(table, latest.toIso8601String());
-    return true;
+    return !failed;
+  }
+
+  /// Makes sure every catalogue food the pulled [rows] point at is local
+  /// before they are applied — otherwise the reference would resolve to no
+  /// food at all. A no-op where the catalogue is bundled. Returns false (and
+  /// counts as a failed fetch, so the cursor stays put and the account isn't
+  /// marked restored) when the foods could not be fetched.
+  Future<bool> _prefetchCatalogueRefs(
+    SyncTableSpec spec,
+    List<Map<String, dynamic>> rows,
+  ) async {
+    final prefetcher = _cataloguePrefetcher;
+    if (prefetcher == null) {
+      return true;
+    }
+    final refs = <String>{
+      for (final fk in spec.fkFields)
+        if (fk is CatalogueFk && fk.parentTable == 'foods')
+          for (final row in rows)
+            if (row[fk.remoteNaturalKeyColumn] case final String ref) ref,
+    };
+    if (refs.isEmpty) {
+      return true;
+    }
+    try {
+      await prefetcher.ensureFoods(refs);
+      return true;
+    } catch (e) {
+      _lastRunError = 'Could not fetch catalogue foods for ${spec.table}: $e';
+      _fetchFailedThisCycle = true;
+      _log('SyncService catalogue prefetch failed for ${spec.table}: $e');
+      return false;
+    }
   }
 
   // ── Tombstones (hard deletes made on another device) ───────────────────

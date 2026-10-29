@@ -76,25 +76,16 @@ class WorkoutHistoryView extends ConsumerWidget {
     WorkoutSessionData session,
   ) async {
     final end = session.endedAt ?? DateTime.now();
-    final dur = end.difference(session.startedAt);
-    final profile = ref.read(profileProvider).valueOrNull;
-    final weight = (profile?.weightKg != null && profile!.weightKg! > 20)
-        ? profile.weightKg!
-        : 75.0;
-    final minutes = dur.inMinutes > 0 ? dur.inMinutes : 1;
-    final kcal =
-        session.caloriesBurned ??
-        (5.0 * weight * (minutes / 60.0)).round().clamp(10, 3000);
-
-    final success = await ref
-        .read(healthServiceProvider)
-        .writeWorkoutToHealth(
-          workoutSessionId: session.id,
-          activityName: _titleFor(session),
-          startTime: session.startedAt,
-          endTime: end,
-          totalCaloriesBurned: kcal,
-        );
+    final health = ref.read(healthServiceProvider);
+    final summary = await ref.read(sessionSummaryProvider(session.id).future);
+    final kcal = summary.caloriesBurned;
+    final success = await health.writeWorkoutToHealth(
+      workoutSessionId: session.id,
+      activityName: _titleFor(session),
+      startTime: session.startedAt,
+      endTime: end,
+      totalCaloriesBurned: kcal,
+    );
 
     if (context.mounted) {
       AppNotice.show(
@@ -215,15 +206,12 @@ class WorkoutHistoryView extends ConsumerWidget {
                 ? '${duration.inHours}h ${duration.inMinutes.remainder(60)}m'
                 : '${duration.inMinutes}m';
 
-            final profile = ref.watch(profileProvider).valueOrNull;
-            final weight =
-                (profile?.weightKg != null && profile!.weightKg! > 20)
-                ? profile.weightKg!
-                : 75.0;
-            final minutes = duration?.inMinutes ?? 45;
             final calories =
                 session?.caloriesBurned ??
-                (5.0 * weight * (minutes / 60.0)).round().clamp(10, 3000);
+                ref
+                    .watch(sessionSummaryProvider(sessionId))
+                    .valueOrNull
+                    ?.caloriesBurned;
 
             final photo = session?.photoPath;
             final photoFile = photo == null
@@ -278,7 +266,9 @@ class WorkoutHistoryView extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '$calories kcal',
+                                    calories == null
+                                        ? '… kcal'
+                                        : '≈$calories kcal',
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.bold,

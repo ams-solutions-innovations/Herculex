@@ -26,7 +26,7 @@ import {
   weeklyReportPrompt,
 } from "./prompts.ts";
 import { callerUserId } from "../_shared/auth.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { withCors } from "../_shared/cors.ts";
 import { json } from "../_shared/json.ts";
 import {
   core as coachingCore,
@@ -276,14 +276,11 @@ const canonicalDayStressRoleIds = new Set([
 ]);
 
 if (import.meta.main) {
-  Deno.serve(handleRequest);
+  // withCors answers the preflight and checks the browser origin.
+  Deno.serve(withCors(handleRequest));
 }
 
 async function handleRequest(req: Request): Promise<Response> {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
   if (req.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }

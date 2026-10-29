@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/workouts/application/calisthenics_providers.dart';
 import 'package:herculex/features/workouts/domain/calisthenics_progression.dart';
+import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 
 class CalisthenicsPick {
   const CalisthenicsPick(this.exercise, this.level, this.value, this.load);
@@ -28,8 +30,96 @@ class CalisthenicsLevelSheet extends ConsumerWidget {
   ) => showModalBottomSheet<CalisthenicsPick>(
     context: context,
     isScrollControlled: true,
+    showDragHandle: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+    ),
     builder: (_) => CalisthenicsLevelSheet(path: path, catalog: catalog),
   );
+
+  Widget _buildLevelTile({
+    required BuildContext context,
+    required CalisthenicsLevel level,
+    required ExerciseCatalogData exercise,
+    required CalisthenicsRecommendation? recommendation,
+  }) {
+    final isRecommended = recommendation?.target.key == level.key;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: isRecommended
+                ? AppColors.primary
+                : AppColors.outlineVariant.withValues(alpha: 0.4),
+            width: isRecommended ? 1.5 : 1.0,
+          ),
+        ),
+        tileColor: AppColors.surfaceContainer,
+        leading: ExerciseArtwork(
+          exercise: exercise,
+          size: 44,
+          radius: 8,
+          equipmentVariant: level.variant,
+        ),
+        title: Text(
+          level.label,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(
+          '${level.prescription}${isRecommended ? ' · Recommended' : ''}',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppColors.secondary,
+          ),
+        ),
+        trailing: isRecommended
+            ? Icon(Icons.recommend_outlined, color: AppColors.primary)
+            : Icon(Icons.add, color: AppColors.primary),
+        onTap: () async {
+          if (recommendation?.ready == true &&
+              recommendation!.target.key == level.key) {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Try the next level?'),
+                content: const Text(
+                  'Were your qualifying sets controlled, pain-free and through full range? Start with the low end of the new range. You can return to an easier level at any time.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Keep current level'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('Yes, try it'),
+                  ),
+                ],
+              ),
+            );
+            if (confirmed != true || !context.mounted) return;
+          }
+          final suggested = recommendation?.target.key == level.key;
+          Navigator.pop(
+            context,
+            CalisthenicsPick(
+              exercise,
+              level,
+              suggested ? recommendation!.value : level.min,
+              suggested
+                  ? recommendation!.load
+                  : level.variant == 'weighted'
+                  ? path.weightedStartingLoadKg
+                  : 0,
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,6 +145,7 @@ class CalisthenicsLevelSheet extends ConsumerWidget {
             const Text(
               'Levels are movement-specific. Count controlled full-range reps; for unilateral movements, meet the target on each side.',
             ),
+            const SizedBox(height: 12),
             for (final level in path.levels)
               if (catalog.any(
                 (e) =>
@@ -62,74 +153,56 @@ class CalisthenicsLevelSheet extends ConsumerWidget {
                     (level.variant != 'weighted' ||
                         e.supportsWeightedBodyweight),
               ))
-                ListTile(
-                  title: Text(level.label),
-                  subtitle: Text(
-                    '${level.prescription}${recommendation?.target.key == level.key ? ' · Recommended' : ''}',
-                  ),
-                  trailing: recommendation?.target.key == level.key
-                      ? const Icon(Icons.recommend_outlined)
-                      : const Icon(Icons.add),
-                  onTap: () async {
-                    if (recommendation?.ready == true &&
-                        recommendation!.target.key == level.key) {
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Try the next level?'),
-                          content: const Text(
-                            'Were your qualifying sets controlled, pain-free and through full range? Start with the low end of the new range. You can return to an easier level at any time.',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Keep current level'),
-                            ),
-                            FilledButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Yes, try it'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed != true || !context.mounted) return;
-                    }
-                    final suggested = recommendation?.target.key == level.key;
-                    Navigator.pop(
-                      context,
-                      CalisthenicsPick(
-                        catalog.firstWhere((e) => e.slug == level.slug),
-                        level,
-                        suggested ? recommendation!.value : level.min,
-                        suggested
-                            ? recommendation!.load
-                            : level.variant == 'weighted'
-                            ? path.weightedStartingLoadKg
-                            : 0,
-                      ),
-                    );
-                  },
+                _buildLevelTile(
+                  context: context,
+                  level: level,
+                  exercise: catalog.firstWhere((e) => e.slug == level.slug),
+                  recommendation: recommendation,
                 ),
             for (final slug in path.parallelSlugs)
               for (final exercise in catalog.where((e) => e.slug == slug))
-                ListTile(
-                  title: Text(exercise.name),
-                  subtitle: const Text(
-                    'Technique branch · does not unlock strict strength levels',
-                  ),
-                  onTap: () => Navigator.pop(
-                    context,
-                    CalisthenicsPick(
-                      exercise,
-                      CalisthenicsLevel(
-                        slug,
-                        'bodyweight',
-                        'Technique',
-                        min: 2,
-                        max: 5,
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: AppColors.outlineVariant.withValues(alpha: 0.4),
                       ),
-                      2,
-                      0,
+                    ),
+                    tileColor: AppColors.surfaceContainer,
+                    leading: ExerciseArtwork(
+                      exercise: exercise,
+                      size: 44,
+                      radius: 8,
+                    ),
+                    title: Text(
+                      exercise.name,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Technique branch · does not unlock strict strength levels',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                    trailing: Icon(Icons.add, color: AppColors.primary),
+                    onTap: () => Navigator.pop(
+                      context,
+                      CalisthenicsPick(
+                        exercise,
+                        CalisthenicsLevel(
+                          slug,
+                          'bodyweight',
+                          'Technique',
+                          min: 2,
+                          max: 5,
+                        ),
+                        2,
+                        0,
+                      ),
                     ),
                   ),
                 ),

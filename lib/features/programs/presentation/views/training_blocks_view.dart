@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/app_bottom_sheet.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
+import 'package:herculex/design_system/components/hx_content_width.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
@@ -16,6 +19,7 @@ import 'package:herculex/features/programs/presentation/views/block_builder_view
 import 'package:herculex/features/programs/presentation/views/block_detail_view.dart';
 import 'package:herculex/features/programs/presentation/views/program_marketplace_view.dart';
 import 'package:herculex/features/programs/presentation/widgets/month_calendar.dart';
+import 'package:herculex/features/programs/presentation/widgets/upcoming_workouts_panel.dart';
 import 'package:herculex/features/programs/presentation/widgets/week_board.dart';
 import 'package:herculex/features/workouts/application/calendar_providers.dart';
 import 'package:intl/intl.dart';
@@ -38,46 +42,90 @@ class TrainingBlocksView extends ConsumerWidget {
           error: (e, _) => Center(child: Text('Could not load blocks.\n$e')),
           data: (program) {
             if (program == null) return const _NoBlockState();
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-              children: [
-                _BlockHeader(program: program),
-                const SizedBox(height: 14),
-                _ViewModeBar(mode: mode),
-                const SizedBox(height: 14),
-                _PeriodNavigator(program: program, mode: mode, date: selected),
-                const SizedBox(height: 14),
-                _ConflictBanner(program: program, mode: mode, date: selected),
-                if (mode == BlocksViewMode.week)
-                  WeekBoard(
-                    anchor: selected,
-                    programId: program.id,
-                    onOpenDay: (date) => _openDay(context, ref, date, program),
-                    onOpenSession: (row) => _openDay(
+            final planner = <Widget>[
+              _BlockHeader(program: program),
+              const SizedBox(height: 14),
+              _ViewModeBar(mode: mode),
+              const SizedBox(height: 14),
+              _PeriodNavigator(program: program, mode: mode, date: selected),
+              const SizedBox(height: 14),
+              _ConflictBanner(program: program, mode: mode, date: selected),
+              if (mode == BlocksViewMode.week)
+                WeekBoard(
+                  anchor: selected,
+                  programId: program.id,
+                  onOpenDay: (date) => _openDay(context, ref, date, program),
+                  onOpenSession: (row) => _openDay(
+                    context,
+                    ref,
+                    row.date,
+                    program,
+                    initialScheduleId: row.id,
+                  ),
+                )
+              else
+                MonthCalendar(
+                  anchor: selected,
+                  programId: program.id,
+                  selected: selected,
+                  onSelect: (date, {scheduleId}) {
+                    ref.read(selectedBlockDateProvider.notifier).state = date;
+                    _openDay(
                       context,
                       ref,
-                      row.date,
+                      date,
                       program,
-                      initialScheduleId: row.id,
-                    ),
-                  )
-                else
-                  MonthCalendar(
-                    anchor: selected,
-                    programId: program.id,
-                    selected: selected,
-                    onSelect: (date, {scheduleId}) {
-                      ref.read(selectedBlockDateProvider.notifier).state = date;
-                      _openDay(
-                        context,
-                        ref,
-                        date,
-                        program,
-                        initialScheduleId: scheduleId,
-                      );
-                    },
+                      initialScheduleId: scheduleId,
+                    );
+                  },
+                ),
+            ];
+
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth < HxBreakpoints.splitView) {
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                    children: planner,
+                  );
+                }
+                // Wide window: the planner on the left, and on the right the
+                // answer to "when is my next workout?" without paging through
+                // the calendar to find it.
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.only(bottom: 120),
+                          children: planner,
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      SizedBox(
+                        width: 360,
+                        child: ListView(
+                          padding: const EdgeInsets.only(bottom: 120),
+                          children: [
+                            UpcomingWorkoutsPanel(
+                              programId: program.id,
+                              onOpenSession: (row) => _openDay(
+                                context,
+                                ref,
+                                row.date,
+                                program,
+                                initialScheduleId: row.id,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-              ],
+                );
+              },
             );
           },
         ),
@@ -163,59 +211,64 @@ class _BlockHeader extends ConsumerWidget {
             ),
           ),
         ),
-        IconButton(
-          tooltip: 'Sync with Google / Device Calendar',
-          icon: ref.watch(calendarSyncControllerProvider).isSyncing
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Icon(
-                  Icons.sync_rounded,
-                  color: ref.watch(calendarSyncEnabledProvider)
-                      ? const Color(0xFF6750A4)
-                      : AppColors.onSurfaceVariant,
-                ),
-          onPressed: () async {
-            final isEnabled = ref.read(calendarSyncEnabledProvider);
-            if (!isEnabled) {
-              final enable = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Enable Calendar 2-Way Sync?'),
-                  content: const Text(
-                    'Sync scheduled workouts with your Google / Device Calendar. Moving workouts in Google Calendar will update Herculex and vice-versa.',
+        if (ref.watch(platformCapabilitiesProvider).hasDeviceCalendar)
+          IconButton(
+            tooltip: 'Sync with Google / Device Calendar',
+            icon: ref.watch(calendarSyncControllerProvider).isSyncing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    Icons.sync_rounded,
+                    color: ref.watch(calendarSyncEnabledProvider)
+                        ? const Color(0xFF6750A4)
+                        : AppColors.onSurfaceVariant,
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancel'),
+            onPressed: () async {
+              final isEnabled = ref.read(calendarSyncEnabledProvider);
+              if (!isEnabled) {
+                final enable = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Enable Calendar 2-Way Sync?'),
+                    content: const Text(
+                      'Sync scheduled workouts with your Google / Device Calendar. Moving workouts in Google Calendar will update Herculex and vice-versa.',
                     ),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Enable & Sync'),
-                    ),
-                  ],
-                ),
-              );
-              if (enable != true) return;
-              await ref.read(calendarSyncEnabledProvider.notifier).toggle(true);
-            }
-            final res = await ref
-                .read(calendarSyncControllerProvider.notifier)
-                .syncNow();
-            if (context.mounted) {
-              AppNotice.show(
-                context,
-                res.success
-                    ? 'Calendar synced (${res.pushedCount} pushed, ${res.pulledCount} pulled)'
-                    : 'Sync error: ${res.error}',
-                kind: res.success ? AppNoticeKind.success : AppNoticeKind.error,
-              );
-            }
-          },
-        ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Enable & Sync'),
+                      ),
+                    ],
+                  ),
+                );
+                if (enable != true) return;
+                await ref
+                    .read(calendarSyncEnabledProvider.notifier)
+                    .toggle(true);
+              }
+              final res = await ref
+                  .read(calendarSyncControllerProvider.notifier)
+                  .syncNow();
+              if (context.mounted) {
+                AppNotice.show(
+                  context,
+                  res.success
+                      ? 'Calendar synced (${res.pushedCount} pushed, ${res.pulledCount} pulled)'
+                      : 'Sync error: ${res.error}',
+                  kind: res.success
+                      ? AppNoticeKind.success
+                      : AppNoticeKind.error,
+                );
+              }
+            },
+          ),
         IconButton(
           tooltip: 'Edit block',
           icon: Icon(Icons.tune_rounded, color: AppColors.onSurfaceVariant),
@@ -609,7 +662,7 @@ class _NoBlockState extends ConsumerWidget {
     final theme = Theme.of(context);
     final all = ref.watch(programsListProvider).value ?? const <ProgramData>[];
 
-    return ListView(
+    final content = ListView(
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 120),
       children: [
         Text(
@@ -685,5 +738,8 @@ class _NoBlockState extends ConsumerWidget {
         ),
       ],
     );
+    // Centred and capped: on a wide window this card would otherwise be a
+    // 1,100 px slab with one button in it.
+    return HxContentWidth(maxWidth: HxBreakpoints.readingMax, child: content);
   }
 }

@@ -1,9 +1,9 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/core/utils/env.dart';
 import 'package:herculex/features/auth/domain/auth_provider_service.dart';
+import 'package:herculex/features/auth/domain/auth_redirect.dart';
 import 'package:herculex/features/auth/domain/auth_session.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 // `AuthProvider` below always means the app's own domain enum; Supabase names
@@ -18,22 +18,37 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// was no `GoogleService-Info.plist`, no Podfile, and no native implementation,
 /// so every call threw `MissingPluginException`).
 class SupabaseAuthService implements AuthProviderService {
-  SupabaseAuthService(this._client, {GoogleSignIn? googleSignIn})
-    : _googleSignIn =
-          googleSignIn ??
-          GoogleSignIn(
-            // Supabase verifies the ID token against the *web* client id even
-            // on Android, so it goes in `serverClientId`, not `clientId`.
-            serverClientId: Env.googleWebClientId.isEmpty
-                ? null
-                : Env.googleWebClientId,
-            clientId: Env.googleIosClientId.isEmpty
-                ? null
-                : Env.googleIosClientId,
-          );
+  SupabaseAuthService(
+    this._client, {
+    GoogleSignIn? googleSignIn,
+    PlatformCapabilities? capabilities,
+  }) : _googleSignInOverride = googleSignIn,
+       _caps = capabilities ?? PlatformCapabilities.current();
 
   final SupabaseClient _client;
-  final GoogleSignIn _googleSignIn;
+  final PlatformCapabilities _caps;
+  final GoogleSignIn? _googleSignInOverride;
+
+  /// Native account-picker sign-in. Created on first use, and never on the
+  /// web: the web build signs in through Supabase's OAuth redirect instead,
+  /// and the web flavour of `google_sign_in` rejects `serverClientId`.
+  late final GoogleSignIn _googleSignIn =
+      _googleSignInOverride ??
+      GoogleSignIn(
+        // Supabase verifies the ID token against the *web* client id even
+        // on Android, so it goes in `serverClientId`, not `clientId`.
+        serverClientId: Env.googleWebClientId.isEmpty
+            ? null
+            : Env.googleWebClientId,
+        clientId: Env.googleIosClientId.isEmpty ? null : Env.googleIosClientId,
+      );
+
+  /// Where Supabase sends the browser (or the app) back after an emailed
+  /// link or an OAuth hop. Native builds use the deep link; the web uses its
+  /// own origin, so production, preview deploys and localhost all work as
+  /// long as they are on the Supabase redirect allowlist.
+  String _redirectUrl([String path = '']) =>
+      _caps.isWeb ? '${Uri.base.origin}$path' : Env.authCallbackUrl;
 
   @override
   Future<AuthSession?> getCurrentUser() async {
@@ -58,7 +73,7 @@ class SupabaseAuthService implements AuthProviderService {
       data: displayName == null || displayName.trim().isEmpty
           ? null
           : {'full_name': displayName.trim()},
-      emailRedirectTo: Env.authCallbackUrl,
+      emailRedirectTo: _redirectUrl(),
     );
     return _require(res.session, res.user, 'registerWithEmail');
   }
@@ -77,6 +92,16 @@ class SupabaseAuthService implements AuthProviderService {
 
   @override
   Future<AuthSession> signInWithGoogle() async {
+    if (_caps.isWeb) {
+      // Full-page redirect to Google and back. supabase_flutter exchanges the
+      // returned `?code=` on startup and the session arrives through
+      // [authStateChanges]; there is nothing to return from here.
+      await _client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: _redirectUrl(),
+      );
+      throw const AuthRedirectStarted('Google');
+    }
     if (!Env.hasGoogleSignIn) {
       throw const AuthException(
         'Google sign-in is not configured. Build with '
@@ -109,10 +134,13 @@ class SupabaseAuthService implements AuthProviderService {
 
   @override
   Future<AuthSession> signInWithApple() async {
-    // Native Sign in with Apple is only available on Apple platforms. On
-    // Android it requires the web flow via a Service ID; until that is
+    // Native Sign in with Apple is only available on Apple platforms. Android
+    // and the web need the redirect flow via a Service ID; until that is
     // configured we fail loudly rather than opening a broken redirect.
-    if (!kIsWeb && !Platform.isIOS && !Platform.isMacOS) {
+    final applePlatform =
+        _caps.isIOS ||
+        (_caps.isNative && _caps.platform == TargetPlatform.macOS);
+    if (!applePlatform) {
       throw const AuthException(
         'Sign in with Apple is only available on iOS and macOS in this build.',
       );
@@ -148,18 +176,29 @@ class SupabaseAuthService implements AuthProviderService {
   }
 
   @override
-  Future<void> sendPasswordReset(String email) => _client.auth
-      .resetPasswordForEmail(email, redirectTo: Env.authCallbackUrl);
+  Future<void> sendPasswordReset(String email) =>
+      _client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: _redirectUrl('/reset-password'),
+      );
+
+  @override
+  Future<void> updatePassword(String newPassword) async {
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
 
   @override
   Future<void> signOut() async {
     // Clear the Google account too, otherwise the next sign-in silently reuses
-    // the cached account and the picker never appears.
-    try {
-      await _googleSignIn.signOut();
-    } catch (_) {
-      // Not signed in with Google, or Play Services unavailable — irrelevant
-      // to signing out of Supabase.
+    // the cached account and the picker never appears. The web never created
+    // one (OAuth redirect), so there is nothing to clear there.
+    if (_caps.isNative) {
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {
+        // Not signed in with Google, or Play Services unavailable — irrelevant
+        // to signing out of Supabase.
+      }
     }
     await _client.auth.signOut();
   }

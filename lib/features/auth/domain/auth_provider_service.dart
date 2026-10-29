@@ -37,6 +37,10 @@ abstract interface class AuthProviderService {
 
   Future<void> sendPasswordReset(String email);
 
+  /// Sets a new password for the signed-in user — the second half of the
+  /// reset flow, once the emailed link has produced a recovery session.
+  Future<void> updatePassword(String newPassword);
+
   Future<void> signOut();
 
   /// Permanently deletes the signed-in account and every row the backend

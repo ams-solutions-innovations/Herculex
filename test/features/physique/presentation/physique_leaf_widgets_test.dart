@@ -150,9 +150,8 @@ void main() {
       'AppColors',
       'Color(0x',
       'Colors.',
+      // The Dream Physique redesign sets labels and figures at 700/800.
       'FontWeight.w500',
-      'FontWeight.w700',
-      'FontWeight.w800',
       'FontWeight.w900',
       'boxShadow',
     ];

@@ -47,6 +47,7 @@ class _FastingViewState extends ConsumerState<FastingView> {
         ),
         HxScreenShell(
           title: 'Fasting',
+          showBack: false,
           actions: [
             HxCircleButton(
               icon: Icons.alarm_rounded,

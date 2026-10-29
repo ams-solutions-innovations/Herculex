@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'dart:isolate';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/features/physique/data/physique_photo_sanitizer.dart';
 import 'package:herculex/features/physique/domain/physique_guardrails.dart';
@@ -373,14 +373,14 @@ class DreamPhysiqueService {
       final currentPayload = <Map<String, dynamic>>[];
       for (final file in availableCurrentFiles) {
         final raw = await file.readAsBytes();
-        final sanitized = await Isolate.run(() => downscaleForAnalysis(raw));
+        final sanitized = await compute(downscaleForAnalysis, raw);
         currentPayload.add({'bytes': sanitized, 'mimeType': 'image/jpeg'});
       }
 
       final targetPayload = <Map<String, dynamic>>[];
       for (final file in targetImages) {
         final raw = await file.readAsBytes();
-        final sanitized = await Isolate.run(() => downscaleForAnalysis(raw));
+        final sanitized = await compute(downscaleForAnalysis, raw);
         targetPayload.add({'bytes': sanitized, 'mimeType': 'image/jpeg'});
       }
 

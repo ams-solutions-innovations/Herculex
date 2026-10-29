@@ -45,8 +45,9 @@ class CalisthenicsProgressionCard extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           child: Consumer(
             builder: (context, ref, _) {
-              final path =
-                  exercise.isCustom ? null : calisthenicsPathFor(exercise.slug);
+              final path = exercise.isCustom
+                  ? null
+                  : calisthenicsPathFor(exercise.slug);
               if (path == null) return const SizedBox.shrink();
               if (path.parallelSlugs.contains(exercise.slug)) {
                 return const Column(

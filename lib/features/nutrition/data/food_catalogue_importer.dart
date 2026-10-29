@@ -81,7 +81,7 @@ class FoodCatalogueImporter {
         final chunk = foods.sublist(start, end);
         await db.batch((batch) {
           for (final item in chunk) {
-            final companion = _foodCompanion(item);
+            final companion = companionFor(item);
             final existing = existingByCatalogueId[item['id']?.toString()];
             if (existing != null) {
               batch.update(
@@ -109,7 +109,10 @@ class FoodCatalogueImporter {
     });
   }
 
-  static FoodsCompanion _foodCompanion(Map<String, dynamic> item) {
+  /// Maps one raw catalogue item to its `foods` row. Public because the web
+  /// fetches single items from the shared `food_catalogue` table and must
+  /// store them exactly as the phone's bulk import does.
+  static FoodsCompanion companionFor(Map<String, dynamic> item) {
     final nutrients = _map(item['nutrients']);
     final catalogue = _map(item['catalogue']);
     final serving = _map(item['serving']);

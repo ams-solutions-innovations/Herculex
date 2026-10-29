@@ -28,6 +28,14 @@ class _Pdf extends LabsPdfService {
   }
 }
 
+/// The web: no writable sandbox, so a PDF can never be saved.
+class _NoFilesPdf extends LabsPdfService {
+  const _NoFilesPdf() : super(canSaveFiles: false);
+  @override
+  Future<File> save(LabsSnapshot snapshot) =>
+      throw StateError('there is no file system to save to');
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late AppDatabase db;
@@ -139,6 +147,17 @@ void main() {
       await LabsReportRunner(repo, source, pdf).catchUp(DateTime(2026, 2));
       expect(repo.records('report'), isEmpty);
       expect(await dir.list().toList(), isEmpty);
+    },
+  );
+  test(
+    'without a file system reports are kept as snapshots, with no PDF',
+    () async {
+      await LabsReportRunner(
+        repo,
+        source,
+        const _NoFilesPdf(),
+      ).catchUp(DateTime(2026, 2));
+      expect(repo.records('report').length, 2);
     },
   );
 }

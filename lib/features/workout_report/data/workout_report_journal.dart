@@ -40,6 +40,10 @@ class WorkoutReportJournal {
         for (final e in exercises)
           {
             'rowId': e.id,
+            'rowRef': e.syncUuid,
+            'slotRef': e.programExerciseSlotId == null ? null : (await (db.select(db.programExerciseSlots)..where((s) => s.id.equals(e.programExerciseSlotId!))).getSingleOrNull())?.syncUuid,
+            'role': e.plannedSlotRole,
+            'method': e.plannedTrainingMethod,
             'exerciseId': e.exerciseId,
             'name': byId[e.exerciseId]?.name ?? 'Exercise',
             'muscle': byId[e.exerciseId]?.primaryMuscle ?? 'Unknown',
@@ -56,6 +60,8 @@ class WorkoutReportJournal {
                   'max': s.plannedRepsMax,
                   'weight': s.plannedWeightKg,
                   'rpe': s.plannedRpeX10,
+                  'rir': s.plannedRir,
+                  'type': s.setType,
                 },
             ],
           },
@@ -67,7 +73,22 @@ class WorkoutReportJournal {
     final existing = await (db.select(
       db.workoutReportPlans,
     )..where((p) => p.sessionId.equals(sessionId))).getSingleOrNull();
-    if (existing != null) return;
+    if (existing != null) {
+      final old = jsonDecode(existing.planJson) as Map;
+      if (!prescribed || old['prescribed'] == true) return;
+      final completed = await db.customSelect(
+        'SELECT 1 FROM set_entries s JOIN workout_exercises e ON e.id=s.workout_exercise_id '
+        'WHERE e.session_id=? AND s.is_completed=1 LIMIT 1',
+        variables: [Variable.withInt(sessionId)],
+      ).getSingleOrNull();
+      if (completed != null) return;
+      // An explicit known prescription may replace the initial empty/free
+      // capture, but only before work starts. Initialization is not an edit.
+      await (db.update(db.workoutReportPlans)..where((p) => p.sessionId.equals(sessionId))).write(
+        WorkoutReportPlansCompanion(planJson: Value(jsonEncode(await currentPlan(sessionId, prescribed: true))), capturedAt: Value(clock.now())));
+      await (db.delete(db.workoutReportEvents)..where((e) => e.sessionId.equals(sessionId))).go();
+      return;
+    }
     await db
         .into(db.workoutReportPlans)
         .insert(

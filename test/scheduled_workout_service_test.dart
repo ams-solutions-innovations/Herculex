@@ -7,6 +7,7 @@ import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
 import 'package:herculex/features/workouts/data/templates_repository.dart';
+import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'support/test_database.dart';
 
@@ -27,6 +28,83 @@ void main() {
 
   setUp(() async => db = await openTestDatabase());
   tearDown(() => db.close());
+
+  for (final plannedDate in ['2026-09-15', '2026-09-13']) {
+    test(
+      'finishing a workout planned for $plannedDate completes its occurrence',
+      () async {
+        final programId = await db
+            .into(db.programs)
+            .insert(ProgramsCompanion.insert(name: 'Flexible schedule'));
+        final weekId = await db
+            .into(db.programWeeks)
+            .insert(
+              ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+            );
+        final dayId = await db
+            .into(db.programDays)
+            .insert(
+              ProgramDaysCompanion.insert(
+                programWeekId: weekId,
+                dayOfWeek: 2,
+                name: 'Training',
+              ),
+            );
+        final scheduleId = await db
+            .into(db.scheduledWorkouts)
+            .insert(
+              ScheduledWorkoutsCompanion.insert(
+                programDayId: Value(dayId),
+                dateIso: plannedDate,
+              ),
+            );
+        final otherId = await db
+            .into(db.scheduledWorkouts)
+            .insert(
+              ScheduledWorkoutsCompanion.insert(
+                programDayId: Value(dayId),
+                dateIso: plannedDate,
+              ),
+            );
+        final service = ScheduledWorkoutService(
+          db,
+          clock,
+          ProgramsRepository(db),
+          TemplatesRepository(db),
+        );
+        final sessionId = await service.startScheduledWorkoutById(scheduleId);
+        expect(await service.startScheduledWorkoutById(scheduleId), sessionId);
+        final started = await (db.select(
+          db.scheduledWorkouts,
+        )..where((t) => t.id.equals(scheduleId))).getSingle();
+        expect(started.dateIso, plannedDate);
+        expect(started.status, ScheduleStatus.inProgress);
+        expect(started.completedSessionId, sessionId);
+
+        await WorkoutsRepository(
+          db,
+          clock,
+        ).endSession(sessionId, caloriesBurned: 0);
+
+        final completed = await (db.select(
+          db.scheduledWorkouts,
+        )..where((t) => t.id.equals(scheduleId))).getSingle();
+        final other = await (db.select(
+          db.scheduledWorkouts,
+        )..where((t) => t.id.equals(otherId))).getSingle();
+        final session = await (db.select(
+          db.workoutSessions,
+        )..where((t) => t.id.equals(sessionId))).getSingle();
+        expect(completed.dateIso, plannedDate);
+        expect(completed.status, ScheduleStatus.done);
+        expect(completed.completedSessionId, sessionId);
+        expect(session.startedAt, testDate);
+        expect(session.endedAt, isNotNull);
+        expect(other.status, ScheduleStatus.planned);
+        expect(other.completedSessionId, isNull);
+      },
+    );
+  }
 
   test(
     'same-day scheduled workouts resolve strictly by scheduleId and resume idempotently',
@@ -111,7 +189,7 @@ void main() {
           .into(db.scheduledWorkouts)
           .insert(
             ScheduledWorkoutsCompanion.insert(
-              programDayId: dayAId,
+              programDayId: Value(dayAId),
               dateIso: '2026-09-14',
               orderIndex: const Value(0),
               status: const Value(ScheduleStatus.planned),
@@ -122,7 +200,7 @@ void main() {
           .into(db.scheduledWorkouts)
           .insert(
             ScheduledWorkoutsCompanion.insert(
-              programDayId: dayBId,
+              programDayId: Value(dayBId),
               dateIso: '2026-09-14',
               orderIndex: const Value(1),
               status: const Value(ScheduleStatus.planned),
@@ -242,7 +320,7 @@ void main() {
           .insert(
             ScheduledWorkoutsCompanion.insert(
               programId: Value(programId),
-              programDayId: mondayDayId,
+              programDayId: Value(mondayDayId),
               dateIso: '2026-09-08',
               status: const Value(ScheduleStatus.planned),
             ),
@@ -254,7 +332,7 @@ void main() {
           .insert(
             ScheduledWorkoutsCompanion.insert(
               programId: Value(programId),
-              programDayId: mondayDayId,
+              programDayId: Value(mondayDayId),
               dateIso: '2026-09-15',
               status: const Value(ScheduleStatus.planned),
             ),
@@ -279,9 +357,7 @@ void main() {
       // Future drifted 2026-09-15 planned row was repaired to Monday dates >= 2026-09-14.
       final driftedFuture =
           await (db.select(db.scheduledWorkouts)..where(
-                (t) =>
-                    t.dateIso.equals('2026-09-15') &
-                    t.deletedAt.isNull(),
+                (t) => t.dateIso.equals('2026-09-15') & t.deletedAt.isNull(),
               ))
               .get();
       expect(driftedFuture, isEmpty);

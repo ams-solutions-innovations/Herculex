@@ -77,7 +77,7 @@ void main() {
             .insert(
               ScheduledWorkoutsCompanion.insert(
                 programId: Value(program),
-                programDayId: day,
+                programDayId: Value(day),
                 dateIso: '2026-10-${12 + i * 2}',
               ),
             ),
@@ -149,7 +149,7 @@ void main() {
         db.scheduledWorkouts,
       )..where((s) => s.id.equals(schedules.last))).getSingle();
       final resolver = PlannedSessionResolver(db);
-      final original = await resolver.resolveProgramDay(remaining.programDayId);
+      final original = await resolver.resolveProgramDay(remaining.programDayId!);
       final current = await resolver.resolveScheduledWorkout(remaining);
       int count(PlannedSessionSnapshot p) => p.exercises.fold(
         0,

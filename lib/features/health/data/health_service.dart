@@ -5,6 +5,7 @@ import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/health/data/health_adapter.dart';
 import 'package:herculex/features/health/domain/health_read_state.dart';
+import 'package:herculex/features/workouts/domain/workout_energy_estimator.dart';
 
 class HealthService {
   final AppDatabase _db;
@@ -19,6 +20,36 @@ class HealthService {
 
   DateTime? get lastSyncTime => _lastSyncTime;
   DailyHealthRead? get lastDailyRead => _lastDailyRead;
+
+  /// Best-effort session telemetry, never a permission prompt. Missing, late,
+  /// unsupported, or denied health data simply leaves the set-based estimate.
+  Future<List<WorkoutHeartRate>> readWorkoutHeartRates(
+    DateTime start,
+    DateTime end,
+  ) async {
+    if (!end.isAfter(start)) return const [];
+    try {
+      final points = await (() async {
+        await _health.configure();
+        return _health.getHealthDataFromTypes(
+          types: const [HealthDataType.HEART_RATE],
+          startTime: start,
+          endTime: end,
+        );
+      })().timeout(const Duration(seconds: 3));
+      return [
+        for (final point in points)
+          if (point.type == HealthDataType.HEART_RATE &&
+              point.value is NumericHealthValue)
+            WorkoutHeartRate(
+              point.dateFrom,
+              (point.value as NumericHealthValue).numericValue.toDouble(),
+            ),
+      ];
+    } catch (_) {
+      return const [];
+    }
+  }
 
   static const List<HealthDataType> _syncTypes = [
     HealthDataType.STEPS,

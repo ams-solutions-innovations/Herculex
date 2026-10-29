@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:herculex/features/training_coaching/presentation/widgets/training_coaching_panel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
@@ -158,12 +161,13 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
               ),
               const SizedBox(height: 24),
               const WeeklyReportReadyCard(),
+              if (!editMode) const TrainingCoachingPanel(),
               // Config-driven widget grid (§18). Each visible slot maps to a
               // standalone renderer or a Samsung-style widget stack, laid out
               // in a 2-column staggered grid so widgets can go half- or
               // full-width (One UI / iOS-style in-place resize).
               StaggeredGrid.count(
-                crossAxisCount: 2,
+                crossAxisCount: _gridColumns(context),
                 mainAxisSpacing: 24,
                 crossAxisSpacing: 16,
                 children: [
@@ -431,6 +435,18 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
   double _tileWidth(BuildContext context, DashboardWidgetSize size) {
     final available = MediaQuery.sizeOf(context).width - 48;
     return size == DashboardWidgetSize.half ? (available - 16) / 2 : available;
+  }
+
+  /// Two columns, as on a phone — four beside the wide-window side rail
+  /// once the content column has room, so a desktop dashboard shows the
+  /// widgets side by side instead of as a long phone-shaped strip. (Half
+  /// widgets take one column, full ones two.) Native tablets are unchanged.
+  int _gridColumns(BuildContext context) {
+    if (HxLayoutScope.placementOf(context) != HxNavPlacement.rail) return 2;
+    final window = MediaQuery.sizeOf(context).width;
+    final content =
+        math.min(HxBreakpoints.wideMax, window - HxNavRail.clearance) - 48;
+    return content >= HxBreakpoints.dashboardFourColumns ? 4 : 2;
   }
 
   /// Maps a dashboard widget type to its renderer.

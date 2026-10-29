@@ -6,7 +6,9 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalProfileRepository {
-  static const _kProfileKey = 'herculex.profile';
+  /// Public so the synced-preferences registry can name it.
+  static const prefsKey = 'herculex.profile';
+  static const _kProfileKey = prefsKey;
 
   final SharedPreferences _prefs;
   final _controller = StreamController<Profile?>.broadcast();
@@ -60,6 +62,16 @@ class LocalProfileRepository {
           value: profile.weightKg!,
         );
       }
+    }
+  }
+
+  /// Re-reads the stored profile and tells listeners — for when it changed
+  /// underneath this repository (pulled from another device), not through
+  /// [save]. On a fresh web session this is what lets the router skip
+  /// onboarding once the account's profile arrives.
+  void reloadFromStorage() {
+    if (!_controller.isClosed) {
+      _controller.add(currentProfile);
     }
   }
 

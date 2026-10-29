@@ -396,7 +396,7 @@ fun LoggedFoodPill(
                     onLongClick()
                 },
             )
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .padding(horizontal = 12.dp, vertical = 7.dp),
     ) {
         if (isDeletePending) {
             // ── Inline Delete Confirmation State ───────────────────────────
@@ -469,25 +469,17 @@ fun LoggedFoodPill(
                         text = entry.name,
                         color = nutritionStyle.contentColor,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(Modifier.height(1.dp))
                     Text(
                         text = "${entry.portionText} · ${entry.kcal} kcal",
                         color = nutritionStyle.secondaryColor,
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    if (entry.protein > 0 || entry.carbs > 0 || entry.fat > 0) {
-                        Text(
-                            text = "${entry.protein}P · ${entry.carbs}C · ${entry.fat}F",
-                            color = nutritionStyle.secondaryColor.copy(alpha = 0.85f),
-                            fontSize = 9.sp,
-                        )
-                    }
                 }
                 Spacer(Modifier.width(6.dp))
                 Icon(

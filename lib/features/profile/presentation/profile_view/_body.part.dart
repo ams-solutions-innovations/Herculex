@@ -8,13 +8,15 @@ class ProfileView extends ConsumerWidget {
     final profileAsync = ref.watch(profileProvider);
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: SafeArea(
-        child: profileAsync.when(
-          data: (profile) => _ProfileBody(profile: profile),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e')),
+    return HxRailFrame(
+      child: Scaffold(
+        backgroundColor: theme.colorScheme.surface,
+        body: SafeArea(
+          child: profileAsync.when(
+            data: (profile) => _ProfileBody(profile: profile),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('Error: $e')),
+          ),
         ),
       ),
     );
@@ -428,30 +430,111 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     ref.listen(goalTargetProvider, (prev, next) {
       if (prev?.targetKg != next.targetKg) _showAppTarget();
     });
-    final weightFormat = _weightFormat = ref.watch(weightFormatProvider);
+    _weightFormat = ref.watch(weightFormatProvider);
     _heightFormat = ref.watch(heightFormatProvider);
-    final dream = target.dreamKg;
-    final targetHelper = !target.fromRoadmap
-        ? null
-        : 'End of ${target.phase!.label.toLowerCase()}'
-              '${dream != null && dream != target.targetKg ? ' · dream ${weightFormat.format(dream)}' : ''}';
-    final heightVal = double.tryParse(_heightCtrl.text.trim());
-    final heightHelper = (isMetric && heightVal != null && heightVal < 100)
-        ? 'Check height entry (e.g. 176)'
-        : null;
+
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isDesktop = kIsWeb && screenWidth >= 840;
+
+    if (isDesktop) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1240),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(28, 20, 28, 120),
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Left Column (~340px) ──────────────────────────────
+                  SizedBox(
+                    width: 340,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _DesktopIdentityCard(
+                          profile: widget.profile,
+                          avatarId: _avatarId,
+                          onEdit: _editIdentity,
+                          onPickAvatar: _pickAvatar,
+                        ),
+                        const SizedBox(height: 16),
+                        const _ProfileLevelCard(),
+                        const SizedBox(height: 12),
+                        const _ProfileFunFactCard(),
+                        const SizedBox(height: 16),
+                        _DesktopQuickActionsCard(
+                          exporting: _exporting,
+                          onExport: () => _exportData(context),
+                        ),
+                        const SizedBox(height: 16),
+                        const _DesktopToolsCard(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 32),
+                  // ── Right Column (flexible, up to 860px) ───────────────
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Body stats
+                        _SectionHeader('Body Stats'),
+                        const SizedBox(height: 14),
+                        _buildDesktopBodyStats(isMetric, latest),
+                        const SizedBox(height: 28),
+
+                        // Biological Sex
+                        _SectionHeader('Biological Sex'),
+                        const SizedBox(height: 14),
+                        _SexSelectorPills(
+                          selected: _sex,
+                          onChanged: (s) {
+                            setState(() => _sex = s);
+                            _onFieldChanged();
+                          },
+                        ),
+                        const SizedBox(height: 28),
+
+                        // Activity Level
+                        _SectionHeader('Activity Level'),
+                        const SizedBox(height: 14),
+                        ActivityLevelSection(
+                          selected: _activityLevel,
+                          onChanged: (a) {
+                            setState(() => _activityLevel = a);
+                            _onFieldChanged();
+                          },
+                        ),
+                        const SizedBox(height: 28),
+
+                        // Active Target & Goals
+                        _SectionHeader('Active Goal & Targets'),
+                        const SizedBox(height: 14),
+                        const _ProfileActiveTargetSquircleCard(),
+                        const SizedBox(height: 14),
+                        const DreamPhysiqueSummaryCard(),
+                        const _BlockAdjustmentSlot(),
+                        const SizedBox(height: 14),
+                        const DreamPhysiqueNutritionDirectionCard(),
+
+                        const SizedBox(height: 32),
+                        // Save Button
+                        _SaveButton(saving: _saving, onTap: _save),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 120),
       children: [
-        if (Navigator.of(context).canPop())
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              icon: const Icon(Icons.chevron_left, size: 28),
-              onPressed: () => Navigator.of(context).maybePop(),
-            ),
-          ),
         // ── Avatar / header ───────────────────────────────────────────────
         _AvatarHeader(
           profile: widget.profile,
@@ -464,142 +547,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         // ── Body stats ────────────────────────────────────────────────────
         _SectionHeader('Body Stats'),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _StatField(
-                label: 'Age',
-                hint: 'yrs',
-                controller: _ageCtrl,
-                onChanged: _onFieldChanged,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatField(
-                label: isMetric ? 'Height (cm)' : 'Height (in)',
-                hint: isMetric ? 'cm' : 'in',
-                controller: _heightCtrl,
-                helper: heightHelper,
-                onChanged: _onFieldChanged,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _StatField(
-                label: isMetric ? 'Current Weight (kg)' : 'Current Weight (lb)',
-                hint: isMetric ? 'kg' : 'lb',
-                controller: _weightCtrl,
-                onChanged: _onFieldChanged,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatField(
-                label: isMetric ? 'Target Weight (kg)' : 'Target Weight (lb)',
-                hint: isMetric ? 'kg' : 'lb',
-                controller: _targetWeightCtrl,
-                focusNode: _targetFocus,
-                helper: targetHelper,
-                onChanged: _onTargetChanged,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        // BMI chip (read-only, calculated)
-        if (widget.profile?.weightKg != null &&
-            widget.profile?.heightCm != null &&
-            widget.profile!.heightCm! >= 100)
-          Center(
-            child: _BmiChip(
-              weightKg: widget.profile!.weightKg!,
-              heightCm: widget.profile!.heightCm!,
-            ),
-          ),
-        // Body-fat chip (read-only, calculated) sits right under BMI.
-        const SizedBox(height: 8),
-        Center(child: _bodyFatChip(latest)),
-
-        // -- Show more: inseam, arm span, torso, waist ---------------------
-        const SizedBox(height: 8),
-        Center(
-          child: TextButton.icon(
-            onPressed: () => setState(() => _showMore = !_showMore),
-            icon: Icon(
-              _showMore
-                  ? Icons.keyboard_arrow_up_rounded
-                  : Icons.keyboard_arrow_down_rounded,
-            ),
-            label: Text(_showMore ? 'Show less' : 'Show more'),
-          ),
-        ),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeInOutCubic,
-          alignment: Alignment.topCenter,
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 220),
-            opacity: _showMore ? 1 : 0,
-            child: !_showMore
-                ? const SizedBox(width: double.infinity)
-                : Column(
-                    children: [
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _StatField(
-                              label: isMetric ? 'Inseam (cm)' : 'Inseam (in)',
-                              hint: isMetric ? 'cm' : 'in',
-                              controller: _inseamCtrl,
-                              onChanged: _onFieldChanged,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _StatField(
-                              label: isMetric
-                                  ? 'Arm Span (cm)'
-                                  : 'Arm Span (in)',
-                              hint: isMetric ? 'cm' : 'in',
-                              controller: _armSpanCtrl,
-                              onChanged: _onFieldChanged,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _StatField(
-                              label: isMetric ? 'Torso (cm)' : 'Torso (in)',
-                              hint: isMetric ? 'cm' : 'in',
-                              controller: _torsoCtrl,
-                              onChanged: _onFieldChanged,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _StatField(
-                              label: isMetric ? 'Waist (cm)' : 'Waist (in)',
-                              hint: isMetric ? 'cm' : 'in',
-                              controller: _waistCtrl,
-                              onChanged: _onFieldChanged,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-          ),
-        ),
-
+        _buildMobileBodyStats(isMetric, latest),
         const SizedBox(height: 28),
 
         // ── Biological sex ────────────────────────────────────────────────
@@ -612,7 +560,6 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             _onFieldChanged();
           },
         ),
-
         const SizedBox(height: 28),
 
         // ── Activity level ────────────────────────────────────────────────
@@ -625,7 +572,6 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             _onFieldChanged();
           },
         ),
-
         const SizedBox(height: 20),
 
         // ── Active Target & Dieting Phase (Gradient Squircle) ──
@@ -766,6 +712,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             const HxSettingsDivider(),
             HxSettingsTile(
+              icon: Icons.school_outlined,
+              label: 'Training Techniques',
+              chevron: true,
+              onTap: () => context.push(AppRoutes.setTypesGuide),
+            ),
+            const HxSettingsDivider(),
+            HxSettingsTile(
               icon: Icons.restaurant_menu_rounded,
               label: 'Custom Foods',
               chevron: true,
@@ -801,10 +754,297 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     );
   }
 
+  Widget _buildDesktopBodyStats(bool isMetric, Map<String, double> latest) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _BodyStatCard(
+                label: 'Age',
+                unit: 'yrs',
+                icon: Icons.cake_outlined,
+                accentColor: context.hx.domainRecovery,
+                controller: _ageCtrl,
+                onChanged: _onFieldChanged,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _BodyStatCard(
+                label: 'Height',
+                unit: isMetric ? 'cm' : 'in',
+                icon: Icons.straighten_rounded,
+                accentColor: context.hx.domainTraining,
+                controller: _heightCtrl,
+                onChanged: _onFieldChanged,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _BodyStatCard(
+                label: 'Current Weight',
+                unit: isMetric ? 'kg' : 'lb',
+                icon: Icons.scale_rounded,
+                accentColor: AppColors.macroKcal,
+                controller: _weightCtrl,
+                onChanged: _onFieldChanged,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _BodyStatCard(
+                label: 'Target Weight',
+                unit: isMetric ? 'kg' : 'lb',
+                icon: Icons.flag_rounded,
+                accentColor: const Color(0xFF30D158),
+                controller: _targetWeightCtrl,
+                focusNode: _targetFocus,
+                onChanged: _onTargetChanged,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _bodyIndexChips(latest),
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton.icon(
+            onPressed: () => setState(() => _showMore = !_showMore),
+            icon: Icon(
+              _showMore
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.keyboard_arrow_down_rounded,
+            ),
+            label: Text(_showMore ? 'Show less' : 'Show more'),
+          ),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeInOutCubic,
+          alignment: Alignment.topCenter,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 220),
+            opacity: _showMore ? 1 : 0,
+            child: !_showMore
+                ? const SizedBox(width: double.infinity)
+                : Column(
+                    children: [
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _BodyStatCard(
+                              label: 'Inseam',
+                              unit: isMetric ? 'cm' : 'in',
+                              icon: Icons.accessibility_new_rounded,
+                              accentColor: context.hx.primary,
+                              controller: _inseamCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _BodyStatCard(
+                              label: 'Arm Span',
+                              unit: isMetric ? 'cm' : 'in',
+                              icon: Icons.swap_horiz_rounded,
+                              accentColor: context.hx.primary,
+                              controller: _armSpanCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _BodyStatCard(
+                              label: 'Torso',
+                              unit: isMetric ? 'cm' : 'in',
+                              icon: Icons.boy_rounded,
+                              accentColor: context.hx.primary,
+                              controller: _torsoCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _BodyStatCard(
+                              label: 'Waist',
+                              unit: isMetric ? 'cm' : 'in',
+                              icon: Icons.all_inclusive_rounded,
+                              accentColor: context.hx.primary,
+                              controller: _waistCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileBodyStats(bool isMetric, Map<String, double> latest) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _StatField(
+                label: 'Age',
+                hint: 'yrs',
+                controller: _ageCtrl,
+                onChanged: _onFieldChanged,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatField(
+                label: isMetric ? 'Height (cm)' : 'Height (in)',
+                hint: isMetric ? 'cm' : 'in',
+                controller: _heightCtrl,
+                onChanged: _onFieldChanged,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _StatField(
+                label: isMetric ? 'Current Weight (kg)' : 'Current Weight (lb)',
+                hint: isMetric ? 'kg' : 'lb',
+                controller: _weightCtrl,
+                onChanged: _onFieldChanged,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatField(
+                label: isMetric ? 'Target Weight (kg)' : 'Target Weight (lb)',
+                hint: isMetric ? 'kg' : 'lb',
+                controller: _targetWeightCtrl,
+                focusNode: _targetFocus,
+                onChanged: _onTargetChanged,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _bodyIndexChips(latest),
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton.icon(
+            onPressed: () => setState(() => _showMore = !_showMore),
+            icon: Icon(
+              _showMore
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.keyboard_arrow_down_rounded,
+            ),
+            label: Text(_showMore ? 'Show less' : 'Show more'),
+          ),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeInOutCubic,
+          alignment: Alignment.topCenter,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 220),
+            opacity: _showMore ? 1 : 0,
+            child: !_showMore
+                ? const SizedBox(width: double.infinity)
+                : Column(
+                    children: [
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StatField(
+                              label: isMetric ? 'Inseam (cm)' : 'Inseam (in)',
+                              hint: isMetric ? 'cm' : 'in',
+                              controller: _inseamCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatField(
+                              label: isMetric
+                                  ? 'Arm Span (cm)'
+                                  : 'Arm Span (in)',
+                              hint: isMetric ? 'cm' : 'in',
+                              controller: _armSpanCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StatField(
+                              label: isMetric ? 'Torso (cm)' : 'Torso (in)',
+                              hint: isMetric ? 'cm' : 'in',
+                              controller: _torsoCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatField(
+                              label: isMetric ? 'Waist (cm)' : 'Waist (in)',
+                              hint: isMetric ? 'cm' : 'in',
+                              controller: _waistCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Body-fat chip: uses the latest logged measurement (e.g. from AI scan or
   /// manual log) as highest priority. If no log exists, falls back to US Navy
   /// or BMI-based Deurenberg formula.
-  Widget _bodyFatChip(Map<String, double> latest) {
+  Widget _bodyIndexChips(Map<String, double> latest) {
+    final draft = _draft();
+    final weight = draft.weightKg;
+    final height = draft.heightCm;
+    final bodyFat = _bodyFatChip(latest);
+    // A height under 100 cm is a typo, not a BMI; the chip says so instead of
+    // quietly disappearing.
+    final hasBmi = weight != null && height != null && height > 0;
+    if (bodyFat == null && !hasBmi) return const SizedBox.shrink();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ?bodyFat,
+        if (bodyFat != null && hasBmi) const SizedBox(height: 8),
+        if (hasBmi) _BmiChip(weightKg: weight, heightCm: height),
+      ],
+    );
+  }
+
+  Widget? _bodyFatChip(Map<String, double> latest) {
     final measuredBf = latest['body_fat'];
     final draft = _draft();
     final height = draft.heightCm;
@@ -843,7 +1083,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       );
       isEstimate = true;
     }
-    if (bf == null) return const SizedBox.shrink();
+    if (bf == null) return null;
 
     final color = context.hx.primary;
     return GestureDetector(

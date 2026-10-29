@@ -17,11 +17,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -130,16 +141,19 @@ fun OneUiPill(
     iconComposable: (@Composable () -> Unit)? = null,
     style: OneUiPillStyle = OneUiPillStyle.SlateNavy,
     rightContent: (@Composable () -> Unit)? = null,
+    shimmer: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
     val hasLeading = iconComposable != null || iconVector != null || icon != null
     val hasTrailing = rightContent != null
     val isSimpleButton = !hasLeading && !hasTrailing && subtitle == null && statValue == null
+    val shimmerModifier = if (shimmer) Modifier.workoutShimmer() else Modifier
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = if (isSimpleButton) 44.dp else 52.dp)
+            .then(shimmerModifier)
             .background(style.containerColor, shape = CircleShape)
             .then(
                 if (style.borderColor != Color.Transparent) {
@@ -261,6 +275,38 @@ fun OneUiPill(
             Spacer(Modifier.width(8.dp))
             rightContent?.invoke()
         }
+    }
+}
+
+/** Matches the workout tile's 1.35s sweep every 5.2 seconds. */
+@Composable
+private fun Modifier.workoutShimmer(): Modifier {
+    val transition = rememberInfiniteTransition(label = "workout shimmer")
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 5200
+                0f at 200 using LinearEasing
+                1f at 1550
+                1f at 5200
+            },
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "workout shimmer position",
+    )
+    return clip(CircleShape).drawWithContent {
+        drawContent()
+        val band = 44.dp.toPx()
+        val x = -band + progress * (size.width + band * 2)
+        drawRect(
+            brush = Brush.linearGradient(
+                colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.15f), Color.Transparent),
+                start = Offset(x, 0f),
+                end = Offset(x + band, size.height),
+            ),
+        )
     }
 }
 

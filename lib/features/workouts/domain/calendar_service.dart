@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:collection/collection.dart';
 import 'package:device_calendar/device_calendar.dart';
 import 'package:drift/drift.dart';
@@ -27,9 +28,22 @@ class CalendarSyncResult {
 
 class CalendarService {
   final AppDatabase _db;
-  final DeviceCalendarPlugin _deviceCalendarPlugin = DeviceCalendarPlugin();
+  final DeviceCalendarPlugin _deviceCalendarPlugin;
 
-  CalendarService(this._db) {
+  // All entry points share one queue, including separate service instances.
+  static Future<void> _pendingCalendarOperation = Future.value();
+
+  static Future<T> _serialize<T>(Future<T> Function() operation) {
+    final result = _pendingCalendarOperation.then((_) => operation());
+    _pendingCalendarOperation = result.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    return result;
+  }
+
+  CalendarService(this._db, {DeviceCalendarPlugin? deviceCalendarPlugin})
+    : _deviceCalendarPlugin = deviceCalendarPlugin ?? DeviceCalendarPlugin() {
     _ensureTimezone();
   }
 
@@ -125,9 +139,10 @@ class CalendarService {
   /// Locates "Herculex Training" calendar, creating it if missing. Fallbacks to Google / default calendar if unavailable.
   Future<String> findOrCreateHerculexCalendar() async {
     final calendarsResult = await _deviceCalendarPlugin.retrieveCalendars();
-    final cals = (calendarsResult.isSuccess && calendarsResult.data != null)
-        ? calendarsResult.data!
-        : <Calendar>[];
+    if (!calendarsResult.isSuccess || calendarsResult.data == null) {
+      throw StateError('Could not read calendars; sync stopped.');
+    }
+    final cals = calendarsResult.data!;
 
     // 1. Check if "Herculex Training" calendar already exists and is writable
     for (final cal in cals) {
@@ -203,7 +218,10 @@ class CalendarService {
   ///    and apply them to local `scheduled_workouts`.
   /// 2. Outbound: Push local scheduled workouts, updates, and completion checkmarks
   ///    to Google Calendar.
-  Future<CalendarSyncResult> syncTwoWay({String? calendarId}) async {
+  Future<CalendarSyncResult> syncTwoWay({String? calendarId}) =>
+      _serialize(() => _syncTwoWay(calendarId: calendarId));
+
+  Future<CalendarSyncResult> _syncTwoWay({String? calendarId}) async {
     final hasPerm = await requestPermissions();
     if (!hasPerm) {
       return const CalendarSyncResult(
@@ -227,9 +245,10 @@ class CalendarService {
         RetrieveEventsParams(startDate: windowStart, endDate: windowEnd),
       );
 
-      final calendarEvents = eventsResult.isSuccess && eventsResult.data != null
-          ? eventsResult.data!
-          : <Event>[];
+      if (!eventsResult.isSuccess || eventsResult.data == null) {
+        throw StateError('Could not read calendar events; sync stopped.');
+      }
+      final calendarEvents = eventsResult.data!;
 
       // Map existing calendar events by their Herculex workout ID extracted from description
       final idRegex = RegExp(r'\[herculex_workout_id:(\d+)\]');
@@ -325,10 +344,13 @@ class CalendarService {
         // If workout is skipped, delete event from calendar if it exists
         if (workout.status == 'skipped') {
           if (existingEvent != null && existingEvent.eventId != null) {
-            await _deviceCalendarPlugin.deleteEvent(
+            final result = await _deviceCalendarPlugin.deleteEvent(
               targetCalendarId,
               existingEvent.eventId!,
             );
+            if (!result.isSuccess || result.data != true) {
+              throw StateError('Could not delete calendar event.');
+            }
           }
           continue;
         }
@@ -377,9 +399,10 @@ class CalendarService {
             final res = await _deviceCalendarPlugin.createOrUpdateEvent(
               existingEvent,
             );
-            if (res?.isSuccess == true) {
-              pushedCount++;
+            if (res?.isSuccess != true) {
+              throw StateError('Could not update calendar event.');
             }
+            pushedCount++;
           }
         } else {
           final newEvent = Event(
@@ -391,9 +414,10 @@ class CalendarService {
             allDay: false,
           );
           final res = await _deviceCalendarPlugin.createOrUpdateEvent(newEvent);
-          if (res?.isSuccess == true) {
-            pushedCount++;
+          if (res?.isSuccess != true) {
+            throw StateError('Could not create calendar event.');
           }
+          pushedCount++;
         }
       }
 
@@ -460,9 +484,10 @@ class CalendarService {
             final res = await _deviceCalendarPlugin.createOrUpdateEvent(
               existingEvent,
             );
-            if (res?.isSuccess == true) {
-              pushedCount++;
+            if (res?.isSuccess != true) {
+              throw StateError('Could not update calendar event.');
             }
+            pushedCount++;
           }
         } else {
           final newEvent = Event(
@@ -474,9 +499,10 @@ class CalendarService {
             allDay: false,
           );
           final res = await _deviceCalendarPlugin.createOrUpdateEvent(newEvent);
-          if (res?.isSuccess == true) {
-            pushedCount++;
+          if (res?.isSuccess != true) {
+            throw StateError('Could not create calendar event.');
           }
+          pushedCount++;
         }
       }
 
@@ -492,7 +518,15 @@ class CalendarService {
   }
 
   /// Sync single workout immediately to device calendar (e.g. after move or complete).
-  Future<bool> syncWorkoutNow(int workoutId, {String? targetCalendarId}) async {
+  Future<bool> syncWorkoutNow(int workoutId, {String? targetCalendarId}) =>
+      _serialize(
+        () => _syncWorkoutNow(workoutId, targetCalendarId: targetCalendarId),
+      );
+
+  Future<bool> _syncWorkoutNow(
+    int workoutId, {
+    String? targetCalendarId,
+  }) async {
     final hasPerm = await hasPermissions();
     if (!hasPerm) return false;
 
@@ -530,7 +564,7 @@ class CalendarService {
       );
       final endDateTime = startDateTime.add(const Duration(minutes: 90));
 
-      final String dayName = day?.name ?? 'Workout';
+      final String dayName = _oneOffName(workout) ?? day?.name ?? 'Workout';
       final String title = calendarEventTitle(
         dayName,
         done: workout.status == 'done',
@@ -541,11 +575,18 @@ class CalendarService {
       final eventsResult = await _deviceCalendarPlugin.retrieveEvents(
         calendarId,
         RetrieveEventsParams(
-          startDate: date.subtract(const Duration(days: 3)),
-          endDate: date.add(const Duration(days: 3)),
+          // Include the old date after a move, as well as the normal sync window.
+          startDate: (date.isBefore(DateTime.now()) ? date : DateTime.now())
+              .subtract(const Duration(days: 365)),
+          endDate: (date.isAfter(DateTime.now()) ? date : DateTime.now()).add(
+            const Duration(days: 365),
+          ),
         ),
       );
 
+      if (!eventsResult.isSuccess || eventsResult.data == null) {
+        throw StateError('Could not read calendar events; sync stopped.');
+      }
       Event? targetEvent;
       if (eventsResult.isSuccess && eventsResult.data != null) {
         final idRegex = RegExp(r'\[herculex_workout_id:(\d+)\]');
@@ -562,10 +603,11 @@ class CalendarService {
 
       if (workout.status == 'skipped') {
         if (targetEvent != null && targetEvent.eventId != null) {
-          await _deviceCalendarPlugin.deleteEvent(
+          final result = await _deviceCalendarPlugin.deleteEvent(
             calendarId,
             targetEvent.eventId!,
           );
+          if (!result.isSuccess || result.data != true) return false;
         }
         return true;
       }
@@ -601,6 +643,16 @@ class CalendarService {
   Future<bool> deleteWorkoutFromCalendar(
     int workoutId, {
     String? targetCalendarId,
+  }) => _serialize(
+    () => _deleteWorkoutFromCalendar(
+      workoutId,
+      targetCalendarId: targetCalendarId,
+    ),
+  );
+
+  Future<bool> _deleteWorkoutFromCalendar(
+    int workoutId, {
+    String? targetCalendarId,
   }) async {
     final hasPerm = await hasPermissions();
     if (!hasPerm) return false;
@@ -618,21 +670,16 @@ class CalendarService {
         ),
       );
 
-      if (eventsResult.isSuccess && eventsResult.data != null) {
-        final idRegex = RegExp(r'\[herculex_workout_id:(\d+)\]');
-        for (final event in eventsResult.data!) {
-          if (event.description != null) {
-            final match = idRegex.firstMatch(event.description!);
-            if (match != null && match.group(1) == workoutId.toString()) {
-              if (event.eventId != null) {
-                final res = await _deviceCalendarPlugin.deleteEvent(
-                  calendarId,
-                  event.eventId!,
-                );
-                return res.isSuccess;
-              }
-            }
-          }
+      if (!eventsResult.isSuccess || eventsResult.data == null) return false;
+      final idRegex = RegExp(r'\[herculex_workout_id:(\d+)\]');
+      for (final event in eventsResult.data!) {
+        final match = idRegex.firstMatch(event.description ?? '');
+        if (match?.group(1) == workoutId.toString() && event.eventId != null) {
+          final res = await _deviceCalendarPlugin.deleteEvent(
+            calendarId,
+            event.eventId!,
+          );
+          if (!res.isSuccess || res.data != true) return false;
         }
       }
       return true;
@@ -670,12 +717,17 @@ class CalendarService {
       final day = row.readTableOrNull(_db.programDays);
       return ScheduledWorkoutWithDay(
         workout: workout,
-        dayName: day?.name ?? 'Workout',
+        dayName: _oneOffName(workout) ?? day?.name ?? 'Workout',
       );
     }).toList();
   }
 
   /// Resolves target emoji depending on the program day's description name.
+  static String? _oneOffName(ScheduledWorkoutData workout) {
+    if (workout.oneOffPlanJson == null) return null;
+    return (jsonDecode(workout.oneOffPlanJson!) as Map)['name'] as String?;
+  }
+
   static String emojiForDay(String dayName) {
     final name = dayName.toLowerCase();
     if (name.contains("leg") ||

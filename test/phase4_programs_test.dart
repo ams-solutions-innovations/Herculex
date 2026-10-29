@@ -547,7 +547,7 @@ program,Bad,2,none
 
         final rows = await schedulesFor(id);
         for (final row in rows) {
-          final count = await repo.countDayExercises(row.programDayId);
+          final count = await repo.countDayExercises(row.programDayId!);
           expect(count, greaterThan(0));
         }
         // The Pull day resolves its three template exercises.
@@ -564,12 +564,12 @@ program,Bad,2,none
         final id = await makeBlock(templates: {0: push, 1: push, 2: push});
 
         final row = (await schedulesFor(id)).first;
-        expect(await repo.countDayExercises(row.programDayId), 1);
+        expect(await repo.countDayExercises(row.programDayId!), 1);
 
         await repo.setScheduleTemplateOverride(row.id, swap);
         expect(
           await repo.countDayExercises(
-            row.programDayId,
+            row.programDayId!,
             templateOverride: swap,
           ),
           3,
@@ -598,7 +598,7 @@ program,Bad,2,none
       // Pull and Legs have no template and no inline exercises.
       expect(rows[1].isTemplateBacked, isFalse);
       expect(rows[1].exerciseCount, 0);
-      expect(rows.every((r) => r.program.id == id), isTrue);
+      expect(rows.every((r) => r.program!.id == id), isTrue);
     });
 
     test(
@@ -862,7 +862,7 @@ program,Bad,2,none
       final row = (await schedulesFor(id)).first;
       expect(row.startTimeMinutes, isNull);
 
-      await repo.setProgramDayStartTime(row.programDayId, 6 * 60);
+      await repo.setProgramDayStartTime(row.programDayId!, 6 * 60);
       await repo.rematerializeProgram(id, today: start);
 
       final after = await schedulesFor(id);
@@ -881,7 +881,7 @@ program,Bad,2,none
       await repo.setScheduleStatus(touched.id, ScheduleStatus.done);
       await repo.setScheduleStartTime(touched.id, 9 * 60);
 
-      await repo.setProgramDayStartTime(touched.programDayId, 18 * 60);
+      await repo.setProgramDayStartTime(touched.programDayId!, 18 * 60);
       await repo.rematerializeProgram(id, today: start);
 
       final after = await schedulesFor(id);

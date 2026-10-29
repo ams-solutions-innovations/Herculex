@@ -7,6 +7,7 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/programs/presentation/views/training_blocks_view.dart';
+import 'package:herculex/features/programs/presentation/widgets/upcoming_workouts_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../support/test_database.dart';
@@ -124,6 +125,41 @@ void main() {
     expect(find.text('Monday'), findsOneWidget);
     expect(find.text('Sunday'), findsOneWidget);
     expect(find.text('Rest day'), findsWidgets);
+
+    await unmount(tester);
+  });
+
+  testWidgets('a wide window shows when the next workouts are beside the '
+      'calendar', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await buildBlock();
+    await pump(tester);
+
+    expect(find.text('Coming up'), findsOneWidget);
+    // The block's first Push session is today, and is the first thing listed.
+    final panel = find.byType(UpcomingWorkoutsPanel);
+    expect(
+      find.descendant(of: panel, matching: find.text('Today')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: panel, matching: find.text('Push')),
+      findsWidgets,
+    );
+
+    await unmount(tester);
+  });
+
+  testWidgets('a phone-width window has no side panel', (tester) async {
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await buildBlock();
+    await pump(tester);
+
+    expect(find.text('Coming up'), findsNothing);
 
     await unmount(tester);
   });

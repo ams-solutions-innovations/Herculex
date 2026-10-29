@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:herculex/features/workouts/presentation/sheets/exercise_history_transfer_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/utils/units.dart';
@@ -70,6 +71,13 @@ class _ExerciseDetailsBody extends ConsumerWidget {
 
     return HxScreenShell(
       title: exercise.name,
+      actions: [
+        IconButton(
+          tooltip: 'Transfer history',
+          icon: const Icon(Icons.drive_file_move_outline),
+          onPressed: () => ExerciseHistoryTransferSheet.show(context, exercise),
+        ),
+      ],
       children: [
         _AnimatedEntrance(
           child: _ExerciseHeroCard(exercise: exercise, metric: metric),

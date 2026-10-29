@@ -1,6 +1,7 @@
 import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
 import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/workouts/domain/workout_energy_estimator.dart';
 
 /// Headline numbers for one finished session, shown on the finish screen and
 /// in the shareable card.
@@ -27,8 +28,12 @@ class SessionSummary {
   /// Photo path on local device, if attached.
   final String? photoPath;
 
-  /// Total calories burned (in kcal).
+  /// Conservative active energy above rest (kcal), or a saved import value.
   final int caloriesBurned;
+
+  /// Tonnage of the most recent earlier session with the same name, for
+  /// "+6% vs last Push A". Null when this is the first one.
+  final double? previousTonnageKg;
 
   const SessionSummary({
     required this.sessionId,
@@ -43,6 +48,7 @@ class SessionSummary {
     this.achievements = const [],
     this.photoPath,
     this.caloriesBurned = 0,
+    this.previousTonnageKg,
   });
 
   /// Reduces a loaded [snapshot] to just [sessionId].
@@ -56,6 +62,7 @@ class SessionSummary {
     String? photoPath,
     int? savedCalories,
     double? userWeightKg,
+    WorkoutEnergyEstimate? energyEstimate,
   }) {
     final sets = [
       for (final rs in snapshot.sets)
@@ -72,16 +79,12 @@ class SessionSummary {
 
     var reps = 0;
     var tonnage = 0.0;
-    var explicitCalories = 0;
     final exerciseIds = <int>{};
     final muscleSets = <String, int>{};
 
     for (final rs in sets) {
       reps += rs.countedReps;
       tonnage += rs.tonnageKg;
-      if (rs.set.calories != null && rs.set.calories! > 0) {
-        explicitCalories += rs.set.calories!;
-      }
       exerciseIds.add(rs.exercise.id);
 
       final muscles =
@@ -98,21 +101,38 @@ class SessionSummary {
     final duration = (endedAt ?? startedAt).difference(startedAt);
 
     int finalCalories;
-    if (savedCalories != null && savedCalories > 0) {
+    if (savedCalories != null && savedCalories >= 0) {
       finalCalories = savedCalories;
-    } else if (explicitCalories > 0) {
-      finalCalories = explicitCalories;
     } else {
-      // Standard MET estimate for resistance / strength training: ~5.0 MET
-      // Formula: kcal = MET * weight_kg * (duration_minutes / 60)
-      final weight = userWeightKg != null && userWeightKg > 20
-          ? userWeightKg
-          : 75.0;
-      final minutes = duration.inMinutes > 0
-          ? duration.inMinutes
-          : (sets.isNotEmpty ? sets.length * 2 : 1);
-      final estimated = (5.0 * weight * (minutes / 60.0)).round();
-      finalCalories = sets.isNotEmpty ? estimated.clamp(10, 3000) : 0;
+      finalCalories =
+          (energyEstimate ??
+                  WorkoutEnergyEstimator.estimate(
+                    snapshot: snapshot,
+                    sessionId: sessionId,
+                    startedAt: startedAt,
+                    endedAt: endedAt ?? startedAt,
+                    userWeightKg: userWeightKg,
+                  ))
+              .activeKcal;
+    }
+
+    // The same workout last time: tonnage per earlier session of this name,
+    // kept for the newest one.
+    final earlier = <int, double>{};
+    int? previousId;
+    DateTime? previousAt;
+    for (final rs in snapshot.sets) {
+      final s = rs.session;
+      if (s.id == sessionId || !s.startedAt.isBefore(startedAt)) continue;
+      final sName = (s.name?.trim().isNotEmpty ?? false)
+          ? s.name!.trim()
+          : 'Workout';
+      if (sName != name) continue;
+      earlier[s.id] = (earlier[s.id] ?? 0) + rs.tonnageKg;
+      if (previousAt == null || s.startedAt.isAfter(previousAt)) {
+        previousAt = s.startedAt;
+        previousId = s.id;
+      }
     }
 
     final ranked = muscleSets.entries.toList()
@@ -131,6 +151,7 @@ class SessionSummary {
       achievements: achievements,
       photoPath: photoPath,
       caloriesBurned: finalCalories,
+      previousTonnageKg: previousId == null ? null : earlier[previousId],
     );
   }
 
@@ -149,6 +170,14 @@ class SessionSummary {
       : tonnageKg >= 1000
       ? '${(tonnageKg / 1000).toStringAsFixed(1)} t'
       : '${tonnageKg.round()} kg';
+
+  /// Tonnage change against [previousTonnageKg] as a fraction (0.06 = +6%),
+  /// or null when there is nothing comparable.
+  double? get tonnageChange {
+    final before = previousTonnageKg;
+    if (before == null || before <= 0 || !tonnageKg.isFinite) return null;
+    return tonnageKg / before - 1;
+  }
 
   /// Format calories burned.
   String get caloriesLabel => '$caloriesBurned kcal';

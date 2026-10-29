@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/hx_picker.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/hx_colors.dart';
@@ -37,12 +38,7 @@ class FoodPickerSheet extends ConsumerStatefulWidget {
   final String? mealKey;
   final int? recipeId;
 
-  const FoodPickerSheet({
-    super.key,
-    this.date,
-    this.mealKey,
-    this.recipeId,
-  });
+  const FoodPickerSheet({super.key, this.date, this.mealKey, this.recipeId});
 
   static Future<bool?> show(
     BuildContext context, {
@@ -461,68 +457,22 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
     if (mounted) _logRecipe(created);
   }
 
-  void _showMealSelector(BuildContext context, List<MealSlot> slots) {
+  Future<void> _showMealSelector(
+    BuildContext context,
+    List<MealSlot> slots,
+  ) async {
     Haptics.selection();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Select Meal Slot',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final m in slots)
-                    GestureDetector(
-                      onTap: () {
-                        Haptics.selection();
-                        setState(() => _activeMealKey = m.key);
-                        Navigator.of(context).pop();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _activeMealKey == m.key
-                              ? AppColors.primary
-                              : AppColors.surfaceVariant,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          m.label,
-                          style: TextStyle(
-                            color: _activeMealKey == m.key
-                                ? Colors.white
-                                : AppColors.onSurface,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+    final picked = await showHxPicker<String>(
+      context,
+      title: 'Select meal',
+      selected: _activeMealKey,
+      options: [
+        for (final m in slots)
+          HxPickerOption(value: m.key, label: m.label, icon: m.icon),
+      ],
     );
+    if (picked == null || !mounted) return;
+    setState(() => _activeMealKey = picked);
   }
 
   @override
@@ -596,7 +546,10 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                            Icon(
+                              Icons.arrow_drop_down,
+                              color: AppColors.primary,
+                            ),
                           ],
                         ),
                       ),

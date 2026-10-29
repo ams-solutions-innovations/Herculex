@@ -123,6 +123,13 @@ class _DataLibrarySettingsViewState
             ),
             const HxSettingsDivider(),
             HxSettingsTile(
+              icon: Icons.school_outlined,
+              label: 'Training Techniques',
+              chevron: true,
+              onTap: () => context.push(AppRoutes.setTypesGuide),
+            ),
+            const HxSettingsDivider(),
+            HxSettingsTile(
               icon: Icons.restaurant_menu_rounded,
               label: 'Custom Foods',
               chevron: true,

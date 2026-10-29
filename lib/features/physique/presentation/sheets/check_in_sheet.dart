@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
@@ -89,6 +90,17 @@ class CheckInSheet extends ConsumerStatefulWidget {
     bool updateRoadmap = false,
     @visibleForTesting CheckInCapture? capture,
   }) {
+    // Check-ins are photos from the phone; a browser has none to offer.
+    if (!ProviderScope.containerOf(
+      context,
+    ).read(platformCapabilitiesProvider).hasFileSystem) {
+      AppNotice.show(
+        context,
+        'Check-ins use photos from your phone. Open Herculex there to add one.',
+        kind: AppNoticeKind.info,
+      );
+      return Future.value();
+    }
     final notices = AppNotice.of(context);
     return HxSheet.show<void>(
       context,

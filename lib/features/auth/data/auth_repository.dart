@@ -97,6 +97,10 @@ class AuthRepository {
     return _authService.sendPasswordReset(email);
   }
 
+  Future<void> updatePassword(String newPassword) {
+    return _authService.updatePassword(newPassword);
+  }
+
   Future<void> signOut() async {
     await _authService.signOut();
     await _localRepository.clear();

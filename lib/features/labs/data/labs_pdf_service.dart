@@ -8,6 +8,12 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 class LabsPdfService {
+  const LabsPdfService({this.canSaveFiles = true});
+
+  /// False where there is no writable sandbox (the web): a report then exists
+  /// only as its stored snapshot, with no PDF to save or share.
+  final bool canSaveFiles;
+
   Future<Uint8List> render(LabsSnapshot snapshot) async {
     final body = await rootBundle.load('assets/fonts/Manrope-Variable.ttf');
     final heading = await rootBundle.load(
@@ -44,6 +50,7 @@ class LabsPdfService {
   Future<Directory> directory() async =>
       Directory('${(await getApplicationDocumentsDirectory()).path}/labs');
   Future<void> deleteFiles() async {
+    if (!canSaveFiles) return;
     final dir = await directory();
     if (await dir.exists()) await dir.delete(recursive: true);
   }

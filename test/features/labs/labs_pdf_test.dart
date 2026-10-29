@@ -48,4 +48,12 @@ void main() {
       await output.writeAsBytes(bytes);
     },
   );
+
+  test('where files cannot be saved, cleaning them up is a no-op', () async {
+    // On the web there is no sandbox and path_provider has no plugin here:
+    // reaching for it would throw.
+    const service = LabsPdfService(canSaveFiles: false);
+    expect(service.canSaveFiles, isFalse);
+    await service.deleteFiles();
+  });
 }

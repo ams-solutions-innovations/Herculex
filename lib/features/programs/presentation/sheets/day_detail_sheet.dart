@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -24,7 +25,6 @@ import 'package:herculex/features/workout_report/application/workout_report_prov
 import 'package:herculex/features/workouts/application/calendar_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/presentation/views/template_builder_view.dart';
-import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 import 'package:intl/intl.dart';
 
 /// Everything you can do to one day of a block: see its sessions, attach or
@@ -237,7 +237,7 @@ class _SessionCard extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '${row.phaseLabel} · Week ${row.week.weekIndex + 1} of ${row.program.weeks}',
+            row.day == null ? 'Optional one-time workout' : '${row.phaseLabel} · Week ${(row.week?.weekIndex ?? 0) + 1} of ${(row.program?.weeks ?? 1)}',
             style: theme.textTheme.bodySmall?.copyWith(
               color: AppColors.secondary,
             ),
@@ -269,7 +269,9 @@ class _SessionCard extends ConsumerWidget {
           const SizedBox(height: 8),
           _timeRow(context, ref, theme),
           const SizedBox(height: 14),
-          if (ScheduleStatus.isOpen(row.status) && !row.isEmpty)
+          if (ScheduleStatus.isOpen(row.status) &&
+              !row.isEmpty &&
+              ref.watch(platformCapabilitiesProvider).hasLiveWorkout)
             Center(
               child: PremiumButton(
                 text: row.isInProgress ? 'Resume workout' : 'Start workout',
@@ -372,6 +374,8 @@ class _SessionCard extends ConsumerWidget {
 
   Widget _contentRow(BuildContext context, WidgetRef ref, ThemeData theme) {
     if (row.isTemplateBacked) {
+      final count = row.exerciseCount;
+      final countLabel = count == 1 ? '1 exercise' : '$count exercises';
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
@@ -394,9 +398,8 @@ class _SessionCard extends ConsumerWidget {
                   ),
                   Text(
                     row.hasTemplateOverride
-                        ? '${row.exerciseCount} exercises · this session only'
-                        : '${row.exerciseCount} exercises · linked to every '
-                              '${row.title} day',
+                        ? '$countLabel · this session only'
+                        : '$countLabel · linked to every ${row.title} day',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: AppColors.secondary,
                     ),
@@ -409,50 +412,10 @@ class _SessionCard extends ConsumerWidget {
       );
     }
 
-    if (!row.isEmpty) {
-      final items =
-          ref.watch(programDayExerciseSummariesProvider(row.day.id)).value ??
-          const [];
-      return Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainer,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            for (final item in items)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    item.exercise == null
-                        ? const ExerciseArtwork.fromSlug(slug: null, size: 36)
-                        : ExerciseArtwork(exercise: item.exercise!, size: 36),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        item.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      item.targetLabel,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: AppColors.secondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      );
-    }
+    final count = row.exerciseCount;
+    final countLabel = count == 1
+        ? '1 exercise planned'
+        : '$count exercises planned';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -474,7 +437,7 @@ class _SessionCard extends ConsumerWidget {
             child: Text(
               row.isEmpty
                   ? 'No exercises yet — attach a template to fill this session.'
-                  : '${row.exerciseCount} exercises set on this day',
+                  : countLabel,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: row.isEmpty ? AppColors.tertiary : AppColors.secondary,
               ),
@@ -610,12 +573,16 @@ class _SessionCard extends ConsumerWidget {
     WidgetRef ref,
     int templateId,
   ) async {
+    if (row.day == null || row.program == null) {
+      await ref.read(programsRepositoryProvider).setScheduleTemplateOverride(row.id, templateId);
+      return;
+    }
     await TemplateScopeSheet.apply(
       context,
       ref,
       scheduleId: row.id,
-      programDayId: row.day.id,
-      programId: row.program.id,
+      programDayId: row.day!.id,
+      programId: row.program!.id,
       date: row.date,
       dayTitle: row.title,
       templateId: templateId,
@@ -628,8 +595,8 @@ class _SessionCard extends ConsumerWidget {
       await repo.setScheduleTemplateOverride(row.id, null);
       return;
     }
-    await repo.setProgramDayTemplate(row.day.id, null);
-    await repo.rematerializeProgram(row.program.id);
+    await repo.setProgramDayTemplate(row.day!.id, null);
+    await repo.rematerializeProgram(row.program!.id);
   }
 
   Future<void> _move(BuildContext context, WidgetRef ref) async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/food_picker_sheet.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
@@ -32,8 +33,10 @@ class AppShortcutsService {
 
   AppShortcutsService(this.ref);
 
+  bool get _supported => ref.read(platformCapabilitiesProvider).hasAppShortcuts;
+
   void initialize(BuildContext context) {
-    if (_initialized) return;
+    if (_initialized || !_supported) return;
     _initialized = true;
 
     _quickActions.initialize((String shortcutType) async {
@@ -42,6 +45,7 @@ class AppShortcutsService {
   }
 
   Future<void> updateShortcuts(List<WorkoutTemplateData> templates) async {
+    if (!_supported) return;
     final items = <ShortcutItem>[
       const ShortcutItem(
         type: 'start_empty_workout',

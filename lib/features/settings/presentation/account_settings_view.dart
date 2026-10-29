@@ -14,14 +14,17 @@ import 'package:herculex/features/settings/presentation/sheets/auth_sheet.dart';
 class AccountSettingsView extends ConsumerWidget {
   const AccountSettingsView({super.key});
 
-  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+  Future<bool> _confirm(
+    BuildContext context, {
+    required String title,
+    required String body,
+    required String action,
+  }) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sign out'),
-        content: const Text(
-          'Signing out will pause cloud sync. Your local workout and nutrition data will remain on this device.',
-        ),
+        title: Text(title),
+        content: Text(body),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -29,14 +32,61 @@ class AccountSettingsView extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sign out'),
+            child: Text(action),
           ),
         ],
       ),
     );
-    if (confirmed == true && context.mounted) {
+    return confirmed == true;
+  }
+
+  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    if (ref.read(accountRequiredProvider)) {
+      return _signOutOfBrowser(context, ref);
+    }
+    final confirmed = await _confirm(
+      context,
+      title: 'Sign out',
+      body:
+          'Signing out will pause cloud sync. Your local workout and nutrition data will remain on this device.',
+      action: 'Sign out',
+    );
+    if (confirmed && context.mounted) {
       await ref.read(authRepositoryProvider).signOut();
     }
+  }
+
+  /// The web has no signed-out mode, so signing out also removes this
+  /// browser's copy of the account — it would otherwise sit readable in
+  /// browser storage for whoever uses the machine next. Unsynced edits get
+  /// one last push first, and the user hears about any that still fail.
+  Future<void> _signOutOfBrowser(BuildContext context, WidgetRef ref) async {
+    final confirmed = await _confirm(
+      context,
+      title: 'Sign out',
+      body:
+          'You will be signed out and this browser’s copy of your data will be '
+          'removed. Everything already synced stays in your account.',
+      action: 'Sign out',
+    );
+    if (!confirmed || !context.mounted) return;
+
+    final sync = ref.read(syncServiceProvider);
+    await sync.pushOnce();
+    final unsynced = sync.state.pendingCount;
+    if (unsynced > 0 && context.mounted) {
+      final discard = await _confirm(
+        context,
+        title: 'Some changes haven’t synced',
+        body:
+            '$unsynced change${unsynced == 1 ? '' : 's'} from this browser '
+            'could not be uploaded yet. Signing out now discards '
+            '${unsynced == 1 ? 'it' : 'them'}.',
+        action: 'Sign out anyway',
+      );
+      if (!discard) return;
+    }
+    await ref.read(accountDeletionServiceProvider).clearAllLocalDataOnly();
   }
 
   Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {

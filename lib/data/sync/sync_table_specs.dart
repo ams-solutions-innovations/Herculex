@@ -110,7 +110,11 @@ CatalogueFk _exerciseFk(String localColumn) => CatalogueFk(
 
 /// Parent-before-child. See the module doc comment.
 final List<SyncTableSpec> syncTableSpecs = [
+  const SyncTableSpec('exercise_history_transfers', dateTimeColumns: ['created_at', 'undone_at']),
   // ── Level 0: no synced-table dependency ──────────────────────────────
+  // First, so a fresh device has the profile and settings before anything
+  // that is computed from them arrives.
+  const SyncTableSpec('user_preferences'),
   const SyncTableSpec('gyms', dateTimeColumns: ['created_at']),
   const SyncTableSpec('workout_folders', dateTimeColumns: ['created_at']),
   const SyncTableSpec('exercise_catalog', localOnlyColumns: ['slug']),
@@ -435,6 +439,16 @@ final List<SyncTableSpec> syncTableSpecs = [
       SimpleFk(localColumn: 'schedule_id', parentTable: 'scheduled_workouts'),
     ],
   ),
+  const SyncTableSpec('workout_behavior_snapshots',
+    fkFields: [SimpleFk(localColumn: 'session_id', parentTable: 'workout_sessions')],
+    dateTimeColumns: ['captured_at']),
+  const SyncTableSpec('training_coaching_proposals',
+    fkFields: [SimpleFk(localColumn: 'program_id', parentTable: 'programs'),
+      SimpleFk(localColumn: 'source_session_id', parentTable: 'workout_sessions')],
+    dateTimeColumns: ['created_at', 'decided_at', 'expires_at', 'snoozed_until']),
+  const SyncTableSpec('training_coaching_overrides',
+    fkFields: [SimpleFk(localColumn: 'proposal_id', parentTable: 'training_coaching_proposals'),
+      SimpleFk(localColumn: 'schedule_id', parentTable: 'scheduled_workouts')]),
   const SyncTableSpec(
     'set_accessories',
     fkFields: [

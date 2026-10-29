@@ -25,7 +25,7 @@ class WorkoutTileService : HxTileService("7") {
         val resume = activeJson != null
         val w = params.deviceConfiguration.screenWidthDp.toFloat()
         // Same pill size as the Workouts screen in the app (OneUiPill: full width
-        // minus 14dp side padding, 52dp tall).
+        // minus 14dp side padding, 58dp tall including its vertical padding).
         val pillW = w - 28f
         val height = params.deviceConfiguration.screenHeightDp.toFloat()
         val availablePills = ((height - TOP_INSET_DP - 38f) / (PILL_H + 4f)).toInt().coerceAtLeast(1)
@@ -52,6 +52,7 @@ class WorkoutTileService : HxTileService("7") {
                 pillW, PILL_H, HxTile.Emerald, "ic_hx_play", "Resume Workout", resumeSub,
                 clickable = HxTile.launch(this, "tile_resume", "active_workout"),
                 shimmer = true,
+                matchWorkoutScreen = true,
             ).enter(1)
         } else {
             workouts.take(templatePills).forEachIndexed { i, wo ->
@@ -63,6 +64,7 @@ class WorkoutTileService : HxTileService("7") {
                     if (today) "Today · ${wo.exercises.size} exercises" else "${wo.exercises.size} exercises",
                     clickable = HxTile.launch(this, "tile_w_${wo.id}", "workout_detail/${wo.id}"),
                     shimmer = today,
+                    matchWorkoutScreen = true,
                 ).enter(1 + i)
             }
             // Start Empty Workout, same as the button at the bottom of the Workouts screen.
@@ -71,6 +73,7 @@ class WorkoutTileService : HxTileService("7") {
             items += HxTile.pill(
                 pillW, PILL_H, HxTile.AccentBlue, "ic_hx_plus", "Empty Workout",
                 clickable = HxTile.launch(this, "tile_empty", "quick_workout"),
+                matchWorkoutScreen = true,
             ).enter(3)
             }
         }
@@ -85,9 +88,9 @@ class WorkoutTileService : HxTileService("7") {
     }
 
     private companion object {
-        // OneUiPill on the Workouts screen: heightIn(min = 52dp), 38dp badge.
+        // OneUiPill: 38dp badge plus 10dp padding on each side.
         const val TOP_INSET_DP = 40f
-        const val PILL_H = 52f
+        const val PILL_H = 58f
         const val MAX_TEMPLATE_PILLS = 2
     }
 }

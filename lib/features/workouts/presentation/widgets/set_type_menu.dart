@@ -1311,7 +1311,7 @@ class _SetTypesGuideSheetState extends State<SetTypesGuideSheet> {
                           (widget.initialHighlight == 'warmup' &&
                               info.isWarmup));
 
-                  return _GuideDetailCard(info: info, isHighlighted: isInitial);
+                  return SetTypeGuideCard(info: info, isHighlighted: isInitial);
                 },
               ),
             ),
@@ -1359,11 +1359,16 @@ class _FilterChip extends StatelessWidget {
 
 /// Detailed card in the Guide containing full explanations, metric rules,
 /// and a native visual UI mockup representing how the set row looks in the app.
-class _GuideDetailCard extends StatelessWidget {
+/// Shared by [SetTypesGuideSheet] and the full-page `SetTypesGuideView`.
+class SetTypeGuideCard extends StatelessWidget {
   final SetTypeInfo info;
   final bool isHighlighted;
 
-  const _GuideDetailCard({required this.info, this.isHighlighted = false});
+  const SetTypeGuideCard({
+    super.key,
+    required this.info,
+    this.isHighlighted = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1442,7 +1447,7 @@ class _GuideDetailCard extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Koda: ${info.badge}',
+                    'Code: ${info.badge}',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -1486,12 +1491,14 @@ class _GuideDetailCard extends StatelessWidget {
                       color: info.accentColor,
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      'Merjenje v aplikaciji Herculex',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: info.accentColor,
+                    Expanded(
+                      child: Text(
+                        'How Herculex measures it',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: info.accentColor,
+                        ),
                       ),
                     ),
                   ],
@@ -1540,12 +1547,14 @@ class _GuideDetailCard extends StatelessWidget {
                 color: AppColors.secondary,
               ),
               const SizedBox(width: 6),
-              Text(
-                'In-workout visual preview:',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  color: AppColors.secondary,
+              Expanded(
+                child: Text(
+                  'In-workout visual preview:',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    color: AppColors.secondary,
+                  ),
                 ),
               ),
             ],
@@ -1868,7 +1877,7 @@ class SetTypeDetailDialog extends StatelessWidget {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'Merjenje v aplikaciji Herculex',
+                                'How Herculex measures it',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,

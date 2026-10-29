@@ -88,6 +88,7 @@ class _MeasurementsViewState extends ConsumerState<MeasurementsView> {
 
     return HxScreenShell(
       title: 'Measurements',
+      showBack: false,
       actions: [
         IconButton(
           icon: Icon(Icons.auto_awesome, color: AppColors.primary),

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/design_system/components/hx_card.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/physique/application/physique_providers.dart';
@@ -44,6 +45,8 @@ class GoalProgressCard extends ConsumerWidget {
     final goal = ref.watch(physiqueGoalProvider(goalId)).asData?.value;
     if (goal == null) return const SizedBox.shrink();
     final hx = context.hx;
+    // Picking a photo needs the phone's file system; a browser only shows it.
+    final canPickPhoto = ref.watch(platformCapabilitiesProvider).hasFileSystem;
     final uuid = goal.syncUuid;
     final archived = goal.status == 'archived';
     final photo = uuid == null
@@ -78,13 +81,13 @@ class GoalProgressCard extends ConsumerWidget {
                   errorBuilder: (_, _, _) => const SizedBox.shrink(),
                 ),
               ),
-            if (photo == null && !archived && uuid != null)
+            if (canPickPhoto && photo == null && !archived && uuid != null)
               TextButton.icon(
                 onPressed: () => _pick(context, ref, uuid),
                 icon: const Icon(Icons.add_photo_alternate_outlined),
                 label: const Text('Add your dream physique photo'),
               ),
-            if (photo != null && !archived && uuid != null)
+            if (canPickPhoto && photo != null && !archived && uuid != null)
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(

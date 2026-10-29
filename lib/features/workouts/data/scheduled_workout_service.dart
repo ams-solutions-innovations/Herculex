@@ -12,7 +12,7 @@ import 'package:herculex/features/workouts/data/templates_repository.dart';
 /// count, for the dashboard smart launcher (§18).
 class TodaysScheduledWorkout {
   final ScheduledWorkoutData schedule;
-  final ProgramDayData programDay;
+  final ProgramDayData? programDay;
   final int exerciseCount;
 
   /// The template the session will be built from, if the day links one.
@@ -35,11 +35,13 @@ class TodaysScheduledWorkout {
   bool get isStarted => schedule.completedSessionId != null;
 
   String get title {
-    final slot = programDay.slotLabel?.trim();
+    final slot = programDay?.slotLabel?.trim();
     if (slot != null && slot.isNotEmpty) {
       return slot;
     }
-    return programDay.name;
+    if (schedule.oneOffPlanJson != null)
+      return (jsonDecode(schedule.oneOffPlanJson!) as Map)['name'] as String;
+    return programDay?.name ?? 'Optional workout';
   }
 }
 
@@ -199,8 +201,9 @@ class ScheduledWorkoutService {
       final todayIso = _dateIso(targetDay);
 
       final activeProgram =
-          await (_db.select(_db.programs)
-                ..where((t) => t.isActive.equals(true) & t.archived.equals(false)))
+          await (_db.select(_db.programs)..where(
+                (t) => t.isActive.equals(true) & t.archived.equals(false),
+              ))
               .getSingleOrNull();
       if (activeProgram == null || activeProgram.scheduleMode != 'weekly') {
         return;
@@ -313,14 +316,17 @@ class ScheduledWorkoutService {
   Future<TodaysScheduledWorkout?> _resolveSchedule(
     ScheduledWorkoutData schedule,
   ) async {
-    final day = await (_db.select(
-      _db.programDays,
-    )..where((t) => t.id.equals(schedule.programDayId))).getSingleOrNull();
-    if (day == null || day.deletedAt != null) {
+    final day = schedule.programDayId == null
+        ? null
+        : await (_db.select(_db.programDays)
+                ..where((t) => t.id.equals(schedule.programDayId!)))
+              .getSingleOrNull();
+    if ((day == null && schedule.oneOffPlanJson == null) ||
+        day?.deletedAt != null) {
       return null;
     }
 
-    final templateId = schedule.templateIdOverride ?? day.templateId;
+    final templateId = schedule.templateIdOverride ?? day?.templateId;
     final template = templateId == null
         ? null
         : await (_db.select(
@@ -350,7 +356,7 @@ class ScheduledWorkoutService {
     if (workout == null) {
       return null;
     }
-    final resolver = PlannedSessionResolver(_db);
+    final resolver = PlannedSessionResolver(_db, clock: _clock);
     return resolver.prepare(
       await resolver.resolveScheduledWorkout(workout.schedule),
       at: _clock.now(),
@@ -363,17 +369,12 @@ class ScheduledWorkoutService {
   Future<int> startScheduledWorkout(
     TodaysScheduledWorkout today, {
     int? gymId,
-    bool allowEarly = false,
-  }) => startScheduledWorkoutById(today.schedule.id, gymId: gymId, allowEarly: allowEarly);
+  }) => startScheduledWorkoutById(today.schedule.id, gymId: gymId);
 
   /// Starts the exact scheduled occurrence, or returns its existing open
   /// session when the user taps Resume. The existing link is never replaced;
   /// that protects in-progress logging from a duplicate materialization.
-  Future<int> startScheduledWorkoutById(
-    int scheduleId, {
-    int? gymId,
-    bool allowEarly = false,
-  }) async {
+  Future<int> startScheduledWorkoutById(int scheduleId, {int? gymId}) async {
     final today = await workoutForSchedule(scheduleId);
     if (today == null) {
       throw StateError('This scheduled workout no longer exists.');
@@ -384,23 +385,8 @@ class ScheduledWorkoutService {
         'This scheduled workout is no longer available to start.',
       );
     }
-    final todayIso = _dateIso(_clock.now());
-    if (today.schedule.dateIso != todayIso) {
-      if (!allowEarly) {
-        throw StateError(
-          'This workout can only be started on its scheduled day.',
-        );
-      }
-      await (_db.update(_db.scheduledWorkouts)
-            ..where((t) => t.id.equals(today.schedule.id)))
-          .write(
-            ScheduledWorkoutsCompanion(
-              dateIso: Value(todayIso),
-              status: const Value(ScheduleStatus.moved),
-            ),
-          );
-    }
-
+    // Keep the planned date: the linked session records when the workout was
+    // actually performed, and finishing it completes this exact occurrence.
     final linkedSessionId = today.schedule.completedSessionId;
     if (linkedSessionId != null) {
       final linked = await (_db.select(
@@ -412,7 +398,7 @@ class ScheduledWorkoutService {
       throw StateError('This scheduled workout has already been completed.');
     }
 
-    final resolver = PlannedSessionResolver(_db);
+    final resolver = PlannedSessionResolver(_db, clock: _clock);
     final plan = await resolver.resolveScheduledWorkout(today.schedule);
 
     return _db.transaction(() async {
@@ -441,9 +427,9 @@ class ScheduledWorkoutService {
                     o.deletedAt.isNull(),
               ))
               .get();
-      if (accepted.isNotEmpty) {
+      if (accepted.isNotEmpty && today.schedule.programDayId != null) {
         final original = await resolver.resolveProgramDay(
-          today.schedule.programDayId,
+          today.schedule.programDayId!,
           templateOverride: today.schedule.templateIdOverride,
         );
         final originalCount = original.exercises.fold<int>(

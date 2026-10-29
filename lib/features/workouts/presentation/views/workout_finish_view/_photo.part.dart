@@ -161,3 +161,106 @@ class _PhotoSection extends StatelessWidget {
     );
   }
 }
+
+/// Sends the session to Health Connect / Samsung Health on request.
+class _HealthSyncCard extends StatelessWidget {
+  const _HealthSyncCard({
+    required this.summary,
+    required this.syncing,
+    required this.synced,
+    required this.onSync,
+  });
+
+  final SessionSummary summary;
+  final bool syncing;
+  final bool synced;
+  final VoidCallback onSync;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final s = summary;
+    final isSynced = synced;
+
+    return Container(
+      width: 320,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSynced
+              ? const Color(0xFF30D158).withValues(alpha: 0.4)
+              : AppColors.outlineVariant.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color:
+                  (isSynced ? const Color(0xFF30D158) : const Color(0xFF4285F4))
+                      .withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isSynced ? Icons.check_circle_rounded : Icons.favorite_rounded,
+              color: isSynced
+                  ? const Color(0xFF30D158)
+                  : const Color(0xFF4285F4),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Health Connect / Samsung Health',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isSynced
+                      ? 'Synced (${s.caloriesBurned} kcal)'
+                      : '${s.caloriesBurned} kcal · ${s.durationLabel}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: isSynced
+                        ? const Color(0xFF30D158)
+                        : AppColors.secondary,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: syncing ? null : onSync,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              visualDensity: VisualDensity.compact,
+            ),
+            child: syncing
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    isSynced ? 'Retry' : 'Sync',
+                    style: TextStyle(
+                      color: isSynced ? AppColors.secondary : AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}

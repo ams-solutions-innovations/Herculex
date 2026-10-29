@@ -123,6 +123,42 @@ void main() {
       );
     }
 
+    // The first five themes predate this check (Vivid Green's white-on-green
+    // is under 3:1), so it guards the themes added since.
+    for (final colorTheme in const [
+      AppColorTheme.crimsonRed,
+      AppColorTheme.oceanTeal,
+      AppColorTheme.royalViolet,
+      AppColorTheme.sunsetOrange,
+    ]) {
+      test('${colorTheme.label} onPrimary is legible on the primary fill', () {
+        for (final p in [
+          HxColors.of(Brightness.light, colorTheme),
+          HxColors.of(Brightness.dark, colorTheme),
+        ]) {
+          expect(
+            ratio(p.onPrimary, p.primary),
+            greaterThanOrEqualTo(3.0),
+            reason: '${colorTheme.label} ${p.brightness.name} onPrimary',
+          );
+        }
+      });
+    }
+
+    test('every colour theme has its own primary', () {
+      for (final brightness in Brightness.values) {
+        final primaries = {
+          for (final theme in AppColorTheme.values)
+            HxColors.of(brightness, theme).primary,
+        };
+        expect(
+          primaries.length,
+          AppColorTheme.values.length,
+          reason: '${brightness.name} primaries must be distinguishable',
+        );
+      }
+    });
+
     test('macroFatText is legible on light card surfaces', () {
       for (final colorTheme in AppColorTheme.values) {
         final p = HxColors.of(Brightness.light, colorTheme);

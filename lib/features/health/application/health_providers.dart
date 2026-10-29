@@ -2,7 +2,9 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:health/health.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/health/data/health_adapter.dart';
 import 'package:herculex/features/health/data/health_service.dart';
 import 'package:herculex/features/health/domain/activity_adjuster.dart';
 import 'package:herculex/features/health/domain/health_read_state.dart';
@@ -10,7 +12,12 @@ import 'package:herculex/features/health/domain/health_read_state.dart';
 final healthServiceProvider = Provider<HealthService>((ref) {
   final db = ref.watch(appDatabaseProvider);
   final clock = ref.watch(clockProvider);
-  return HealthService(db, clock);
+  final caps = ref.watch(platformCapabilitiesProvider);
+  return HealthService(
+    db,
+    clock,
+    health: caps.hasHealthPlatform ? null : const UnavailableHealthAdapter(),
+  );
 });
 
 final todayHealthSamplesProvider = StreamProvider<List<HealthSampleData>>((

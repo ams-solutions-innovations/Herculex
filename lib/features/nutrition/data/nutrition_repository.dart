@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/data/food_catalogue_source.dart';
 import 'package:herculex/features/nutrition/data/openfoodfacts_client.dart';
 import 'package:herculex/features/nutrition/domain/barcode_utils.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
@@ -10,10 +12,29 @@ import 'package:herculex/features/nutrition/domain/meal.dart';
 class NutritionRepository {
   final AppDatabase _db;
   final Clock _clock;
+  final FoodCatalogueSource _catalogue;
 
-  NutritionRepository(this._db, OpenFoodFactsClient _, this._clock);
+  NutritionRepository(
+    this._db,
+    OpenFoodFactsClient _,
+    this._clock, {
+    FoodCatalogueSource catalogueSource = const BundledFoodCatalogueSource(),
+  }) : _catalogue = catalogueSource;
 
   // ── Foods ──────────────────────────────────────────────────────────────
+
+  /// Food-picker search. Local results stream immediately; on the web the
+  /// shared catalogue is searched in the background and its matches appear
+  /// as they are cached into `foods` (the query is reactive). Offline, the
+  /// remote half simply fails quietly and local results stand.
+  Stream<List<FoodData>> watchFoodSearch(String? query) {
+    if (query != null && query.trim().isNotEmpty) {
+      unawaited(
+        _catalogue.ensureSearchResults(query).catchError((Object _) {}),
+      );
+    }
+    return watchFoods(query: query);
+  }
 
   Stream<List<FoodData>> watchFoods({String? query}) {
     final q = _db.select(_db.foods)
@@ -26,12 +47,20 @@ class NutritionRepository {
     return q.watch();
   }
 
-  /// Local-only catalogue search. [includeRemote] remains for API
-  /// compatibility, but this app deliberately does not make network calls.
+  /// Catalogue search over `foods`. Phones hold the whole catalogue locally;
+  /// on the web the shared catalogue is consulted first and its matches
+  /// cached, so this returns the same rows either way. [includeRemote] is
+  /// unrelated (a retired OpenFoodFacts switch) and kept for API
+  /// compatibility.
   Future<List<FoodData>> searchFoods(
     String query, {
     bool includeRemote = false,
   }) async {
+    try {
+      await _catalogue.ensureSearchResults(query);
+    } catch (_) {
+      // Offline or the server is down: local results still stand.
+    }
     final local =
         await (_db.select(_db.foods)
               ..where((t) => t.deletedAt.isNull())
@@ -73,11 +102,17 @@ class NutritionRepository {
     )..where((t) => t.id.equals(id))).watchSingleOrNull();
   }
 
-  /// Local-only exact lookup. Barcode identifiers remain strings.
+  /// Exact lookup. Barcode identifiers remain strings. On the web the shared
+  /// catalogue is asked first, so a scan finds the same product as a phone.
   Future<FoodData?> lookupBarcode(String barcode) async {
     final normalized = normalizeBarcode(barcode);
     if (normalized == null) {
       return null;
+    }
+    try {
+      await _catalogue.ensureBarcode(normalized.lookupCandidates);
+    } catch (_) {
+      // Fall through to whatever is already local.
     }
     return _findByBarcode(normalized.lookupCandidates);
   }
@@ -327,13 +362,12 @@ class NutritionRepository {
   }) async {
     final trimmedName = name.trim();
     final candidates =
-        await (_db.select(_db.foods)
-              ..where(
-                (t) =>
-                    t.isCustom.equals(true) &
-                    t.deletedAt.isNull() &
-                    t.brand.equals('Rambler AI'),
-              ))
+        await (_db.select(_db.foods)..where(
+              (t) =>
+                  t.isCustom.equals(true) &
+                  t.deletedAt.isNull() &
+                  t.brand.equals('Rambler AI'),
+            ))
             .get();
     final lowerName = trimmedName.toLowerCase();
     for (final c in candidates) {
@@ -399,10 +433,9 @@ class NutritionRepository {
         );
       }
 
-      final existingIngredients =
-          await (_db.select(_db.recipeIngredients)
-                ..where((t) => t.recipeId.equals(targetRecipeId)))
-              .get();
+      final existingIngredients = await (_db.select(
+        _db.recipeIngredients,
+      )..where((t) => t.recipeId.equals(targetRecipeId))).get();
       final byFoodId = {for (final ing in existingIngredients) ing.foodId: ing};
 
       for (final item in ingredients) {
@@ -434,8 +467,10 @@ class NutritionRepository {
                           t.foodId.equals(food.id),
                     )
                     ..orderBy([
-                      (t) =>
-                          OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+                      (t) => OrderingTerm(
+                        expression: t.id,
+                        mode: OrderingMode.desc,
+                      ),
                     ])
                     ..limit(1))
                   .getSingleOrNull();

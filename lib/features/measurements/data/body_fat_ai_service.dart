@@ -1,8 +1,8 @@
 import 'dart:io';
-import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/features/physique/application/physique_providers.dart';
 import 'package:herculex/features/physique/data/physique_photo_sanitizer.dart';
@@ -278,9 +278,7 @@ class BodyFatAiService {
           }
         } else {
           final rawBytes = await file.readAsBytes();
-          sanitizedBytes = await Isolate.run(
-            () => downscaleForAnalysis(rawBytes),
-          );
+          sanitizedBytes = await compute(downscaleForAnalysis, rawBytes);
         }
         imagesPayload.add({'bytes': sanitizedBytes, 'mimeType': 'image/jpeg'});
       }

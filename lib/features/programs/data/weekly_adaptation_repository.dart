@@ -416,7 +416,7 @@ class WeeklyAdaptationRepository {
     final result = <String>{};
     for (final row in rows) {
       final plan = await resolver.resolveProgramDay(
-        row.programDayId,
+        row.programDayId ?? -1,
         templateOverride: row.templateIdOverride,
       );
       final credit = <String, double>{};

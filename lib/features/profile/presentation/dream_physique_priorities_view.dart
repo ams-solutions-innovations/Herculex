@@ -9,7 +9,6 @@ import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
-import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/profile/data/dream_physique_service.dart';
@@ -205,12 +204,12 @@ class _DreamPhysiquePrioritiesViewState
                   ),
                 ),
                 child: _saving
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: context.hx.onPrimary,
                         ),
                       )
                     : Text(_isDirty ? 'Save changes' : 'Done'),
@@ -223,7 +222,7 @@ class _DreamPhysiquePrioritiesViewState
         Text(
           'AI-assessed goals & focus areas',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.secondary,
+            color: context.hx.secondary,
           ),
         ),
         const SizedBox(height: 14),
@@ -246,13 +245,13 @@ class _DreamPhysiquePrioritiesViewState
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
+                color: context.hx.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 'AI confidence ${(_profile!.overallConfidence * 100).round()}%',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: AppColors.primary,
+                  color: context.hx.primaryText,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -269,10 +268,10 @@ class _DreamPhysiquePrioritiesViewState
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.surfaceContainer,
+              color: context.hx.surfaceContainer,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                color: context.hx.outlineVariant.withValues(alpha: 0.3),
               ),
             ),
             child: Column(
@@ -283,7 +282,7 @@ class _DreamPhysiquePrioritiesViewState
                     Icon(
                       Icons.info_outline_rounded,
                       size: 16,
-                      color: AppColors.secondary,
+                      color: context.hx.secondary,
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -298,7 +297,7 @@ class _DreamPhysiquePrioritiesViewState
                 Text(
                   _profile!.uncertainties.map((e) => '• $e').join('\n'),
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.secondary,
+                    color: context.hx.secondary,
                   ),
                 ),
               ],
@@ -323,9 +322,9 @@ class _DreamPhysiquePrioritiesViewState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
+        color: context.hx.surfaceContainer,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        border: Border.all(color: context.hx.primary.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,7 +337,7 @@ class _DreamPhysiquePrioritiesViewState
                   summary.targetAestheticStyle,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+                    color: context.hx.primaryText,
                   ),
                 ),
               ),
@@ -347,7 +346,7 @@ class _DreamPhysiquePrioritiesViewState
                 Text(
                   summary.timeframeRange,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.secondary,
+                    color: context.hx.secondary,
                   ),
                 ),
               ],
@@ -365,7 +364,7 @@ class _DreamPhysiquePrioritiesViewState
               Container(
                 width: 1,
                 height: 28,
-                color: AppColors.outlineVariant.withValues(alpha: 0.35),
+                color: context.hx.outlineVariant.withValues(alpha: 0.35),
               ),
               _statItem(
                 theme,
@@ -375,7 +374,7 @@ class _DreamPhysiquePrioritiesViewState
               Container(
                 width: 1,
                 height: 28,
-                color: AppColors.outlineVariant.withValues(alpha: 0.35),
+                color: context.hx.outlineVariant.withValues(alpha: 0.35),
               ),
               _statItem(theme, 'Weight goal', weightChangeLabel),
             ],
@@ -402,7 +401,7 @@ class _DreamPhysiquePrioritiesViewState
           Text(
             label,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: AppColors.secondary,
+              color: context.hx.secondary,
               fontSize: 11,
             ),
             textAlign: TextAlign.center,
@@ -420,10 +419,10 @@ class _DreamPhysiquePrioritiesViewState
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
+        color: context.hx.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+          color: context.hx.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -445,7 +444,7 @@ class _DreamPhysiquePrioritiesViewState
                     Text(
                       '${(item.confidence * 100).round()}% confidence',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.secondary,
+                        color: context.hx.secondary,
                       ),
                     ),
                   ],
@@ -466,14 +465,24 @@ class _DreamPhysiquePrioritiesViewState
                             ),
                             decoration: BoxDecoration(
                               color: _priorityColor(
+                                context,
                                 value,
                               ).withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: _priorityColor(
+                                  context,
+                                  value,
+                                ).withValues(alpha: 0.6),
+                              ),
                             ),
                             child: Text(
                               _priorityLabel(value),
+                              // Body colour, not the badge colour: green or
+                              // orange text falls under 4.5:1 on a light
+                              // surface. The tint and border carry the hue.
                               style: TextStyle(
-                                color: _priorityColor(value),
+                                color: context.hx.onSurface,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 12,
                               ),
@@ -512,7 +521,7 @@ class _DreamPhysiquePrioritiesViewState
             Text(
               item.rationale,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.secondary,
+                color: context.hx.secondary,
                 height: 1.35,
               ),
             ),
@@ -531,7 +540,7 @@ class _DreamPhysiquePrioritiesViewState
           Icon(
             Icons.auto_awesome_rounded,
             size: 48,
-            color: AppColors.secondary,
+            color: context.hx.secondary,
           ),
           const SizedBox(height: 16),
           Text(
@@ -546,7 +555,7 @@ class _DreamPhysiquePrioritiesViewState
             'Take or upload photos to let Herculex AI analyze your physique and propose custom muscle volume targets.',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.secondary,
+              color: context.hx.secondary,
             ),
           ),
           const SizedBox(height: 24),
@@ -571,11 +580,15 @@ class _DreamPhysiquePrioritiesViewState
     };
   }
 
-  static Color _priorityColor(ProgrammingPriorityLevel value) {
+  static Color _priorityColor(
+    BuildContext context,
+    ProgrammingPriorityLevel value,
+  ) {
+    final hx = context.hx;
     return switch (value) {
-      ProgrammingPriorityLevel.high => Colors.greenAccent.shade700,
-      ProgrammingPriorityLevel.medium => AppColors.primary,
-      ProgrammingPriorityLevel.maintenance => Colors.orangeAccent.shade700,
+      ProgrammingPriorityLevel.high => hx.success,
+      ProgrammingPriorityLevel.medium => hx.primary,
+      ProgrammingPriorityLevel.maintenance => hx.warning,
     };
   }
 

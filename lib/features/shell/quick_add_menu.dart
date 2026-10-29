@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
@@ -20,9 +21,19 @@ import 'package:herculex/features/workouts/application/workouts_providers.dart';
 /// Actions are context-aware: fasting flips between "Start Quick Fast" and
 /// "End Fast" depending on whether a session is already running.
 class QuickAddMenu extends ConsumerStatefulWidget {
-  const QuickAddMenu({super.key, required this.onClose, this.onActionSelected});
+  const QuickAddMenu({
+    super.key,
+    required this.onClose,
+    this.onActionSelected,
+    this.leftAnchor,
+  });
 
   final VoidCallback onClose;
+
+  /// Set when the "+" lives on the side rail (wide windows): the actions open
+  /// beside it, from this distance off the left edge, instead of rising above
+  /// the bottom bar's button on the right.
+  final double? leftAnchor;
   final void Function(
     Future<void> Function(BuildContext context, WidgetRef ref) action,
   )?
@@ -77,6 +88,8 @@ class QuickAddMenuState extends ConsumerState<QuickAddMenu>
     final hx = context.hx;
     final activeFast = ref.watch(activeFastingSessionProvider).asData?.value;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final leftAnchored = widget.leftAnchor != null;
+    final caps = ref.read(platformCapabilitiesProvider);
 
     final items = <_QuickAddItem>[
       _QuickAddItem(
@@ -100,27 +113,30 @@ class QuickAddMenuState extends ConsumerState<QuickAddMenu>
         accent: hx.domainRecovery,
         onTap: () => _run((ctx, ref) => quickLogWeight(ctx, ref)),
       ),
-      _QuickAddItem(
-        icon: Icons.fitness_center_rounded,
-        label: 'Quick workout',
-        accent: hx.domainTraining,
-        onTap: () => _run((ctx, ref) async {
-          final gym = await GymPickerSheet.resolve(ctx, ref);
-          if (gym.cancelled) return;
-          ref.read(mainTabIndexProvider.notifier).state = 2;
-          await ref
-              .read(workoutsRepositoryProvider)
-              .startSession(gymId: gym.gymId);
-        }),
-      ),
-      _QuickAddItem(
-        icon: Icons.group_rounded,
-        label: 'Gym Buddy',
-        accent: hx.domainTraining,
-        onTap: () => _run((ctx, ref) async {
-          ctx.push(AppRoutes.gymBuddy);
-        }),
-      ),
+      if (caps.hasLiveWorkout)
+        _QuickAddItem(
+          icon: Icons.fitness_center_rounded,
+          label: 'Quick workout',
+          accent: hx.domainTraining,
+          onTap: () => _run((ctx, ref) async {
+            final gym = await GymPickerSheet.resolve(ctx, ref);
+            if (gym.cancelled) return;
+            ref.read(mainTabIndexProvider.notifier).state = 2;
+            await ref
+                .read(workoutsRepositoryProvider)
+                .startSession(gymId: gym.gymId);
+          }),
+        ),
+      // Joining a session scans a QR code with the phone; not on the web.
+      if (caps.isNative)
+        _QuickAddItem(
+          icon: Icons.group_rounded,
+          label: 'Gym Buddy',
+          accent: hx.domainTraining,
+          onTap: () => _run((ctx, ref) async {
+            ctx.push(AppRoutes.gymBuddy);
+          }),
+        ),
       activeFast == null
           ? _QuickAddItem(
               icon: Icons.play_circle_outline_rounded,
@@ -154,19 +170,25 @@ class QuickAddMenuState extends ConsumerState<QuickAddMenu>
           ),
         ),
         Positioned(
-          left: HxSpace.x5,
-          right: HxSpace.x5,
-          bottom: bottomInset + 96,
+          left: leftAnchored ? widget.leftAnchor : HxSpace.x5,
+          right: leftAnchored ? null : HxSpace.x5,
+          // Beside the rail the list ends level with its "+" button.
+          bottom: leftAnchored ? HxSpace.x8 : bottomInset + 96,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: leftAnchored
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.end,
             children: [
               for (var i = 0; i < items.length; i++) ...[
                 _Staggered(
                   controller: _controller,
                   index: i,
                   count: items.length,
-                  child: items[i],
+                  alignment: leftAnchored
+                      ? Alignment.centerLeft
+                      : Alignment.centerRight,
+                  child: leftAnchored ? items[i].mirrored() : items[i],
                 ),
                 if (i != items.length - 1) const SizedBox(height: HxSpace.x3),
               ],
@@ -184,12 +206,16 @@ class _Staggered extends StatelessWidget {
     required this.index,
     required this.count,
     required this.child,
+    this.alignment = Alignment.centerRight,
   });
 
   final AnimationController controller;
   final int index;
   final int count;
   final Widget child;
+
+  /// The side the item grows from — the side its "+" is on.
+  final Alignment alignment;
 
   @override
   Widget build(BuildContext context) {
@@ -216,7 +242,7 @@ class _Staggered extends StatelessWidget {
             offset: Offset(0, 16 * (1 - t)),
             child: Transform.scale(
               scale: 0.85 + 0.15 * t,
-              alignment: Alignment.centerRight,
+              alignment: alignment,
               child: child,
             ),
           ),
@@ -232,6 +258,7 @@ class _QuickAddItem extends StatelessWidget {
     required this.label,
     required this.accent,
     required this.onTap,
+    this.iconFirst = false,
   });
 
   final IconData icon;
@@ -239,9 +266,35 @@ class _QuickAddItem extends StatelessWidget {
   final Color accent;
   final VoidCallback onTap;
 
+  /// Icon on the side nearest the "+" button: right on phones, left beside
+  /// the side rail.
+  final bool iconFirst;
+
+  _QuickAddItem mirrored() => _QuickAddItem(
+    icon: icon,
+    label: label,
+    accent: accent,
+    onTap: onTap,
+    iconFirst: !iconFirst,
+  );
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final pill = HxGlass(
+      borderRadius: HxRadius.pillAll,
+      padding: const EdgeInsets.symmetric(
+        horizontal: HxSpace.x4,
+        vertical: HxSpace.x2 + 2,
+      ),
+      child: Text(label, style: theme.textTheme.labelLarge),
+    );
+    final bubble = Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+      child: Icon(icon, color: Colors.white, size: 20),
+    );
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
@@ -252,23 +305,9 @@ class _QuickAddItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            HxGlass(
-              borderRadius: HxRadius.pillAll,
-              padding: const EdgeInsets.symmetric(
-                horizontal: HxSpace.x4,
-                vertical: HxSpace.x2 + 2,
-              ),
-              child: Text(label, style: theme.textTheme.labelLarge),
-            ),
-            const SizedBox(width: HxSpace.x3),
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
-              child: Icon(icon, color: Colors.white, size: 20),
-            ),
-          ],
+          children: iconFirst
+              ? [bubble, const SizedBox(width: HxSpace.x3), pill]
+              : [pill, const SizedBox(width: HxSpace.x3), bubble],
         ),
       ),
     );

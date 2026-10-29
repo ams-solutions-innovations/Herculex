@@ -62,6 +62,11 @@ const List<String> syncedTableNames = [
   'weekly_reports',
   'adaptation_proposals',
   'adaptation_overrides',
+  'user_preferences',
+  'workout_behavior_snapshots',
+  'training_coaching_proposals',
+  'training_coaching_overrides',
+  'exercise_history_transfers',
 ];
 
 /// Catalogue tables whose sync trigger must only fire for `is_custom = 1`

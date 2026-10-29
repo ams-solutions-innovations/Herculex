@@ -83,7 +83,6 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final hx = context.hx;
 
     // When "Custom" is selected, we query without a facet category and filter in-memory.
@@ -101,6 +100,8 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
     return HxScreenShell(
       title: 'Exercise Library',
       titleIcon: Icons.fitness_center,
+      showBack: false,
+      maxContentWidth: HxBreakpoints.wideMax,
       actions: [
         IconButton(
           tooltip: 'Add Custom Exercise',
@@ -113,176 +114,296 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
           },
         ),
       ],
+      slivers: [
+        SliverToBoxAdapter(child: _buildFilters(context)),
+        ...exercisesAsync.when(
+          loading: () => const [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 48),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+          ],
+          error: (err, _) => [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Center(child: Text('Failed to load exercises: $err')),
+              ),
+            ),
+          ],
+          data: (list) => _buildResults(context, list, usageCounts),
+        ),
+      ],
+    );
+  }
+
+  /// Search, the guide shortcut and the category chips.
+  Widget _buildFilters(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Search field ──────────────────────────────────────────────────
-        TextField(
-          controller: _searchCtrl,
-          decoration: InputDecoration(
-            hintText: 'Search exercises by name, muscle, equipment…',
-            prefixIcon: const Icon(Icons.search_rounded, size: 20),
-            suffixIcon: _searchCtrl.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear_rounded, size: 18),
-                    onPressed: () {
-                      _searchCtrl.clear();
-                      setState(() => _query = '');
-                    },
-                  )
-                : null,
-            filled: true,
-            fillColor: AppColors.surfaceVariant,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // ── Category / Filter Chips ──────────────────────────────────────
-        SizedBox(
-          height: 36,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _exerciseLibraryFilterChips.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final c = _exerciseLibraryFilterChips[index];
-              final isSelected =
-                  (c == 'All' && _category == null) || _category == c;
-              return FilterChip(
-                label: Text(
-                  c,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : AppColors.secondary,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                    fontSize: 13,
-                  ),
-                ),
-                selected: isSelected,
-                selectedColor: AppColors.primary,
-                backgroundColor: AppColors.surfaceContainer,
-                side: BorderSide.none,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                onSelected: (_) {
-                  setState(() {
-                    _category = c == 'All' ? null : c;
-                  });
-                },
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // ── Exercise List ─────────────────────────────────────────────────
-        exercisesAsync.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 48),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          error: (err, _) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 32),
-            child: Center(child: Text('Failed to load exercises: $err')),
-          ),
-          data: (list) {
-            var filtered = [...list];
-            if (_category == 'Custom') {
-              filtered = filtered.where((e) => e.isCustom).toList();
-            }
-
-            if (_query.isEmpty) {
-              filtered.sort((a, b) {
-                final countA = usageCounts[a.id] ?? 0;
-                final countB = usageCounts[b.id] ?? 0;
-                if (countA != countB) {
-                  return countB.compareTo(countA);
-                }
-                final tierA = _exercisePopularityTier(a);
-                final tierB = _exercisePopularityTier(b);
-                if (tierA != tierB) {
-                  return tierA.compareTo(tierB);
-                }
-                return a.name.compareTo(b.name);
-              });
-            }
-
-            if (filtered.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 48),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.fitness_center_rounded,
-                        size: 48,
-                        color: hx.onSurfaceVariant.withValues(alpha: 0.4),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _category == 'Custom'
-                            ? 'No custom exercises yet'
-                            : 'No exercises found',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: hx.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _category == 'Custom'
-                            ? 'Tap the + button to create your own custom exercise.'
-                            : 'Try adjusting your search query or filter chips.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: hx.onSurfaceVariant,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        // ── Search field & Training techniques in the same row ──────────
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 620;
+            return Row(
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10, left: 4),
-                  child: Text(
-                    '${filtered.length} ${filtered.length == 1 ? 'exercise' : 'exercises'}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: hx.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
+                Expanded(
+                  child: TextField(
+                    controller: _searchCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Search exercises by name, muscle, equipment…',
+                      prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                      suffixIcon: _searchCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 18),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                setState(() => _query = '');
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: AppColors.surfaceVariant,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final exercise = filtered[index];
-                    return _ExerciseLibraryTile(
-                      exercise: exercise,
-                      onTap: () => context.push(AppPaths.exercise(exercise.id)),
-                    );
-                  },
+                const SizedBox(width: 12),
+                _TechniquesGuideLink(
+                  onTap: () => context.push(AppRoutes.setTypesGuide),
+                  compact: isNarrow,
                 ),
               ],
             );
           },
         ),
+        const SizedBox(height: 12),
+
+        // ── Category / Filter Chips ──────────────────────────────────────
+        // A phone scrolls them sideways; a wide window wraps them, because a
+        // mouse has no sideways swipe and 21 chips do not fit in one row.
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final chips = [
+              for (final c in _exerciseLibraryFilterChips) _categoryChip(c),
+            ];
+            if (constraints.maxWidth >= HxBreakpoints.twoColumns) {
+              return Wrap(spacing: 8, runSpacing: 8, children: chips);
+            }
+            return SizedBox(
+              height: 36,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: chips.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (_, index) => chips[index],
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
       ],
+    );
+  }
+
+  Widget _categoryChip(String c) {
+    final isSelected = (c == 'All' && _category == null) || _category == c;
+    return FilterChip(
+      label: Text(
+        c,
+        style: TextStyle(
+          color: isSelected ? Colors.white : AppColors.secondary,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          fontSize: 13,
+        ),
+      ),
+      selected: isSelected,
+      selectedColor: AppColors.primary,
+      backgroundColor: AppColors.surfaceContainer,
+      side: BorderSide.none,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      onSelected: (_) {
+        setState(() {
+          _category = c == 'All' ? null : c;
+        });
+      },
+    );
+  }
+
+  /// The count line and the exercises: one lazy column on a phone, a lazy grid
+  /// of two or three columns in a wide window.
+  List<Widget> _buildResults(
+    BuildContext context,
+    List<ExerciseCatalogData> list,
+    Map<int, int> usageCounts,
+  ) {
+    final theme = Theme.of(context);
+    final hx = context.hx;
+
+    var filtered = [...list];
+    if (_category == 'Custom') {
+      filtered = filtered.where((e) => e.isCustom).toList();
+    }
+
+    if (_query.isEmpty) {
+      filtered.sort((a, b) {
+        final countA = usageCounts[a.id] ?? 0;
+        final countB = usageCounts[b.id] ?? 0;
+        if (countA != countB) {
+          return countB.compareTo(countA);
+        }
+        final tierA = _exercisePopularityTier(a);
+        final tierB = _exercisePopularityTier(b);
+        if (tierA != tierB) {
+          return tierA.compareTo(tierB);
+        }
+        return a.name.compareTo(b.name);
+      });
+    }
+
+    if (filtered.isEmpty) {
+      return [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 48),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.fitness_center_rounded,
+                    size: 48,
+                    color: hx.onSurfaceVariant.withValues(alpha: 0.4),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _category == 'Custom'
+                        ? 'No custom exercises yet'
+                        : 'No exercises found',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: hx.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _category == 'Custom'
+                        ? 'Tap the + button to create your own custom exercise.'
+                        : 'Try adjusting your search query or filter chips.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: hx.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    Widget tile(int index) {
+      final exercise = filtered[index];
+      return _ExerciseLibraryTile(
+        exercise: exercise,
+        onTap: () => context.push(AppPaths.exercise(exercise.id)),
+      );
+    }
+
+    return [
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 10, left: 4),
+          child: Text(
+            '${filtered.length} ${filtered.length == 1 ? 'exercise' : 'exercises'}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: hx.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+      SliverLayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.crossAxisExtent;
+          if (width < HxBreakpoints.twoColumns) {
+            return SliverList.separated(
+              itemCount: filtered.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              itemBuilder: (_, index) => tile(index),
+            );
+          }
+          return SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: HxMasonry.columnsFor(width),
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              // Two-line names are the tallest a tile gets.
+              mainAxisExtent: 112,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (_, index) => tile(index),
+              childCount: filtered.length,
+            ),
+          );
+        },
+      ),
+    ];
+  }
+}
+
+/// Shortcut to the set-type guide: the one place in the library that answers
+/// "what is a drop set?" without starting a workout first.
+class _TechniquesGuideLink extends StatelessWidget {
+  const _TechniquesGuideLink({required this.onTap, this.compact = false});
+
+  final VoidCallback onTap;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hx = context.hx;
+    return Material(
+      color: hx.primary.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          height: 48,
+          padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 16),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.menu_book_rounded, color: hx.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Training techniques',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: hx.primary,
+                ),
+              ),
+              if (!compact) ...[
+                const SizedBox(width: 4),
+                Icon(Icons.arrow_forward_rounded, color: hx.primary, size: 16),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -5,11 +5,13 @@ import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/health/application/health_providers.dart';
 import 'package:herculex/features/health/data/health_service.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/application/calendar_providers.dart';
 import 'package:herculex/features/workouts/application/calisthenics_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/calisthenics_progression_repository.dart';
 import 'package:herculex/features/workouts/data/wear_workout_sync_service.dart';
+import 'package:herculex/features/workouts/data/workout_energy_service.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:herculex/features/workouts/domain/calendar_service.dart';
 
@@ -39,8 +41,10 @@ class FinishWorkoutAction {
     required WearWorkoutSyncService wearSync,
     required CalendarService calendarService,
     required bool isCalendarSyncEnabled,
+    required String? calendarId,
     required DateTime now,
-    required double bodyweightKg,
+    required WorkoutEnergyService energyService,
+    required Profile? profile,
     required void Function(int sessionId) clearEditedEndedAt,
     required CalisthenicsProgressionRepository calisthenics,
     required InAppNotificationNotifier notices,
@@ -49,8 +53,10 @@ class FinishWorkoutAction {
        _wearSync = wearSync,
        _calendarService = calendarService,
        _isCalendarSyncEnabled = isCalendarSyncEnabled,
+       _calendarId = calendarId,
        _now = now,
-       _bodyweightKg = bodyweightKg,
+       _energyService = energyService,
+       _profile = profile,
        _clearEditedEndedAt = clearEditedEndedAt,
        _calisthenics = calisthenics,
        _notices = notices;
@@ -59,7 +65,6 @@ class FinishWorkoutAction {
   /// in the handler that finishes a workout.
   factory FinishWorkoutAction.resolve(WidgetRef ref) {
     final profile = ref.read(profileProvider).valueOrNull;
-    final weightKg = profile?.weightKg;
     final editedEndedAt = ref.read(
       editingSessionOriginalEndedAtProvider.notifier,
     );
@@ -70,11 +75,10 @@ class FinishWorkoutAction {
       wearSync: ref.read(wearWorkoutSyncServiceProvider),
       calendarService: ref.read(calendarServiceProvider),
       isCalendarSyncEnabled: ref.read(calendarSyncEnabledProvider),
+      calendarId: ref.read(selectedCalendarIdProvider),
       now: ref.read(clockProvider).now(),
-      // The 20 kg floor rejects placeholder/imported junk, not real users.
-      bodyweightKg: (weightKg != null && weightKg > 20)
-          ? weightKg
-          : _fallbackKg,
+      energyService: ref.read(workoutEnergyServiceProvider),
+      profile: profile,
       clearEditedEndedAt: (sessionId) => editedEndedAt.update((state) {
         final copy = Map<int, DateTime>.from(state);
         copy.remove(sessionId);
@@ -85,24 +89,18 @@ class FinishWorkoutAction {
     );
   }
 
-  static const double _fallbackKg = 75.0;
-
   final WorkoutsRepository _repository;
   final HealthService _healthService;
   final WearWorkoutSyncService _wearSync;
   final CalendarService _calendarService;
   final bool _isCalendarSyncEnabled;
+  final String? _calendarId;
   final DateTime _now;
-  final double _bodyweightKg;
+  final WorkoutEnergyService _energyService;
+  final Profile? _profile;
   final void Function(int sessionId) _clearEditedEndedAt;
   final CalisthenicsProgressionRepository _calisthenics;
   final InAppNotificationNotifier _notices;
-
-  /// MET-based estimate: ~5 METs for general resistance training.
-  int caloriesFor(Duration duration) {
-    final minutes = duration.inMinutes > 0 ? duration.inMinutes : 1;
-    return (5.0 * _bodyweightKg * (minutes / 60.0)).round().clamp(10, 3000);
-  }
 
   DateTime resolveEnd(DateTime? explicitEndedAt) => explicitEndedAt ?? _now;
 
@@ -114,8 +112,15 @@ class FinishWorkoutAction {
     String? name,
     DateTime? endedAt,
   }) async {
+    if (session.endedAt != null && endedAt == null) return;
     final end = resolveEnd(endedAt);
-    final calories = caloriesFor(end.difference(session.startedAt));
+    final energy = await _energyService.estimate(
+      session: session,
+      profile: _profile,
+      endedAt: end,
+      readHeartRate: true,
+    );
+    final calories = energy.activeKcal;
 
     final finalName = name?.trim();
     if (finalName != null && finalName.isNotEmpty) {
@@ -124,7 +129,7 @@ class FinishWorkoutAction {
 
     await _repository.endSession(
       session.id,
-      endedAt: endedAt,
+      endedAt: end,
       caloriesBurned: calories,
     );
 
@@ -169,7 +174,7 @@ class FinishWorkoutAction {
 
     if (_isCalendarSyncEnabled) {
       try {
-        await _calendarService.syncTwoWay();
+        await _calendarService.syncTwoWay(calendarId: _calendarId);
       } catch (_) {
         // Best-effort calendar mirror.
       }

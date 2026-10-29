@@ -11,7 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,19 +20,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Text
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 object ExerciseArtworkCache {
-    // Memory cache for decoded exercise illustration bitmaps (capped at 20MB)
-    private val memoryCache = object : LruCache<String, Bitmap>(20 * 1024 * 1024) {
+    // Watch-sized thumbnails need substantially less memory than full artwork.
+    private val memoryCache = object : LruCache<String, Bitmap>(8 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
     }
 
-    fun getArtwork(context: Context, slug: String?, name: String? = null): Bitmap? {
+    fun getArtwork(context: Context, slug: String?, name: String? = null, sizePx: Int): Bitmap? {
         val candidateSlugs = mutableListOf<String>()
         if (!slug.isNullOrBlank()) {
             candidateSlugs.add(slug.lowercase().trim())
@@ -49,15 +53,25 @@ object ExerciseArtworkCache {
         }
 
         for (candidate in candidateSlugs) {
-            val cached = memoryCache.get(candidate)
+            val cacheKey = "$candidate:$sizePx"
+            val cached = memoryCache.get(cacheKey)
             if (cached != null) return cached
 
             val path = "images/exercises/$candidate.webp"
             try {
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                context.assets.open(path).use { BitmapFactory.decodeStream(it, null, bounds) }
+                var sample = 1
+                while (bounds.outWidth / (sample * 2) >= sizePx &&
+                    bounds.outHeight / (sample * 2) >= sizePx) {
+                    sample *= 2
+                }
                 context.assets.open(path).use { stream ->
-                    val bitmap = BitmapFactory.decodeStream(stream)
+                    val bitmap = BitmapFactory.decodeStream(stream, null, BitmapFactory.Options().apply {
+                        inSampleSize = sample
+                    })
                     if (bitmap != null) {
-                        memoryCache.put(candidate, bitmap)
+                        memoryCache.put(cacheKey, bitmap)
                         return bitmap
                     }
                 }
@@ -78,13 +92,18 @@ fun ExerciseArtwork(
     fallbackInitial: String = name.take(1).uppercase(),
 ) {
     val context = LocalContext.current
-    val bitmap = remember(slug, name) {
-        ExerciseArtworkCache.getArtwork(context, slug, name)
+    val sizePx = with(LocalDensity.current) { size.roundToPx().coerceAtLeast(1) }
+    val bitmap by produceState<Bitmap?>(initialValue = null, context, slug, name, sizePx) {
+        value = null
+        value = withContext(Dispatchers.IO) {
+            ExerciseArtworkCache.getArtwork(context.applicationContext, slug, name, sizePx)
+        }
     }
 
-    if (bitmap != null) {
+    val artwork = bitmap
+    if (artwork != null) {
         Image(
-            bitmap = bitmap.asImageBitmap(),
+            bitmap = artwork.asImageBitmap(),
             contentDescription = name,
             modifier = modifier
                 .size(size)

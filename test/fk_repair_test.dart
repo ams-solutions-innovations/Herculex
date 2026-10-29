@@ -120,7 +120,7 @@ void main() {
           .insert(
             ScheduledWorkoutsCompanion.insert(
               dateIso: '2026-01-01',
-              programDayId: dayId,
+              programDayId: Value(dayId),
               completedSessionId: const Value(bogusSessionId),
               status: const Value(ScheduleStatus.done),
             ),

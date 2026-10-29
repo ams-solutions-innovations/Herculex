@@ -6,6 +6,8 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/error/app_error_view.dart';
 import 'package:herculex/core/error/error_log_view.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
+import 'package:herculex/design_system/components/hx_rail_frame.dart';
 import 'package:herculex/features/admin/presentation/admin_dashboard_view.dart';
 import 'package:herculex/features/admin/presentation/admin_insert_recipe_view.dart';
 import 'package:herculex/features/admin/presentation/admin_insert_workout_view.dart';
@@ -14,6 +16,9 @@ import 'package:herculex/features/analytics/presentation/views/insights_view.dar
 import 'package:herculex/features/analytics/presentation/views/muscle_volume_detail_view.dart';
 import 'package:herculex/features/analytics/presentation/views/muscle_volume_overview_view.dart';
 import 'package:herculex/features/analytics/presentation/views/personal_records_view.dart';
+import 'package:herculex/features/auth/domain/auth_session.dart';
+import 'package:herculex/features/auth/presentation/reset_password_view.dart';
+import 'package:herculex/features/auth/presentation/sign_in_view.dart';
 import 'package:herculex/features/buddy/presentation/buddy_join_scanner_view.dart';
 import 'package:herculex/features/buddy/presentation/gym_buddy_hub_view.dart';
 import 'package:herculex/features/fasting/presentation/fasting_history_view.dart';
@@ -42,6 +47,7 @@ import 'package:herculex/features/nutrition/presentation/views/nutrition_targets
 import 'package:herculex/features/nutrition/presentation/views/weekly_calories_view.dart';
 import 'package:herculex/features/onboarding/presentation/onboarding_view.dart';
 import 'package:herculex/features/physique/presentation/views/physique_progress_view.dart';
+import 'package:herculex/features/physique/presentation/views/physique_roadmap_view.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/profile/presentation/custom_foods_view.dart';
 import 'package:herculex/features/profile/presentation/custom_recipes_view.dart';
@@ -58,6 +64,8 @@ import 'package:herculex/features/settings/presentation/permissions_settings_vie
 import 'package:herculex/features/settings/presentation/preferences_settings_view.dart';
 import 'package:herculex/features/settings/presentation/settings_view.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
+import 'package:herculex/features/shell/not_on_web_view.dart';
+import 'package:herculex/features/shell/restoring_view.dart';
 import 'package:herculex/features/shell/splash_view.dart';
 import 'package:herculex/features/sleep/presentation/views/sleep_tracking_view.dart';
 import 'package:herculex/features/steps/presentation/views/steps_tracking_view.dart';
@@ -69,18 +77,96 @@ import 'package:herculex/features/workouts/presentation/views/exercise_details_v
 import 'package:herculex/features/workouts/presentation/views/exercise_library_view.dart';
 import 'package:herculex/features/workouts/presentation/views/micro_workouts_view.dart';
 import 'package:herculex/features/workouts/presentation/views/planned_workout_preview_view.dart';
+import 'package:herculex/features/workouts/presentation/views/set_types_guide_view.dart';
 import 'package:herculex/features/workouts/presentation/views/workout_history_view.dart';
 
 /// Bridges the Riverpod profile stream into a [Listenable] so
 /// [GoRouter.refreshListenable] re-evaluates the redirect every time the local
 /// profile changes (e.g. onboarding completes, or data is cleared).
 class _RouterRefresh extends ChangeNotifier {
-  _RouterRefresh(Ref ref) {
+  _RouterRefresh(Ref ref, {required bool accountGated}) {
     ref.listen<AsyncValue<Profile?>>(
       profileProvider,
       (_, _) => notifyListeners(),
     );
+    if (accountGated) {
+      ref.listen<AsyncValue<AuthSession?>>(
+        authSessionProvider,
+        (_, _) => notifyListeners(),
+      );
+      ref.listen<AsyncValue<bool>>(
+        initialSyncReadyProvider,
+        (_, _) => notifyListeners(),
+      );
+    }
   }
+}
+
+/// A `from` query parameter is untrusted input (it arrives in a URL): only an
+/// in-app absolute path is honoured — never `//host` or `https://…`.
+@visibleForTesting
+String? safeRedirectTarget(String? from) {
+  if (from == null || !from.startsWith('/') || from.startsWith('//')) {
+    return null;
+  }
+  return from;
+}
+
+String? _safeFrom(GoRouterState state) =>
+    safeRedirectTarget(state.uri.queryParameters['from']);
+
+String _withFrom(String path, String? from) => from == null
+    ? path
+    : Uri(path: path, queryParameters: {'from': from}).toString();
+
+/// Outcome of the web gates: [_WebGate.pass] hands the request on to the
+/// profile gate; otherwise the redirect is final — `to == null` means "stay
+/// here". The distinction matters: the profile gate bounces /sign-in and
+/// /restoring to the app, which would loop straight back here.
+typedef _WebGate = ({bool decided, String? to});
+
+const _WebGate _pass = (decided: false, to: null);
+_WebGate _stay() => (decided: true, to: null);
+_WebGate _go(String to) => (decided: true, to: to);
+
+/// The web build's gates, ahead of the profile gate every build has: a
+/// session, then a completed first pull.
+_WebGate _webAccountGate(Ref ref, GoRouterState state) {
+  final loc = state.matchedLocation;
+  final auth = ref.read(authSessionProvider);
+  if (auth.isLoading && !auth.hasValue) {
+    return loc == AppRoutes.splash ? _stay() : _go(AppRoutes.splash);
+  }
+
+  if (auth.valueOrNull == null) {
+    if (loc == AppRoutes.signIn) return _stay();
+    // Remember a deep link (a bookmarked /insights, a shared report) so
+    // signing in lands there instead of on the dashboard.
+    final from =
+        const {
+          AppRoutes.root,
+          AppRoutes.splash,
+          AppRoutes.app,
+          AppRoutes.onboarding,
+          AppRoutes.restoring,
+          AppRoutes.resetPassword,
+        }.contains(loc)
+        ? null
+        : state.uri.toString();
+    return _go(_withFrom(AppRoutes.signIn, from));
+  }
+
+  // The password-reset link signs the user in with a recovery session; they
+  // choose the new password before anything else happens.
+  if (loc == AppRoutes.resetPassword) return _stay();
+
+  final ready = ref.read(initialSyncReadyProvider).valueOrNull ?? false;
+  if (!ready) {
+    if (loc == AppRoutes.restoring) return _stay();
+    final from = loc == AppRoutes.signIn ? _safeFrom(state) : null;
+    return _go(_withFrom(AppRoutes.restoring, from));
+  }
+  return _pass;
 }
 
 /// `int.parse` on a path parameter throws *inside a route builder*, which is a
@@ -114,8 +200,28 @@ Widget buildWeeklyReportRoute(BuildContext context, GoRouterState state) {
 /// triggered from external intents (widgets, shortcuts, notifications).
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'rootNavigator');
 
+/// Screens that only work on a phone (a health store, notifications, the
+/// camera-driven Gym Buddy join). The web build
+/// redirects them to [NotOnWebView] instead of letting them fail against a
+/// missing plugin.
+@visibleForTesting
+const nativeOnlyRoutes = <String>{
+  AppRoutes.health,
+  AppRoutes.healthSamsung,
+  AppRoutes.healthApple,
+  AppRoutes.healthGoogle,
+  AppRoutes.steps,
+  AppRoutes.sleep,
+  AppRoutes.notifications,
+  AppRoutes.settingsPermissions,
+  AppRoutes.gymBuddy,
+  AppRoutes.buddyJoin,
+};
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final refresh = _RouterRefresh(ref);
+  final caps = ref.read(platformCapabilitiesProvider);
+  final accountGated = ref.read(accountRequiredProvider);
+  final refresh = _RouterRefresh(ref, accountGated: accountGated);
   ref.onDispose(refresh.dispose);
 
   return GoRouter(
@@ -130,8 +236,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       onGoHome: () => context.go(AppRoutes.app),
     ),
     redirect: (context, state) {
-      // On-device only: the only gate is whether onboarding has produced a
+      // The web requires an account and a restored database first. Phones
+      // are on-device: the only gate is whether onboarding has produced a
       // local profile. No accounts, no sign-in.
+      if (accountGated) {
+        final gate = _webAccountGate(ref, state);
+        if (gate.decided) return gate.to;
+      }
+
       final profileAsync = ref.read(profileProvider);
       final loc = state.matchedLocation;
 
@@ -147,20 +259,53 @@ final routerProvider = Provider<GoRouter>((ref) {
         return loc == AppRoutes.onboarding ? null : AppRoutes.onboarding;
       }
 
-      // Onboarded: bounce out of splash/onboarding into the app.
-      if (loc == AppRoutes.splash || loc == AppRoutes.onboarding) {
-        return AppRoutes.app;
+      // Onboarded: bounce out of splash/onboarding (and, on the web, the
+      // sign-in and restoring screens) into the app — or back to the deep
+      // link that sent the user to sign in.
+      if (loc == AppRoutes.splash ||
+          loc == AppRoutes.onboarding ||
+          loc == AppRoutes.signIn ||
+          loc == AppRoutes.restoring) {
+        return _safeFrom(state) ?? AppRoutes.app;
+      }
+      if (caps.isWeb && nativeOnlyRoutes.contains(loc)) {
+        return AppPaths.notOnWeb(loc);
       }
       return null;
     },
     routes: [
+      // The web starts from whatever path the browser opened; a bare domain
+      // is `/`, which nothing else matches.
+      GoRoute(path: AppRoutes.root, redirect: (_, _) => AppRoutes.app),
       GoRoute(path: AppRoutes.splash, builder: (_, _) => const SplashView()),
+      GoRoute(
+        path: AppRoutes.notOnWeb,
+        builder: (_, state) =>
+            NotOnWebView(from: state.uri.queryParameters['from']),
+      ),
+      GoRoute(path: AppRoutes.signIn, builder: (_, _) => const SignInView()),
+      GoRoute(
+        path: AppRoutes.resetPassword,
+        builder: (_, _) => const ResetPasswordView(),
+      ),
+      GoRoute(
+        path: AppRoutes.restoring,
+        builder: (_, _) => const RestoringView(),
+      ),
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (_, _) => const OnboardingView(),
       ),
-      GoRoute(path: AppRoutes.app, builder: (_, _) => const MainScaffold()),
-      GoRoute(path: AppRoutes.labs, builder: (_, _) => const LabsView()),
+      GoRoute(
+        path: AppRoutes.app,
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const MainScaffold()),
+      ),
+      GoRoute(
+        path: AppRoutes.labs,
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const LabsView()),
+      ),
       GoRoute(
         path: AppRoutes.workoutHistory,
         builder: (context, state) {
@@ -187,14 +332,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.measurements,
-        builder: (_, _) => const MeasurementsView(),
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const MeasurementsView(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.measurementDetail,
         builder: (_, state) =>
             MetricDetailView(metric: state.pathParameters['metric']!),
       ),
-      GoRoute(path: AppRoutes.fasting, builder: (_, _) => const FastingView()),
+      GoRoute(
+        path: AppRoutes.fasting,
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const FastingView()),
+      ),
       GoRoute(
         path: AppRoutes.fastingSchedule,
         builder: (_, _) => const FastingScheduleView(),
@@ -210,15 +362,24 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.exercises,
-        builder: (_, _) => const ExerciseLibraryView(),
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const ExerciseLibraryView(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.setTypesGuide,
+        builder: (_, state) =>
+            SetTypesGuideView(highlight: state.uri.queryParameters['type']),
       ),
       GoRoute(
         path: AppRoutes.insights,
-        builder: (_, _) => const InsightsView(),
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const InsightsView()),
       ),
       GoRoute(
         path: AppRoutes.herculInsights,
-        builder: (_, _) => const HerculInsightsReportView(),
+        builder: (_, _) => const HxRailFrame(child: HerculInsightsReportView()),
       ),
       GoRoute(path: AppRoutes.cns, builder: (_, _) => const CnsView()),
       GoRoute(
@@ -236,7 +397,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.supplements,
-        builder: (_, _) => const SupplementsView(),
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const SupplementsView(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.muscleVolume,
@@ -330,6 +494,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.dreamPhysiqueProgress,
         builder: (_, state) => PhysiqueProgressView(
+          goalId: int.tryParse(state.uri.queryParameters['goalId'] ?? ''),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.dreamPhysiqueRoadmap,
+        builder: (_, state) => PhysiqueRoadmapView(
           goalId: int.tryParse(state.uri.queryParameters['goalId'] ?? ''),
         ),
       ),

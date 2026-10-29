@@ -157,6 +157,13 @@ final physiqueMeasuredBodyFatProvider =
       return ref.watch(measurementsRepositoryProvider).watchMetric('body_fat');
     });
 
+/// Logged waist measurements (cm), oldest first.
+final physiqueMeasuredWaistProvider = StreamProvider<List<BodyMeasurementData>>(
+  (ref) {
+    return ref.watch(measurementsRepositoryProvider).watchMetric('waist');
+  },
+);
+
 // --- eligibility ----------------------------------------------------------
 
 /// Age used for eligibility. While the profile stream loads, the synchronously

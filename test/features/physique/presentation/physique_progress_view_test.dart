@@ -21,6 +21,7 @@ import 'package:herculex/features/physique/application/physique_providers.dart';
 import 'package:herculex/features/physique/domain/physique_series.dart';
 import 'package:herculex/features/physique/domain/roadmap_exit_criteria.dart';
 import 'package:herculex/features/physique/presentation/views/physique_progress_view.dart';
+import 'package:herculex/features/physique/presentation/views/physique_roadmap_view.dart';
 import 'package:herculex/features/physique/presentation/widgets/verdict_block.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
@@ -207,6 +208,9 @@ class _Data {
       physiqueWeightLogsProvider.overrideWith(
         (ref) => Stream.value(const <WeightLog>[]),
       ),
+      physiqueMeasuredWaistProvider.overrideWith(
+        (ref) => Stream.value(const <BodyMeasurementData>[]),
+      ),
       physiqueCheckInFlowProvider.overrideWithValue(_FakeFlow()),
       // The training-block card on this screen reads the program tables.
       activeProgramProvider.overrideWith((ref) => Stream.value(null)),
@@ -263,12 +267,15 @@ Widget _host(
   double textScale = 1,
   int? goalId,
   SharedPreferences? prefs,
+  bool roadmap = false,
 }) {
   final router = GoRouter(
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, _) => PhysiqueProgressView(goalId: goalId),
+        builder: (_, _) => roadmap
+            ? PhysiqueRoadmapView(goalId: goalId)
+            : PhysiqueProgressView(goalId: goalId),
       ),
       GoRoute(
         path: AppRoutes.nutritionTargets,
@@ -328,10 +335,10 @@ void main() {
       );
       await _pump(tester, _host(d, theme: entry.value));
       final order = [
-        find.text('Lean athletic'),
-        find.text('Phase 1 of 2'),
-        find.text('Roadmap'),
-        find.text('Herculex AI'),
+        find.text('LEAN ATHLETIC'),
+        find.text('See all check-ins'),
+        find.text('WEIGHT'),
+        find.text('View roadmap'),
         find.text('1M'),
         find.text('Bodyweight'),
         find.text('Strength'),
@@ -401,9 +408,9 @@ void main() {
       );
       await _pump(tester, _host(d, goalId: _id));
       expect(find.text('Archived'), findsOneWidget);
-      expect(find.text('Add check-in'), findsNothing);
+      expect(find.text('Weekly check-in'), findsNothing);
       expect(find.text('Add baseline photo'), findsNothing);
-      expect(find.text('Edit roadmap'), findsNothing);
+      expect(find.text('View roadmap'), findsOneWidget);
       expect(find.text('Move to Maintenance'), findsNothing);
       expect(find.text('Review nutrition targets'), findsNothing);
       expect(find.textContaining('are not available under 18'), findsNothing);
@@ -415,19 +422,70 @@ void main() {
   });
 
   group('proposal (D-01)', () {
-    testWidgets('says so, offers review and never an advance', (tester) async {
-      final d = _Data(
-        proposal: true,
-        phases: [_row(1, DietPhase.cut, 12), _row(2, DietPhase.maintain, 4)],
-        offer: true,
-      );
+    final d = _Data(
+      proposal: true,
+      phases: [_row(1, DietPhase.cut, 12), _row(2, DietPhase.maintain, 4)],
+      offer: true,
+    );
+
+    testWidgets('progress says so and never offers an advance', (tester) async {
       await _pump(tester, _host(d));
+      expect(
+        find.text('This roadmap is a proposal until you accept it.'),
+        findsOneWidget,
+      );
+      expect(find.text('PROPOSED · CUT'), findsOneWidget);
+      expect(find.text('Move to Maintenance'), findsNothing);
+    });
+
+    testWidgets('the roadmap offers Edit roadmap and never an advance', (
+      tester,
+    ) async {
+      await _pump(tester, _host(d, roadmap: true));
       expect(
         find.text('This roadmap is a proposal until you accept it.'),
         findsOneWidget,
       );
       expect(find.text('Edit roadmap'), findsOneWidget);
       expect(find.text('Move to Maintenance'), findsNothing);
+    });
+  });
+
+  group('roadmap screen', () {
+    testWidgets('lays out header, phase, phases and actions in order', (
+      tester,
+    ) async {
+      await _pump(tester, _host(_Data(), roadmap: true));
+      final order = [
+        find.text('YOUR ROADMAP · 2 PHASES'),
+        find.text('NOW · CUT'),
+        find.text('EXIT WHEN'),
+        find.text('Phases'),
+        find.text('Edit roadmap'),
+        find.text('Check in'),
+      ];
+      for (final f in order) {
+        expect(f, findsOneWidget);
+      }
+      final ys = [for (final f in order) _y(tester, f)];
+      expect([...ys]..sort(), ys, reason: 'sections out of order: $ys');
+      expect(find.text('16 weeks total'), findsOneWidget);
+    });
+
+    testWidgets('an archived goal has no actions', (tester) async {
+      final d = _Data(goal: _goal(status: 'archived'));
+      await _pump(tester, _host(d, goalId: _id, roadmap: true));
+      expect(find.text('Edit roadmap'), findsNothing);
+      expect(find.text('Check in'), findsNothing);
+      expect(find.text('Review nutrition targets'), findsNothing);
+    });
+
+    testWidgets('advance prompt sits on the roadmap', (tester) async {
+      await _pump(tester, _host(_Data(offer: true), roadmap: true));
+      expect(
+        find.widgetWithText(FilledButton, 'Move to Maintenance'),
+        findsOneWidget,
+      );
     });
   });
 
@@ -449,20 +507,25 @@ void main() {
     testWidgets('shows between the phase card and the timeline', (
       tester,
     ) async {
-      await _pump(tester, _host(_Data(targetsOffer: offer)));
+      await _pump(tester, _host(_Data(targetsOffer: offer), roadmap: true));
       expect(find.text('Match your calories to this phase'), findsOneWidget);
       final offerY = tester
           .getTopLeft(find.text('Match your calories to this phase'))
           .dy;
       expect(
         offerY,
-        lessThan(tester.getTopLeft(find.text('Roadmap')).dy),
+        greaterThan(tester.getTopLeft(find.text('NOW · CUT')).dy),
+        reason: 'below the phase card',
+      );
+      expect(
+        offerY,
+        lessThan(tester.getTopLeft(find.text('Phases')).dy),
         reason: 'above the timeline',
       );
     });
 
     testWidgets('is absent without an offer', (tester) async {
-      await _pump(tester, _host(_Data()));
+      await _pump(tester, _host(_Data(), roadmap: true));
       expect(find.text('Match your calories to this phase'), findsNothing);
     });
 
@@ -471,7 +534,7 @@ void main() {
         goal: _goal(status: 'archived'),
         targetsOffer: offer,
       );
-      await _pump(tester, _host(d, goalId: _id));
+      await _pump(tester, _host(d, goalId: _id, roadmap: true));
       expect(find.text('Match your calories to this phase'), findsNothing);
     });
   });
@@ -522,25 +585,24 @@ void main() {
   });
 
   group('check-in button', () {
-    testWidgets('eligible: a filled Add check-in', (tester) async {
+    testWidgets('eligible: a filled Weekly check-in', (tester) async {
       await _pump(tester, _host(_Data(last: DateTime(2026, 9, 20))));
-      final b = tester.widget<FilledButton>(find.byType(FilledButton));
+      final b = tester.widget<FilledButton>(find.bySubtype<FilledButton>());
       expect(b.onPressed, isNotNull);
-      expect(find.text('Add check-in'), findsWidgets);
+      expect(find.text('Weekly check-in'), findsOneWidget);
+      expect(find.text('Check-in ready'), findsOneWidget);
     });
 
-    testWidgets('advance prompt visible: Add check-in is outlined', (
-      tester,
-    ) async {
+    testWidgets('an advance offer points to the roadmap; check-in stays '
+        'filled', (tester) async {
       await _pump(tester, _host(_Data(offer: true)));
       expect(
-        find.widgetWithText(OutlinedButton, 'Add check-in'),
+        find.widgetWithText(FilledButton, 'Weekly check-in'),
         findsOneWidget,
       );
-      // Move to {Phase} is the single filled primary action.
-      expect(find.byType(FilledButton), findsOneWidget);
+      expect(find.text('Move to Maintenance'), findsNothing);
       expect(
-        find.widgetWithText(FilledButton, 'Move to Maintenance'),
+        find.text('Ready for the next phase — open the roadmap'),
         findsOneWidget,
       );
     });
@@ -554,8 +616,9 @@ void main() {
       final b = tester.widget<FilledButton>(find.bySubtype<FilledButton>());
       expect(b.onPressed, isNull);
       expect(find.text('Next check-in available Mon, Oct 12'), findsOneWidget);
-      expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
-      expect(find.text('Add check-in'), findsNothing);
+      expect(find.byIcon(Icons.schedule_rounded), findsWidgets);
+      expect(find.text('Weekly check-in'), findsNothing);
+      expect(find.text('Checked in'), findsOneWidget);
       expect(
         find.bySemanticsLabel('Check-in locked until Monday, October 12'),
         findsOneWidget,
@@ -566,7 +629,7 @@ void main() {
     testWidgets('cap lifts on the unlock day', (tester) async {
       final d = _Data(last: DateTime(2026, 10, 5), now: DateTime(2026, 10, 12));
       await _pump(tester, _host(d));
-      expect(find.text('Add check-in'), findsOneWidget);
+      expect(find.text('Weekly check-in'), findsOneWidget);
     });
 
     testWidgets('baseline-less goal says so and is never capped', (
@@ -587,7 +650,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        tester.widget<FilledButton>(find.bySubtype<FilledButton>()).onPressed,
         isNotNull,
       );
     });
@@ -618,7 +681,13 @@ void main() {
           tester,
           _host(_Data(checkIns: [_checkIn(1, verdict: wire)])),
         );
-        expect(find.text(label), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(VerdictBlock),
+            matching: find.text(label),
+          ),
+          findsOneWidget,
+        );
         expect(
           find.text('An estimate from your photos, not a measurement.'),
           findsOneWidget,
@@ -633,7 +702,7 @@ void main() {
         // Off track and inconclusive offer a review; on track does not.
         expect(
           find.text('Review nutrition targets'),
-          findsNWidgets(wire == 'on_track' ? 1 : 2),
+          findsNWidgets(wire == 'on_track' ? 0 : 1),
         );
       });
     }
@@ -876,12 +945,12 @@ void main() {
 
     testWidgets('?goalId=7 opens that goal', (tester) async {
       await openAt(tester, AppPaths.dreamPhysiqueProgress(goalId: 7), _Data());
-      expect(find.text('Seven'), findsOneWidget);
+      expect(find.text('SEVEN'), findsOneWidget);
     });
 
     testWidgets('an absent goalId means the active goal', (tester) async {
       await openAt(tester, AppRoutes.dreamPhysiqueProgress, _Data());
-      expect(find.text('Lean athletic'), findsOneWidget);
+      expect(find.text('LEAN ATHLETIC'), findsOneWidget);
     });
 
     testWidgets('a non-integer goalId falls back to the active goal', (
@@ -892,14 +961,14 @@ void main() {
         '${AppRoutes.dreamPhysiqueProgress}?goalId=abc',
         _Data(),
       );
-      expect(find.text('Lean athletic'), findsOneWidget);
-      expect(find.text('Seven'), findsNothing);
+      expect(find.text('LEAN ATHLETIC'), findsOneWidget);
+      expect(find.text('SEVEN'), findsNothing);
     });
   });
 
   test('sources avoid forbidden literals and the real clock', () {
     final banned = RegExp(
-      'AppColors|Color\\(0x|Colors\\.|boxShadow|FontWeight\\.w[5789]|'
+      'AppColors|Color\\(0x|Colors\\.|boxShadow|FontWeight\\.w[59]|'
       'DateTime\\.now|nutrition_repository|NutritionTarget',
     );
     for (final f in [

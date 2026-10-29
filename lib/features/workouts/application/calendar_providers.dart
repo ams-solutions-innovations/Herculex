@@ -1,6 +1,7 @@
 import 'package:device_calendar/device_calendar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/calendar_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,19 +10,26 @@ const _kCalendarSyncEnabledKey = 'herculex_calendar_sync_enabled';
 const _kCalendarIdKey = 'herculex_calendar_id';
 const _kCalendarLastSyncKey = 'herculex_calendar_last_sync_timestamp';
 
-/// Whether Google / Device Calendar 2-Way Sync is enabled.
+/// Whether Google / Device Calendar 2-Way Sync is enabled. Always off where
+/// there is no device calendar (the web), so nothing reaches the plugin.
 final calendarSyncEnabledProvider =
     StateNotifierProvider<CalendarSyncEnabledNotifier, bool>((ref) {
       final prefs = ref.watch(sharedPreferencesProvider);
-      return CalendarSyncEnabledNotifier(prefs);
+      final supported = ref
+          .watch(platformCapabilitiesProvider)
+          .hasDeviceCalendar;
+      return CalendarSyncEnabledNotifier(prefs, supported: supported);
     });
 
 class CalendarSyncEnabledNotifier extends StateNotifier<bool> {
   final SharedPreferences _prefs;
-  CalendarSyncEnabledNotifier(this._prefs)
-    : super(_prefs.getBool(_kCalendarSyncEnabledKey) ?? false);
+  final bool _supported;
+  CalendarSyncEnabledNotifier(this._prefs, {bool supported = true})
+    : _supported = supported,
+      super(supported && (_prefs.getBool(_kCalendarSyncEnabledKey) ?? false));
 
   Future<void> toggle(bool enabled) async {
+    if (!_supported) return;
     state = enabled;
     await _prefs.setBool(_kCalendarSyncEnabledKey, enabled);
   }

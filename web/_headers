@@ -1,0 +1,39 @@
+# Cloudflare Pages headers for app.herculex.app (copied into build/web).
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=(), interest-cohort=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Frame-Options: DENY
+  # Report-only until the policy has been watched on real traffic (W8).
+  # Flutter needs wasm-unsafe-eval (CanvasKit, sqlite3.wasm), blob: workers
+  # (drift), and fonts.gstatic.com for its fallback glyph fonts.
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://ldzgyzigvbwofbswitrv.supabase.co wss://ldzgyzigvbwofbswitrv.supabase.co https://fonts.gstatic.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+
+# Entry points and anything not content-hashed: always revalidate, so a
+# deploy is picked up on the next load.
+/index.html
+  Cache-Control: no-cache
+/flutter_bootstrap.js
+  Cache-Control: no-cache
+/flutter_service_worker.js
+  Cache-Control: no-cache
+/main.dart.js
+  Cache-Control: no-cache
+/version.json
+  Cache-Control: no-cache
+/drift_worker.js
+  Cache-Control: no-cache
+/splash.js
+  Cache-Control: no-cache
+
+/sqlite3.wasm
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=86400
+
+/canvaskit/*
+  Cache-Control: public, max-age=86400
+
+/assets/*
+  Cache-Control: public, max-age=86400

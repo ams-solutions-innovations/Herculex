@@ -295,6 +295,10 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
                         tonnageText: weightFormat.formatTonnage(
                           liveStats.totalTonnageKg,
                         ),
+                        calories: ref
+                            .watch(workoutEnergyProvider(session.id))
+                            .valueOrNull
+                            ?.activeKcal,
                         onEditDuration: () async {
                           final currentDur = _resolvedEndedAt(
                             session.startedAt,
@@ -447,11 +451,11 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
           child: SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 16,
                 8,
                 16,
-                HxNavBar.clearance - 18,
+                HxNavBar.clearanceOf(context) - 18,
               ),
               child: Row(
                 children: [
@@ -1304,6 +1308,7 @@ class _ActiveWorkoutStatsBar extends StatelessWidget {
   final int totalSets;
   final int completedSets;
   final String tonnageText;
+  final int? calories;
   final VoidCallback onEditDuration;
 
   const _ActiveWorkoutStatsBar({
@@ -1313,6 +1318,7 @@ class _ActiveWorkoutStatsBar extends StatelessWidget {
     required this.totalSets,
     required this.completedSets,
     required this.tonnageText,
+    required this.calories,
     required this.onEditDuration,
   });
 
@@ -1404,6 +1410,24 @@ class _ActiveWorkoutStatsBar extends StatelessWidget {
               iconColor: const Color(0xFF26C6DA),
               label: 'VOLUME',
               value: tonnageText,
+            ),
+          ),
+          Container(
+            height: 28,
+            width: 1,
+            color: AppColors.surfaceVariant.withValues(alpha: 0.6),
+          ),
+          Expanded(
+            child: Tooltip(
+              message:
+                  'Estimated active calories above rest. Includes logged '
+                  'sets and brief recovery; rounded down to 5 kcal.',
+              child: _StatColumn(
+                icon: Icons.local_fire_department_outlined,
+                iconColor: AppColors.primary,
+                label: 'KCAL',
+                value: calories == null ? '…' : '≈$calories',
+              ),
             ),
           ),
         ],

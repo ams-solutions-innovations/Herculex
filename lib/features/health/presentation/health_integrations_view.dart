@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
@@ -47,10 +46,11 @@ class _HealthIntegrationsViewState
     if (!mounted) return;
     final current = ref.read(healthPermissionStatusProvider);
     final updated = {...current};
-    if (Platform.isAndroid) {
+    final caps = ref.read(platformCapabilitiesProvider);
+    if (caps.isAndroid) {
       updated['samsung'] = granted;
       updated['google'] = granted;
-    } else if (Platform.isIOS) {
+    } else if (caps.isIOS) {
       updated['apple'] = granted;
     }
     ref.read(healthPermissionStatusProvider.notifier).state = updated;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
@@ -142,5 +143,36 @@ void main() {
 
     expect(find.text('Next Workout'), findsOneWidget);
     expect(find.text('No upcoming workouts scheduled.'), findsOneWidget);
+  });
+
+  testWidgets('on the web the card previews the workout but cannot start it', (
+    tester,
+  ) async {
+    final workout = createMockWorkout(title: 'Upper', dateIso: '2026-10-25');
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          platformCapabilitiesProvider.overrideWithValue(
+            const PlatformCapabilities.web(),
+          ),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          clockProvider.overrideWithValue(_TestClock(todayDate)),
+          nextScheduledWorkoutProvider.overrideWith(
+            (ref) => Stream.value(workout),
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(body: SmartWorkoutLauncherCard()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Upper'), findsOneWidget);
+    expect(find.text('View'), findsOneWidget);
+    expect(find.text('Start Upper?'), findsNothing);
+    expect(find.text('Resume workout'), findsNothing);
   });
 }

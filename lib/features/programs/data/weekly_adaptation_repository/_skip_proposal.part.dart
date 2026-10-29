@@ -65,7 +65,7 @@ extension _SkipProposal on WeeklyAdaptationRepository {
     final today = DateTime(now.year, now.month, now.day);
     for (final s in schedules) {
       originalPlans[s.id] = await resolver.resolveProgramDay(
-        s.programDayId,
+        s.programDayId ?? -1,
         templateOverride: s.templateIdOverride,
       );
       final day = DateTime.parse(s.dateIso);

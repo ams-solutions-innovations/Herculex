@@ -127,6 +127,10 @@ class AppColorThemeToggle extends ConsumerWidget {
     AppColorTheme.vividGreen => const Color(0xFF10B981),
     AppColorTheme.sunnyYellow => const Color(0xFFF59E0B),
     AppColorTheme.pinky => const Color(0xFFFF2D55),
+    AppColorTheme.crimsonRed => const Color(0xFFDC2626),
+    AppColorTheme.oceanTeal => const Color(0xFF14B8A6),
+    AppColorTheme.royalViolet => const Color(0xFF7C3AED),
+    AppColorTheme.sunsetOrange => const Color(0xFFF97316),
   };
 
   @override

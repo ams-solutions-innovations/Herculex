@@ -13,15 +13,21 @@ import 'package:herculex/features/nutrition/application/goals_providers.dart';
 import 'package:herculex/features/nutrition/application/meal_slots_provider.dart';
 import 'package:herculex/features/nutrition/application/nutrient_settings_provider.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/application/tdee_providers.dart';
+import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/food_insights.dart';
+import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/custom_food_form_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/food_picker_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/log_entry_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/tdee_estimate_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/views/barcode_scanner_view.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/food_nutrition_gradient.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/macro_rings.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/tdee_estimate_badge.dart';
 import 'package:intl/intl.dart';
 
 class NutritionView extends ConsumerStatefulWidget {
@@ -92,6 +98,7 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
     }
 
     final isToday = DateUtils.isSameDay(date, DateTime.now());
+    final isWide = HxBreakpoints.isWide(context);
     final showMicronutrients = ref.watch(micronutrientsVisibleProvider);
     final totals =
         ref.watch(dailyTotalsProvider(date)).asData?.value ?? DailyTotals.empty;
@@ -100,7 +107,7 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
     final navBarTopInSafeArea = bottomInset > 0 ? 68.0 : 76.0;
     final buttonBottom = hasMicros
         ? (navBarTopInSafeArea + HxSpace.x2)
-        : (HxNavBar.clearance + 12);
+        : (HxNavBar.clearanceOf(context) + 12);
 
     return Scaffold(
       body: SafeArea(
@@ -110,11 +117,14 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
-                  child: _buildDateHeader(context, date, theme),
+                  child: _buildDateHeader(context, date, theme, isWide),
                 ),
                 Expanded(
                   child: PageView.builder(
                     controller: _pageCtrl,
+                    physics: isWide
+                        ? const NeverScrollableScrollPhysics()
+                        : null,
                     onPageChanged: _onPageChanged,
                     itemBuilder: (context, page) {
                       final pageDate = _pageToDate(page);
@@ -124,36 +134,37 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
                 ),
               ],
             ),
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              left: 0,
-              right: 0,
-              bottom: buttonBottom,
-              child: Center(
-                child: IgnorePointer(
-                  ignoring: isToday,
-                  child: AnimatedSlide(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    offset: isToday ? const Offset(0, 0.6) : Offset.zero,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 180),
-                      opacity: isToday ? 0 : 1,
-                      child: FilledButton.icon(
-                        onPressed: () {
-                          Haptics.selection();
-                          ref.read(selectedDateProvider.notifier).state =
-                              DateUtils.dateOnly(DateTime.now());
-                        },
-                        icon: const Icon(Icons.today_rounded, size: 18),
-                        label: const Text('Go to today'),
+            if (!isWide)
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                left: 0,
+                right: 0,
+                bottom: buttonBottom,
+                child: Center(
+                  child: IgnorePointer(
+                    ignoring: isToday,
+                    child: AnimatedSlide(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutCubic,
+                      offset: isToday ? const Offset(0, 0.6) : Offset.zero,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 180),
+                        opacity: isToday ? 0 : 1,
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            Haptics.selection();
+                            ref.read(selectedDateProvider.notifier).state =
+                                DateUtils.dateOnly(DateTime.now());
+                          },
+                          icon: const Icon(Icons.today_rounded, size: 18),
+                          label: const Text('Go to today'),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -164,6 +175,7 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
     BuildContext context,
     DateTime date,
     ThemeData theme,
+    bool isWide,
   ) {
     final today = DateTime.now();
     final isToday =
@@ -172,106 +184,125 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
         date.day == today.day;
     final label = isToday ? 'Today' : DateFormat('EEE, MMM d').format(date);
 
-    return SizedBox(
-      height: 48,
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.donut_small_outlined),
-            tooltip: 'Nutrient overview',
-            onPressed: () => context.push(AppRoutes.nutrientOverview),
-          ),
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: () {
-                    final prev = DateUtils.addDaysToDate(date, -1);
-                    ref.read(selectedDateProvider.notifier).state = prev;
-                  },
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: HxBreakpoints.wideMax),
+        child: SizedBox(
+          height: 48,
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.donut_small_outlined),
+                tooltip: 'Nutrient overview',
+                onPressed: () => context.push(AppRoutes.nutrientOverview),
+              ),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left),
+                      tooltip: 'Previous day',
+                      onPressed: () {
+                        final prev = DateUtils.addDaysToDate(date, -1);
+                        ref.read(selectedDateProvider.notifier).state = prev;
+                      },
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: date,
+                          firstDate: DateTime(2020),
+                          lastDate: today.add(const Duration(days: 30)),
+                        );
+                        if (picked != null) {
+                          ref.read(selectedDateProvider.notifier).state =
+                              DateUtils.dateOnly(picked);
+                        }
+                      },
+                      child: Text(
+                        label,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right),
+                      tooltip: 'Next day',
+                      onPressed: () {
+                        final next = DateUtils.addDaysToDate(date, 1);
+                        ref.read(selectedDateProvider.notifier).state = next;
+                      },
+                    ),
+                    if (isWide && !isToday) ...[
+                      const SizedBox(width: 8),
+                      ActionChip(
+                        avatar: const Icon(Icons.today_rounded, size: 16),
+                        label: const Text('Today'),
+                        onPressed: () {
+                          Haptics.selection();
+                          ref.read(selectedDateProvider.notifier).state =
+                              DateUtils.dateOnly(DateTime.now());
+                        },
+                      ),
+                    ],
+                  ],
                 ),
-                TextButton(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: date,
-                      firstDate: DateTime(2020),
-                      lastDate: today.add(const Duration(days: 30)),
-                    );
-                    if (picked != null) {
-                      ref.read(selectedDateProvider.notifier).state =
-                          DateUtils.dateOnly(picked);
-                    }
-                  },
-                  child: Text(
-                    label,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert),
+                tooltip: 'Nutrition options',
+                onSelected: (value) {
+                  switch (value) {
+                    case 'targets':
+                      context.push(AppRoutes.nutritionTargets);
+                      break;
+                    case 'nutrients':
+                      context.push(AppRoutes.nutritionNutrients);
+                      break;
+                    case 'meal_slots':
+                      context.push(AppRoutes.nutritionMealSlots);
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'targets',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_outlined, size: 20),
+                        SizedBox(width: 12),
+                        Text('Targets & dieting'),
+                      ],
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: () {
-                    final next = DateUtils.addDaysToDate(date, 1);
-                    ref.read(selectedDateProvider.notifier).state = next;
-                  },
-                ),
-              ],
-            ),
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            tooltip: 'Nutrition options',
-            onSelected: (value) {
-              switch (value) {
-                case 'targets':
-                  context.push(AppRoutes.nutritionTargets);
-                  break;
-                case 'nutrients':
-                  context.push(AppRoutes.nutritionNutrients);
-                  break;
-                case 'meal_slots':
-                  context.push(AppRoutes.nutritionMealSlots);
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'targets',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit_outlined, size: 20),
-                    SizedBox(width: 12),
-                    Text('Targets & dieting'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'nutrients',
-                child: Row(
-                  children: [
-                    Icon(Icons.science_outlined, size: 20),
-                    SizedBox(width: 12),
-                    Text('Edit nutrients shown'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'meal_slots',
-                child: Row(
-                  children: [
-                    Icon(Icons.tune_outlined, size: 20),
-                    SizedBox(width: 12),
-                    Text('Edit meal slots'),
-                  ],
-                ),
+                  const PopupMenuItem(
+                    value: 'nutrients',
+                    child: Row(
+                      children: [
+                        Icon(Icons.science_outlined, size: 20),
+                        SizedBox(width: 12),
+                        Text('Edit nutrients shown'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'meal_slots',
+                    child: Row(
+                      children: [
+                        Icon(Icons.tune_outlined, size: 20),
+                        SizedBox(width: 12),
+                        Text('Edit meal slots'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -288,7 +319,7 @@ class _DayPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final totalsAsync = ref.watch(dailyTotalsProvider(date));
     final totals = totalsAsync.asData?.value ?? DailyTotals.empty;
-    final entriesByMeal = ref.watch(entriesByMealProvider(date));
+    final entriesByMealAsync = ref.watch(entriesByMealProvider(date));
     final configuredSlots = ref.watch(mealSlotsProvider);
     final visibleNutrients = ref.watch(visibleNutrientIdsProvider);
     final showMicronutrients = ref.watch(micronutrientsVisibleProvider);
@@ -296,61 +327,1222 @@ class _DayPage extends ConsumerWidget {
         ref.watch(effectiveTargetsProvider(date)).asData?.value ??
         ref.watch(baselineTargetsProvider);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 140),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+
+        // 1. Mobile layout (< 768px): clean vertical flow as before
+        if (width < HxBreakpoints.tablet) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 140),
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: MacroRings(totals: totals, targets: targets),
+              ),
+              if (targets == null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
+                  child: Text(
+                    'Add your weight, height, and age in profile to compute macro targets.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                ),
+              if (showMicronutrients && totals.hasMicros)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: _MineralsRow(
+                    totals: totals,
+                    theme: theme,
+                    visibleIds: visibleNutrients,
+                  ),
+                ),
+              const SizedBox(height: 24),
+              entriesByMealAsync.when(
+                data: (byMeal) {
+                  final slots = [
+                    ...configuredSlots,
+                    for (final key in byMeal.keys)
+                      if (!configuredSlots.any((slot) => slot.key == key))
+                        MealSlot(key: key, label: key),
+                  ];
+                  return Column(
+                    children: [
+                      for (final meal in slots) ...[
+                        _MealAccordion(
+                          meal: meal,
+                          entries: byMeal[meal.key] ?? const [],
+                          date: date,
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                    ],
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (e, _) => Text('Error: $e'),
+              ),
+            ],
+          );
+        }
+
+        // 2. Tablet / Medium layout (768px - 1080px): 2 responsive columns
+        if (width < HxBreakpoints.desktop) {
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: HxBreakpoints.wideMax),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 80),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 340,
+                      child: Column(
+                        children: [
+                          _DesktopMacroCard(
+                            date: date,
+                            totals: totals,
+                            targets: targets,
+                          ),
+                          const SizedBox(height: 16),
+                          _DesktopQuickLogCard(date: date),
+                          const SizedBox(height: 16),
+                          _DesktopWeeklyOverviewCard(
+                            date: date,
+                            targets: targets,
+                          ),
+                          const SizedBox(height: 16),
+                          _DesktopTdeeStatusCard(
+                            date: date,
+                            targets: targets,
+                          ),
+                          const SizedBox(height: 16),
+                          _DesktopCarbCyclingCard(date: date),
+                          if (showMicronutrients && totals.hasMicros) ...[
+                            const SizedBox(height: 16),
+                            _MineralsRow(
+                              totals: totals,
+                              theme: theme,
+                              visibleIds: visibleNutrients,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: _DesktopMainPanel(
+                        date: date,
+                        configuredSlots: configuredSlots,
+                        byMealAsync: entriesByMealAsync,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        // 3. Wide Desktop layout (>= 1080px): multi-column layout
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: HxBreakpoints.wideMax),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 80),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left / Primary Column (Macro summary, targets, quick log)
+                  SizedBox(
+                    width: 320,
+                    child: Column(
+                      children: [
+                        _DesktopMacroCard(
+                          date: date,
+                          totals: totals,
+                          targets: targets,
+                        ),
+                        const SizedBox(height: 16),
+                        _DesktopQuickLogCard(date: date),
+                        if (showMicronutrients && totals.hasMicros) ...[
+                          const SizedBox(height: 16),
+                          _MineralsRow(
+                            totals: totals,
+                            theme: theme,
+                            visibleIds: visibleNutrients,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  // Main Column (Meals & itemized food entries)
+                  Expanded(
+                    child: _DesktopMainPanel(
+                      date: date,
+                      configuredSlots: configuredSlots,
+                      byMealAsync: entriesByMealAsync,
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  // Side Column (Weekly overview, TDEE status, carb cycling)
+                  SizedBox(
+                    width: 310,
+                    child: Column(
+                      children: [
+                        _DesktopWeeklyOverviewCard(
+                          date: date,
+                          targets: targets,
+                        ),
+                        const SizedBox(height: 16),
+                        _DesktopTdeeStatusCard(
+                          date: date,
+                          targets: targets,
+                        ),
+                        const SizedBox(height: 16),
+                        _DesktopCarbCyclingCard(date: date),
+                        const SizedBox(height: 16),
+                        const _DesktopNavigationCard(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ── Desktop Panels & Responsive Widgets ──────────────────────────────────────
+
+class _DesktopMacroCard extends StatelessWidget {
+  final DateTime date;
+  final DailyTotals totals;
+  final MacroTargets? targets;
+
+  const _DesktopMacroCard({
+    required this.date,
+    required this.totals,
+    required this.targets,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hx = context.hx;
+    final t = targets;
+
+    final remaining = t != null ? (t.kcal - totals.kcal).round() : null;
+    final isOver = remaining != null && remaining < 0;
+
+    return HxCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.donut_large_rounded,
+                size: 18,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'DAILY TARGETS',
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: hx.onSurfaceVariant,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.tune_outlined, size: 18),
+                tooltip: 'Adjust targets',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => context.push(AppRoutes.nutritionTargets),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: MacroRings(totals: totals, targets: targets),
+          ),
+          const SizedBox(height: 16),
+          if (t == null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Column(
+                children: [
+                  Text(
+                    'Add your weight, height, and age in profile to compute macro targets.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => context.push(AppRoutes.nutritionTargets),
+                      child: const Text('Set Targets'),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            // Calorie summary bar
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    '${totals.kcal.round()} of ${t.kcal} kcal',
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isOver
+                      ? '${remaining.abs()} kcal over'
+                      : '$remaining kcal left',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: isOver ? Colors.redAccent : Colors.greenAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: (totals.kcal / t.kcal).clamp(0.0, 1.0),
+                minHeight: 6,
+                backgroundColor: AppColors.surfaceVariant,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isOver ? Colors.redAccent : AppColors.macroKcal,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            // Individual Macro Bars
+            _MacroProgressRow(
+              label: 'Protein',
+              current: totals.proteinG.round(),
+              target: t.proteinG,
+              unit: 'g',
+              color: AppColors.macroProtein,
+            ),
+            const SizedBox(height: 8),
+            _MacroProgressRow(
+              label: 'Carbs',
+              current: totals.carbsG.round(),
+              target: t.carbsG,
+              unit: 'g',
+              color: AppColors.macroCarbs,
+            ),
+            const SizedBox(height: 8),
+            _MacroProgressRow(
+              label: 'Fats',
+              current: totals.fatG.round(),
+              target: t.fatG,
+              unit: 'g',
+              color: AppColors.macroFat,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MacroProgressRow extends StatelessWidget {
+  final String label;
+  final int current;
+  final int target;
+  final String unit;
+  final Color color;
+
+  const _MacroProgressRow({
+    required this.label,
+    required this.current,
+    required this.target,
+    required this.unit,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final pct = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
+    final pctInt = target > 0 ? (current / target * 100).round() : 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: MacroRings(totals: totals, targets: targets),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      label,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$current / $target $unit ($pctInt%)',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
-        if (targets == null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
-            child: Text(
-              'Add your weight, height, and age in profile to compute macro targets.',
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: LinearProgressIndicator(
+            value: pct,
+            minHeight: 4,
+            backgroundColor: AppColors.surfaceVariant,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DesktopQuickLogCard extends ConsumerWidget {
+  final DateTime date;
+  const _DesktopQuickLogCard({required this.date});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final hx = context.hx;
+    final slots = ref.watch(mealSlotsProvider);
+    final defaultMealKey = slots.isNotEmpty ? slots.first.key : 'breakfast';
+
+    return HxCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.bolt_rounded, size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'QUICK ACTIONS',
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: hx.onSurfaceVariant,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => FoodPickerSheet.show(
+                context,
+                date: date,
+                mealKey: defaultMealKey,
+              ),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Log Food'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => CustomFoodFormSheet.show(context),
+                  icon: const Icon(Icons.restaurant_menu_outlined, size: 16),
+                  label: const Text('Custom'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => BarcodeScannerView.show(context),
+                  icon: const Icon(Icons.qr_code_scanner, size: 16),
+                  label: const Text('Barcode'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopWeeklyOverviewCard extends ConsumerWidget {
+  final DateTime date;
+  final MacroTargets? targets;
+
+  const _DesktopWeeklyOverviewCard({
+    required this.date,
+    required this.targets,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final hx = context.hx;
+    final avgKcal = ref.watch(averageWeeklyCaloriesProvider);
+    final history = ref.watch(nutritionHistoryProvider).asData?.value;
+    final targetKcal = targets?.kcal;
+
+    return HxCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.insights_rounded,
+                size: 18,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'WEEKLY OVERVIEW',
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: hx.onSurfaceVariant,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                tooltip: 'View trends',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => context.push(AppPaths.macroTrends('kcal')),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (avgKcal != null) ...[
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 6,
+              children: [
+                Text(
+                  '${avgKcal.round()}',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+                Text(
+                  'kcal / day avg',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.secondary,
+                  ),
+                ),
+              ],
+            ),
+            if (targetKcal != null) ...[
+              const SizedBox(height: 4),
+              Builder(
+                builder: (context) {
+                  final diff = (avgKcal - targetKcal).round();
+                  final isUnder = diff <= 0;
+                  final text = isUnder
+                      ? '${diff.abs()} kcal under'
+                      : '+$diff kcal over';
+                  final color = diff.abs() <= 50
+                      ? Colors.greenAccent
+                      : (isUnder ? Colors.lightBlueAccent : Colors.orangeAccent);
+                  return Row(
+                    children: [
+                      Icon(
+                        isUnder ? Icons.trending_down : Icons.trending_up,
+                        size: 14,
+                        color: color,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          text,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: color,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ] else ...[
+            Text(
+              'Log across 7 days to see weekly average intake.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          _MiniWeekBars(
+            selectedDate: date,
+            history: history,
+            targetKcal: targetKcal,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniWeekBars extends ConsumerWidget {
+  final DateTime selectedDate;
+  final Map<String, DailyTotals>? history;
+  final int? targetKcal;
+
+  const _MiniWeekBars({
+    required this.selectedDate,
+    required this.history,
+    required this.targetKcal,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final days = <DateTime>[];
+    for (int i = 6; i >= 0; i--) {
+      days.add(today.subtract(Duration(days: i)));
+    }
+
+    final target = targetKcal ?? 2000;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          for (final d in days)
+            _DayBarItem(
+              date: d,
+              isSelected: DateUtils.isSameDay(d, selectedDate),
+              totals: history?[DateFormat('yyyy-MM-dd').format(d)],
+              targetKcal: target,
+              onTap: () {
+                Haptics.selection();
+                ref.read(selectedDateProvider.notifier).state = d;
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DayBarItem extends StatelessWidget {
+  final DateTime date;
+  final bool isSelected;
+  final DailyTotals? totals;
+  final int targetKcal;
+  final VoidCallback onTap;
+
+  const _DayBarItem({
+    required this.date,
+    required this.isSelected,
+    required this.totals,
+    required this.targetKcal,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kcal = totals?.kcal.round() ?? 0;
+    final pct = (kcal / targetKcal).clamp(0.0, 1.2);
+    final barHeight = (pct * 32).clamp(4.0, 36.0);
+    final dayLetter = DateFormat('E').format(date).substring(0, 1);
+
+    final color = kcal == 0
+        ? AppColors.surfaceVariant
+        : (kcal > targetKcal * 1.1
+            ? Colors.orangeAccent
+            : AppColors.macroKcal);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              kcal > 0 ? '$kcal' : '—',
+              style: TextStyle(
+                fontSize: 9,
+                color: isSelected ? AppColors.primary : AppColors.secondary,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              width: 16,
+              height: 36,
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                width: 14,
+                height: barHeight,
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primary : color,
+                  borderRadius: BorderRadius.circular(4),
+                  border: isSelected
+                      ? Border.all(color: Colors.white, width: 1.5)
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              dayLetter,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? AppColors.primary : AppColors.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DesktopTdeeStatusCard extends ConsumerWidget {
+  final DateTime date;
+  final MacroTargets? targets;
+
+  const _DesktopTdeeStatusCard({
+    required this.date,
+    required this.targets,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final hx = context.hx;
+    final estimate = ref.watch(tdeeEstimateProvider);
+
+    return HxCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.local_fire_department_rounded,
+                size: 18,
+                color: Colors.deepOrangeAccent,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'ENERGY & METABOLISM',
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: hx.onSurfaceVariant,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.info_outline, size: 16),
+                tooltip: 'TDEE calibration details',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => showTdeeEstimateSheet(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const TdeeEstimateBadge(alignment: Alignment.centerLeft),
+          if (estimate != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    'Maintenance:',
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${estimate.kcal} kcal',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            if (targets != null) ...[
+              const SizedBox(height: 4),
+              Builder(
+                builder: (context) {
+                  final diff = targets!.kcal - estimate.kcal;
+                  final isDeficit = diff < -50;
+                  final isSurplus = diff > 50;
+                  final text = isDeficit
+                      ? '${diff.abs()} kcal deficit'
+                      : (isSurplus ? '+$diff kcal surplus' : 'Maintenance');
+                  final color = isDeficit
+                      ? Colors.lightBlueAccent
+                      : (isSurplus ? Colors.amberAccent : Colors.greenAccent);
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'Target Goal:',
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        text,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopCarbCyclingCard extends ConsumerWidget {
+  final DateTime date;
+  const _DesktopCarbCyclingCard({required this.date});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final hx = context.hx;
+    final cycleAsync = ref.watch(generatedCarbCycleProvider(date));
+
+    return HxCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.swap_horiz_rounded,
+                size: 18,
+                color: AppColors.macroCarbs,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'CARB CYCLING',
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: hx.onSurfaceVariant,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          cycleAsync.when(
+            data: (levels) {
+              if (levels.length != 7) return const SizedBox.shrink();
+              final dayIndex = (date.weekday - DateTime.monday) % 7;
+              final todayLevel = levels[dayIndex];
+              final levelColor = switch (todayLevel) {
+                CarbLevel.high => Colors.orangeAccent,
+                CarbLevel.medium => AppColors.primary,
+                CarbLevel.low => Colors.tealAccent,
+              };
+
+              const dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: levelColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: levelColor.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Text(
+                          '${todayLevel.label} Carbs Today',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: levelColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      for (int i = 0; i < 7; i++)
+                        _CarbDayChip(
+                          letter: dayNames[i],
+                          level: levels[i],
+                          isToday: i == dayIndex,
+                        ),
+                    ],
+                  ),
+                ],
+              );
+            },
+            loading: () => const SizedBox(height: 32),
+            error: (_, _) => Text(
+              'Dynamic carb cycling based on training schedule',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: AppColors.secondary,
               ),
             ),
           ),
-        if (showMicronutrients && totals.hasMicros)
-          Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: _MineralsRow(
-              totals: totals,
-              theme: theme,
-              visibleIds: visibleNutrients,
+        ],
+      ),
+    );
+  }
+}
+
+class _CarbDayChip extends StatelessWidget {
+  final String letter;
+  final CarbLevel level;
+  final bool isToday;
+
+  const _CarbDayChip({
+    required this.letter,
+    required this.level,
+    required this.isToday,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = switch (level) {
+      CarbLevel.high => Colors.orangeAccent,
+      CarbLevel.medium => AppColors.primary,
+      CarbLevel.low => Colors.tealAccent,
+    };
+
+    return Container(
+      width: 28,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: isToday
+            ? color.withValues(alpha: 0.25)
+            : AppColors.surfaceVariant.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(6),
+        border: isToday
+            ? Border.all(color: color, width: 1.5)
+            : null,
+      ),
+      child: Column(
+        children: [
+          Text(
+            letter,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontSize: 10,
+              fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+              color: isToday ? AppColors.onSurface : AppColors.secondary,
             ),
           ),
-        const SizedBox(height: 24),
-        entriesByMeal.when(
-          data: (byMeal) {
-            final slots = [
-              ...configuredSlots,
-              for (final key in byMeal.keys)
-                if (!configuredSlots.any((slot) => slot.key == key))
-                  MealSlot(key: key, label: key),
-            ];
-            return Column(
-              children: [
-                for (final meal in slots) ...[
-                  _MealAccordion(
-                    meal: meal,
-                    entries: byMeal[meal.key] ?? const [],
-                    date: date,
-                  ),
-                  const SizedBox(height: 10),
-                ],
-              ],
-            );
-          },
-          loading: () => const Padding(
-            padding: EdgeInsets.all(32),
-            child: Center(child: CircularProgressIndicator()),
+          const SizedBox(height: 2),
+          Text(
+            level.id.substring(0, 1).toUpperCase(),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
-          error: (e, _) => Text('Error: $e'),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopNavigationCard extends StatelessWidget {
+  const _DesktopNavigationCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hx = context.hx;
+
+    return HxCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'MANAGE & EXPLORE',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: hx.onSurfaceVariant,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _NavLinkTile(
+            icon: Icons.donut_small_outlined,
+            title: 'Nutrient Overview',
+            onTap: () => context.push(AppRoutes.nutrientOverview),
+          ),
+          _NavLinkTile(
+            icon: Icons.tune_outlined,
+            title: 'Meal Slots',
+            onTap: () => context.push(AppRoutes.nutritionMealSlots),
+          ),
+          _NavLinkTile(
+            icon: Icons.science_outlined,
+            title: 'Nutrients Displayed',
+            onTap: () => context.push(AppRoutes.nutritionNutrients),
+          ),
+          _NavLinkTile(
+            icon: Icons.edit_note_rounded,
+            title: 'Custom Foods',
+            onTap: () => context.push(AppRoutes.customFoods),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavLinkTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const _NavLinkTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              size: 14,
+              color: AppColors.secondary,
+            ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _DesktopMainPanel extends StatelessWidget {
+  final DateTime date;
+  final List<MealSlot> configuredSlots;
+  final AsyncValue<Map<String, List<FoodEntryData>>> byMealAsync;
+
+  const _DesktopMainPanel({
+    required this.date,
+    required this.configuredSlots,
+    required this.byMealAsync,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return byMealAsync.when(
+      data: (byMeal) {
+        final slots = [
+          ...configuredSlots,
+          for (final key in byMeal.keys)
+            if (!configuredSlots.any((slot) => slot.key == key))
+              MealSlot(key: key, label: key),
+        ];
+
+        int totalEntries = 0;
+        for (final list in byMeal.values) {
+          totalEntries += list.length;
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Text(
+                    "TODAY'S MEALS",
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$totalEntries logged',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.secondary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () => context.push(AppRoutes.nutritionMealSlots),
+                    icon: const Icon(Icons.settings_outlined, size: 16),
+                    label: const Text('Edit slots'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.secondary,
+                      textStyle: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            for (final meal in slots) ...[
+              _MealAccordion(
+                meal: meal,
+                entries: byMeal[meal.key] ?? const [],
+                date: date,
+                initialExpanded: true,
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
+        );
+      },
+      loading: () => const Padding(
+        padding: EdgeInsets.all(48),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text('Error: $e'),
+      ),
     );
   }
 }
@@ -362,11 +1554,13 @@ class _MealAccordion extends ConsumerStatefulWidget {
   final MealSlot meal;
   final List<FoodEntryData> entries;
   final DateTime date;
+  final bool initialExpanded;
 
   const _MealAccordion({
     required this.meal,
     required this.entries,
     required this.date,
+    this.initialExpanded = false,
   });
 
   @override
@@ -391,7 +1585,7 @@ final mealMacroDisplayModeProvider = StateProvider<MacroDisplayMode>(
 
 class _MealAccordionState extends ConsumerState<_MealAccordion>
     with SingleTickerProviderStateMixin {
-  bool _expanded = false;
+  late bool _expanded;
 
   late final AnimationController _ctrl;
   late final Animation<double> _expandAnim;
@@ -399,12 +1593,27 @@ class _MealAccordionState extends ConsumerState<_MealAccordion>
   @override
   void initState() {
     super.initState();
+    _expanded = widget.initialExpanded;
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 220),
-      value: 0.0,
+      value: _expanded ? 1.0 : 0.0,
     );
     _expandAnim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+  }
+
+  @override
+  void didUpdateWidget(_MealAccordion oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialExpanded != oldWidget.initialExpanded &&
+        _expanded != widget.initialExpanded) {
+      _expanded = widget.initialExpanded;
+      if (_expanded) {
+        _ctrl.forward();
+      } else {
+        _ctrl.reverse();
+      }
+    }
   }
 
   @override

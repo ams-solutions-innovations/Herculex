@@ -392,7 +392,11 @@ class MicroWorkoutsRepository {
         .asyncMap((sessions) async {
           final dailySets = <DateTime, int>{};
           for (int i = 0; i < 7; i++) {
-            final day = DateTime(weekStart.year, weekStart.month, weekStart.day + i);
+            final day = DateTime(
+              weekStart.year,
+              weekStart.month,
+              weekStart.day + i,
+            );
             dailySets[DateTime(day.year, day.month, day.day)] = 0;
           }
 

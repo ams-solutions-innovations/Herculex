@@ -219,7 +219,7 @@ void main() {
           .insert(
             ScheduledWorkoutsCompanion.insert(
               programId: Value(program),
-              programDayId: day,
+              programDayId: Value(day),
               dateIso: '2026-10-21',
             ),
           );
@@ -275,7 +275,7 @@ void main() {
           .insert(
             ScheduledWorkoutsCompanion.insert(
               programId: Value(program),
-              programDayId: day,
+              programDayId: Value(day),
               dateIso: '2026-10-21',
               status: const Value('skipped'),
             ),

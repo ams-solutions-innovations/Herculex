@@ -136,7 +136,7 @@ void main() {
         .insert(
           ScheduledWorkoutsCompanion.insert(
             dateIso: '2026-10-14',
-            programDayId: dayId,
+            programDayId: Value(dayId),
             completedSessionId: Value(sessionId),
             templateIdOverride: Value(templateIdOverride),
           ),

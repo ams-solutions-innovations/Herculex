@@ -8,6 +8,7 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/gamification/application/gamification_providers.dart';
+import 'package:herculex/features/health/application/health_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
 import 'package:herculex/features/workouts/data/exercise_ergonomics_repository.dart';
@@ -17,6 +18,7 @@ import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
 import 'package:herculex/features/workouts/data/templates_repository.dart';
 import 'package:herculex/features/workouts/data/wear_workout_sync_service.dart';
+import 'package:herculex/features/workouts/data/workout_energy_service.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:herculex/features/workouts/domain/active_workout_notification_target.dart';
 import 'package:herculex/features/workouts/domain/calendar_service.dart';
@@ -24,6 +26,7 @@ import 'package:herculex/features/workouts/domain/effective_load.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/session_summary.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
+import 'package:herculex/features/workouts/domain/workout_energy_estimator.dart';
 
 part 'workouts_providers/_planned_workout_preview.part.dart';
 part 'workouts_providers/_wear_sync_controller.part.dart';
@@ -40,8 +43,48 @@ final mediaSyncServiceProvider = Provider<MediaSyncService>((ref) {
 final workoutsRepositoryProvider = Provider<WorkoutsRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
   final clock = ref.watch(clockProvider);
-  return WorkoutsRepository(db, clock);
+  final energy = ref.watch(workoutEnergyServiceProvider);
+  return WorkoutsRepository(
+    db,
+    clock,
+    calorieEstimator: (session, end) async {
+      final profile = ref.read(profileProvider).valueOrNull;
+      return (await energy.estimate(
+        session: session,
+        endedAt: end,
+        profile: profile,
+      )).activeKcal;
+    },
+  );
 });
+
+final workoutEnergyServiceProvider = Provider<WorkoutEnergyService>((ref) {
+  return WorkoutEnergyService(
+    ref.watch(appDatabaseProvider),
+    ref.watch(clockProvider),
+    ref.watch(healthServiceProvider),
+  );
+});
+
+/// Updates when sets change and while the short recovery tail is in progress.
+/// The timer is disposed with the screen and never polls platform permissions.
+final workoutEnergyProvider = FutureProvider.autoDispose
+    .family<WorkoutEnergyEstimate, int>((ref, sessionId) async {
+      // Register lifecycle cleanup synchronously: a session stream can finish
+      // loading after its last widget has already unmounted.
+      final timer = Timer(const Duration(seconds: 15), ref.invalidateSelf);
+      ref.onDispose(timer.cancel);
+      ref.onCancel(timer.cancel);
+      ref.onResume(() {
+        if (!timer.isActive) ref.invalidateSelf();
+      });
+      ref.watch(activeSessionStatsProvider(sessionId));
+      final profile = ref.watch(profileProvider).valueOrNull;
+      final service = ref.watch(workoutEnergyServiceProvider);
+      final session = await ref.watch(workoutSessionProvider(sessionId).future);
+      if (session.endedAt != null) timer.cancel();
+      return service.estimate(session: session, profile: profile);
+    });
 
 final exerciseErgonomicsRepositoryProvider =
     FutureProvider<ExerciseErgonomicsRepository>((ref) async {
@@ -187,6 +230,12 @@ final sessionSummaryProvider = FutureProvider.autoDispose
 
       final profile = ref.watch(profileProvider).valueOrNull;
 
+      final energy = session.caloriesBurned == null
+          ? await ref
+                .watch(workoutEnergyServiceProvider)
+                .estimate(session: session, profile: profile)
+          : null;
+
       return SessionSummary.fromSnapshot(
         snapshot: snapshot,
         sessionId: sessionId,
@@ -197,6 +246,7 @@ final sessionSummaryProvider = FutureProvider.autoDispose
         photoPath: session.photoPath,
         savedCalories: session.caloriesBurned,
         userWeightKg: profile?.weightKg,
+        energyEstimate: energy,
       );
     });
 

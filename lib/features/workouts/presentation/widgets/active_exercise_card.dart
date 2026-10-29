@@ -1286,8 +1286,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
         candidate.supersetGroup == widget.workoutExercise.supersetGroup &&
         candidate.supersetGroup != null;
     final disabled = atCap && !alreadyConnected;
-    final catalogExercise = widget.catalogExercises
-        .firstWhereOrNull((e) => e.id == candidate.exerciseId);
+    final catalogExercise = widget.catalogExercises.firstWhereOrNull(
+      (e) => e.id == candidate.exerciseId,
+    );
     return ListTile(
       enabled: !disabled,
       leading: catalogExercise != null
@@ -1313,8 +1314,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
         color: alreadyConnected
             ? AppColors.primary
             : (disabled
-                ? AppColors.secondary.withValues(alpha: 0.3)
-                : AppColors.secondary),
+                  ? AppColors.secondary.withValues(alpha: 0.3)
+                  : AppColors.secondary),
       ),
       onTap: disabled
           ? null

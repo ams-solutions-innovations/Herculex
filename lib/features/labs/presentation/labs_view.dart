@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,17 +8,22 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/components.dart';
-import 'package:herculex/design_system/tokens/hx_colors.dart';
+import 'package:herculex/design_system/theme/app_theme.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
 import 'package:herculex/features/labs/application/labs_providers.dart';
 import 'package:herculex/features/labs/data/labs_ai_service.dart';
 import 'package:herculex/features/labs/data/labs_repository.dart';
 import 'package:herculex/features/labs/domain/labs_engine.dart';
 import 'package:herculex/features/labs/domain/labs_models.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:share_plus/share_plus.dart';
 
+part 'labs_view/_kit.part.dart';
+part 'labs_view/_overview.part.dart';
 part 'labs_view/_finding.part.dart';
 part 'labs_view/_experiments.part.dart';
+part 'labs_view/_experiment_dialogs.part.dart';
 part 'labs_view/_logging.part.dart';
 part 'labs_view/_library.part.dart';
 part 'labs_view/_ai.part.dart';
@@ -82,16 +87,17 @@ class LabsView extends ConsumerStatefulWidget {
   ConsumerState<LabsView> createState() => _LabsViewState();
 }
 
-/// Labs leads with a short answer — what we found and one thing to do — and
-/// keeps the research tooling (periods, categories, experiments, timeline,
-/// report library, methods) under "More details".
+/// Labs in three tabs: Overview (what we found), Experiments and Reports.
+/// Before Labs is set up it shows what it does and one way in.
 class _LabsViewState extends ConsumerState<LabsView> {
+  static const _tabs = ['Overview', 'Experiments', 'Reports'];
+
   int days = 30;
-  LabsCategory? category;
+  int tab = 0;
+
   @override
   Widget build(BuildContext context) {
     final consent = ref.watch(labsConsentProvider);
-    final theme = Theme.of(context);
     if (!labsEnabled) {
       return const HxScreenShell(
         title: 'Herculex Labs',
@@ -101,7 +107,6 @@ class _LabsViewState extends ConsumerState<LabsView> {
     final result = consent.enabled
         ? ref.watch(labsSnapshotProvider(days))
         : null;
-    final snapshot = result?.valueOrNull;
     return _LabsTheme(
       child: HxScreenShell(
         title: 'Herculex Labs',
@@ -114,62 +119,16 @@ class _LabsViewState extends ConsumerState<LabsView> {
           ),
         ],
         children: [
-          HxCard(
-            accent: context.hx.primary,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Learn what works for your body.',
-                  style: theme.textTheme.titleLarge,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  consent.enabled
-                      ? snapshot == null
-                            ? 'Analysing your last $days days on this device…'
-                            : 'Last $days days · ${(_coverage(snapshot) * 100).round()}% of days have data · analysed on this device'
-                      : 'Herculex connects your training, recovery and daily habits and shows you the patterns.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: context.hx.secondary,
-                  ),
-                ),
-                if (!consent.enabled) ...[
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    onPressed: () => _settings(context, ref),
-                    icon: const Icon(Icons.science_outlined),
-                    label: const Text('Set up my Labs'),
-                  ),
-                ],
-              ],
+          if (result == null)
+            ..._intro(context)
+          else ...[
+            HxTopTabs(
+              labels: _tabs,
+              index: tab,
+              onChanged: (i) => setState(() => tab = i),
             ),
-          ),
-          const SizedBox(height: 20),
-          if (!consent.enabled) ...[
-            for (final (icon, text) in const [
-              (
-                Icons.insights_rounded,
-                'See what changed in your training, sleep and body over time.',
-              ),
-              (
-                Icons.lock_outline_rounded,
-                'Private: everything is analysed on your phone.',
-              ),
-              (Icons.tune_rounded, 'You choose which categories are included.'),
-            ])
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  children: [
-                    Icon(icon, color: context.hx.primary),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(text)),
-                  ],
-                ),
-              ),
-          ] else
-            result!.when(
+            const SizedBox(height: 16),
+            result.when(
               loading: () => const Padding(
                 padding: EdgeInsets.all(24),
                 child: Center(child: CircularProgressIndicator()),
@@ -185,173 +144,106 @@ class _LabsViewState extends ConsumerState<LabsView> {
                   ),
                 ],
               ),
-              data: (snapshot) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('What we found', style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 12),
-                  if (snapshot.findings.isEmpty)
-                    const Text(
-                      'Keep logging — your first findings appear after a couple of weeks of data.',
-                    ),
-                  for (final f in snapshot.findings.take(3))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _simpleFindingTile(context, f, snapshot),
-                    ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: consent.allows(LabsCategory.context)
-                        ? FilledButton.icon(
-                            onPressed: () => _checkIn(context, ref),
-                            icon: const Icon(Icons.mood_rounded),
-                            label: const Text('Daily check-in'),
-                          )
-                        : FilledButton.tonalIcon(
-                            onPressed: () => _change(context, ref),
-                            icon: const Icon(Icons.add_rounded),
-                            label: const Text('Record a change'),
-                          ),
-                  ),
-                  const SizedBox(height: 12),
-                  Theme(
-                    data: theme.copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      title: Text(
-                        'More details',
-                        style: theme.textTheme.titleMedium,
-                      ),
-                      subtitle: const Text(
-                        'Time range, all findings, experiments, timeline and reports',
-                      ),
-                      children: [
-                        _details(context, consent, snapshot),
-                        const SizedBox(height: 16),
-                        _reports(context, ref),
-                        const SizedBox(height: 16),
-                        ExpansionTile(
-                          title: const Text('Methods & evidence'),
-                          children: [
-                            const ListTile(
-                              title: Text(
-                                'Descriptive comparisons: 3 observed days in each half. Exploratory signals: at least 8 weekly blocks, time adjustment and multiple-comparison correction. These screening thresholds do not establish causality.',
-                              ),
-                            ),
-                            for (final e in labsSources.entries)
-                              ListTile(
-                                title: Text(e.key),
-                                subtitle: SelectableText(e.value),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              data: (snapshot) => switch (tab) {
+                1 => _ExperimentsTab(snapshot: snapshot),
+                2 => _ReportsTab(snapshot: snapshot),
+                _ => _OverviewTab(
+                  consent: consent,
+                  snapshot: snapshot,
+                  days: days,
+                  onDays: (d) => setState(() => days = d),
+                  onOpenExperiments: () => setState(() => tab = 1),
+                ),
+              },
             ),
-          const SizedBox(height: 32),
+          ],
+          const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  /// Everything below the headline findings, unchanged in substance.
-  Widget _details(
-    BuildContext context,
-    LabsConsent consent,
-    LabsSnapshot snapshot,
-  ) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final d in [15, 30, 90, 180])
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text('$d days'),
-                    selected: days == d,
-                    onSelected: (_) => setState(() => days = d),
+  /// Before consent: the promise, three reasons, and the way in.
+  List<Widget> _intro(BuildContext context) {
+    final hx = context.hx;
+    return [
+      _HeroCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Kicker(
+              icon: Icons.lock_outline_rounded,
+              text: 'ON-DEVICE ANALYSIS',
+              color: hx.primaryText,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Learn what works for your body.',
+              style: _labsDisplay(26, letterSpacing: -0.5, height: 1.1),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Herculex connects your training, recovery and daily habits and '
+              'shows you the patterns.',
+              style: TextStyle(
+                color: hx.onSurfaceVariant,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: HxRadius.lgAll),
+                  textStyle: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
+                onPressed: () => _settings(context, ref),
+                icon: const Icon(Icons.science_outlined),
+                label: const Text('Set up my Labs'),
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 20),
+      for (final (icon, text) in const [
+        (
+          Icons.insights_rounded,
+          'See what changed in your training, sleep and body over time.',
+        ),
+        (
+          Icons.lock_outline_rounded,
+          'Private: everything is analysed on your phone.',
+        ),
+        (Icons.tune_rounded, 'You choose which categories are included.'),
+      ])
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              _IconTile(icon: icon, color: hx.primaryText),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  text,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        _quality(context, snapshot),
-        if (consent.ai)
-          TextButton.icon(
-            onPressed: () => _explain(context, ref, snapshot),
-            icon: const Icon(Icons.auto_awesome_outlined),
-            label: const Text('Explain selected summary with AI'),
-          ),
-        const SizedBox(height: 16),
-        Text('All findings', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 4),
-        const Text(
-          'Changes describe your records. Associations are exploratory and do not prove a cause.',
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ChoiceChip(
-              label: const Text('All'),
-              selected: category == null,
-              onSelected: (_) => setState(() => category = null),
-            ),
-            for (final c in consent.categories)
-              ChoiceChip(
-                label: Text(c.label),
-                selected: category == c,
-                onSelected: (_) => setState(() => category = c),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        for (final f in snapshot.findings.where(
-          (f) => category == null || f.category == category,
-        ))
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _findingTile(context, f, snapshot),
-          ),
-        const SizedBox(height: 16),
-        _experiments(context, ref, snapshot),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: () => _change(context, ref),
-          icon: const Icon(Icons.add_rounded),
-          label: const Text('Record a change or diet period'),
-        ),
-        const SizedBox(height: 12),
-        Text('Your change timeline', style: theme.textTheme.titleMedium),
-        if (snapshot.events.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              'Record when you change a routine, begin a supplement or adjust your diet.',
-            ),
-          ),
-        for (final e in snapshot.events.reversed.take(12))
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.timeline),
-            title: Text(e['title']),
-            subtitle: Text(
-              '${e['at'].toString().substring(0, 10)}${e['end'] == null ? '' : ' → ${e['end']}'}',
-            ),
-          ),
-      ],
-    );
+    ];
   }
 }
 

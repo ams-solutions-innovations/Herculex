@@ -7,13 +7,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/router.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/app/synced_preferences.dart';
 import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/hx_layout_scope.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/theme_provider.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
 import 'package:herculex/features/buddy/application/buddy_providers.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
@@ -33,7 +37,10 @@ import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/presentation/dialogs/gemini_photo_analysis_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/food_picker_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/quick_scan_food.dart';
+import 'package:herculex/features/shell/desktop_app_shell.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
+import 'package:herculex/features/shell/rail_tools.dart';
+import 'package:herculex/features/shell/router_location_builder.dart';
 import 'package:herculex/features/supplements/application/supplement_providers.dart';
 import 'package:herculex/features/supplements/data/pending_supplement_action_queue.dart';
 import 'package:herculex/features/supplements/data/supplement_repository.dart';
@@ -67,6 +74,9 @@ class HerculexApp extends ConsumerStatefulWidget {
 }
 
 class _HerculexAppState extends ConsumerState<HerculexApp> {
+  late final PlatformCapabilities _caps = ref.read(
+    platformCapabilitiesProvider,
+  );
   late final AppLifecycleListener _lifecycleListener;
   Timer? _workoutActionDrainTimer;
   bool _isDrainingWorkoutActions = false;
@@ -86,11 +96,50 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     Future<void>.microtask(() {
       ref.read(authRepositoryProvider).hydrate();
     });
-    Future<void>.microtask(() async {
-      try {
-        await ref.read(scheduledWorkoutServiceProvider).autoRepairDriftedSchedules();
-      } catch (_) {}
-    });
+    if (_caps.requiresInitialSync) {
+      // A fresh browser database is empty until the first pull lands;
+      // repairing "drifted" schedules before then would rewrite rows that are
+      // still on their way down.
+      ref.listenManual<AsyncValue<bool>>(initialSyncReadyProvider, (_, next) {
+        if ((next.valueOrNull ?? false) && !_schedulesRepaired) {
+          _schedulesRepaired = true;
+          unawaited(_repairDriftedSchedules());
+        }
+      }, fireImmediately: true);
+    } else {
+      Future<void>.microtask(_repairDriftedSchedules);
+    }
+
+    _lifecycleListener = AppLifecycleListener(
+      // No onInactive: it fires on any focus loss while the app is still on
+      // screen (notification shade, a system dialog, a permission prompt) and
+      // would raise the bubble on top of the app. Only a hidden app counts.
+      onHide: _onBackground,
+      onPause: _onBackground,
+      onResume: _onForeground,
+      onShow: _onForeground,
+    );
+
+    if (_caps.isNative) {
+      _installNativeBridges();
+    }
+  }
+
+  bool _schedulesRepaired = false;
+
+  Future<void> _repairDriftedSchedules() async {
+    try {
+      await ref
+          .read(scheduledWorkoutServiceProvider)
+          .autoRepairDriftedSchedules();
+    } catch (_) {}
+  }
+
+  /// Everything that talks to a native plugin or method channel: the ongoing
+  /// workout notification, the Workout Bubble, notification-tap queues,
+  /// home-screen widgets, fasting auto-start and Gym Buddy resume. None of it
+  /// exists on the web.
+  void _installNativeBridges() {
     WorkoutNotificationService.onNotificationTap = () {
       ref.read(mainTabIndexProvider.notifier).state = 2;
     };
@@ -332,16 +381,6 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         await handleWidgetCall(MethodCall(method, pending?['args']));
       }
     });
-
-    _lifecycleListener = AppLifecycleListener(
-      // No onInactive: it fires on any focus loss while the app is still on
-      // screen (notification shade, a system dialog, a permission prompt) and
-      // would raise the bubble on top of the app. Only a hidden app counts.
-      onHide: _onBackground,
-      onPause: _onBackground,
-      onResume: _onForeground,
-      onShow: _onForeground,
-    );
   }
 
   @override
@@ -350,13 +389,18 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     _stopPendingWorkoutActionDrain();
     _stopFastingScheduleCheck();
     _notificationSyncDebounce?.cancel();
-    WorkoutNotificationService.instance.cancel();
-    WorkoutBubbleService.instance.hide();
+    if (_caps.isNative) {
+      WorkoutNotificationService.instance.cancel();
+      WorkoutBubbleService.instance.hide();
+    }
     super.dispose();
   }
 
   void _onBackground() {
     _appBackgrounded = true;
+    if (!_caps.isNative) {
+      return;
+    }
     _stopFastingScheduleCheck();
     _syncNotification();
     unawaited(_syncBubble());
@@ -365,6 +409,12 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   void _onForeground() {
     ref.invalidate(localDayProvider);
     _appBackgrounded = false;
+    // Browser tabs too: coming back to a tab is when it has missed edits made
+    // on another device.
+    unawaited(ref.read(syncServiceProvider).syncOnResume());
+    if (!_caps.isNative) {
+      return;
+    }
     _drainPendingWorkoutNotificationActions();
     _drainPendingFastingScheduleActions();
     unawaited(_drainPendingWeeklyReportOpen());
@@ -480,6 +530,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   /// simultaneous triggers into a single native `update()` call instead of
   /// reposting the notification once per listener.
   void _syncNotification() {
+    if (!_caps.hasLocalNotifications) {
+      return;
+    }
     _notificationSyncDebounce?.cancel();
     _notificationSyncDebounce = Timer(
       const Duration(milliseconds: 200),
@@ -490,6 +543,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   /// Reads the supplement list and fires a notification for any supplement
   /// that has [SupplementSchedule.postWorkout] set.
   void _firePostWorkoutSupplementReminder() {
+    if (!_caps.hasLocalNotifications) {
+      return;
+    }
     try {
       final notifSettings = ref.read(notificationSettingsProvider);
       if (!notifSettings.postWorkoutSupplementEnabled) {
@@ -991,45 +1047,59 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
 
   @override
   Widget build(BuildContext context) {
-    // Initialize wear sync listening.
-    ref.watch(wearSyncControllerProvider);
-    ref.watch(wearWorkoutSyncControllerProvider);
     // Rest after every completed set, wherever it was completed.
     ref.watch(restTimerAutoStartProvider);
-    // Rest countdown + "IT'S GO TIME" on the watch.
-    ref.watch(restTimerWearBridgeProvider);
-
-    // Initialize Android home-screen widget sync.
-    ref.watch(widgetMacroSyncControllerProvider);
     // Top pill when today's intake first reaches the minimum kcal / protein.
     ref.watch(minimumReachedControllerProvider);
-    // Adaptive TDEE: recalibrates on app open, on resume and on ActivityLevel change
-    ref.watch(tdeeRecalibrationControllerProvider);
+    // Adaptive TDEE: recalibrates on app open, on resume and on ActivityLevel
+    // change. On the web, only once the first pull has brought the intake and
+    // weigh-in history it measures from.
+    if (!_caps.requiresInitialSync ||
+        (ref.watch(initialSyncReadyProvider).valueOrNull ?? false)) {
+      ref.watch(tdeeRecalibrationControllerProvider);
+    }
     // Weekly report card: re-read the due week when the app is foregrounded.
     ref.watch(weeklyReportResumeProvider);
-    ref.watch(labsLifecycleProvider);
-    ref.watch(widgetCnsSyncControllerProvider);
-    ref.watch(widgetRecoverySyncControllerProvider);
-    ref.watch(widgetFastingSyncControllerProvider);
-    ref.watch(widgetThemeSyncControllerProvider);
-    ref.watch(widgetDashboardSyncControllerProvider);
 
     // Starts/stops Phase 10 cloud sync off the auth session — see
     // syncServiceProvider in app/providers.dart.
     ref.watch(syncServiceProvider);
+    // Profile and settings follow the account (app/synced_preferences.dart).
+    ref.watch(syncedPreferencesBridgeProvider);
 
-    // Initialize local notification syncing across meals, supplements, fasting, daily log.
-    ref.watch(notificationSyncServiceProvider);
+    // `_caps` never changes for the life of the app, so these conditional
+    // watches are stable across rebuilds.
+    if (_caps.isNative) {
+      // Initialize wear sync listening.
+      ref.watch(wearSyncControllerProvider);
+      ref.watch(wearWorkoutSyncControllerProvider);
+      // Rest countdown + "IT'S GO TIME" on the watch.
+      ref.watch(restTimerWearBridgeProvider);
+      // Labs stays on the device (GDPR Art. 9); not offered on the web.
+      ref.watch(labsLifecycleProvider);
+      // Initialize Android home-screen widget sync.
+      ref.watch(widgetMacroSyncControllerProvider);
+      ref.watch(widgetCnsSyncControllerProvider);
+      ref.watch(widgetRecoverySyncControllerProvider);
+      ref.watch(widgetFastingSyncControllerProvider);
+      ref.watch(widgetThemeSyncControllerProvider);
+      ref.watch(widgetDashboardSyncControllerProvider);
+      // Initialize local notification syncing across meals, supplements, fasting, daily log.
+      ref.watch(notificationSyncServiceProvider);
+    }
 
     final router = ref.watch(routerProvider);
-    WorkoutNotificationService.onNotificationTap = () {
-      ref.read(mainTabIndexProvider.notifier).state = 2;
-      router.go(AppRoutes.app);
-    };
-    WorkoutNotificationService.onFastingScheduleTap = _handleFastingScheduleTap;
-    WorkoutNotificationService.onWeeklyReportTap = _openWeeklyReport;
-    WorkoutNotificationService.onSupplementAction = _handleSupplementAction;
-    WorkoutNotificationService.onSupplementTap = _handleSupplementTap;
+    if (_caps.hasLocalNotifications) {
+      WorkoutNotificationService.onNotificationTap = () {
+        ref.read(mainTabIndexProvider.notifier).state = 2;
+        router.go(AppRoutes.app);
+      };
+      WorkoutNotificationService.onFastingScheduleTap =
+          _handleFastingScheduleTap;
+      WorkoutNotificationService.onWeeklyReportTap = _openWeeklyReport;
+      WorkoutNotificationService.onSupplementAction = _handleSupplementAction;
+      WorkoutNotificationService.onSupplementTap = _handleSupplementTap;
+    }
 
     // Keep notification in sync when active session changes.
     ref.listen(activeSessionProvider, (previous, next) {
@@ -1105,7 +1175,54 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       builder: (context, child) {
         return Container(
           decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
-          child: InAppNotificationHost(child: child ?? const SizedBox.shrink()),
+          // Pushed screens on a wide browser window show the main navigation
+          // rail too; the tab state and router live here, not in the
+          // design system.
+          child: Consumer(
+            // The rail needs to know which of its tools the open screen
+            // belongs to, and the navigator below cannot tell it.
+            builder: (context, ref, content) => RouterLocationBuilder(
+              router: router,
+              builder: (context, location) => HxShellNavigationScope(
+                enabled: _caps.isWeb,
+                currentIndex: ref.watch(mainTabIndexProvider),
+                onSelectTab: (i) {
+                  ref.read(mainTabIndexProvider.notifier).state = i;
+                  router.go(AppRoutes.app);
+                },
+                tools: railTools,
+                currentTool: railToolIndexFor(location),
+                onSelectTool: (tool) => openRailTool(router, tool),
+                leading: Image.asset(
+                  'assets/images/app_icon_foreground.png',
+                  width: 40,
+                  color: context.hx.primary,
+                  semanticLabel: 'Herculex',
+                ),
+                child: DesktopAppShell(
+                  location: location,
+                  currentIndex: ref.watch(mainTabIndexProvider),
+                  onSelectTab: (i) {
+                    ref.read(mainTabIndexProvider.notifier).state = i;
+                    router.go(AppRoutes.app);
+                  },
+                  tools: railTools,
+                  currentTool: railToolIndexFor(location),
+                  onSelectTool: (tool) => openRailTool(router, tool),
+                  leading: Image.asset(
+                    'assets/images/app_icon_foreground.png',
+                    width: 40,
+                    color: context.hx.primary,
+                    semanticLabel: 'Herculex',
+                  ),
+                  child: content!,
+                ),
+              ),
+            ),
+            child: InAppNotificationHost(
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
         );
       },
     );

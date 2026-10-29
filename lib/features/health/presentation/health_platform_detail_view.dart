@@ -1,10 +1,9 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -40,10 +39,11 @@ class _HealthPlatformDetailViewState
     final granted = await ref.read(healthServiceProvider).checkHasPermissions();
     if (!mounted) return;
     final platformKey = widget.platform.name;
+    final caps = ref.read(platformCapabilitiesProvider);
     final appliesToThisScreen =
-        (Platform.isAndroid &&
+        (caps.isAndroid &&
             (platformKey == 'samsung' || platformKey == 'google')) ||
-        (Platform.isIOS && platformKey == 'apple');
+        (caps.isIOS && platformKey == 'apple');
     if (!appliesToThisScreen) return;
     final current = ref.read(healthPermissionStatusProvider);
     ref.read(healthPermissionStatusProvider.notifier).state = {

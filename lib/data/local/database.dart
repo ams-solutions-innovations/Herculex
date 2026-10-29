@@ -1,6 +1,8 @@
 import 'dart:developer' show log;
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:herculex/core/error/error_log.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/data/local/accessory_seed.dart';
 import 'package:herculex/data/local/exercise_importer.dart';
 import 'package:herculex/data/local/exercise_merge.dart';
@@ -10,6 +12,7 @@ import 'package:herculex/data/local/migrations/nutrition_snapshot_backfill.dart'
 import 'package:herculex/data/local/migrations/sync_backfill.dart';
 import 'package:herculex/data/local/migrations/sync_triggers.dart';
 import 'package:herculex/data/local/tables.dart';
+import 'package:herculex/data/local/coaching_tables.dart';
 import 'package:herculex/features/fasting/data/fasting_stage_importer.dart';
 import 'package:herculex/features/hercul/data/hercul_rule_importer.dart';
 import 'package:herculex/features/nutrition/data/food_catalogue_importer.dart';
@@ -105,16 +108,25 @@ part 'database.g.dart';
     WorkoutReportPlans,
     WorkoutReportEvents,
     WorkoutReports,
+    // Synced preferences (v53, web track W3)
+    UserPreferences,
+    WorkoutBehaviorSnapshots,
+    TrainingCoachingProposals,
+    TrainingCoachingOverrides,
+    ExerciseHistoryTransfers,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   final bool seedFoodCatalogue;
 
-  AppDatabase() : seedFoodCatalogue = true, super(_open());
+  AppDatabase()
+    : seedFoodCatalogue =
+          PlatformCapabilities.current().hasBundledFoodCatalogue,
+      super(_open());
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 52;
+  int get schemaVersion => 54;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -1352,6 +1364,50 @@ class AppDatabase extends _$AppDatabase {
           await installSyncTriggers(this);
         }
       }
+      if (from < 53 && to >= 53) {
+        // Web track W3: synced preferences. Same idiom as the v48 block.
+        final exists = await customSelect(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'user_preferences'",
+        ).getSingleOrNull();
+        if (exists == null) {
+          await m.createTable(userPreferences);
+        }
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_user_preferences '
+          'ON user_preferences(sync_uuid)',
+        );
+        await installSyncTriggers(this);
+      }
+      if (from < 54 && to >= 54) {
+        final coachingTables = <String, TableInfo>{
+          'workout_behavior_snapshots': workoutBehaviorSnapshots,
+          'training_coaching_proposals': trainingCoachingProposals,
+          'training_coaching_overrides': trainingCoachingOverrides,
+          'exercise_history_transfers': exerciseHistoryTransfers,
+        };
+        for (final entry in coachingTables.entries) {
+          final exists = await customSelect(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='${entry.key}'",
+          ).getSingleOrNull();
+          if (exists == null) await m.createTable(entry.value);
+          await customStatement(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_${entry.key} '
+            'ON ${entry.key}(sync_uuid)',
+          );
+        }
+        final columns = await customSelect("PRAGMA table_info('scheduled_workouts')").get();
+        if (columns.isNotEmpty && !columns.any((r) => r.data['name'] == 'one_off_plan_json')) {
+          await m.alterTable(
+            // ignore: experimental_member_use
+            TableMigration(scheduledWorkouts,
+              newColumns: [scheduledWorkouts.oneOffPlanJson],
+            ),
+          );
+          await customStatement('CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_scheduled_workouts ON scheduled_workouts(sync_uuid)');
+        }
+        await installSyncTriggers(this);
+      }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is
     // issued. It cannot live in onCreate/onUpgrade — those run inside a
@@ -1416,4 +1472,32 @@ class AppDatabase extends _$AppDatabase {
   );
 }
 
-QueryExecutor _open() => driftDatabase(name: 'herculex');
+QueryExecutor _open() => driftDatabase(
+  name: 'herculex',
+  // Browser builds: sqlite3 compiled to wasm, run in a (shared) worker.
+  // Both files are put in web/ by tool/web/fetch_web_assets.ps1.
+  web: DriftWebOptions(
+    sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+    driftWorker: Uri.parse('drift_worker.js'),
+    onResult: (result) {
+      WebDatabaseStatus.implementation = result.chosenImplementation.name;
+      if (result.missingFeatures.isNotEmpty) {
+        ErrorLog.instance.record(
+          'Browser storage: ${result.chosenImplementation.name} '
+          '(missing ${result.missingFeatures.map((f) => f.name).join(', ')})',
+          source: 'database',
+        );
+      }
+    },
+  ),
+);
+
+/// Which browser storage drift ended up on. Null on native builds.
+abstract final class WebDatabaseStatus {
+  static String? implementation;
+
+  /// A private window (or blocked site data) leaves only an in-memory
+  /// database: everything is lost when the tab closes, and unpushed edits
+  /// with it.
+  static bool get isEphemeral => implementation == 'inMemory';
+}

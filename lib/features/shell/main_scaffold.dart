@@ -5,8 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
+import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/hx_nav_bar.dart';
 import 'package:herculex/design_system/components/keyboard_obstruction_scope.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/dashboard_view.dart';
 import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
@@ -58,6 +61,22 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
   bool _quickAddOpen = false;
   bool _migrationNoticeShown = false;
 
+  /// Whether the last build used the wide-window side rail.
+  bool _railShown = false;
+
+  /// Widest each tab's content grows beside the rail: the dashboard grid and
+  /// the programs overview can use the room; the diary and the profile read
+  /// best as a column.
+  static const _railTabMaxWidths = <double>[
+    HxBreakpoints.wideMax,
+    HxBreakpoints.wideMax,
+    // The workout tab hosts the programs calendar and its "coming up" panel;
+    // history, templates and the live workout hold themselves to a column.
+    HxBreakpoints.wideMax,
+    // Profile desktop dashboard scales to wideMax for a 2-column layout.
+    HxBreakpoints.wideMax,
+  ];
+
   /// Keyboard inset seen by the previous [didChangeMetrics] call.
   double _lastBottomInset = 0;
 
@@ -78,7 +97,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
 
   Future<void> _checkLostImageData() async {
     try {
-      if (!Platform.isAndroid) return;
+      if (!ref.read(platformCapabilitiesProvider).isAndroid) return;
       final response = await ImagePicker().retrieveLostData();
       if (response.isEmpty || response.file == null) return;
       final file = File(response.file!.path);
@@ -280,6 +299,28 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
       }
     });
 
+    final caps = ref.watch(platformCapabilitiesProvider);
+    final windowWidth = MediaQuery.sizeOf(context).width;
+    if (caps.isWeb && windowWidth >= HxBreakpoints.rail) {
+      _railShown = true;
+      return _buildWithRail(
+        context,
+        index: index,
+        showBanner: showBanner,
+        bannerAtTop: bannerAtTop,
+      );
+    }
+    if (_railShown) {
+      // The window just narrowed past the rail breakpoint: the PageView is
+      // rebuilt at its controller's initial page, not the current tab.
+      _railShown = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(ref.read(mainTabIndexProvider));
+        }
+      });
+    }
+
     return Scaffold(
       body: Stack(
         children: [
@@ -342,16 +383,66 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
               currentIndex: index,
               onTap: (i) => ref.read(mainTabIndexProvider.notifier).state = i,
               quickAddOpen: _quickAddOpen,
-              onQuickAddTap: () {
-                if (_quickAddOpen) {
-                  // Same reverse animation as tapping the backdrop.
-                  _quickAddMenuKey.currentState?.close();
-                } else {
-                  setState(() => _quickAddOpen = true);
-                }
-              },
+              onQuickAddTap: _toggleQuickAdd,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _toggleQuickAdd() {
+    if (_quickAddOpen) {
+      // Same reverse animation as tapping the backdrop.
+      _quickAddMenuKey.currentState?.close();
+    } else {
+      setState(() => _quickAddOpen = true);
+    }
+  }
+
+  /// Wide browser windows: the same four tabs and quick-add plus the rest of
+  /// the app as rail tools, with the navigation as a rail down the left
+  /// instead of a bar across the bottom, and each tab's content held to a
+  /// readable width. Tabs switch in place
+  /// (no horizontal swipe, which means nothing with a mouse).
+  Widget _buildWithRail(
+    BuildContext context, {
+    required int index,
+    required bool showBanner,
+    required bool bannerAtTop,
+  }) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: index,
+            children: [
+              for (var i = 0; i < _tabs.length; i++)
+                HxContentWidth(
+                  maxWidth: _railTabMaxWidths[i],
+                  child: _tabs[i],
+                ),
+            ],
+          ),
+          if (showBanner)
+            Positioned(
+              left: 0,
+              right: HxSpace.x6,
+              top: bannerAtTop ? HxSpace.x4 : null,
+              bottom: bannerAtTop ? null : HxSpace.x6,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: HxBreakpoints.readingMax,
+                  ),
+                  child: LiveWorkoutBanner(
+                    onResume: () =>
+                        ref.read(mainTabIndexProvider.notifier).state = 2,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

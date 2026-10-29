@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
@@ -158,78 +159,83 @@ class SmartWorkoutLauncherCard extends ConsumerWidget {
                         AppPaths.plannedWorkoutPreview(workout.schedule.id),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: FilledButton.icon(
-                        icon: const Icon(Icons.play_arrow),
-                        label: Text(
-                          workout.isInProgress
-                              ? 'Resume workout'
-                              : 'Start ${workout.title}?',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: HxSpace.x4,
+                    // Starting a session is a phone job; the web only previews it.
+                    if (ref
+                        .watch(platformCapabilitiesProvider)
+                        .hasLiveWorkout) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.play_arrow),
+                          label: Text(
+                            workout.isInProgress
+                                ? 'Resume workout'
+                                : 'Start ${workout.title}?',
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        onPressed: () async {
-                          if (!isToday) {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Start workout early?'),
-                                content: Text(
-                                  'This workout is scheduled for $dateBadgeText. Do you want to start it today?',
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: HxSpace.x4,
+                            ),
+                          ),
+                          onPressed: () async {
+                            if (!isToday) {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Start workout early?'),
+                                  content: Text(
+                                    'This workout is scheduled for $dateBadgeText. Do you want to start it today?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(ctx, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text('Start now'),
+                                    ),
+                                  ],
                                 ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx, false),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  FilledButton(
-                                    onPressed: () => Navigator.pop(ctx, true),
-                                    child: const Text('Start now'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirm != true) return;
-                            if (!context.mounted) return;
-                          }
+                              );
+                              if (confirm != true) return;
+                              if (!context.mounted) return;
+                            }
 
-                          final gym = await GymPickerSheet.resolve(
-                            context,
-                            ref,
-                          );
-                          if (gym.cancelled) {
-                            return;
-                          }
-                          if (!context.mounted) {
-                            return;
-                          }
-                          if (!workout.isStarted) {
-                            await offerStartWorkoutAdaptation(
+                            final gym = await GymPickerSheet.resolve(
                               context,
                               ref,
-                              scheduleId: workout.schedule.id,
                             );
-                          }
-                          if (!context.mounted) {
-                            return;
-                          }
-                          await ref
-                              .read(scheduledWorkoutServiceProvider)
-                              .startScheduledWorkout(
-                                workout,
-                                gymId: gym.gymId,
-                                allowEarly: !isToday,
+                            if (gym.cancelled) {
+                              return;
+                            }
+                            if (!context.mounted) {
+                              return;
+                            }
+                            if (!workout.isStarted) {
+                              await offerStartWorkoutAdaptation(
+                                context,
+                                ref,
+                                scheduleId: workout.schedule.id,
                               );
-                          ref.invalidate(nextScheduledWorkoutProvider);
-                          ref.invalidate(todaysScheduledWorkoutProvider);
-                        },
+                            }
+                            if (!context.mounted) {
+                              return;
+                            }
+                            await ref
+                                .read(scheduledWorkoutServiceProvider)
+                                .startScheduledWorkout(
+                                  workout,
+                                  gymId: gym.gymId,
+                                );
+                            ref.invalidate(nextScheduledWorkoutProvider);
+                            ref.invalidate(todaysScheduledWorkoutProvider);
+                          },
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ],

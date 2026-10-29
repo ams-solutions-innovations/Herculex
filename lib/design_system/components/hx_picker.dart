@@ -155,6 +155,10 @@ class _HxPickerRow<T> extends StatelessWidget {
         onTap: enabled ? onTap : null,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         tileColor: selected ? accent.withValues(alpha: 0.12) : null,
+        // Only the chosen row is tinted. A focused or hovered row used to get
+        // the theme's own fill too, which read as a second selection.
+        focusColor: Colors.transparent,
+        hoverColor: Colors.transparent,
         leading: option.icon == null
             ? null
             : Icon(option.icon, color: selected ? accent : hx.onSurfaceVariant),

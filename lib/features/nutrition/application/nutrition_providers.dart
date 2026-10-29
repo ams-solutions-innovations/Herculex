@@ -48,6 +48,7 @@ final nutritionRepositoryProvider = Provider<NutritionRepository>((ref) {
     ref.watch(appDatabaseProvider),
     ref.watch(openFoodFactsClientProvider),
     ref.watch(clockProvider),
+    catalogueSource: ref.watch(foodCatalogueSourceProvider),
   );
 });
 
@@ -210,7 +211,7 @@ final foodSearchProvider = StreamProvider.family<List<FoodData>, String?>((
   ref,
   query,
 ) {
-  return ref.watch(nutritionRepositoryProvider).watchFoods(query: query);
+  return ref.watch(nutritionRepositoryProvider).watchFoodSearch(query);
 });
 
 final customFoodsProvider = StreamProvider.family<List<FoodData>, String?>((
@@ -407,13 +408,17 @@ final wearSyncControllerProvider = Provider<void>((ref) {
         }
       }
 
-      final amount = entry.portionAmount ??
+      final amount =
+          entry.portionAmount ??
           entry.gramsOverride ??
           entry.snapshotServingAmount ??
           entry.snapshotServingGrams ??
           0.0;
-      final unit = entry.portionUnit ??
-          (entry.gramsOverride != null ? 'g' : entry.snapshotServingUnit ?? 'g');
+      final unit =
+          entry.portionUnit ??
+          (entry.gramsOverride != null
+              ? 'g'
+              : entry.snapshotServingUnit ?? 'g');
       final formattedAmount = amount == amount.roundToDouble()
           ? amount.toStringAsFixed(0)
           : amount.toStringAsFixed(1);
@@ -684,20 +689,23 @@ final wearSyncControllerProvider = Provider<void>((ref) {
         } else if (action == 'update') {
           final entryId = (decoded['entryId'] as num?)?.toInt();
           if (entryId != null && entryId > 0) {
-            final portionAmount = (decoded['portionAmount'] as num?)?.toDouble();
+            final portionAmount = (decoded['portionAmount'] as num?)
+                ?.toDouble();
             final portionUnit = decoded['portionUnit'] as String?;
             final mealKey = decoded['mealKey'] as String?;
             final servings = (decoded['servings'] as num?)?.toDouble();
-            await ref.read(nutritionRepositoryProvider).updateEntry(
-              id: entryId,
-              portionAmount: portionAmount,
-              portionUnit: portionUnit,
-              gramsOverride: (portionUnit == 'g' && portionAmount != null)
-                  ? portionAmount
-                  : null,
-              mealKey: mealKey,
-              servings: servings,
-            );
+            await ref
+                .read(nutritionRepositoryProvider)
+                .updateEntry(
+                  id: entryId,
+                  portionAmount: portionAmount,
+                  portionUnit: portionUnit,
+                  gramsOverride: (portionUnit == 'g' && portionAmount != null)
+                      ? portionAmount
+                      : null,
+                  mealKey: mealKey,
+                  servings: servings,
+                );
           }
         } else {
           final recipeId = (decoded['recipeId'] as num?)?.toInt();

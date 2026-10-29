@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:herculex/core/notifications/in_app_notification_model.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 
 enum _WatchEventType { started, updated, ended }
 
@@ -24,7 +25,14 @@ class _WatchEvent {
 class WearSyncService {
   static Future<bool> Function(Map<String, dynamic>)? onAppleWatchWorkoutEvent;
   static const String channelName = 'com.example.herculex/wear';
-  static const MethodChannel _channel = MethodChannel(channelName);
+
+  /// There is no watch host on the web: an [OptionalMethodChannel] there
+  /// turns every call into a null result instead of a
+  /// `MissingPluginException` that the `on PlatformException` guards below
+  /// would not catch.
+  static final MethodChannel _channel = PlatformCapabilities.current().isWeb
+      ? const OptionalMethodChannel(channelName)
+      : const MethodChannel(channelName);
 
   static Function(String?, bool)? _onWatchWorkoutStarted;
   static Function(String?)? _onWatchWorkoutUpdated;

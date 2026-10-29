@@ -23,11 +23,11 @@ class WeekBoard extends ConsumerWidget {
   final ValueChanged<DateTime> onOpenDay;
   final ValueChanged<ScheduledWorkoutRow> onOpenSession;
 
-  static DateTime mondayOf(DateTime day) => DateTime(
-    day.year,
-    day.month,
-    day.day - (day.weekday - DateTime.monday),
-  );
+  /// Narrowest the board goes to two lanes; each day card needs ~310 px.
+  static const _twoLaneMinWidth = 640.0;
+
+  static DateTime mondayOf(DateTime day) =>
+      DateTime(day.year, day.month, day.day - (day.weekday - DateTime.monday));
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,8 +51,8 @@ class WeekBoard extends ConsumerWidget {
           ),
         ),
       ),
-      data: (map) => Column(
-        children: [
+      data: (map) {
+        final cards = [
           for (var i = 0; i < 7; i++)
             () {
               final date = DateTime(monday.year, monday.month, monday.day + i);
@@ -66,8 +66,25 @@ class WeekBoard extends ConsumerWidget {
                 onOpenSession: onOpenSession,
               );
             }(),
-        ],
-      ),
+        ];
+        // A wide window reads as a board: Monday to Thursday down the left,
+        // Friday to Sunday down the right. A phone keeps one column.
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < _twoLaneMinWidth) {
+              return Column(children: cards);
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: Column(children: cards.sublist(0, 4))),
+                const SizedBox(width: 12),
+                Expanded(child: Column(children: cards.sublist(4))),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 

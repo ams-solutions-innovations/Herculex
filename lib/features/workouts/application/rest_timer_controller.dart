@@ -161,10 +161,16 @@ final restTimerProvider = NotifierProvider<RestTimerController, RestTimerState>(
 /// is currently minimized into a compact top pill.
 final dynamicRestTimerMinimizedProvider = StateProvider<bool>((_) => false);
 
+/// In dynamic workout mode, whether a full-screen step that outlives the rest
+/// countdown is covering the workout: a finished rest waiting for "Start next
+/// set", or the exercise / workout done screen. Owned by `DynamicWorkoutView`.
+final dynamicWorkoutInterstitialProvider = StateProvider<bool>((_) => false);
+
 /// Whether the dynamic workout full-screen rest countdown is actively covering the screen.
 final isDynamicRestTimerOverlayVisibleProvider = Provider<bool>((ref) {
   final isDynamic = ref.watch(dynamicWorkoutModeProvider);
   if (!isDynamic) return false;
+  if (ref.watch(dynamicWorkoutInterstitialProvider)) return true;
   final restTimer = ref.watch(restTimerProvider);
   if (!restTimer.isRunning) return false;
   final isMinimized = ref.watch(dynamicRestTimerMinimizedProvider);

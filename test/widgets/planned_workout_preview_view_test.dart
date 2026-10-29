@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
@@ -35,7 +36,6 @@ class _FakeScheduledWorkoutService extends Fake
   Future<int> startScheduledWorkoutById(
     int scheduleId, {
     int? gymId,
-    bool allowEarly = false,
   }) async {
     lastStartedScheduleId = scheduleId;
     startCalls++;
@@ -254,4 +254,61 @@ void main() {
       expect(container.read(mainTabIndexProvider), 2);
     },
   );
+
+  testWidgets('on the web the preview shows the plan but no Start workout', (
+    tester,
+  ) async {
+    final exerciseId = await insertExercise('Squat');
+    final workout = await buildWorkout(
+      scheduleId: 502,
+      status: ScheduleStatus.planned,
+    );
+    final fakeService = _FakeScheduledWorkoutService(
+      workoutResult: workout,
+      previewResult: PlannedSessionSnapshot(
+        name: 'Lower Body A',
+        exercises: [
+          PlannedExerciseSnapshot(
+            exerciseId: exerciseId,
+            orderIndex: 0,
+            restSeconds: 120,
+            slotRole: 'primary',
+            trainingMethod: 'straight_sets',
+            why: 'test',
+            allowsAdvancedTechniques: true,
+            sets: const [
+              PlannedSetSnapshot(
+                index: 1,
+                repsMin: 5,
+                repsMax: 5,
+                isWarmup: false,
+                setType: 'standard',
+                intent: 'rir2',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        platformCapabilitiesProvider.overrideWithValue(
+          const PlatformCapabilities.web(),
+        ),
+        appDatabaseProvider.overrideWithValue(db),
+        scheduledWorkoutServiceProvider.overrideWithValue(fakeService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      wrap(container, const PlannedWorkoutPreviewView(scheduleId: 502)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Squat'), findsOneWidget);
+    expect(find.text('Start workout'), findsNothing);
+    expect(find.byType(PremiumButton), findsNothing);
+  });
 }

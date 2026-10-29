@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/utils/clock.dart';
@@ -154,7 +156,8 @@ class DayColumnCard extends ConsumerWidget {
       feedback: Material(
         color: Colors.transparent,
         child: SizedBox(
-          width: MediaQuery.sizeOf(context).width - 80,
+          // A desktop window is far wider than a day card.
+          width: math.min(MediaQuery.sizeOf(context).width - 80, 400),
           child: Opacity(
             opacity: 0.9,
             child: SessionTile(row: row, compact: true),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 
 import 'package:drift/drift.dart';
 
@@ -270,7 +271,7 @@ class ProgramsRepository {
     if (currentSchedule.id != -1) {
       final day =
           await (_db.select(_db.programDays)
-                ..where((t) => t.id.equals(currentSchedule.programDayId)))
+                ..where((t) => t.id.equals(currentSchedule.programDayId ?? -1)))
               .getSingleOrNull();
       if (day != null) {
         currentWeek = await (_db.select(
@@ -1180,7 +1181,7 @@ class ProgramsRepository {
     if (schedule == null) return null;
     final day = await (_db.select(
       _db.programDays,
-    )..where((t) => t.id.equals(schedule.programDayId))).getSingleOrNull();
+    )..where((t) => t.id.equals(schedule.programDayId ?? -1))).getSingleOrNull();
     if (day == null) return null;
     final week = await (_db.select(
       _db.programWeeks,
@@ -1418,10 +1419,15 @@ class ProgramsRepository {
 
     final fromIso = from == null ? null : _formatDateIso(from);
 
+    final protectedOverrides = await (_db.select(_db.trainingCoachingOverrides)
+      ..where((o) => o.deletedAt.isNull())).get();
+    final protectedSchedules = protectedOverrides.map((o) => o.scheduleId).toSet();
     await _db.transaction(() async {
       await (_db.delete(_db.scheduledWorkouts)..where((t) {
             var predicate =
                 t.programId.equals(programId) &
+                t.oneOffPlanJson.isNull() &
+                t.id.isNotIn(protectedSchedules) &
                 t.status.equals(ScheduleStatus.planned) &
                 t.completedSessionId.isNull();
             if (fromIso != null) {
@@ -1499,7 +1505,7 @@ class ProgramsRepository {
               .insert(
                 ScheduledWorkoutsCompanion.insert(
                   dateIso: dateIso,
-                  programDayId: day.id,
+                  programDayId: Value(day.id),
                   programId: Value(programId),
                   status: const Value(ScheduleStatus.planned),
                   orderIndex: Value(day.orderIndex),
@@ -1727,90 +1733,29 @@ class ProgramsRepository {
     final pw = _db.programWeeks;
     final pr = _db.programs;
 
-    final query =
-        _db.select(sw).join([
-          innerJoin(pd, pd.id.equalsExp(sw.programDayId)),
-          innerJoin(pw, pw.id.equalsExp(pd.programWeekId)),
-          innerJoin(pr, pr.id.equalsExp(pw.programId)),
-        ])..where(
-          sw.dateIso.isBiggerOrEqualValue(fromIso) &
-              sw.dateIso.isSmallerOrEqualValue(toIso),
-        );
-    if (programId != null) query.where(pw.programId.equals(programId));
-    query.orderBy([
-      OrderingTerm(expression: sw.dateIso),
-      OrderingTerm(expression: sw.orderIndex),
-    ]);
-
-    return query.watch().asyncMap((rows) async {
-      if (rows.isEmpty) return const <ScheduledWorkoutRow>[];
-
-      final schedules = [for (final r in rows) r.readTable(sw)];
-      final days = [for (final r in rows) r.readTable(pd)];
-
-      // Two batched lookups instead of a query per row.
-      final templateIds = <int>{
-        for (var i = 0; i < rows.length; i++)
-          if ((schedules[i].templateIdOverride ?? days[i].templateId) != null)
-            (schedules[i].templateIdOverride ?? days[i].templateId)!,
-      };
-      final templates = <int, WorkoutTemplateData>{};
-      final templateCounts = <int, int>{};
-      if (templateIds.isNotEmpty) {
-        final ts = await (_db.select(
-          _db.workoutTemplates,
-        )..where((t) => t.id.isIn(templateIds))).get();
-        for (final t in ts) {
-          templates[t.id] = t;
-        }
-        final te = _db.templateExercises;
-        final counts =
-            await (_db.selectOnly(te)
-                  ..addColumns([te.templateId, te.id.count()])
-                  ..where(te.templateId.isIn(templateIds))
-                  ..groupBy([te.templateId]))
-                .get();
-        for (final c in counts) {
-          templateCounts[c.read(te.templateId)!] = c.read(te.id.count()) ?? 0;
-        }
+    final query = _db.select(sw).join([
+      leftOuterJoin(pd, pd.id.equalsExp(sw.programDayId)),
+      leftOuterJoin(pw, pw.id.equalsExp(pd.programWeekId)),
+      leftOuterJoin(pr, pr.id.equalsExp(pw.programId) | (pd.id.isNull() & pr.id.equalsExp(sw.programId))),
+    ])..where(sw.deletedAt.isNull() & sw.dateIso.isBiggerOrEqualValue(fromIso) & sw.dateIso.isSmallerOrEqualValue(toIso));
+    if (programId != null) query.where(pr.id.equals(programId));
+    query.orderBy([OrderingTerm(expression: sw.dateIso), OrderingTerm(expression: sw.orderIndex)]);
+    return _db.customSelect('SELECT 1', readsFrom: {sw, pd, pw, pr,
+      _db.programDayExercises, _db.templateExercises, _db.templateSets,
+      _db.trainingCoachingOverrides, _db.trainingCoachingProposals,
+      _db.adaptationOverrides, _db.adaptationProposals,
+    }).watch().asyncMap((_) async {
+      final rows = await query.get();
+      final result = <ScheduledWorkoutRow>[];
+      for (final row in rows) {
+        final schedule = row.readTable(sw), day = row.readTableOrNull(pd);
+        final templateId = schedule.templateIdOverride ?? day?.templateId;
+        final template = templateId == null ? null : await (_db.select(_db.workoutTemplates)..where((t) => t.id.equals(templateId))).getSingleOrNull();
+        final plan = await PlannedSessionResolver(_db).resolveScheduledWorkout(schedule);
+        result.add(ScheduledWorkoutRow(schedule: schedule, day: day, week: row.readTableOrNull(pw),
+          program: row.readTableOrNull(pr), template: template, exerciseCount: plan.exercises.length));
       }
-
-      final inlineDayIds = <int>{
-        for (var i = 0; i < rows.length; i++)
-          if ((schedules[i].templateIdOverride ?? days[i].templateId) == null)
-            days[i].id,
-      };
-      final inlineCounts = <int, int>{};
-      if (inlineDayIds.isNotEmpty) {
-        final pde = _db.programDayExercises;
-        final counts =
-            await (_db.selectOnly(pde)
-                  ..addColumns([pde.programDayId, pde.id.count()])
-                  ..where(pde.programDayId.isIn(inlineDayIds))
-                  ..groupBy([pde.programDayId]))
-                .get();
-        for (final c in counts) {
-          inlineCounts[c.read(pde.programDayId)!] = c.read(pde.id.count()) ?? 0;
-        }
-      }
-
-      return [
-        for (var i = 0; i < rows.length; i++)
-          () {
-            final templateId =
-                schedules[i].templateIdOverride ?? days[i].templateId;
-            return ScheduledWorkoutRow(
-              schedule: schedules[i],
-              day: days[i],
-              week: rows[i].readTable(pw),
-              program: rows[i].readTable(pr),
-              template: templateId == null ? null : templates[templateId],
-              exerciseCount: templateId != null
-                  ? (templateCounts[templateId] ?? 0)
-                  : (inlineCounts[days[i].id] ?? 0),
-            );
-          }(),
-      ];
+      return result;
     });
   }
 
@@ -1841,12 +1786,16 @@ class ProgramsRepository {
     // Resolve each distinct program day once, not once per pair.
     final musclesByDay = <int, Set<String>>{};
     for (final s in scheduled) {
-      final key = s.programDayId;
+      final key = s.id;
       if (musclesByDay.containsKey(key)) continue;
-      musclesByDay[key] = await _muscleGroupsForDay(
-        key,
-        templateOverride: s.templateIdOverride,
-      );
+      final plan = await PlannedSessionResolver(_db).resolveScheduledWorkout(s);
+      final ids = plan.exercises.map((e) => e.exerciseId).toSet();
+      final muscles = await (_db.select(_db.exerciseMuscles)..where((m) => m.exerciseId.isIn(ids))).get();
+      final catalog = await (_db.select(_db.exerciseCatalog)..where((c) => c.id.isIn(ids))).get();
+      musclesByDay[key] = {
+        for (final m in muscles) if (m.role != 'stabilizer') m.muscle,
+        for (final c in catalog) if (!muscles.any((m) => m.exerciseId == c.id)) c.primaryMuscle,
+      };
     }
 
     final conflicts = <Map<String, dynamic>>[];
@@ -1859,8 +1808,8 @@ class ProgramsRepository {
         final d2 = DateTime.parse(w2.dateIso);
         if (d2.difference(d1).inHours > 48) break;
 
-        final overlaps = musclesByDay[w1.programDayId]!.intersection(
-          musclesByDay[w2.programDayId]!,
+        final overlaps = musclesByDay[w1.id]!.intersection(
+          musclesByDay[w2.id]!,
         );
         if (overlaps.isEmpty) continue;
         conflicts.add({
@@ -1875,22 +1824,6 @@ class ProgramsRepository {
       }
     }
     return conflicts;
-  }
-
-  Future<Set<String>> _muscleGroupsForDay(
-    int programDayId, {
-    int? templateOverride,
-  }) async {
-    final resolved = await resolveDayExercises(
-      programDayId,
-      templateOverride: templateOverride,
-    );
-    if (resolved.isEmpty) return const {};
-    final ids = resolved.map((e) => e.exerciseId).toSet();
-    final catalog = await (_db.select(
-      _db.exerciseCatalog,
-    )..where((t) => t.id.isIn(ids))).get();
-    return {for (final c in catalog) c.primaryMuscle};
   }
 
   // ── External Events / Deload Trips ──

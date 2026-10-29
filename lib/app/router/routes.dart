@@ -20,15 +20,28 @@ library;
 /// string).
 abstract final class AppRoutes {
   // Shell
+  static const root = '/';
   static const splash = '/splash';
   static const onboarding = '/onboarding';
   static const app = '/app';
+
+  /// Web build only: where phone-only routes are redirected.
+  static const notOnWeb = '/not-on-web';
+
+  // Web account flow (the phone has no sign-in gate).
+  static const signIn = '/sign-in';
+  static const resetPassword = '/reset-password';
+  static const restoring = '/restoring';
 
   // Workouts
   static const workoutHistory = '/workout-history/:id';
   static const plannedWorkoutPreview = '/planned-workout-preview/:id';
   static const exercise = '/exercise/:id';
   static const exercises = '/exercises';
+
+  /// What a drop set, myo reps and every other set type is. `?type=<id>`
+  /// highlights one technique.
+  static const setTypesGuide = '/training-techniques';
   static const microWorkouts = '/micro-workouts';
   static const gyms = '/gyms';
 
@@ -78,6 +91,7 @@ abstract final class AppRoutes {
   static const dreamPhysiquePriorities = '/dream-physique/priorities';
   static const dreamPhysiqueHistory = '/dream-physique/history';
   static const dreamPhysiqueProgress = '/dream-physique/progress';
+  static const dreamPhysiqueRoadmap = '/dream-physique/roadmap';
 
   // Nutrition
   static const customFoods = '/custom-foods';
@@ -121,7 +135,11 @@ abstract final class AppPaths {
   static String macroTrends(String macro) => '/macro-trends/$macro';
   static String weeklyReport(int isoYear, int isoWeek) =>
       '/weekly-report/$isoYear/$isoWeek';
+  static String notOnWeb(String from) =>
+      Uri(path: AppRoutes.notOnWeb, queryParameters: {'from': from}).toString();
   static String dreamPhysiqueProgress({int? goalId}) => goalId == null
       ? AppRoutes.dreamPhysiqueProgress
       : '${AppRoutes.dreamPhysiqueProgress}?goalId=$goalId';
+  static String dreamPhysiqueRoadmap({required int goalId}) =>
+      '${AppRoutes.dreamPhysiqueRoadmap}?goalId=$goalId';
 }

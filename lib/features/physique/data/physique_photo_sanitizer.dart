@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -174,7 +175,7 @@ class PhysiquePhotoSanitizer {
 
     final (Uint8List, int, int) sanitized;
     try {
-      sanitized = await Isolate.run(() => sanitizeJpegBytes(input));
+      sanitized = await compute(sanitizeJpegBytes, input);
     } on PhotoSanitizeException {
       rethrow;
     } on Object catch (e) {
@@ -228,7 +229,7 @@ class PhysiquePhotoSanitizer {
   Future<Uint8List> analysisBytes(File image) async {
     final input = await image.readAsBytes();
     try {
-      return await Isolate.run(() => downscaleForAnalysis(input));
+      return await compute(downscaleForAnalysis, input);
     } on PhotoSanitizeException {
       rethrow;
     } on Object catch (e) {

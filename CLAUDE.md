@@ -107,7 +107,7 @@ check `supabase migration list` before assuming anything else is outstanding.
 
 ## Active tracks
 
-Two roadmaps are live and own parts of the tree. Coordinate before editing:
+Three roadmaps are live and own parts of the tree. Coordinate before editing:
 
 - `.planning/ROADMAP.md` — GSD project roadmap, milestone **v2.0, Phases 15–29**.
   Phases 15–21 are complete; 22–29 are pending. Phase 11 (Gym Buddy) shipped
@@ -123,6 +123,11 @@ Two roadmaps are live and own parts of the tree. Coordinate before editing:
   [docs/herculex-ai-plan-2026-09-27.md](docs/herculex-ai-plan-2026-09-27.md).
   House rule for all AI work, unchanged since `06-AI-SPEC.md`: deterministic
   primary, AI bounded, AI never writes to the database, user confirms.
+- `docs/web/ROADMAP.md` — web track (branch `feature/web`): this app built
+  with `flutter build web` for `app.herculex.app`. Platform differences go
+  through `PlatformCapabilities` (`core/platform/platform_capabilities.dart`),
+  never `Platform.isX` or a bare `kIsWeb`. The marketing site is a separate
+  Astro repo (`../Herculex Web`).
 - `docs/ui-rework/ROADMAP.md` — UI/UX rework. Phase 9 (in progress) owns
   deleting the `AppColors` shim (`design_system/theme/colors.dart`, ~119
   importers) and the app-wide literal-colour sweep. Phase 7 owns splitting

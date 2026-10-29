@@ -25,7 +25,12 @@ abstract final class SetPrescriptionMetadata {
     }
     return jsonEncode({
       ...meta,
-      'setPrescription': {'version': 1, ...prescription},
+      'setPrescription': {
+        if (meta['setPrescription'] is Map)
+          ...Map<String, dynamic>.from(meta['setPrescription'] as Map),
+        'version': 1,
+        ...prescription,
+      },
     });
   }
 }

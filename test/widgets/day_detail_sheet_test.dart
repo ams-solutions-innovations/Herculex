@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
@@ -28,7 +29,6 @@ class _FakeScheduledWorkoutService extends Fake
   Future<int> startScheduledWorkoutById(
     int scheduleId, {
     int? gymId,
-    bool allowEarly = false,
   }) async {
     lastStartedScheduleId = scheduleId;
     startCalls++;
@@ -118,7 +118,7 @@ void main() {
         scheduleId: 101,
         status: ScheduleStatus.planned,
       );
-      final range = ScheduleRange.week(date, programId: row.program.id);
+      final range = ScheduleRange.week(date, programId: row.program!.id);
 
       final container = ProviderContainer(
         overrides: [
@@ -139,7 +139,7 @@ void main() {
           child: MaterialApp(
             builder: (context, child) => InAppNotificationHost(child: child!),
             home: Scaffold(
-              body: DayDetailSheet(date: date, programId: row.program.id),
+              body: DayDetailSheet(date: date, programId: row.program!.id),
             ),
           ),
         ),
@@ -165,7 +165,7 @@ void main() {
         scheduleId: 202,
         status: ScheduleStatus.inProgress,
       );
-      final range = ScheduleRange.week(date, programId: row.program.id);
+      final range = ScheduleRange.week(date, programId: row.program!.id);
 
       final container = ProviderContainer(
         overrides: [
@@ -186,7 +186,7 @@ void main() {
           child: MaterialApp(
             builder: (context, child) => InAppNotificationHost(child: child!),
             home: Scaffold(
-              body: DayDetailSheet(date: date, programId: row.program.id),
+              body: DayDetailSheet(date: date, programId: row.program!.id),
             ),
           ),
         ),
@@ -211,7 +211,7 @@ void main() {
         scheduleId: 303,
         status: ScheduleStatus.planned,
       );
-      final range = ScheduleRange.week(date, programId: row.program.id);
+      final range = ScheduleRange.week(date, programId: row.program!.id);
 
       final container = ProviderContainer(
         overrides: [
@@ -239,7 +239,7 @@ void main() {
               onPressed: () => DayDetailSheet.show(
                 context,
                 date: date,
-                programId: row.program.id,
+                programId: row.program!.id,
               ),
               child: const Text('Open'),
             ),
@@ -317,7 +317,7 @@ void main() {
         status: ScheduleStatus.done,
         completedSessionId: 555,
       );
-      final range = ScheduleRange.week(date, programId: row.program.id);
+      final range = ScheduleRange.week(date, programId: row.program!.id);
 
       final container = ProviderContainer(
         overrides: [
@@ -332,7 +332,7 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final harness = harnessFor(programId: row.program.id);
+      final harness = harnessFor(programId: row.program!.id);
 
       await pumpAndOpenDayDetail(
         tester,
@@ -357,7 +357,7 @@ void main() {
         status: ScheduleStatus.inProgress,
         completedSessionId: 666,
       );
-      final range = ScheduleRange.week(date, programId: row.program.id);
+      final range = ScheduleRange.week(date, programId: row.program!.id);
 
       final container = ProviderContainer(
         overrides: [
@@ -372,7 +372,7 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final harness = harnessFor(programId: row.program.id);
+      final harness = harnessFor(programId: row.program!.id);
 
       await pumpAndOpenDayDetail(
         tester,
@@ -397,7 +397,7 @@ void main() {
         scheduleId: 606,
         status: ScheduleStatus.done,
       );
-      final range = ScheduleRange.week(date, programId: row.program.id);
+      final range = ScheduleRange.week(date, programId: row.program!.id);
 
       final container = ProviderContainer(
         overrides: [
@@ -412,7 +412,7 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final harness = harnessFor(programId: row.program.id);
+      final harness = harnessFor(programId: row.program!.id);
 
       await pumpAndOpenDayDetail(
         tester,
@@ -437,4 +437,85 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
     },
   );
+
+  testWidgets(
+    'Renders compact exercise count summary rather than full exercise list',
+    (tester) async {
+      final row = await createTestRow(
+        scheduleId: 707,
+        status: ScheduleStatus.planned,
+      );
+      final range = ScheduleRange.week(date, programId: row.program!.id);
+
+      final container = ProviderContainer(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(db),
+          scheduledWorkoutServiceProvider.overrideWithValue(fakeService),
+          scheduleByDateProvider(range).overrideWith(
+            (ref) => Stream.value({
+              iso: [row],
+            }),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final harness = harnessFor(programId: row.program!.id);
+
+      await pumpAndOpenDayDetail(
+        tester,
+        container: container,
+        harness: harness,
+      );
+
+      expect(find.text('4 exercises planned'), findsOneWidget);
+      expect(find.text('View workout'), findsOneWidget);
+    },
+  );
+
+  testWidgets('On the web the day sheet offers no way to start the workout', (
+    tester,
+  ) async {
+    final row = await createTestRow(
+      scheduleId: 303,
+      status: ScheduleStatus.planned,
+    );
+    final range = ScheduleRange.week(date, programId: row.program!.id);
+
+    final container = ProviderContainer(
+      overrides: [
+        platformCapabilitiesProvider.overrideWithValue(
+          const PlatformCapabilities.web(),
+        ),
+        appDatabaseProvider.overrideWithValue(db),
+        scheduledWorkoutServiceProvider.overrideWithValue(fakeService),
+        scheduleByDateProvider(range).overrideWith(
+          (ref) => Stream.value({
+            iso: [row],
+          }),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          builder: (context, child) => InAppNotificationHost(child: child!),
+          home: Scaffold(
+            body: DayDetailSheet(date: date, programId: row.program!.id),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Start workout'), findsNothing);
+    expect(find.text('Resume workout'), findsNothing);
+    expect(find.byType(PremiumButton), findsNothing);
+    // Planning stays: the workout can still be looked at and rearranged.
+    expect(find.text('View workout'), findsOneWidget);
+    expect(fakeService.startCalls, 0);
+  });
 }

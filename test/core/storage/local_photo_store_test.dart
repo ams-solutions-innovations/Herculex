@@ -32,49 +32,64 @@ void main() {
     return Uint8List.fromList(img.encodeJpg(image, quality: 90));
   }
 
-  test('savePickedPhoto strips EXIF/GPS metadata and stores relative sandbox path', () async {
-    final sourceFile = File(p.join(docsDir.path, 'picked_raw.jpg'));
-    await sourceFile.writeAsBytes(makeJpegWithExif(), flush: true);
+  test(
+    'savePickedPhoto strips EXIF/GPS metadata and stores relative sandbox path',
+    () async {
+      final sourceFile = File(p.join(docsDir.path, 'picked_raw.jpg'));
+      await sourceFile.writeAsBytes(makeJpegWithExif(), flush: true);
 
-    final relativePath = await LocalPhotoStore.savePickedPhoto(
-      sourceFile,
-      folder: LocalPhotoStore.progressPhotosFolder,
-      documentsDirectory: docsDir,
-    );
+      final relativePath = await LocalPhotoStore.savePickedPhoto(
+        sourceFile,
+        folder: LocalPhotoStore.progressPhotosFolder,
+        documentsDirectory: docsDir,
+      );
 
-    expect(relativePath, startsWith('progress_photos/'));
-    expect(relativePath, endsWith('.jpg'));
-    expect(p.isAbsolute(relativePath), isFalse);
+      expect(relativePath, startsWith('progress_photos/'));
+      expect(relativePath, endsWith('.jpg'));
+      expect(p.isAbsolute(relativePath), isFalse);
 
-    final resolved = LocalPhotoStore.resolveSync(relativePath);
-    expect(await resolved.exists(), isTrue);
+      final resolved = LocalPhotoStore.resolveSync(relativePath);
+      expect(await resolved.exists(), isTrue);
 
-    final decoded = img.decodeJpg(await resolved.readAsBytes());
-    expect(decoded, isNotNull);
-    expect(decoded!.exif.imageIfd.isEmpty, isTrue);
-    expect(decoded.exif.gpsIfd.isEmpty, isTrue);
+      final decoded = img.decodeJpg(await resolved.readAsBytes());
+      expect(decoded, isNotNull);
+      expect(decoded!.exif.imageIfd.isEmpty, isTrue);
+      expect(decoded.exif.gpsIfd.isEmpty, isTrue);
 
-    await LocalPhotoStore.deleteStored(relativePath, documentsDirectory: docsDir);
-    expect(await resolved.exists(), isFalse);
-  });
+      await LocalPhotoStore.deleteStored(
+        relativePath,
+        documentsDirectory: docsDir,
+      );
+      expect(await resolved.exists(), isFalse);
+    },
+  );
 
-  test('resolveSync supports both relative sandbox paths and legacy absolute paths', () async {
-    final legacyFile = File(p.join(docsDir.path, 'legacy_abs.jpg'));
-    await legacyFile.writeAsBytes([1, 2, 3]);
+  test(
+    'resolveSync supports both relative sandbox paths and legacy absolute paths',
+    () async {
+      final legacyFile = File(p.join(docsDir.path, 'legacy_abs.jpg'));
+      await legacyFile.writeAsBytes([1, 2, 3]);
 
-    expect(LocalPhotoStore.resolveSync(legacyFile.path).path, legacyFile.path);
-    expect(
-      LocalPhotoStore.resolveSync('workout_photos/sample.jpg').path,
-      p.join(docsDir.path, 'workout_photos', 'sample.jpg'),
-    );
-    expect(
-      () => LocalPhotoStore.resolveSync('../escape.jpg'),
-      throwsArgumentError,
-    );
-  });
+      expect(
+        LocalPhotoStore.resolveSync(legacyFile.path).path,
+        legacyFile.path,
+      );
+      expect(
+        LocalPhotoStore.resolveSync('workout_photos/sample.jpg').path,
+        p.join(docsDir.path, 'workout_photos', 'sample.jpg'),
+      );
+      expect(
+        () => LocalPhotoStore.resolveSync('../escape.jpg'),
+        throwsArgumentError,
+      );
+    },
+  );
 
-  test('workout_sessions.photo_path is marked local-only in syncTableSpecs', () {
-    final spec = syncTableSpecsByName['workout_sessions']!;
-    expect(spec.localOnlyColumns, contains('photo_path'));
-  });
+  test(
+    'workout_sessions.photo_path is marked local-only in syncTableSpecs',
+    () {
+      final spec = syncTableSpecsByName['workout_sessions']!;
+      expect(spec.localOnlyColumns, contains('photo_path'));
+    },
+  );
 }

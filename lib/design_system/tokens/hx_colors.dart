@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 
-/// The single source of truth for every color in the app.
-///
-/// Two const instances ([light] and [dark]) hold the full palette. They are
-/// exposed to widgets as a [ThemeExtension] so colors resolve from the
-/// `BuildContext` — see the `context.hx` extension at the bottom of this file.
-/// `AppColors` remains as a compatibility shim that delegates here while the
-/// ~1,500 legacy call sites migrate tab by tab.
-///
+part 'hx_colors/_extra_palettes.part.dart';
+
+/// The colour themes a user can pick. Each has a dark and a light palette;
+/// the name is what is stored and synced (`app_color_theme`), so never rename
+/// a value — an unknown name falls back to [classicBlue] on older clients.
 enum AppColorTheme {
   classicBlue('Classic Blue'),
   siriousBlack('Sirious Black'),
   vividGreen('Vivid Green'),
   sunnyYellow('Sunny Yellow'),
-  pinky('Pinky');
+  pinky('Pinky'),
+  crimsonRed('Crimson Red'),
+  oceanTeal('Ocean Teal'),
+  royalViolet('Royal Violet'),
+  sunsetOrange('Sunset Orange');
 
   const AppColorTheme(this.label);
   final String label;
@@ -21,8 +22,9 @@ enum AppColorTheme {
 
 /// The single source of truth for every color in the app.
 ///
-/// Five theme palettes ([classicBlue], [siriousBlack], [vividGreen], [sunnyYellow], [pinky])
-/// each provide both [light] and [dark] instances. They are
+/// Nine theme palettes ([AppColorTheme]) each provide both a light and a dark
+/// instance: the first five are declared below, the rest in
+/// `hx_colors/_extra_palettes.part.dart`. They are
 /// exposed to widgets as a [ThemeExtension] so colors resolve from the
 /// `BuildContext` — see the `context.hx` extension at the bottom of this file.
 /// `AppColors` remains as a compatibility shim that delegates here while the
@@ -522,6 +524,12 @@ class HxColors extends ThemeExtension<HxColors> {
       AppColorTheme.vividGreen => isDark ? vividGreenDark : vividGreenLight,
       AppColorTheme.sunnyYellow => isDark ? sunnyYellowDark : sunnyYellowLight,
       AppColorTheme.pinky => isDark ? pinkyDark : pinkyLight,
+      AppColorTheme.crimsonRed => isDark ? _crimsonRedDark : _crimsonRedLight,
+      AppColorTheme.oceanTeal => isDark ? _oceanTealDark : _oceanTealLight,
+      AppColorTheme.royalViolet =>
+        isDark ? _royalVioletDark : _royalVioletLight,
+      AppColorTheme.sunsetOrange =>
+        isDark ? _sunsetOrangeDark : _sunsetOrangeLight,
     };
   }
 

@@ -7,7 +7,6 @@ import 'package:herculex/design_system/components/hx_card.dart';
 import 'package:herculex/design_system/components/hx_screen_shell.dart';
 import 'package:herculex/design_system/components/hx_top_tabs.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
-import 'package:herculex/features/physique/application/phase_targets_offer_provider.dart';
 import 'package:herculex/features/physique/application/physique_capture_providers.dart';
 import 'package:herculex/features/physique/application/physique_chart_providers.dart';
 import 'package:herculex/features/physique/application/physique_providers.dart';
@@ -15,14 +14,13 @@ import 'package:herculex/features/physique/domain/physique_series.dart';
 import 'package:herculex/features/physique/presentation/physique_text.dart';
 import 'package:herculex/features/physique/presentation/sheets/check_in_sheet.dart';
 import 'package:herculex/features/physique/presentation/sheets/past_goals_sheet.dart';
-import 'package:herculex/features/physique/presentation/widgets/active_phase_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/check_in_card.dart';
-import 'package:herculex/features/physique/presentation/widgets/goal_header_card.dart';
-import 'package:herculex/features/physique/presentation/widgets/goal_progress_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/load_state_views.dart';
-import 'package:herculex/features/physique/presentation/widgets/phase_targets_offer_card.dart';
+import 'package:herculex/features/physique/presentation/widgets/phase_strip_card.dart';
+import 'package:herculex/features/physique/presentation/widgets/physique_design_kit.dart';
+import 'package:herculex/features/physique/presentation/widgets/progress_hero_card.dart';
+import 'package:herculex/features/physique/presentation/widgets/progress_metrics_grid.dart';
 import 'package:herculex/features/physique/presentation/widgets/restriction_notice.dart';
-import 'package:herculex/features/physique/presentation/widgets/roadmap_timeline_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/strength_chart_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/training_level_chart_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/weight_chart_card.dart';
@@ -95,22 +93,28 @@ class _PhysiqueProgressViewState extends ConsumerState<PhysiqueProgressView> {
     final goal = ref.watch(physiqueGoalProvider(id)).asData?.value;
     if (goal != null) _maybeResume(goal);
     final archived = goal != null && goal.status == 'archived';
-    final offerAdvance =
-        ref.watch(physiquePhaseStatusProvider(id))?.offerAdvance ?? false;
     final archivedCount =
         ref.watch(archivedPhysiqueGoalsProvider).asData?.value.length ?? 0;
     final range = ref.watch(physiqueEffectiveRangeProvider(id));
-    final hasTargetsOffer =
-        !archived && ref.watch(phaseTargetsOfferProvider(id)) != null;
+    final hx = context.hx;
 
-    const gap = SizedBox(height: HxSpace.x4);
+    const gap = SizedBox(height: 10);
+    const section = SizedBox(height: 26);
     return HxScreenShell(
       title: 'Physique progress',
+      titleIcon: Icons.auto_awesome,
+      actions: [
+        if (goal != null && goal.status == 'active')
+          IconButton(
+            tooltip: 'Roadmap',
+            onPressed: () =>
+                context.push(AppPaths.dreamPhysiqueRoadmap(goalId: id)),
+            icon: const Icon(Icons.route_rounded),
+          ),
+      ],
       children: [
         const SizedBox(height: HxSpace.x8),
-        GoalHeaderCard(goalId: id),
-        gap,
-        GoalProgressCard(goalId: id),
+        ProgressHeroCard(goalId: id),
         if (!archived) ...[
           gap,
           RestrictionNoticeList(
@@ -120,26 +124,33 @@ class _PhysiqueProgressViewState extends ConsumerState<PhysiqueProgressView> {
           ),
         ],
         gap,
-        ActivePhaseCard(goalId: id),
-        if (hasTargetsOffer) ...[gap, PhaseTargetsOfferCard(goalId: id)],
+        // The advance prompt lives on the roadmap screen, so the check-in
+        // stays the primary action here.
+        CheckInCard(goalId: id, advancePromptVisible: false),
+        gap,
+        ProgressMetricsGrid(goalId: id),
+        gap,
+        PhaseStripCard(goalId: id),
         // The training side of the goal: rebuild the block when life or
         // recovery no longer matches it.
         if (!archived) ...[gap, const BlockAdjustmentCard()],
-        gap,
-        RoadmapTimelineCard(goalId: id),
-        gap,
-        CheckInCard(goalId: id, advancePromptVisible: offerAdvance),
-        gap,
-        HxTopTabs(
-          labels: [for (final r in ChartRange.values) r.label],
-          index: ChartRange.values.indexOf(range),
-          onChanged: (i) =>
-              ref.read(physiqueChartRangeProvider.notifier).state =
-                  ChartRange.values[i],
+        section,
+        PhysiqueSectionTitle(
+          'Weight',
+          trailing: SizedBox(
+            width: 200,
+            child: HxTopTabs(
+              labels: [for (final r in ChartRange.values) r.label],
+              index: ChartRange.values.indexOf(range),
+              onChanged: (i) =>
+                  ref.read(physiqueChartRangeProvider.notifier).state =
+                      ChartRange.values[i],
+            ),
+          ),
         ),
         gap,
         WeightChartCard(goalId: id),
-        gap,
+        section,
         StrengthChartCard(goalId: id),
         gap,
         TrainingLevelChartCard(goalId: id),
@@ -147,6 +158,18 @@ class _PhysiqueProgressViewState extends ConsumerState<PhysiqueProgressView> {
           gap,
           _PastGoalsRow(count: archivedCount),
         ],
+        const SizedBox(height: 22),
+        Text(
+          'Body-fat and progress figures are estimates from your photos and '
+          'weigh-ins, not measurements.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: hx.tertiary,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            height: 1.5,
+          ),
+        ),
         const SizedBox(height: HxSpace.x8),
       ],
     );

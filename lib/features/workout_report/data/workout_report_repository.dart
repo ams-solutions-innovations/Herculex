@@ -144,6 +144,18 @@ class WorkoutReportRepository {
         ? initial
         : jsonDecode(finish.detailJson) as Map<String, dynamic>;
     // Only inputs available before/currently inside the session are used.
+    for (final event in allEvents.where((e) => e.kind == 'history_correction')) {
+      final correction = jsonDecode(event.detailJson) as Map;
+      for (final plan in [initial, planned]) {
+        for (final exercise in (plan['exercises'] as List? ?? []).cast<Map>()) {
+          if (exercise['rowId'] == correction['rowId']) {
+            exercise['exerciseId'] = correction['exerciseId'];
+            exercise['name'] = correction['name'];
+            exercise['muscle'] = correction['muscle'];
+          }
+        }
+      }
+    }
     final snapshot = await TrainingSnapshot.load(
       db,
       from: session.startedAt.subtract(const Duration(days: 84)),
@@ -291,6 +303,7 @@ class WorkoutReportRepository {
       final detail = jsonDecode(event.detailJson) as Map<String, dynamic>;
       final suffix = event.reason == null ? '' : ' · ${event.reason}';
       changes.add(switch (event.kind) {
+        'history_correction' => '${detail['name']}: history corrected',
         'remove_set' => '${detail['name']}: working set removed$suffix',
         'remove_exercise' => '${detail['name']}: exercise removed$suffix',
         'substitute' => '${detail['name']} → ${detail['newName']}$suffix',

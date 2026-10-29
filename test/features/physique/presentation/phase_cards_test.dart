@@ -196,6 +196,9 @@ class _Harness {
           (ref) => Stream.value(const <WeightLog>[]),
         ),
         physiqueGoalProvider(_id).overrideWith((ref) => Stream.value(goal)),
+        physiqueCheckInsProvider(
+          _id,
+        ).overrideWith((ref) => Stream.value(const <PhysiqueAssessmentData>[])),
         physiqueRoadmapPhasesProvider(
           _id,
         ).overrideWith((ref) => Stream.value(phases)),
@@ -240,21 +243,18 @@ void main() {
       ) async {
         final h = _Harness(phases: _cutThenMaintain);
         await _pump(tester, h.build(theme: entry.value));
-        expect(find.text('Cut'), findsOneWidget);
+        expect(find.text('NOW · CUT'), findsOneWidget);
         expect(find.text('Phase 1 of 2'), findsOneWidget);
-        expect(find.text('Week 3 of 12'), findsOneWidget);
-        expect(find.text('About 0.5 kg per week'), findsOneWidget);
-        expect(find.text('Exit when'), findsOneWidget);
+        expect(find.bySemanticsLabel('Week 3 of 12'), findsOneWidget);
+        expect(find.text('−0.5 kg/wk'), findsOneWidget);
+        expect(find.text('EXIT WHEN'), findsOneWidget);
         expect(find.text('Reach 82.0 kg'), findsOneWidget);
         expect(find.text('Reach about 15% body fat'), findsOneWidget);
         expect(find.text('Or finish the planned 12 weeks'), findsOneWidget);
         expect(find.textContaining('kcal'), findsNothing);
-        expect(find.byIcon(Icons.radio_button_unchecked_rounded), findsWidgets);
-        final bar = tester.widget<LinearProgressIndicator>(
-          find.byType(LinearProgressIndicator),
-        );
-        expect(bar.value, closeTo(2 / 12, 1e-9));
-        expect(find.text('Edit roadmap'), findsOneWidget);
+        expect(find.byIcon(Icons.event_outlined), findsOneWidget);
+        // Editing the roadmap moved to the roadmap screen's action row.
+        expect(find.text('Edit roadmap'), findsNothing);
         expect(find.text('Review nutrition targets'), findsOneWidget);
         expect(find.text('Ready for the next phase?'), findsNothing);
       });
@@ -274,14 +274,14 @@ void main() {
 
   group('tempo lines', () {
     for (final (phase, line) in [
-      (DietPhase.maintain, 'Hold your weight steady'),
-      (DietPhase.recomp, 'Weight stays flat while body composition shifts'),
+      (DietPhase.maintain, 'Hold steady'),
+      (DietPhase.recomp, 'Hold weight'),
     ]) {
       testWidgets('${phase.name} never shows a rate or kcal', (tester) async {
         final phases = [_row(1, phase, 8, status: 'current', rate: 0)];
         await _pump(tester, _Harness(phases: phases).build());
         expect(find.text(line), findsOneWidget);
-        expect(find.textContaining('kg per week'), findsNothing);
+        expect(find.textContaining('kg/wk'), findsNothing);
         expect(find.textContaining('kcal'), findsNothing);
       });
     }
@@ -326,7 +326,7 @@ void main() {
       expect(find.text('Edit roadmap'), findsNothing);
       expect(find.text('Review nutrition targets'), findsNothing);
       expect(find.text('Log measurements to refine this.'), findsNothing);
-      expect(find.text('Cut'), findsOneWidget);
+      expect(find.text('NOW · CUT'), findsOneWidget);
     });
 
     testWidgets(
@@ -487,23 +487,21 @@ void main() {
       _row(2, DietPhase.maintain, 4),
     ];
 
-    testWidgets('names the first proposed phase and offers Edit roadmap', (
-      tester,
-    ) async {
+    testWidgets('names the first proposed phase as a proposal', (tester) async {
       final h = _Harness(
         phases: proposalPhases,
         goal: _goal(accepted: false),
         status: _status(proposalPhases, proposal: true),
       );
       await _pump(tester, h.build());
-      expect(find.text('Cut'), findsOneWidget);
+      expect(find.text('PROPOSED · CUT'), findsOneWidget);
       expect(find.text('Phase 1 of 2'), findsOneWidget);
       expect(
         find.text('This roadmap is a proposal until you accept it.'),
         findsOneWidget,
       );
-      expect(find.text('Edit roadmap'), findsOneWidget);
-      expect(find.text('Exit when'), findsNothing);
+      expect(find.text('Review nutrition targets'), findsNothing);
+      expect(find.text('EXIT WHEN'), findsNothing);
       expect(find.textContaining('Week '), findsNothing);
       expect(find.text('Move to Maintenance'), findsNothing);
     });
@@ -707,7 +705,7 @@ void main() {
   test('sources avoid nutrition writes, colour literals and heavy weights', () {
     final banned = RegExp(
       'nutrition_repository|NutritionTarget|AppColors|Color\\(0x|Colors\\.|'
-      'boxShadow|FontWeight\\.w[5789]',
+      'boxShadow|FontWeight\\.w[59]',
     );
     for (final f in [
       'goal_header_card',

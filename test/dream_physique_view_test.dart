@@ -37,6 +37,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
+    final semantics = tester.ensureSemantics();
     final consentFinder = find.byKey(
       const Key('dream-physique-privacy-consent'),
     );
@@ -44,16 +45,27 @@ void main() {
 
     expect(consentFinder, findsOneWidget);
     expect(find.textContaining('Google Gemini'), findsOneWidget);
+    expect(find.textContaining('not kept on our servers'), findsOneWidget);
+    // The call to action names the first missing step and stays disabled.
+    expect(find.text('Add a photo of you'), findsOneWidget);
     expect(
-      find.textContaining('Herculex does not persist them'),
-      findsOneWidget,
+      tester.getSemantics(startFinder),
+      isSemantics(isButton: true, isEnabled: false),
     );
-    expect(tester.widget<FilledButton>(startFinder).onPressed, isNull);
+    expect(tester.getSemantics(consentFinder), isSemantics(isToggled: false));
 
-    tester.widget<CheckboxListTile>(consentFinder).onChanged!(true);
+    await tester.ensureVisible(consentFinder);
+    await tester.pump();
+    await tester.tap(consentFinder);
     await tester.pump();
 
-    expect(tester.widget<FilledButton>(startFinder).onPressed, isNotNull);
+    expect(tester.getSemantics(consentFinder), isSemantics(isToggled: true));
+    // Consent alone is not enough: there are still no photos to compare.
+    expect(
+      tester.getSemantics(startFinder),
+      isSemantics(isButton: true, isEnabled: false),
+    );
+    semantics.dispose();
   });
 }
 

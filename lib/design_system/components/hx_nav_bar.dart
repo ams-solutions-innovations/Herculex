@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:herculex/design_system/components/hx_glass.dart';
+import 'package:herculex/design_system/components/hx_layout_scope.dart';
+import 'package:herculex/design_system/components/hx_quick_add_button.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 
@@ -40,6 +42,13 @@ class HxNavBar extends StatelessWidget {
   /// Use it for bottom-anchored controls (the workout action bar, the
   /// full-screen workout's Complete Set button) so they never crowd it.
   static const double clearance = _barHeight + HxSpace.x4 * 2 + 12;
+
+  /// [clearance] where the bottom bar is shown; just a margin where the
+  /// navigation is a side rail ([HxLayoutScope]) and the bottom is free.
+  static double clearanceOf(BuildContext context) =>
+      HxLayoutScope.placementOf(context) == HxNavPlacement.rail
+      ? HxSpace.x8
+      : clearance;
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +115,7 @@ class HxNavBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: HxSpace.x3),
-            _QuickAddButton(
+            HxQuickAddButton(
               open: quickAddOpen,
               onTap: onQuickAddTap,
               size: _barHeight,
@@ -146,51 +155,6 @@ class _NavItem extends StatelessWidget {
             item.icon,
             size: 24,
             color: selected ? hx.onPrimary : hx.secondary,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Floats outside the main pill, in its own tinted glass so it never reads
-/// as a fifth destination.
-class _QuickAddButton extends StatelessWidget {
-  const _QuickAddButton({
-    required this.open,
-    required this.onTap,
-    required this.size,
-  });
-
-  final bool open;
-  final VoidCallback onTap;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final hx = context.hx;
-
-    return GestureDetector(
-      onTap: () {
-        Haptics.selection();
-        onTap();
-      },
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: HxGlass(
-          shape: BoxShape.circle,
-          padding: EdgeInsets.zero,
-          fill: hx.quickAdd.withValues(alpha: open ? 0.32 : 0.22),
-          borderColor: hx.quickAdd.withValues(alpha: 0.55),
-          child: Center(
-            child: AnimatedRotation(
-              duration: HxMotion.base,
-              curve: HxMotion.standard,
-              turns: open ? 0.125 : 0,
-              child: Icon(Icons.add_rounded, color: hx.quickAdd, size: 28),
-            ),
           ),
         ),
       ),

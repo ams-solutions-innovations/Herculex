@@ -172,6 +172,10 @@ const catalogueTables = ['exercise_catalog', 'foods', 'accessories', 'bands'];
 
 /// Every Drift table that holds user data end to end.
 const fullyClearedTables = [
+  'training_coaching_overrides',
+  'training_coaching_proposals',
+  'workout_behavior_snapshots',
+  'exercise_history_transfers',
   'workout_reports',
   'workout_report_events',
   'workout_report_plans',
@@ -241,6 +245,9 @@ const fullyClearedTables = [
   'herculex_ai_program_briefs',
   // Weekly reports hold aggregated health data (GDPR Art. 9).
   'weekly_reports',
+  // The synced mirror of the profile and settings (the preferences themselves
+  // are cleared separately, with SharedPreferences).
+  'user_preferences',
 ];
 
 /// Sync bookkeeping tables cleared at the very end of the wipe transaction

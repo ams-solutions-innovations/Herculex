@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter/services.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/design_system/tokens/hx_colors.dart';
 import 'package:herculex/services/platform/widget_appearance.dart';
@@ -14,9 +15,15 @@ import 'package:herculex/services/platform/widget_appearance.dart';
 /// the channel call also triggers [AppWidgetManager.updateAppWidget] for every
 /// registered widget instance on the Kotlin side.
 class WidgetSyncService {
-  WidgetSyncService({Clock clock = const SystemClock()}) : _clock = clock;
+  /// [enabled] defaults to whether the platform has home-screen widgets at
+  /// all; off (the web), every call is a no-op instead of a
+  /// `MissingPluginException`.
+  WidgetSyncService({Clock clock = const SystemClock(), bool? enabled})
+    : _clock = clock,
+      _enabled = enabled ?? PlatformCapabilities.current().hasHomeWidgets;
 
   final Clock _clock;
+  final bool _enabled;
 
   static const _channel = MethodChannel('com.ams.herculex/widget');
 
@@ -48,6 +55,7 @@ class WidgetSyncService {
     required int proteinCurrent,
     required int proteinTarget,
   }) async {
+    if (!_enabled) return;
     try {
       await _channel.invokeMethod('syncNutrition', {
         'baseGoalKcal': baseGoalKcal,
@@ -76,6 +84,7 @@ class WidgetSyncService {
     required int proteinCurrent,
     required int proteinTarget,
   }) async {
+    if (!_enabled) return;
     try {
       await _channel.invokeMethod('syncMacros', {
         'carbsCurrent': carbsCurrent,
@@ -97,6 +106,7 @@ class WidgetSyncService {
     required int readinessPct,
     required String status,
   }) async {
+    if (!_enabled) return;
     try {
       await _channel.invokeMethod('syncCns', {
         'readinessPct': readinessPct,
@@ -117,6 +127,7 @@ class WidgetSyncService {
     required int scorePct,
     List<(String, int)> muscles = const [],
   }) async {
+    if (!_enabled) return;
     try {
       await _channel.invokeMethod('syncRecovery', {
         'scorePct': scorePct,
@@ -140,6 +151,7 @@ class WidgetSyncService {
     required int? targetSeconds,
     required String? planLabel,
   }) async {
+    if (!_enabled) return;
     try {
       await _channel.invokeMethod('syncFasting', {
         'startedAtMs': startedAt?.millisecondsSinceEpoch,
@@ -160,6 +172,7 @@ class WidgetSyncService {
   /// display-ready strings, so units and locale formatting stay in Dart.
   /// A null [data] clears it back to the widget's empty state.
   Future<void> syncWidgetData(String key, Map<String, Object?>? data) async {
+    if (!_enabled) return;
     final encoded = jsonEncode(data);
     if (_lastData[key] == encoded) return;
     try {
@@ -183,6 +196,7 @@ class WidgetSyncService {
     int transparency = WidgetAppearance.defaultTransparency,
     WidgetCornerShape shape = WidgetCornerShape.squircle,
   }) async {
+    if (!_enabled) return;
     Map<String, int> palette(HxColors c) => {
       'surface': c.surfaceContainerLowest.toARGB32(),
       'surfaceVariant': c.surfaceVariant.toARGB32(),
@@ -223,6 +237,7 @@ class WidgetSyncService {
   /// Clears all cached home-screen widget payloads so wiped or deleted user
   /// data cannot linger on the launcher screen.
   Future<void> clearAll() async {
+    if (!_enabled) return;
     _lastData.clear();
     try {
       await _channel.invokeMethod('clearAll');

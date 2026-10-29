@@ -7,6 +7,7 @@ import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/core/notifications/in_app_notification_controller.dart';
 import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/hx_picker.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
@@ -410,68 +411,22 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     Navigator.of(context).pop(true);
   }
 
-  void _showMealPicker(BuildContext context, List<MealSlot> mealSlots) {
+  Future<void> _showMealPicker(
+    BuildContext context,
+    List<MealSlot> mealSlots,
+  ) async {
     Haptics.selection();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Select Meal',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final m in mealSlots)
-                    GestureDetector(
-                      onTap: () {
-                        Haptics.selection();
-                        setState(() => _mealKey = m.key);
-                        Navigator.of(context).pop();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _mealKey == m.key
-                              ? AppColors.primary
-                              : AppColors.surfaceVariant,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          m.label,
-                          style: TextStyle(
-                            color: _mealKey == m.key
-                                ? Colors.white
-                                : AppColors.onSurface,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+    final picked = await showHxPicker<String>(
+      context,
+      title: 'Select meal',
+      selected: _mealKey,
+      options: [
+        for (final m in mealSlots)
+          HxPickerOption(value: m.key, label: m.label, icon: m.icon),
+      ],
     );
+    if (picked == null || !mounted) return;
+    setState(() => _mealKey = picked);
   }
 
   void _showServingsPicker(BuildContext context) {

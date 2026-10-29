@@ -1,5 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/design_system/components/hx_back_button.dart';
+import 'package:herculex/design_system/components/hx_rail_frame.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 
 /// Page shell for pushed screens.
@@ -22,6 +26,7 @@ class HxScreenShell extends StatefulWidget {
     this.pinnedBottom,
     this.showBack = true,
     this.padding = const EdgeInsets.symmetric(horizontal: HxSpace.x5),
+    this.maxContentWidth = HxBreakpoints.readingMax,
   }) : assert(
          children != null || slivers != null,
          'Provide either children or slivers',
@@ -47,6 +52,10 @@ class HxScreenShell extends StatefulWidget {
 
   final bool showBack;
   final EdgeInsets padding;
+
+  /// Widest the content column grows in a wide browser window. Single-column
+  /// screens keep the reading width; grids and overviews ask for more.
+  final double maxContentWidth;
 
   @override
   State<HxScreenShell> createState() => _HxScreenShellState();
@@ -122,6 +131,22 @@ class _HxScreenShellState extends State<HxScreenShell>
     final titleIcon = widget.titleIcon ?? _iconForTitle(widget.title);
     final topInset = MediaQuery.paddingOf(context).top;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    // Wide desktop browser windows: header and content keep to a readable
+    // centred column instead of stretching edge to edge. The scrollable area
+    // itself stays full width, so the wheel works anywhere on the page.
+    final caps = PlatformCapabilities.current();
+    final windowWidth = MediaQuery.sizeOf(context).width;
+    // Wide web windows keep the main navigation on the left of pushed screens
+    // too, so Settings or Dream Physique are not a dead end without a menu.
+    final railLayout = HxRailFrame.layoutOf(context);
+    final sideInset = caps.isWeb && !caps.isMobileBrowser
+        ? math.max(
+            0.0,
+            (windowWidth - railLayout.inset - widget.maxContentWidth) / 2,
+          )
+        : 0.0;
+    final leftInset = railLayout.inset + sideInset;
+    final rightInset = sideInset;
     // Each header action occupies a 48 px button plus its 8 px gap.  The
     // title used to reserve a fixed 56 px on the right, which let it draw
     // underneath the first action whenever a screen had more than one.
@@ -148,8 +173,8 @@ class _HxScreenShellState extends State<HxScreenShell>
                 SliverPadding(
                   padding: EdgeInsets.only(
                     top: topInset + _headerHeight + HxSpace.x2,
-                    left: widget.padding.left,
-                    right: widget.padding.right,
+                    left: widget.padding.left + leftInset,
+                    right: widget.padding.right + rightInset,
                     bottom:
                         bottomInset +
                         HxSpace.x8 +
@@ -172,8 +197,8 @@ class _HxScreenShellState extends State<HxScreenShell>
             top: topInset,
             // The header keeps the standard gutter even when the body runs
             // edge to edge (padding: zero), so the back button never moves.
-            left: HxSpace.x5,
-            right: HxSpace.x5,
+            left: HxSpace.x5 + leftInset,
+            right: HxSpace.x5 + rightInset,
             child: AnimatedBuilder(
               animation: _header,
               builder: (context, child) {
@@ -267,11 +292,13 @@ class _HxScreenShellState extends State<HxScreenShell>
 
           if (widget.pinnedBottom != null)
             Positioned(
-              left: widget.padding.left,
-              right: widget.padding.right,
+              left: widget.padding.left + leftInset,
+              right: widget.padding.right + rightInset,
               bottom: bottomInset + HxSpace.x4,
               child: widget.pinnedBottom!,
             ),
+
+          if (railLayout.shown) HxRailFrame.rail(context, railLayout),
         ],
       ),
     );

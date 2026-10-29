@@ -5,11 +5,12 @@ Future<ReportReason?> showReportReasonSheet(
   BuildContext context,
 ) => showModalBottomSheet<ReportReason>(
   context: context,
+  isScrollControlled: true,
   showDragHandle: true,
   builder: (context) {
     final colors = Theme.of(context).colorScheme;
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,

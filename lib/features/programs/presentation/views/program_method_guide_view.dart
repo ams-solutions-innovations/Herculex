@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:herculex/design_system/components/hx_rail_frame.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 
@@ -12,7 +13,8 @@ class ProgramMethodGuideView extends StatelessWidget {
   static Future<void> show(BuildContext context, PeriodizationModel model) =>
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => ProgramMethodGuideView(model: model),
+          builder: (_) =>
+              HxRailFrame(child: ProgramMethodGuideView(model: model)),
         ),
       );
 

@@ -1,7 +1,8 @@
 import 'dart:io';
-import 'dart:isolate';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/features/physique/data/physique_photo_sanitizer.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -78,9 +79,7 @@ class LocalPhotoStore {
     Directory? documentsDirectory,
   }) async {
     final docs =
-        documentsDirectory ??
-        _cachedDocumentsDirectory ??
-        await initialize();
+        documentsDirectory ?? _cachedDocumentsDirectory ?? await initialize();
     return resolveSync(storedPath, documentsDirectory: docs);
   }
 
@@ -102,9 +101,7 @@ class LocalPhotoStore {
     _cachedDocumentsDirectory ??= docs;
 
     final rawBytes = await source.readAsBytes();
-    final (sanitizedBytes, _, _) = await Isolate.run(
-      () => sanitizeJpegBytes(rawBytes),
-    );
+    final (sanitizedBytes, _, _) = await compute(sanitizeJpegBytes, rawBytes);
 
     final fileName = '${const Uuid().v4()}.jpg';
     final targetDir = Directory(p.join(docs.path, folder));
@@ -137,9 +134,7 @@ class LocalPhotoStore {
     final trimmed = storedPath.trim();
     try {
       final docs =
-          documentsDirectory ??
-          _cachedDocumentsDirectory ??
-          await initialize();
+          documentsDirectory ?? _cachedDocumentsDirectory ?? await initialize();
       final isRelative = !p.isAbsolute(trimmed);
       final resolved = resolveSync(trimmed, documentsDirectory: docs);
       var safeToDelete = isRelative;
@@ -166,7 +161,7 @@ class LocalPhotoStore {
   /// Asks iOS to mark SQLite database files and private photo folders with
   /// `NSURLIsExcludedFromBackupKey = true`. Safe no-op on Android and in tests.
   static Future<void> excludeFromBackup() async {
-    if (!Platform.isIOS) return;
+    if (!PlatformCapabilities.current().isIOS) return;
     try {
       await _privacyChannel.invokeMethod<void>('excludeFromBackup');
     } on PlatformException {

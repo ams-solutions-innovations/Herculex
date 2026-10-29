@@ -1122,7 +1122,9 @@ class ScheduledWorkouts extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get dateIso => text()();
   IntColumn get programDayId =>
-      integer().references(ProgramDays, #id, onDelete: KeyAction.cascade)();
+      integer().nullable().references(ProgramDays, #id, onDelete: KeyAction.cascade)();
+  /// Portable one-time plan; never materialized into recurring program days.
+  TextColumn get oneOffPlanJson => text().nullable()();
   IntColumn get completedSessionId => integer().nullable().references(
     WorkoutSessions,
     #id,
@@ -1766,4 +1768,22 @@ class WeeklyReports extends Table with SyncColumns, SyncTombstone {
   TextColumn get tdeeDecision => text().nullable()(); // updated | kept
   IntColumn get tdeeDecisionKcal => integer().nullable()();
   DateTimeColumn get viewedAt => dateTime().nullable()();
+}
+
+/// Synced mirror of selected SharedPreferences keys (v53, web track W3):
+/// the profile, meal slots, nutrition goals, units, colour theme and the
+/// like, which used to stay on the device that set them.
+///
+/// Written only by the synced-preferences bridge, never by features — they
+/// keep using SharedPreferences. `sync_uuid` is derived from the account and
+/// the key (UUID v5), so every device writes the *same* remote row for a key
+/// and the unique [prefKey] can never meet a second row for it on pull.
+/// Removing a preference sets `deleted_at` rather than deleting the row.
+@DataClassName('UserPreferenceData')
+class UserPreferences extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get prefKey => text().unique()();
+
+  /// [PrefValueCodec] envelope: the value plus its type.
+  TextColumn get valueJson => text()();
 }

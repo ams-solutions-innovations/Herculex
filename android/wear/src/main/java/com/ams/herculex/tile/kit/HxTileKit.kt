@@ -236,16 +236,17 @@ object HxTile {
         width: Float, height: Float, style: PillStyle, iconId: String, title: String,
         subtitle: String? = null, trailing: Boolean = false, clickable: ModifiersBuilders.Clickable,
         shimmer: Boolean = false,
+        matchWorkoutScreen: Boolean = false,
     ): LayoutElement {
         // Design (330px -> 227dp):
         //   wkBig:   258x72px (177.5x50dp), badge 52px (36dp = height - 14dp), icon 28px (19.5dp), pad 10/16px (7/11dp), gap 11px (7.5dp)
         //   wkSmall: 244x52px (168x36dp),   badge 40px (28dp = height - 8dp),  icon 24px (16.5dp), pad 6/12px  (4/8dp),  gap 9px  (6.5dp)
         val isBig = height >= 48f
-        val badge = if (isBig) height - 14f else height - 8f
-        val iconSize = if (isBig) badge * 0.54f else badge * 0.6f
-        val padStart = if (isBig) 7f else 4f
-        val padEnd = if (isBig) 11f else 8f
-        val gap = if (isBig) 7.5f else 6.5f
+        val badge = if (matchWorkoutScreen) 38f else if (isBig) height - 14f else height - 8f
+        val iconSize = if (matchWorkoutScreen) 22f else if (isBig) badge * 0.54f else badge * 0.6f
+        val padStart = if (matchWorkoutScreen) 14f else if (isBig) 7f else 4f
+        val padEnd = if (matchWorkoutScreen) 14f else if (isBig) 11f else 8f
+        val gap = if (matchWorkoutScreen) 12f else if (isBig) 7.5f else 6.5f
         val textW = width - padStart - badge - gap - (if (trailing) 26f else padEnd)
         val badgeBox = LayoutElementBuilders.Box.Builder()
             .setWidth(DimensionBuilders.dp(badge)).setHeight(DimensionBuilders.dp(badge))
@@ -259,8 +260,8 @@ object HxTile {
             ).addContent(icon(iconId, iconSize, White)).build()
         val texts = LayoutElementBuilders.Column.Builder().setWidth(DimensionBuilders.dp(textW))
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_START)
-            .addContent(text(title, if (isBig) 13f else 12f, White, bold = true))
-            .also { if (subtitle != null) it.addContent(text(subtitle, 10f, style.secondary)) }.build()
+            .addContent(text(title, if (matchWorkoutScreen) 14f else if (isBig) 13f else 12f, White, bold = true))
+            .also { if (subtitle != null) it.addContent(text(subtitle, if (matchWorkoutScreen) 11f else 10f, style.secondary)) }.build()
         val row = LayoutElementBuilders.Row.Builder()
             .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
             .setModifiers(

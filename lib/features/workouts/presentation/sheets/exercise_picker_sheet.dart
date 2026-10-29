@@ -423,77 +423,70 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                                     ? null
                                     : calisthenicsPathFor(g.first.slug);
                                 if (path != null) {
-                                  return Card(
-                                    child: ListTile(
-                                      title: Text(path.label),
-                                      subtitle: const Text(
-                                        'Levels · reps, assistance and load',
-                                      ),
-                                      trailing: Icon(
-                                        g.any(
-                                              (e) => _selectedMap.containsKey(
-                                                e.id,
-                                              ),
-                                            )
-                                            ? Icons.check_circle
-                                            : Icons.chevron_right,
-                                      ),
-                                      onTap: () async {
-                                        final catalog =
-                                            ref
-                                                .read(
-                                                  exerciseCatalogProvider(
-                                                    const ExerciseCatalogFilter(),
-                                                  ),
+                                  final selectedCount = g
+                                      .where(
+                                        (e) => _selectedMap.containsKey(e.id),
+                                      )
+                                      .length;
+                                  return _CalisthenicsTile(
+                                    path: path,
+                                    exercises: g,
+                                    selectedCount: selectedCount,
+                                    onTap: () async {
+                                      final catalog =
+                                          ref
+                                              .read(
+                                                exerciseCatalogProvider(
+                                                  const ExerciseCatalogFilter(),
+                                                ),
+                                              )
+                                              .valueOrNull ??
+                                          g;
+                                      final picked =
+                                          await CalisthenicsLevelSheet.show(
+                                            context,
+                                            path,
+                                            catalog
+                                                .where(
+                                                  (e) =>
+                                                      availableEquipment ==
+                                                          null ||
+                                                      _availableAtGym(
+                                                        e,
+                                                        availableEquipment,
+                                                      ),
                                                 )
-                                                .valueOrNull ??
-                                            g;
-                                        final picked =
-                                            await CalisthenicsLevelSheet.show(
-                                              context,
-                                              path,
-                                              catalog
-                                                  .where(
-                                                    (e) =>
-                                                        availableEquipment ==
-                                                            null ||
-                                                        _availableAtGym(
-                                                          e,
-                                                          availableEquipment,
-                                                        ),
-                                                  )
-                                                  .toList(),
-                                            );
-                                        if (picked == null || !mounted) return;
-                                        setState(() {
-                                          if (_selectedMap.containsKey(
+                                                .toList(),
+                                          );
+                                      if (picked == null || !mounted) return;
+                                      setState(() {
+                                        if (_selectedMap.containsKey(
+                                          picked.exercise.id,
+                                        )) {
+                                          _selectedMap.remove(
                                             picked.exercise.id,
-                                          )) {
-                                            _selectedMap.remove(
-                                              picked.exercise.id,
-                                            );
-                                          } else {
-                                            _selectedMap[picked
-                                                .exercise
-                                                .id] = ExercisePickResult(
-                                              exercise: picked.exercise,
-                                              equipmentAlreadyChosen: true,
-                                              equipmentVariant:
-                                                  picked.level.variant,
-                                              targetSets: 3,
-                                              targetReps: picked.level.seconds
-                                                  ? null
-                                                  : picked.value,
-                                              targetDurationSeconds:
-                                                  picked.level.seconds
-                                                  ? picked.value
-                                                  : null,
-                                              targetWeightKg: picked.load,
-                                            );
-                                          }
-                                        });
-                                      },
-                                    ),
+                                          );
+                                        } else {
+                                          _selectedMap[picked
+                                              .exercise
+                                              .id] = ExercisePickResult(
+                                            exercise: picked.exercise,
+                                            equipmentAlreadyChosen: true,
+                                            equipmentVariant:
+                                                picked.level.variant,
+                                            targetSets: 3,
+                                            targetReps: picked.level.seconds
+                                                ? null
+                                                : picked.value,
+                                            targetDurationSeconds:
+                                                picked.level.seconds
+                                                ? picked.value
+                                                : null,
+                                            targetWeightKg: picked.load,
+                                          );
+                                        }
+                                      });
+                                    },
                                   );
                                 }
                                 if (g.length == 1) {
@@ -582,6 +575,174 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
     } catch (_) {
       return available.contains(exercise.modality);
     }
+  }
+}
+
+/// A collapsed calisthenics progression movement (e.g. Pull-ups, Push-ups).
+/// Tapping opens the [CalisthenicsLevelSheet] to pick a level (assisted, strict,
+/// weighted). Matches the styling of [_FamilyTile] and [_ExerciseTile],
+/// displaying artwork for the movement.
+class _CalisthenicsTile extends StatelessWidget {
+  final CalisthenicsPath path;
+  final List<ExerciseCatalogData> exercises;
+  final int selectedCount;
+  final VoidCallback onTap;
+
+  const _CalisthenicsTile({
+    required this.path,
+    required this.exercises,
+    required this.selectedCount,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isSelected = selectedCount > 0;
+    final bgColor = isSelected
+        ? AppColors.primaryContainer.withValues(alpha: 0.35)
+        : AppColors.surfaceContainerLowest;
+    final borderColor = isSelected
+        ? AppColors.primary
+        : AppColors.outlineVariant.withValues(alpha: 0.4);
+
+    final artworkExercise = exercises.firstWhere(
+      (v) => exerciseArtworkAsset(v) != null,
+      orElse: () => exercises.first,
+    );
+    final artworkAsset = exerciseArtworkAsset(artworkExercise);
+    final fallbackSlug = artworkAsset != null
+        ? null
+        : path.slugs.cast<String?>().firstWhere(
+            (s) => exerciseArtworkAssetForSlug(s) != null,
+            orElse: () => null,
+          );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: borderColor,
+              width: isSelected ? 1.5 : 1.0,
+            ),
+          ),
+          child: Row(
+            children: [
+              Stack(
+                children: [
+                  if (artworkAsset != null)
+                    ExerciseArtwork(
+                      exercise: artworkExercise,
+                      size: 48,
+                      radius: 10,
+                      fallbackColor: isSelected
+                          ? AppColors.primary
+                          : AppColors.primaryContainer.withValues(alpha: 0.35),
+                    )
+                  else if (fallbackSlug != null)
+                    ExerciseArtwork.fromSlug(
+                      slug: fallbackSlug,
+                      exercise: artworkExercise,
+                      size: 48,
+                      radius: 10,
+                      fallbackColor: isSelected
+                          ? AppColors.primary
+                          : AppColors.primaryContainer.withValues(alpha: 0.35),
+                    )
+                  else
+                    ExerciseArtwork(
+                      exercise: artworkExercise,
+                      size: 48,
+                      radius: 10,
+                      fallbackColor: isSelected
+                          ? AppColors.primary
+                          : AppColors.primaryContainer.withValues(alpha: 0.35),
+                    ),
+                  if (isSelected)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: const BoxDecoration(
+                          color: Colors.blueAccent,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check,
+                          size: 10,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      path.label,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      artworkExercise.primaryMuscle.isNotEmpty
+                          ? '${artworkExercise.primaryMuscle} · Levels · reps, assistance and load'
+                          : 'Levels · reps, assistance and load',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.surfaceContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  isSelected
+                      ? '$selectedCount selected'
+                      : '${path.levels.length} levels',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: isSelected ? Colors.white : AppColors.secondary,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                isSelected ? Icons.check_circle : Icons.chevron_right,
+                size: 20,
+                color: isSelected ? AppColors.primary : AppColors.secondary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

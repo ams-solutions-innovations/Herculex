@@ -74,7 +74,7 @@ class DreamPhysiqueSummaryCard extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: context.hx.primary,
+                            color: context.hx.primaryText,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

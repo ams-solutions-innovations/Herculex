@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/notifications/app_notice.dart';
+import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/design_system/components/hx_back_button.dart';
 import 'package:herculex/design_system/components/hx_screen_shell.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
@@ -100,7 +101,7 @@ Future<void> _edit(
     return;
   }
   final programId = data.scheduled.schedule.programId;
-  if (programId == null) {
+  if (programId == null || data.scheduled.programDay == null) {
     await ref
         .read(programsRepositoryProvider)
         .setScheduleTemplateOverride(scheduleId, saved.id);
@@ -109,7 +110,7 @@ Future<void> _edit(
       context,
       ref,
       scheduleId: scheduleId,
-      programDayId: data.scheduled.programDay.id,
+      programDayId: data.scheduled.programDay!.id,
       programId: programId,
       date: DateTime.parse(data.scheduled.schedule.dateIso),
       dayTitle: data.scheduled.title,
@@ -278,18 +279,22 @@ class _PlanBody extends StatelessWidget {
               ),
             ),
           ),
-        if (_showStartCta) ...[
-          const SizedBox(height: 24),
-          Center(
-            child: Consumer(
-              builder: (context, ref, _) => PremiumButton(
-                text: 'Start workout',
-                icon: Icons.play_arrow_rounded,
-                onTap: () => _start(context, ref),
-              ),
-            ),
+        if (_showStartCta)
+          Consumer(
+            builder: (context, ref, _) =>
+                ref.watch(platformCapabilitiesProvider).hasLiveWorkout
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 24),
+                    child: Center(
+                      child: PremiumButton(
+                        text: 'Start workout',
+                        icon: Icons.play_arrow_rounded,
+                        onTap: () => _start(context, ref),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
           ),
-        ],
       ],
     );
   }
