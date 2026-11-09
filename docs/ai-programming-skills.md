@@ -20,7 +20,7 @@ rule ID are coaching implementation choices, rather than universal scientific
 thresholds.
 
 - Coaching corpus: `kb-2026.10-2`.
-- Programming modules: `blueprint-2-skills-1`.
+- Programming modules: `blueprint-2-skills-3`.
 - Responses report `programmingSkillsVersion` and the selected `programmingSkills`.
   These are retained in the existing brief JSON when the user saves a program.
 
@@ -28,6 +28,7 @@ thresholds.
 
 | Module | Selected for | Main responsibility |
 | --- | --- | --- |
+| `training-preferences` | Every program brief | Turns the user's own words into the app's closed choices; never numbers |
 | `foundation` | Every program brief | Days, time, coverage, experience and feasible architecture |
 | `hypertrophy` | Hypertrophy or unspecified goal | Stable benchmarks, muscle priorities, sustainable dose |
 | `strength` | Strength goal | Main-lift practice, rest, specificity and progression |
@@ -44,7 +45,7 @@ thresholds.
 | `low-volume` | Two-to-failure preference or API `programmingPreference: low_volume` | Brief focused sessions, coverage and selective effort |
 | `arnold-inspired` | API `programmingPreference: arnold_inspired` | Moderate variety, weak-point placement and realistic workload |
 | `time-saving` | Short target/observed average, shorter-session preference, or technique opt-in | Feasible assistance compression without overriding movement constraints |
-| `exercise-rotation` | Every program brief | Stable benchmarks, model cadence and substitutions |
+| `exercise-rotation` | Every program brief | Stable benchmarks, opt-in rotation and substitutions |
 
 The current builder exposes goals, exercise styles, periodization and time-saving
 approaches. The optional `programmingPreference` API fields load philosophy

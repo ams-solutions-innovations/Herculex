@@ -536,8 +536,18 @@ Return ONLY a JSON object with exactly this shape:
       "uncertainties": ["Any relevant uncertainty."]
     }
   ],
-  "phaseIntent": "A short description of what this phase of training is trying to accomplish."
+  "phaseIntent": "A short description of what this phase of training is trying to accomplish.",
+  "trainingPreferences": {
+    "focus": "balanced",
+    "isolationTechnique": "straight_sets",
+    "rationale": "One or two sentences saying what you understood from the user note and anything you could not apply."
+  }
 }
+
+trainingPreferences is optional: include it only when a user note describes how the
+user likes to train. focus is one of balanced, intensity, variety.
+isolationTechnique is one of straight_sets, myo_reps, drop_sets, two_to_failure,
+forced_reps. It contains no numbers.
 `;
 }
 

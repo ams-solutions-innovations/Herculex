@@ -268,6 +268,17 @@ const canonicalPeriodizationModelIds = new Set([
   "max_effort",
 ]);
 
+// Mirrors `TrainingFocus` and the isolation techniques of
+// `TrainingPreferencesBrief` in Dart.
+const canonicalTrainingFocusIds = new Set(["balanced", "intensity", "variety"]);
+const canonicalIsolationTechniqueIds = new Set([
+  "straight_sets",
+  "myo_reps",
+  "drop_sets",
+  "two_to_failure",
+  "forced_reps",
+]);
+
 const canonicalDayStressRoleIds = new Set([
   "intensity",
   "volume",
@@ -921,12 +932,42 @@ export function normalizeProgramBriefResult(
     };
   });
 
+  let trainingPreferences: Record<string, unknown> | undefined;
+  if (raw.trainingPreferences !== undefined && raw.trainingPreferences !== null) {
+    const value = objectValue(
+      raw.trainingPreferences,
+      "program brief training preferences",
+    );
+    const focus = requiredString(value.focus, "trainingPreferences.focus");
+    if (!canonicalTrainingFocusIds.has(focus)) {
+      throw new Error(`Unknown trainingPreferences.focus: ${focus}`);
+    }
+    const technique = requiredString(
+      value.isolationTechnique,
+      "trainingPreferences.isolationTechnique",
+    );
+    if (!canonicalIsolationTechniqueIds.has(technique)) {
+      throw new Error(
+        `Unknown trainingPreferences.isolationTechnique: ${technique}`,
+      );
+    }
+    trainingPreferences = {
+      focus,
+      isolationTechnique: technique,
+      rationale: requiredString(
+        value.rationale,
+        "trainingPreferences.rationale",
+      ),
+    };
+  }
+
   return {
     splitType,
     periodizationModel,
     dayRoles,
     musclePriorities,
     phaseIntent: requiredString(raw.phaseIntent, "phaseIntent"),
+    ...(trainingPreferences ? { trainingPreferences } : {}),
   };
 }
 

@@ -121,3 +121,35 @@ Deno.test("normalizeProgramBriefResult throws when musclePriorities is missing e
     "Program brief has no musclePriorities",
   );
 });
+
+Deno.test("normalizeProgramBriefResult keeps valid training preferences and drops them when absent", () => {
+  assertEquals(
+    "trainingPreferences" in normalizeProgramBriefResult(validRaw()),
+    false,
+  );
+  const raw = validRaw();
+  raw.trainingPreferences = {
+    focus: "intensity",
+    isolationTechnique: "myo_reps",
+    rationale: "Prefers few hard sets and myo-reps on isolations.",
+  };
+  assertEquals(normalizeProgramBriefResult(raw).trainingPreferences, {
+    focus: "intensity",
+    isolationTechnique: "myo_reps",
+    rationale: "Prefers few hard sets and myo-reps on isolations.",
+  });
+});
+
+Deno.test("normalizeProgramBriefResult rejects an unknown focus or technique", () => {
+  for (
+    const prefs of [
+      { focus: "bulk", isolationTechnique: "straight_sets", rationale: "x" },
+      { focus: "intensity", isolationTechnique: "cheat_reps", rationale: "x" },
+      { focus: "intensity", isolationTechnique: "myo_reps" },
+    ]
+  ) {
+    const raw = validRaw();
+    raw.trainingPreferences = prefs;
+    assertThrows(() => normalizeProgramBriefResult(raw));
+  }
+});

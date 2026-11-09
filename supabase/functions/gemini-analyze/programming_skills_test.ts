@@ -126,3 +126,10 @@ Deno.test("novice max effort and style/split conflicts are rejected", () => {
     })
   );
 });
+
+Deno.test("the preferences skill is always loaded and forbids numbers", () => {
+  const selected = selectProgrammingSkills({ goal: "hypertrophy" });
+  assert(selected.map((s) => s.id).includes("training-preferences"));
+  const text = programmingSkillInstruction(selected);
+  assert(text.includes("Never\nreturn sets, repetitions, load, RPE or tempo"));
+});
