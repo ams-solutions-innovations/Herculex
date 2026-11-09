@@ -135,4 +135,55 @@ void main() {
       expect(myo.hasFailureWork, isFalse);
     },
   );
+
+  group('forced reps', () {
+    test('are planned only for advanced lifters on stable isolation', () {
+      final advanced = resolve(
+        experience: ExperienceLevel.advanced,
+        technique: TimeSavingTechnique.forcedReps,
+      );
+      expect(advanced, isNotNull);
+      final forced = advanced!.prescription.segments.last;
+      expect(forced.setType, SetType.forced);
+      expect(forced.meta['forcedReps'], 2);
+      expect(advanced.prescription.note, contains('spotter'));
+
+      for (final experience in [
+        ExperienceLevel.novice,
+        ExperienceLevel.intermediate,
+      ]) {
+        expect(
+          resolve(
+            experience: experience,
+            technique: TimeSavingTechnique.forcedReps,
+          ),
+          isNull,
+          reason: experience.id,
+        );
+      }
+    });
+
+    test('never on a free-weight, a compound or a deload', () {
+      for (final unsafe in [
+        resolve(
+          experience: ExperienceLevel.advanced,
+          technique: TimeSavingTechnique.forcedReps,
+          modality: 'dumbbell',
+        ),
+        resolve(
+          experience: ExperienceLevel.advanced,
+          technique: TimeSavingTechnique.forcedReps,
+          role: SlotRole.main,
+          mechanics: 'compound',
+        ),
+        resolve(
+          experience: ExperienceLevel.advanced,
+          technique: TimeSavingTechnique.forcedReps,
+          deloadOrPeak: true,
+        ),
+      ]) {
+        expect(unsafe, isNull);
+      }
+    });
+  });
 }

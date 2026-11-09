@@ -6,12 +6,14 @@ import 'package:drift/drift.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/domain/block_adjustment_advisor.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
+import 'package:herculex/features/programs/domain/program_set_structure.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/schedule_walk.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
+import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/programs/domain/wave_label.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
@@ -87,6 +89,7 @@ class ProgramDayExerciseSummary {
     this.targetRepsMax,
     this.why,
     this.exercise,
+    this.structure,
   });
 
   /// The underlying `ProgramDayExercises` row id — the target of a
@@ -107,7 +110,13 @@ class ProgramDayExerciseSummary {
   /// Catalog row, for artwork. Null when the exercise is missing.
   final ExerciseCatalogData? exercise;
 
+  /// The working sets as the workout will run them. Null when the exercise or
+  /// its week is missing.
+  final SetStructureSummary? structure;
+
   String get targetLabel {
+    final resolved = structure?.setsLabel;
+    if (resolved != null) return resolved;
     final reps = switch ((targetRepsMin, targetRepsMax)) {
       (final int min, final int max) when min != max => '$min–$max',
       (final int min, _) => '$min',
@@ -152,6 +161,38 @@ class ProgramsRepository {
   final AppDatabase _db;
 
   ProgramsRepository(this._db);
+
+  Future<({PeriodizationModel model, WeekPrescription prescription})?>
+  _weekPrescriptionOfDay(int programDayId) async {
+    final row = await (_db.select(_db.programDays).join([
+      innerJoin(
+        _db.programWeeks,
+        _db.programWeeks.id.equalsExp(_db.programDays.programWeekId),
+      ),
+      innerJoin(
+        _db.programs,
+        _db.programs.id.equalsExp(_db.programWeeks.programId),
+      ),
+    ])..where(_db.programDays.id.equals(programDayId))).getSingleOrNull();
+    if (row == null) return null;
+    final week = row.readTable(_db.programWeeks);
+    final program = row.readTable(_db.programs);
+    final model = PeriodizationModel.fromId(program.periodizationModel);
+    return (
+      model: model,
+      prescription: WeekPrescription(
+        weekIndex: week.weekIndex,
+        intensityFactor: week.intensityFactor,
+        volumeFactor: week.adjustmentFactor,
+        blockPhase: week.blockPhase,
+        isDeload: Periodization.isPlannedDeload(
+          model: model,
+          totalWeeks: program.weeks,
+          weekIndex: week.weekIndex,
+        ),
+      ),
+    );
+  }
 
   Stream<List<ProgramDayExerciseSummary>> watchDayExerciseSummaries(
     int programDayId,
@@ -210,9 +251,32 @@ class ProgramsRepository {
             _db.exerciseCatalog,
           )..where((t) => t.id.isIn(ids))).get();
           final byId = {for (final exercise in catalog) exercise.id: exercise};
+          final week = await _weekPrescriptionOfDay(programDayId);
           return [
             for (final row in rows)
               ProgramDayExerciseSummary(
+                structure: week == null || byId[effective(row)] == null
+                    ? null
+                    : ProgramSetStructure.describe(
+                        method: SlotTrainingMethod.fromId(row.trainingMethod),
+                        targets: SlotTargets(
+                          sets: row.targetSets,
+                          repsMin: row.targetRepsMin,
+                          repsMax: row.targetRepsMax,
+                          rir: row.targetRir,
+                          rpe: row.targetRpe,
+                          percentOf1Rm: row.percentOf1Rm,
+                          restSeconds: row.restSeconds,
+                        ),
+                        role: SlotRole.fromId(row.slotRole),
+                        model: week.model,
+                        week: week.prescription,
+                        mechanics: byId[effective(row)]!.mechanics,
+                        modality: byId[effective(row)]!.modality,
+                        override: SlotPrescriptionCodec.decode(
+                          row.prescriptionCodecJson,
+                        ),
+                      ),
                 id: row.id,
                 exerciseId: effective(row),
                 name: byId[effective(row)]?.name ?? 'Unknown exercise',
@@ -1179,9 +1243,10 @@ class ProgramsRepository {
               ..where((t) => t.completedSessionId.equals(we.sessionId)))
             .getSingleOrNull();
     if (schedule == null) return null;
-    final day = await (_db.select(
-      _db.programDays,
-    )..where((t) => t.id.equals(schedule.programDayId ?? -1))).getSingleOrNull();
+    final day =
+        await (_db.select(_db.programDays)
+              ..where((t) => t.id.equals(schedule.programDayId ?? -1)))
+            .getSingleOrNull();
     if (day == null) return null;
     final week = await (_db.select(
       _db.programWeeks,
@@ -1419,9 +1484,12 @@ class ProgramsRepository {
 
     final fromIso = from == null ? null : _formatDateIso(from);
 
-    final protectedOverrides = await (_db.select(_db.trainingCoachingOverrides)
-      ..where((o) => o.deletedAt.isNull())).get();
-    final protectedSchedules = protectedOverrides.map((o) => o.scheduleId).toSet();
+    final protectedOverrides = await (_db.select(
+      _db.trainingCoachingOverrides,
+    )..where((o) => o.deletedAt.isNull())).get();
+    final protectedSchedules = protectedOverrides
+        .map((o) => o.scheduleId)
+        .toSet();
     await _db.transaction(() async {
       await (_db.delete(_db.scheduledWorkouts)..where((t) {
             var predicate =
@@ -1733,30 +1801,70 @@ class ProgramsRepository {
     final pw = _db.programWeeks;
     final pr = _db.programs;
 
-    final query = _db.select(sw).join([
-      leftOuterJoin(pd, pd.id.equalsExp(sw.programDayId)),
-      leftOuterJoin(pw, pw.id.equalsExp(pd.programWeekId)),
-      leftOuterJoin(pr, pr.id.equalsExp(pw.programId) | (pd.id.isNull() & pr.id.equalsExp(sw.programId))),
-    ])..where(sw.deletedAt.isNull() & sw.dateIso.isBiggerOrEqualValue(fromIso) & sw.dateIso.isSmallerOrEqualValue(toIso));
+    final query =
+        _db.select(sw).join([
+          leftOuterJoin(pd, pd.id.equalsExp(sw.programDayId)),
+          leftOuterJoin(pw, pw.id.equalsExp(pd.programWeekId)),
+          leftOuterJoin(
+            pr,
+            pr.id.equalsExp(pw.programId) |
+                (pd.id.isNull() & pr.id.equalsExp(sw.programId)),
+          ),
+        ])..where(
+          sw.deletedAt.isNull() &
+              sw.dateIso.isBiggerOrEqualValue(fromIso) &
+              sw.dateIso.isSmallerOrEqualValue(toIso),
+        );
     if (programId != null) query.where(pr.id.equals(programId));
-    query.orderBy([OrderingTerm(expression: sw.dateIso), OrderingTerm(expression: sw.orderIndex)]);
-    return _db.customSelect('SELECT 1', readsFrom: {sw, pd, pw, pr,
-      _db.programDayExercises, _db.templateExercises, _db.templateSets,
-      _db.trainingCoachingOverrides, _db.trainingCoachingProposals,
-      _db.adaptationOverrides, _db.adaptationProposals,
-    }).watch().asyncMap((_) async {
-      final rows = await query.get();
-      final result = <ScheduledWorkoutRow>[];
-      for (final row in rows) {
-        final schedule = row.readTable(sw), day = row.readTableOrNull(pd);
-        final templateId = schedule.templateIdOverride ?? day?.templateId;
-        final template = templateId == null ? null : await (_db.select(_db.workoutTemplates)..where((t) => t.id.equals(templateId))).getSingleOrNull();
-        final plan = await PlannedSessionResolver(_db).resolveScheduledWorkout(schedule);
-        result.add(ScheduledWorkoutRow(schedule: schedule, day: day, week: row.readTableOrNull(pw),
-          program: row.readTableOrNull(pr), template: template, exerciseCount: plan.exercises.length));
-      }
-      return result;
-    });
+    query.orderBy([
+      OrderingTerm(expression: sw.dateIso),
+      OrderingTerm(expression: sw.orderIndex),
+    ]);
+    return _db
+        .customSelect(
+          'SELECT 1',
+          readsFrom: {
+            sw,
+            pd,
+            pw,
+            pr,
+            _db.programDayExercises,
+            _db.templateExercises,
+            _db.templateSets,
+            _db.trainingCoachingOverrides,
+            _db.trainingCoachingProposals,
+            _db.adaptationOverrides,
+            _db.adaptationProposals,
+          },
+        )
+        .watch()
+        .asyncMap((_) async {
+          final rows = await query.get();
+          final result = <ScheduledWorkoutRow>[];
+          for (final row in rows) {
+            final schedule = row.readTable(sw), day = row.readTableOrNull(pd);
+            final templateId = schedule.templateIdOverride ?? day?.templateId;
+            final template = templateId == null
+                ? null
+                : await (_db.select(
+                    _db.workoutTemplates,
+                  )..where((t) => t.id.equals(templateId))).getSingleOrNull();
+            final plan = await PlannedSessionResolver(
+              _db,
+            ).resolveScheduledWorkout(schedule);
+            result.add(
+              ScheduledWorkoutRow(
+                schedule: schedule,
+                day: day,
+                week: row.readTableOrNull(pw),
+                program: row.readTableOrNull(pr),
+                template: template,
+                exerciseCount: plan.exercises.length,
+              ),
+            );
+          }
+          return result;
+        });
   }
 
   // ── Fatigue Conflict Checking ──
@@ -1790,11 +1898,17 @@ class ProgramsRepository {
       if (musclesByDay.containsKey(key)) continue;
       final plan = await PlannedSessionResolver(_db).resolveScheduledWorkout(s);
       final ids = plan.exercises.map((e) => e.exerciseId).toSet();
-      final muscles = await (_db.select(_db.exerciseMuscles)..where((m) => m.exerciseId.isIn(ids))).get();
-      final catalog = await (_db.select(_db.exerciseCatalog)..where((c) => c.id.isIn(ids))).get();
+      final muscles = await (_db.select(
+        _db.exerciseMuscles,
+      )..where((m) => m.exerciseId.isIn(ids))).get();
+      final catalog = await (_db.select(
+        _db.exerciseCatalog,
+      )..where((c) => c.id.isIn(ids))).get();
       musclesByDay[key] = {
-        for (final m in muscles) if (m.role != 'stabilizer') m.muscle,
-        for (final c in catalog) if (!muscles.any((m) => m.exerciseId == c.id)) c.primaryMuscle,
+        for (final m in muscles)
+          if (m.role != 'stabilizer') m.muscle,
+        for (final c in catalog)
+          if (!muscles.any((m) => m.exerciseId == c.id)) c.primaryMuscle,
       };
     }
 

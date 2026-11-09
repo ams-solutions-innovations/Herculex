@@ -205,6 +205,39 @@ abstract final class ProgramGuardrails {
     return issues;
   }
 
+  /// Blueprint VALIDATE-PLAN-01: differently named days must be different
+  /// workouts. Reported as warnings because a small catalogue or a narrow gym
+  /// can legitimately force a repeat; the review screen states it.
+  ///
+  /// [exercisesByDay] maps a day label to its exercise ids, main lift first.
+  static List<ProgramGuardrailIssue> validateDayDistinctness(
+    Map<String, List<int>> exercisesByDay,
+  ) {
+    final issues = <ProgramGuardrailIssue>[];
+    final labels = exercisesByDay.keys.toList(growable: false);
+    for (var i = 0; i < labels.length; i++) {
+      for (var j = i + 1; j < labels.length; j++) {
+        final a = exercisesByDay[labels[i]]!;
+        final b = exercisesByDay[labels[j]]!;
+        if (a.isEmpty || b.isEmpty) continue;
+        final shared = a.toSet().intersection(b.toSet()).length;
+        final smaller = a.length < b.length ? a.length : b.length;
+        if (a.first != b.first && shared * 2 <= smaller) continue;
+        issues.add(
+          ProgramGuardrailIssue(
+            code: a.first == b.first ? 'day_same_main' : 'day_mostly_same',
+            message:
+                '${labels[i]} and ${labels[j]} share $shared of their '
+                'exercises${a.first == b.first ? ', including the main lift' : ''}. '
+                'Tap an exercise to swap it.',
+            severity: GuardrailSeverity.warning,
+          ),
+        );
+      }
+    }
+    return issues;
+  }
+
   static bool smartMaxEffortEligible({
     required ExperienceLevel level,
     required TrainingGoal goal,

@@ -13,15 +13,22 @@ import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/application/block_update_controller.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/data/herculex_ai_brief_service.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/program_brief.dart';
+import 'package:herculex/features/programs/domain/program_guardrails.dart';
+import 'package:herculex/features/programs/domain/program_set_structure.dart';
+import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/session_segment.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
+import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/programs/presentation/sheets/exercise_replacement_sheet.dart';
 import 'package:herculex/features/programs/presentation/views/block_detail_view.dart';
 import 'package:herculex/features/programs/presentation/widgets/ai_day_rationale_card.dart';
 import 'package:herculex/features/programs/presentation/widgets/empty_slot_notice.dart';
+import 'package:herculex/features/programs/presentation/widgets/set_structure_line.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
+import 'package:herculex/features/workouts/domain/warmup_resolver.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 
 /// A review-only screen placed between building and activating a block.
@@ -53,6 +60,7 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
   String? _error;
   List<_ReviewDay> _days = const [];
   List<_RotationLine> _rotations = const [];
+  List<ProgramGuardrailIssue> _dayRepeats = const [];
   int _totalWeeks = 0;
   List<int> _weekIndices = const [];
   int _selectedWeekIndex = 0;
@@ -85,6 +93,21 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
                 ]))
               .get();
       final rationaleByDayIndex = await _herculexAiRationaleByDayIndex();
+      final program = await (db.select(
+        db.programs,
+      )..where((t) => t.id.equals(widget.programId))).getSingle();
+      final model = PeriodizationModel.fromId(program.periodizationModel);
+      final weekPrescription = WeekPrescription(
+        weekIndex: selectedWeek.weekIndex,
+        intensityFactor: selectedWeek.intensityFactor,
+        volumeFactor: selectedWeek.adjustmentFactor,
+        blockPhase: selectedWeek.blockPhase,
+        isDeload: Periodization.isPlannedDeload(
+          model: model,
+          totalWeeks: program.weeks,
+          weekIndex: selectedWeek.weekIndex,
+        ),
+      );
       final rows = <_ReviewDay>[];
       for (var i = 0; i < days.length; i++) {
         final day = days[i];
@@ -110,7 +133,16 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
             day: day,
             exercises: [
               for (final row in exercises)
-                _ReviewExercise(row: row, exercise: byId[row.exerciseId]),
+                _ReviewExercise(
+                  row: row,
+                  exercise: byId[row.exerciseId],
+                  structure: _structureOf(
+                    row,
+                    byId[row.exerciseId],
+                    model,
+                    weekPrescription,
+                  ),
+                ),
             ],
             emptyReasons: emptyReasons,
             aiRationale: rationaleByDayIndex[i],
@@ -118,8 +150,15 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
         );
       }
       final rotations = await _loadRotations(db, weeks);
+      final repeats = ProgramGuardrails.validateDayDistinctness({
+        for (final day in rows)
+          day.day.slotLabel ?? day.day.name: [
+            for (final item in day.exercises) item.row.exerciseId,
+          ],
+      });
       if (!mounted) return;
       setState(() {
+        _dayRepeats = repeats;
         _days = rows;
         _rotations = rotations;
         _totalWeeks = weeks.length;
@@ -134,6 +173,35 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
         _error = 'Could not prepare the exercise review.';
       });
     }
+  }
+
+  /// The working sets this row will produce in the selected week, from the
+  /// same code the workout uses.
+  static SetStructureSummary? _structureOf(
+    ProgramDayExerciseData row,
+    ExerciseCatalogData? exercise,
+    PeriodizationModel model,
+    WeekPrescription week,
+  ) {
+    if (exercise == null) return null;
+    return ProgramSetStructure.describe(
+      method: SlotTrainingMethod.fromId(row.trainingMethod),
+      targets: SlotTargets(
+        sets: row.targetSets,
+        repsMin: row.targetRepsMin,
+        repsMax: row.targetRepsMax,
+        rir: row.targetRir,
+        rpe: row.targetRpe,
+        percentOf1Rm: row.percentOf1Rm,
+        restSeconds: row.restSeconds,
+      ),
+      role: SlotRole.fromId(row.slotRole),
+      model: model,
+      week: week,
+      mechanics: exercise.mechanics,
+      modality: exercise.modality,
+      override: SlotPrescriptionCodec.decode(row.prescriptionCodecJson),
+    );
   }
 
   /// Fetches the planner's own rationale text for any of [day]'s slots left
@@ -415,6 +483,10 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
               ),
               const SizedBox(height: 16),
             ],
+            for (final repeat in _dayRepeats) ...[
+              _Notice(text: repeat.message),
+              const SizedBox(height: 12),
+            ],
             for (final day in _days)
               _DayCard(day: day, onReplace: _chooseReplacement),
             const SizedBox(height: 8),
@@ -572,7 +644,7 @@ class _RotationScheduleCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             rotations.isEmpty
-                ? 'Your selected main lifts stay in place for all $totalWeeks weeks.'
+                ? 'Your exercises stay in place for all $totalWeeks weeks.'
                 : 'These are the exact planned exercise changes. Everything not listed stays in place.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: AppColors.secondary,
@@ -695,15 +767,16 @@ class _ExerciseRow extends StatelessWidget {
             item.row.prescriptionCodecJson,
           )?.segments.firstOrNull
         : null;
-    final reps = switch ((item.row.targetRepsMin, item.row.targetRepsMax)) {
-      (final int min, final int max) when min != max => '$min–$max reps',
-      (final int min, _) => '$min reps',
-      (_, final int max) => '$max reps',
-      _ => 'Custom reps',
-    };
+    final structure = isMetcon ? null : item.structure;
+    final sets =
+        structure?.setsLabel ??
+        '${item.row.targetSets} × ${item.row.targetRepsMin ?? '–'}';
     final subtitle = isMetcon && metconSegment != null
         ? _metconSummary(metconSegment)
-        : '${item.row.targetSets} sets · $reps${exercise?.movementPattern == null ? '' : ' · ${exercise!.movementPattern!.replaceAll('_', ' ')}'}';
+        : '$sets${exercise?.movementPattern == null ? '' : ' · ${exercise!.movementPattern!.replaceAll('_', ' ')}'}';
+    final structureLabel = structure?.structureLabel;
+    final hasWarmupRamp =
+        !isMetcon && exercise != null && _hasWarmupRamp(item.row, exercise);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -734,6 +807,17 @@ class _ExerciseRow extends StatelessWidget {
                         color: AppColors.secondary,
                       ),
                     ),
+                    if (structureLabel != null || hasWarmupRamp) ...[
+                      const SizedBox(height: 3),
+                      SetStructureLine(
+                        direction:
+                            structure?.direction ?? PyramidDirection.none,
+                        label: [
+                          ?structureLabel,
+                          if (hasWarmupRamp) 'warm-up ramp first',
+                        ].join(' · '),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -744,6 +828,18 @@ class _ExerciseRow extends StatelessWidget {
       ),
     );
   }
+}
+
+bool _hasWarmupRamp(ProgramDayExerciseData row, ExerciseCatalogData exercise) {
+  final raw = row.variantConfigJson;
+  if (raw == null || !raw.contains('"autoWarmups":true')) return false;
+  return WarmupResolver.resolve(
+    role: SlotRole.fromId(row.slotRole),
+    mechanics: exercise.mechanics,
+    modality: exercise.modality,
+    targetPercentOf1Rm: null,
+    isFirstHeavyLiftInSession: true,
+  ).isNotEmpty;
 }
 
 String _metconSummary(WorkSegment segment) {
@@ -802,7 +898,14 @@ class _ReviewDay {
 }
 
 class _ReviewExercise {
-  const _ReviewExercise({required this.row, required this.exercise});
+  const _ReviewExercise({
+    required this.row,
+    required this.exercise,
+    this.structure,
+  });
   final ProgramDayExerciseData row;
   final ExerciseCatalogData? exercise;
+
+  /// Null when the catalog row is missing.
+  final SetStructureSummary? structure;
 }

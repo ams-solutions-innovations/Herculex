@@ -7,7 +7,11 @@ enum TimeSavingTechnique {
   automatic('automatic', 'Choose for me'),
   myoReps('myo_reps', 'Myo-reps'),
   dropSets('drop_sets', 'Drop sets'),
-  twoToFailure('two_to_failure', 'Warm-up + two to failure');
+  twoToFailure('two_to_failure', 'Warm-up + two to failure'),
+
+  /// Reps completed with a partner's help past failure. Advanced lifters on
+  /// stable isolation work only, and the plan says a spotter is needed.
+  forcedReps('forced_reps', 'Forced reps');
 
   const TimeSavingTechnique(this.id, this.label);
   final String id;
@@ -147,6 +151,38 @@ abstract final class TimeSavingPolicy {
                 setType: SetType.myoReps,
                 restSeconds: 45,
                 meta: {'activationReps': 15, 'miniSets': 3},
+              ),
+            ],
+          ),
+        );
+      case TimeSavingTechnique.forcedReps:
+        if (!stable ||
+            availableSets < 2 ||
+            experience != ExperienceLevel.advanced) {
+          return null;
+        }
+        return const TimeSavingPrescription(
+          SlotPrescription(
+            name: 'Forced reps',
+            note:
+                'A controlled set to failure, then a few partner-assisted '
+                'reps. Needs a spotter; skip them if you train alone.',
+            segments: [
+              WorkSegment(
+                sets: 1,
+                repsMin: 8,
+                repsMax: 12,
+                intent: Intent.rir1,
+                restSeconds: 90,
+              ),
+              WorkSegment(
+                sets: 1,
+                repsMin: 8,
+                repsMax: 12,
+                intent: Intent.toFailure,
+                setType: SetType.forced,
+                restSeconds: 90,
+                meta: {'forcedReps': 2},
               ),
             ],
           ),

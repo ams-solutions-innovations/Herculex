@@ -16,6 +16,7 @@ import 'package:herculex/features/programs/presentation/sheets/exercise_replacem
 import 'package:herculex/features/programs/presentation/sheets/template_picker_sheet.dart';
 import 'package:herculex/features/programs/presentation/sheets/update_block_sheet.dart';
 import 'package:herculex/features/programs/presentation/widgets/program_muscle_volume_card.dart';
+import 'package:herculex/features/programs/presentation/widgets/set_structure_line.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 

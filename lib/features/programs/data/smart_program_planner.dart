@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/domain/crossfit_program_planner.dart';
@@ -24,6 +25,7 @@ import 'package:herculex/features/workouts/domain/warmup_resolver.dart';
 import 'package:herculex/features/workouts/domain/workout_duration_estimator.dart';
 
 part 'smart_program_planner/anchor_lock.part.dart';
+part 'smart_program_planner/day_variants.part.dart';
 part 'smart_program_planner/selection_explanation_writer.part.dart';
 part 'smart_program_planner/slot_candidate_resolution.part.dart';
 part 'smart_program_planner/time_saving.part.dart';
@@ -50,6 +52,7 @@ class SmartProgramConfiguration {
     this.includeAutomaticWarmups = false,
     this.primaryLiftSpecialization,
     this.excludedMuscles = const {},
+    this.trainingFocus = TrainingFocus.balanced,
   });
 
   final TrainingGoal goal;
@@ -78,10 +81,18 @@ class SmartProgramConfiguration {
   final Map<String, int> weeklySetCaps;
   final MuscleFocusWave muscleFocusWave;
 
-  /// Optional user-facing exercise-rotation interval. `null` keeps the
-  /// model-specific policy; the override is intentionally not used for block
-  /// phases or Max Effort, where the rotation is part of the method itself.
+  /// How often exercises rotate. `null` means they stay for the whole block,
+  /// except Max Effort work, which keeps its own cadence unless `0` turns it
+  /// off. See [RotationPolicy.forProgram].
   final int? waveOverrideWeeks;
+
+  /// Compounds at 2 sets and RPE 9+, isolations at 3 sets, where available.
+  final TrainingFocus trainingFocus;
+
+  /// The cadence the planner uses: an explicit choice, else the Variety
+  /// focus's default, else none.
+  int? get effectiveRotationWeeks =>
+      waveOverrideWeeks ?? (trainingFocus == TrainingFocus.variety ? 3 : null);
   final TrainingStyle trainingStyle;
 
   /// Explicit opt-in/out for a short GPP conditioning finish. `null` follows
@@ -164,6 +175,7 @@ class SmartProgramPlanner {
     final (completedExerciseSlugs, completedMovementSlugs) =
         await _completedMovementHistory(catalogById);
     final slotCache = <String, List<_ResolvedSmartSlot>>{};
+    final dayMemory = _DayExerciseMemory();
 
     await _db.transaction(() async {
       await (_db.update(
@@ -245,6 +257,7 @@ class SmartProgramPlanner {
               completedMovementSlugs: completedMovementSlugs,
               catalogBySlug: catalogBySlug,
               weekIndex: week.weekIndex,
+              dayMemory: dayMemory,
             );
             slotCache[cacheKey] = slots;
           }
@@ -270,17 +283,25 @@ class SmartProgramPlanner {
             final assignment = slot.assignments[week.weekIndex];
             final exerciseId = assignment?.exerciseId ?? slot.anchorExerciseId;
             if (exerciseId == null) continue;
-            var target = _targetFor(
-              slot.role,
-              slot.method,
-              slot.priorityLevel,
-              configuration.muscleVolumeWeights[slot.muscleId],
-            );
-            final focusNote = _focusNoteForWeek(
-              configuration: configuration,
-              muscleId: slot.muscleId,
-              weekIndex: week.weekIndex,
-            );
+            // Intensity focus fixes the set count: priorities and focus waves
+            // would otherwise turn its two compound sets into three.
+            final isIntensityFocus =
+                slot.method == SlotTrainingMethod.intensityFocus;
+            var target = isIntensityFocus
+                ? _intensityTargetFor(slot.role, catalogById[exerciseId]!)
+                : _targetFor(
+                    slot.role,
+                    slot.method,
+                    slot.priorityLevel,
+                    configuration.muscleVolumeWeights[slot.muscleId],
+                  );
+            final focusNote = isIntensityFocus
+                ? const _FocusNote()
+                : _focusNoteForWeek(
+                    configuration: configuration,
+                    muscleId: slot.muscleId,
+                    weekIndex: week.weekIndex,
+                  );
             if (focusNote.isHighFocus) {
               target = target.copyWith(sets: target.sets + 1);
             } else if (focusNote.isLightFocus && !slot.role.isHeavy) {
@@ -293,7 +314,9 @@ class SmartProgramPlanner {
               final assigned = weeklySetsByMuscle[slot.muscleId] ?? 0;
               final remaining = weeklyCap - assigned;
               if (remaining <= 0 && slot.role != SlotRole.main) continue;
-              target = target.copyWith(sets: remaining.clamp(1, target.sets));
+              if (!isIntensityFocus) {
+                target = target.copyWith(sets: remaining.clamp(1, target.sets));
+              }
             }
             // CrossFit metcon slots bypass the normal per-rep-target time
             // plan entirely: a metcon's duration comes from its capped
@@ -328,6 +351,9 @@ class SmartProgramPlanner {
                       ),
                     ),
                   )
+                : isIntensityFocus &&
+                      !_wantsIsolationTechnique(configuration, slot.role)
+                ? _TimePlan.standard(target)
                 : _TimeSavingPlans._timePlanFor(
                     role: slot.role,
                     target: target,
@@ -364,7 +390,8 @@ class SmartProgramPlanner {
             // longer: time pressure is relative to the actual session plan.
             for (final plan in dayPlans) {
               if (plan.timePlan.prescriptionCodecJson != null ||
-                  plan.timePlan.segment == SessionSegment.metcon)
+                  plan.timePlan.segment == SessionSegment.metcon ||
+                  plan.slot.method == SlotTrainingMethod.intensityFocus)
                 continue;
               plan.timePlan = _TimeSavingPlans._timePlanFor(
                 role: plan.slot.role,
@@ -386,7 +413,8 @@ class SmartProgramPlanner {
                   isTrimmableRole(plan.slot.role) &&
                   plan.timePlan.target.sets > 1 &&
                   plan.timePlan.prescriptionCodecJson == null &&
-                  plan.timePlan.segment != SessionSegment.metcon,
+                  plan.timePlan.segment != SessionSegment.metcon &&
+                  plan.slot.method != SlotTrainingMethod.intensityFocus,
             );
             final isolationShrinkable = shrinkable.where(
               (plan) => plan.slot.role == SlotRole.isolation,
@@ -474,10 +502,15 @@ class SmartProgramPlanner {
                     ),
                     variantConfigJson: Value(
                       configuration.includeAutomaticWarmups ||
+                              slot.method ==
+                                  SlotTrainingMethod.intensityFocus ||
                               timePlan.prescriptionCodecJson != null
                           ? jsonEncode({
+                              // Two sets at RPE 9 must not start cold.
                               'autoWarmups':
-                                  configuration.includeAutomaticWarmups,
+                                  configuration.includeAutomaticWarmups ||
+                                  slot.method ==
+                                      SlotTrainingMethod.intensityFocus,
                               if (timePlan.isolationPrimer)
                                 'isolationPrimer': true,
                               if (timePlan.prescriptionCodecJson != null &&
@@ -539,6 +572,7 @@ class SmartProgramPlanner {
     required Set<String> completedMovementSlugs,
     required Map<String, ExerciseCatalogData> catalogBySlug,
     required int weekIndex,
+    required _DayExerciseMemory dayMemory,
   }) async {
     final needs = _needsFor(
       dayLabel,
@@ -565,8 +599,30 @@ class SmartProgramPlanner {
     // this single call (one day/week resolution), matching `used`.
     final metconGroupMovementCount = <String, int>{};
     final metconGroupAdvancedCount = <String, int>{};
+    final otherDaysExercises = usesWeeklySegments
+        ? const <int>{}
+        : dayMemory.exclusionsFor(dayLabel);
+    final focusActive = _intensityFocusActive(configuration, model);
 
-    for (final (order, need) in needs.indexed) {
+    for (final (order, requested) in _selectionOrder(needs)) {
+      final need = requested.withRole(
+        _availableRole(
+          requested,
+          catalog.where(
+            (exercise) =>
+                !used.contains(exercise.id) &&
+                equipment.allows(exercise) &&
+                _isEligibleForAutomaticProgramming(exercise, configuration) &&
+                ExerciseProgrammingEligibility.verifyPrerequisites(
+                  prerequisiteSlugsJson: exercise.prerequisiteSlugs,
+                  userExperience: configuration.experience,
+                  completedExerciseSlugs: completedExerciseSlugs,
+                  completedMovementSlugs: completedMovementSlugs,
+                  catalogBySlug: catalogBySlug,
+                ),
+          ),
+        ),
+      );
       var method = _methodFor(
         role: need.role,
         stressRole: stressRole,
@@ -581,7 +637,9 @@ class SmartProgramPlanner {
       // content even if a role mistake is made elsewhere.
       if (need.segment != null) method = SlotTrainingMethod.technique;
       final override = configuration.mainMethodByDayLabel[dayLabel];
-      if (need.role == SlotRole.main && override != null) {
+      final hasMethodOverride =
+          requested.role == SlotRole.main && override != null;
+      if (hasMethodOverride) {
         // A repeated Upper/Lower/PPL volume day stays a volume day even when
         // its intensity counterpart uses Max Effort.
         if (override == SlotTrainingMethod.dynamicEffort &&
@@ -601,6 +659,14 @@ class SmartProgramPlanner {
           method = override;
         }
       }
+      // An explicit main-lift method stays as chosen; everything else follows
+      // the program's focus. Conditioning and CrossFit/GPP work is exempt.
+      if (focusActive &&
+          !hasMethodOverride &&
+          need.segment == null &&
+          need.role != SlotRole.conditioning) {
+        method = SlotTrainingMethod.intensityFocus;
+      }
 
       var candidates = catalog.where((exercise) {
         if (used.contains(exercise.id)) return false;
@@ -617,20 +683,10 @@ class SmartProgramPlanner {
         )) {
           return false;
         }
-        final patternMatches =
-            need.pattern == null || exercise.movementPattern == need.pattern;
-        final muscleMatches =
-            need.muscle == null ||
-            exercise.primaryMuscle.toLowerCase().contains(need.muscle!);
-        if (!patternMatches || !muscleMatches) return false;
-        final mask = SlotRoleEligibility.derive(
-          mechanics: exercise.mechanics,
-          modality: exercise.modality,
-          cnsScore: exercise.cnsScore,
-          loggingMetric: exercise.loggingMetric,
-          category: exercise.category,
-        );
-        if (!SlotRoleEligibility.allows(mask, need.role)) return false;
+        if (!_matchesNeed(exercise, need)) return false;
+        if (!SlotRoleEligibility.allows(_roleMaskOf(exercise), need.role)) {
+          return false;
+        }
         if (method == SlotTrainingMethod.maxEffort &&
             exercise.maxEffortEligibility != MaxEffortEligibility.eligible.id) {
           return false;
@@ -660,14 +716,7 @@ class SmartProgramPlanner {
           )) {
             return false;
           }
-          final mask = SlotRoleEligibility.derive(
-            mechanics: exercise.mechanics,
-            modality: exercise.modality,
-            cnsScore: exercise.cnsScore,
-            loggingMetric: exercise.loggingMetric,
-            category: exercise.category,
-          );
-          return SlotRoleEligibility.allows(mask, need.role) &&
+          return SlotRoleEligibility.allows(_roleMaskOf(exercise), need.role) &&
               (method != SlotTrainingMethod.maxEffort ||
                   exercise.maxEffortEligibility ==
                       MaxEffortEligibility.eligible.id);
@@ -697,34 +746,13 @@ class SmartProgramPlanner {
           // and no ProgramDayExercises row. Every field here describes the
           // SLOT, not the chosen exercise, so it is computable identically
           // to the filled path below — mirror that insert exactly.
-          var emptyPolicy = RotationPolicy.forSlot(
-            model: method == SlotTrainingMethod.maxEffort
-                ? PeriodizationModel.maxEffort
-                : model,
+          final emptyPolicy = _rotationPolicyFor(
+            method: method,
             role: need.role,
-            blockPhase: weeks.firstOrNull?.blockPhase,
+            model: model,
+            weeks: weeks,
+            configuration: configuration,
           );
-          if (configuration.waveOverrideWeeks != null &&
-              method != SlotTrainingMethod.maxEffort &&
-              model != PeriodizationModel.block) {
-            emptyPolicy = RotationPolicy(
-              everyWeeks: configuration.waveOverrideWeeks!,
-              minGapWeeks: emptyPolicy.minGapWeeks,
-              minPoolSize: emptyPolicy.minPoolSize,
-              tier: emptyPolicy.tier,
-              lockedInPhase: emptyPolicy.lockedInPhase,
-              forceOnPhaseChange: emptyPolicy.forceOnPhaseChange,
-            );
-          }
-          if (method == SlotTrainingMethod.maxEffort &&
-              need.role == SlotRole.main &&
-              configuration.experience == ExperienceLevel.advanced) {
-            emptyPolicy = const RotationPolicy(
-              everyWeeks: 1,
-              minGapWeeks: 4,
-              minPoolSize: 3,
-            );
-          }
           final emptySlotKey = _slug(
             usesWeeklySegments
                 ? '$dayLabel-${stressRole.id}-${need.role.id}-$order-w$weekIndex'
@@ -754,7 +782,9 @@ class SmartProgramPlanner {
                   fatigueBudget: Value(
                     method == SlotTrainingMethod.maxEffort ? 8 : 3,
                   ),
-                  waveOverrideWeeks: Value(configuration.waveOverrideWeeks),
+                  waveOverrideWeeks: Value(
+                    configuration.effectiveRotationWeeks,
+                  ),
                 ),
               );
           await _writeSlotExplanations(
@@ -805,34 +835,13 @@ class SmartProgramPlanner {
         if (safeCandidates.isNotEmpty) candidates = safeCandidates;
       }
 
-      var policy = RotationPolicy.forSlot(
-        model: method == SlotTrainingMethod.maxEffort
-            ? PeriodizationModel.maxEffort
-            : model,
+      final policy = _rotationPolicyFor(
+        method: method,
         role: need.role,
-        blockPhase: weeks.firstOrNull?.blockPhase,
+        model: model,
+        weeks: weeks,
+        configuration: configuration,
       );
-      if (configuration.waveOverrideWeeks != null &&
-          method != SlotTrainingMethod.maxEffort &&
-          model != PeriodizationModel.block) {
-        policy = RotationPolicy(
-          everyWeeks: configuration.waveOverrideWeeks!,
-          minGapWeeks: policy.minGapWeeks,
-          minPoolSize: policy.minPoolSize,
-          tier: policy.tier,
-          lockedInPhase: policy.lockedInPhase,
-          forceOnPhaseChange: policy.forceOnPhaseChange,
-        );
-      }
-      if (method == SlotTrainingMethod.maxEffort &&
-          need.role == SlotRole.main &&
-          configuration.experience == ExperienceLevel.advanced) {
-        policy = const RotationPolicy(
-          everyWeeks: 1,
-          minGapWeeks: 4,
-          minPoolSize: 3,
-        );
-      }
       final scorerPool = [
         for (final exercise in candidates)
           ScorerCandidate(
@@ -848,15 +857,13 @@ class SmartProgramPlanner {
             mechanics: exercise.mechanics,
             cnsScore: exercise.cnsScore,
             recoveryImpact: exercise.recoveryImpact,
-            eligibleRoles: SlotRoleEligibility.derive(
-              mechanics: exercise.mechanics,
-              modality: exercise.modality,
-              cnsScore: exercise.cnsScore,
-              loggingMetric: exercise.loggingMetric,
-              category: exercise.category,
-            ),
+            eligibleRoles: _roleMaskOf(exercise),
             affinity: affinities[exercise.id] ?? 0,
             equipmentAvailable: true,
+            loggedSessions: completedExerciseSlugs.contains(exercise.slug)
+                ? 2
+                : 0,
+            isBenchmark: _benchmarkSlugs.contains(exercise.slug),
           ),
       ];
       final loadingPreference = _loadingPreference(
@@ -866,43 +873,48 @@ class SmartProgramPlanner {
         goal: configuration.goal,
         experience: configuration.experience,
       );
-      final ranked =
-          [
-            ...ExerciseScorer.rank(
-              pool: scorerPool,
-              context: SlotScoringContext(
-                role: need.role,
-                muscleGroup: need.muscle ?? need.pattern ?? 'general',
-                weekIndex: 0,
-                policy: policy,
-                seed: _stableSeed(
-                  '${program.splitType}|${configuration.goal.id}|$dayLabel|${stressRole.id}|$order',
-                ),
-              ),
-            ).ranked,
-          ]..sort(
-            (a, b) =>
-                (_loadingBonus(
-                          b.candidate.exerciseId,
-                          candidates,
-                          loadingPreference,
-                        ) +
-                        b.score)
-                    .compareTo(
-                      _loadingBonus(
-                            a.candidate.exerciseId,
-                            candidates,
-                            loadingPreference,
-                          ) +
-                          a.score,
-                    ),
-          );
+      double sortKey(ScoredExercise scored) {
+        final id = scored.candidate.exerciseId;
+        return scored.score +
+            _loadingBonus(id, candidates, loadingPreference) +
+            _timeSavingBonus(catalogById[id]!, need.role, configuration);
+      }
+
+      final ranked = [
+        ...ExerciseScorer.rank(
+          pool: scorerPool,
+          context: SlotScoringContext(
+            role: need.role,
+            muscleGroup: need.muscle ?? need.pattern ?? 'general',
+            weekIndex: 0,
+            policy: policy,
+            seed: _stableSeed(
+              '${program.splitType}|${configuration.goal.id}|$dayLabel|$order',
+            ),
+          ),
+        ).ranked,
+      ]..sort((a, b) => sortKey(b).compareTo(sortKey(a)));
       if (ranked.isEmpty) {
         throw StateError(
           'No ${need.role.label.toLowerCase()} exercise is available for $dayLabel with the selected equipment.',
         );
       }
-      final pool = ranked.take(6).toList(growable: false);
+      // B avoids what A uses, in its rotation pool too. A specialization's
+      // main lift is meant to repeat, and a small catalogue may leave no other
+      // option; the repeat is then stated rather than hidden.
+      final minimumPool = method == SlotTrainingMethod.maxEffort ? 3 : 1;
+      final fresh = requested.preferredSlugs.isNotEmpty
+          ? ranked
+          : ranked
+                .where(
+                  (scored) =>
+                      !otherDaysExercises.contains(scored.candidate.exerciseId),
+                )
+                .toList(growable: false);
+      final repeatsOtherDay = fresh.length < minimumPool;
+      final pool = (repeatsOtherDay ? ranked : fresh)
+          .take(6)
+          .toList(growable: false);
       if (method == SlotTrainingMethod.maxEffort && pool.length < 3) {
         throw StateError(
           'Max Effort rotation for $dayLabel needs at least three suitable variations.',
@@ -970,7 +982,7 @@ class SmartProgramPlanner {
               fatigueBudget: Value(
                 method == SlotTrainingMethod.maxEffort ? 8 : 3,
               ),
-              waveOverrideWeeks: Value(configuration.waveOverrideWeeks),
+              waveOverrideWeeks: Value(configuration.effectiveRotationWeeks),
             ),
           );
       for (final (poolIndex, scored) in pool.indexed) {
@@ -1018,6 +1030,12 @@ class SmartProgramPlanner {
         weeks: weeks,
         assignments: assignments,
       );
+      if (!usesWeeklySegments) {
+        dayMemory.record(
+          dayLabel,
+          assignments.values.map((assignment) => assignment.exerciseId),
+        );
+      }
 
       result.add(
         _ResolvedSmartSlot(
@@ -1045,7 +1063,8 @@ class SmartProgramPlanner {
           ),
           why:
               '${anchor.why} ${_loadingReason(loadingPreference)} ${method.label} matches the ${stressRole.label.toLowerCase()} role of this day.'
-              '${complexityExceptionNote ?? ''}',
+              '${complexityExceptionNote ?? ''}'
+              '${repeatsOtherDay && otherDaysExercises.isNotEmpty ? ' Repeats on another day: no other suitable exercise is available for this slot at your level and equipment.' : ''}',
           loadingPreference: loadingPreference,
           assignments: assignments,
           segment: need.segment,
@@ -1057,6 +1076,7 @@ class SmartProgramPlanner {
       );
     }
 
+    result.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
     final guarded = result
         .where((slot) => slot.method == SlotTrainingMethod.maxEffort)
         .map(
@@ -1485,65 +1505,7 @@ class SmartProgramPlanner {
         variationSeed: weekIndex,
       ).map(_fromCrossfitNeed).toList(growable: false);
     }
-    if (value.contains('push') || value.contains('chest')) {
-      return const [
-        _SlotNeed('horizontal_push', null, SlotRole.main),
-        _SlotNeed('vertical_push', null, SlotRole.supplemental),
-        _SlotNeed('horizontal_push', null, SlotRole.accessory),
-        _SlotNeed(null, 'tricep', SlotRole.isolation),
-        _SlotNeed(null, 'shoulder', SlotRole.isolation),
-      ];
-    }
-    if (value.contains('pull') || value.contains('back')) {
-      return const [
-        _SlotNeed('horizontal_pull', null, SlotRole.main),
-        _SlotNeed('vertical_pull', null, SlotRole.supplemental),
-        _SlotNeed('horizontal_pull', null, SlotRole.accessory),
-        _SlotNeed(null, 'bicep', SlotRole.isolation),
-        _SlotNeed(null, 'rear', SlotRole.isolation),
-      ];
-    }
-    if (value.contains('leg') || value.contains('lower')) {
-      return const [
-        _SlotNeed('squat', null, SlotRole.main),
-        _SlotNeed('hinge', null, SlotRole.supplemental),
-        _SlotNeed('lunge', null, SlotRole.accessory),
-        _SlotNeed(null, 'quad', SlotRole.isolation),
-        _SlotNeed(null, 'hamstring', SlotRole.isolation),
-        _SlotNeed(null, 'cal', SlotRole.isolation),
-      ];
-    }
-    if (value.contains('upper')) {
-      return const [
-        _SlotNeed('horizontal_push', null, SlotRole.main),
-        _SlotNeed('horizontal_pull', null, SlotRole.supplemental),
-        _SlotNeed('vertical_push', null, SlotRole.accessory),
-        _SlotNeed('vertical_pull', null, SlotRole.accessory),
-        _SlotNeed(null, 'bicep', SlotRole.isolation),
-        _SlotNeed(null, 'tricep', SlotRole.isolation),
-      ];
-    }
-    if (value.contains('arm')) {
-      return const [
-        _SlotNeed(null, 'bicep', SlotRole.accessory),
-        _SlotNeed(null, 'tricep', SlotRole.accessory),
-        _SlotNeed(null, 'shoulder', SlotRole.isolation),
-      ];
-    }
-    if (value.contains('shoulder')) {
-      return const [
-        _SlotNeed('vertical_push', null, SlotRole.main),
-        _SlotNeed(null, 'shoulder', SlotRole.isolation),
-        _SlotNeed(null, 'rear', SlotRole.isolation),
-      ];
-    }
-    const base = [
-      _SlotNeed('squat', null, SlotRole.main),
-      _SlotNeed('horizontal_push', null, SlotRole.supplemental),
-      _SlotNeed('horizontal_pull', null, SlotRole.accessory),
-      _SlotNeed('hinge', null, SlotRole.accessory),
-      _SlotNeed(null, 'shoulder', SlotRole.isolation),
-    ];
+    final base = _strengthNeedsFor(label);
     // Only Full Body A/B + GPP (or an explicit config opt-in) receives this
     // optional finish. Regular full-body, upper/lower, and PPL plans keep
     // exactly their existing exercise count.
@@ -1869,6 +1831,20 @@ class _SlotNeed {
   final SetType? metconFormat;
   final int? metconCapSeconds;
   final int? metconMinutes;
+
+  _SlotNeed withRole(SlotRole newRole) => newRole == role
+      ? this
+      : _SlotNeed(
+          pattern,
+          muscle,
+          newRole,
+          preferredSlugs: preferredSlugs,
+          segment: segment,
+          metconGroupKey: metconGroupKey,
+          metconFormat: metconFormat,
+          metconCapSeconds: metconCapSeconds,
+          metconMinutes: metconMinutes,
+        );
 }
 
 class _Target {

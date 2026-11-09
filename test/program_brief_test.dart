@@ -6,6 +6,7 @@ import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/program_brief.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
+import 'package:herculex/features/programs/domain/time_saving_policy.dart';
 
 Map<String, dynamic> _validBriefJson() => {
   'splitType': 'upper_lower',
@@ -283,6 +284,89 @@ void main() {
         expect(
           roundTripped.musclePriorities[i].uncertainties,
           original.musclePriorities[i].uncertainties,
+        );
+      }
+    });
+  });
+
+  group('trainingPreferences', () {
+    Map<String, dynamic> withPreferences(Map<String, dynamic> preferences) =>
+        _cloneValid()..['trainingPreferences'] = preferences;
+
+    test('is optional, so older briefs still parse', () {
+      expect(ProgramBrief.fromJson(_cloneValid()).trainingPreferences, isNull);
+      expect(
+        ProgramBrief.fromJson(
+          _cloneValid(),
+        ).toJson().containsKey('trainingPreferences'),
+        isFalse,
+      );
+    });
+
+    test('parses, maps to planner settings and round-trips', () {
+      final brief = ProgramBrief.fromJson(
+        withPreferences({
+          'focus': 'intensity',
+          'isolationTechnique': 'myo_reps',
+          'rationale': 'Few hard sets, myo-reps on isolations.',
+        }),
+      );
+      final preferences = brief.trainingPreferences!;
+      expect(preferences.focus, TrainingFocus.intensity);
+      expect(preferences.isolationTechnique, TimeSavingTechnique.myoReps);
+      expect(preferences.usesSetTechnique, isTrue);
+      expect(
+        ProgramBrief.fromJson(brief.toJson()).trainingPreferences!.rationale,
+        preferences.rationale,
+      );
+    });
+
+    test('plain sets need no technique', () {
+      final preferences = ProgramBrief.fromJson(
+        withPreferences({
+          'focus': 'variety',
+          'isolationTechnique': 'straight_sets',
+          'rationale': 'Likes variety.',
+        }),
+      ).trainingPreferences!;
+      expect(preferences.usesSetTechnique, isFalse);
+    });
+
+    test('rejects an unknown value instead of defaulting', () {
+      for (final bad in [
+        {
+          'focus': 'bulk',
+          'isolationTechnique': 'straight_sets',
+          'rationale': 'x',
+        },
+        {
+          'focus': 'intensity',
+          'isolationTechnique': 'cheat_reps',
+          'rationale': 'x',
+        },
+        {'focus': 'intensity', 'isolationTechnique': 'myo_reps'},
+      ]) {
+        expect(
+          () => ProgramBrief.fromJson(withPreferences(bad)),
+          throwsFormatException,
+          reason: '$bad',
+        );
+      }
+    });
+
+    test('a model cannot smuggle numbers in through preferences', () {
+      for (final key in ['sets', 'reps', 'rpe']) {
+        expect(
+          () => ProgramBrief.fromJson(
+            withPreferences({
+              'focus': 'intensity',
+              'isolationTechnique': 'straight_sets',
+              'rationale': 'x',
+              key: 2,
+            }),
+          ),
+          throwsFormatException,
+          reason: key,
         );
       }
     });

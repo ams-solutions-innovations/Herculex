@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -84,6 +84,7 @@ class _FakeHerculexGeminiBackend implements GeminiBackend {
   Object? error;
   Duration? delay;
   int callCount = 0;
+  String? lastUserNote;
 
   static Map<String, dynamic> _defaultResult() => {
     'splitType': 'upper_lower',
@@ -115,6 +116,7 @@ class _FakeHerculexGeminiBackend implements GeminiBackend {
     String? userNote,
   }) async {
     callCount++;
+    lastUserNote = userNote;
     if (delay != null) await Future<void>.delayed(delay!);
     if (error != null) throw error!;
     final output = Map<String, dynamic>.from(result ?? _defaultResult());
@@ -762,8 +764,9 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Upper'), findsWidgets);
-      expect(find.text('Lower'), findsWidgets);
+      expect(find.text('Upper A'), findsWidgets);
+      expect(find.text('Lower A'), findsWidgets);
+      expect(find.text('Upper B'), findsWidgets);
       expect(find.text('Full Body A'), findsNothing);
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -1221,6 +1224,16 @@ void main() {
         'A six-day PPL would create three Max Effort days. Use per-slot Max '
         'Effort or choose a Conjugate 3–4 day structure.';
 
+    Future<void> chooseMaxEffort(WidgetTester tester, String day) async {
+      final tile = find.byKey(ValueKey('main-method-$day'));
+      await tester.ensureVisible(tile);
+      await tester.pumpAndSettle();
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Max Effort').last);
+      await tester.pumpAndSettle();
+    }
+
     /// Drives Step 1 (mode) -> Step 4 (split) with an A/B/C split (3 distinct
     /// day slots, not PPL) so Step 5 offers exactly 3 "Max Effort" tap
     /// targets, one per slot, without also tripping the 6-day-PPL condition.
@@ -1267,10 +1280,9 @@ void main() {
       await selectModeAndAbcSplit(tester, 'Build it for me');
 
       // Select "Max Effort" as the main exercise method for all 3 slots
-      // (A, B, C) - one "Max Effort" choice chip renders per slot card.
-      for (var i = 0; i < 3; i++) {
-        await tester.tap(find.text('Max Effort').at(i));
-        await tester.pump();
+      // (A, B, C), each through its own method picker sheet.
+      for (final day in const ['A', 'B', 'C']) {
+        await chooseMaxEffort(tester, day);
       }
 
       await _continue(tester); // Step 5 -> Step 6 (schedule)
@@ -1301,9 +1313,8 @@ void main() {
       await _pumpBuilder(tester, db);
       await selectModeAndAbcSplit(tester, 'Guide me');
 
-      for (var i = 0; i < 3; i++) {
-        await tester.tap(find.text('Max Effort').at(i));
-        await tester.pump();
+      for (final day in const ['A', 'B', 'C']) {
+        await chooseMaxEffort(tester, day);
       }
 
       await _continue(tester); // Step 5 -> Step 6 (schedule)
@@ -1336,9 +1347,8 @@ void main() {
         await _pumpBuilder(tester, db);
         await selectModeAndAbcSplit(tester, 'Start from scratch');
 
-        for (var i = 0; i < 3; i++) {
-          await tester.tap(find.text('Max Effort').at(i));
-          await tester.pump();
+        for (final day in const ['A', 'B', 'C']) {
+          await chooseMaxEffort(tester, day);
         }
 
         await _continue(tester); // Step 5 -> Step 6 (schedule)
@@ -1992,5 +2002,97 @@ void main() {
         await tester.pump(const Duration(milliseconds: 10));
       },
     );
+  });
+
+  group('Herculex AI training preferences', () {
+    late AppDatabase db;
+    setUp(() async => db = await openTestDatabase());
+    tearDown(() => db.close());
+
+    Map<String, dynamic> briefWith(Map<String, dynamic> preferences) => {
+      ..._FakeHerculexGeminiBackend._defaultResult(),
+      'trainingPreferences': preferences,
+    };
+
+    Future<void> generate(WidgetTester tester, String note) async {
+      await tester.tap(find.text('Herculex AI'));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('training-style-note')),
+        note,
+      );
+      await tester.tap(find.text('Generate with Herculex AI'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    testWidgets('the note is sent and the field only exists in AI mode', (
+      tester,
+    ) async {
+      final backend = _FakeHerculexGeminiBackend();
+      await _pumpBuilderWithBackend(tester, db, backend);
+      expect(find.byKey(const ValueKey('training-style-note')), findsNothing);
+
+      await generate(tester, 'Few hard sets, myo-reps on isolations.');
+
+      expect(backend.lastUserNote, 'Few hard sets, myo-reps on isolations.');
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    });
+
+    testWidgets('a blank note sends no note at all', (tester) async {
+      final backend = _FakeHerculexGeminiBackend();
+      await _pumpBuilderWithBackend(tester, db, backend);
+
+      await generate(tester, '   ');
+
+      expect(backend.lastUserNote, isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    });
+
+    testWidgets('variety is applied and explained, and a novice is told what '
+        'waits until they have more experience', (tester) async {
+      final backend = _FakeHerculexGeminiBackend(
+        result: briefWith({
+          'focus': 'variety',
+          'isolationTechnique': 'myo_reps',
+          'rationale': 'Likes a wide exercise selection and myo-reps.',
+        }),
+      );
+      await _pumpBuilderWithBackend(tester, db, backend);
+      await generate(tester, 'Lots of variety please');
+      for (var step = 1; step < 5; step++) {
+        await _continue(tester);
+      }
+
+      expect(
+        find.textContaining('Herculex AI understood: Likes a wide exercise'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Set techniques wait until you have more'),
+        findsOneWidget,
+      );
+      expect(find.text('Variety'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    });
+
+    testWidgets('a brief without preferences leaves the focus card alone', (
+      tester,
+    ) async {
+      final backend = _FakeHerculexGeminiBackend();
+      await _pumpBuilderWithBackend(tester, db, backend);
+      await generate(tester, '');
+      for (var step = 1; step < 5; step++) {
+        await _continue(tester);
+      }
+
+      expect(find.textContaining('Herculex AI understood'), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    });
   });
 }

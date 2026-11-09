@@ -43,6 +43,7 @@ class ScorerCandidate {
     this.flatExposures = 0,
     this.equipmentAvailable = true,
     this.isAnchor = false,
+    this.isBenchmark = false,
   });
 
   final int exerciseId;
@@ -78,6 +79,10 @@ class ScorerCandidate {
 
   /// The pool's default exercise. Realization phases lock onto it.
   final bool isAnchor;
+
+  /// A standard lift worth tracking over a block, such as the barbell squat.
+  /// Without this a heavy slot's choice falls to the tie-breaker.
+  final bool isBenchmark;
 }
 
 /// Everything about the slot and the moment that the scorer needs.
@@ -130,6 +135,7 @@ class ScorerWeights {
     this.variety = 1.0,
     this.tierFit = 1.0,
     this.novelty = 0.8,
+    this.benchmark = 1.0,
   });
 
   final double stagnation;
@@ -140,6 +146,7 @@ class ScorerWeights {
   final double variety;
   final double tierFit;
   final double novelty;
+  final double benchmark;
 
   static const standard = ScorerWeights();
 }
@@ -383,6 +390,10 @@ abstract final class ExerciseScorer {
       breakdown['novelty'] = -w.novelty * shortfall;
     }
 
+    if (ctx.role.isHeavy && c.isBenchmark) {
+      breakdown['benchmark'] = w.benchmark;
+    }
+
     var total = breakdown.values.fold(0.0, (sum, v) => sum + v);
     total += _jitter(ctx.seed, c.exerciseId);
 
@@ -523,6 +534,8 @@ abstract final class ExerciseScorer {
             : 'close to what you just did';
       case 'tierFit':
         return positive ? 'suits this block phase' : 'off-phase for this block';
+      case 'benchmark':
+        return 'a stable benchmark lift';
       case 'novelty':
         return 'only ${c.loggedSessions} logged '
             '${c.loggedSessions == 1 ? 'session' : 'sessions'}';

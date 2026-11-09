@@ -10,6 +10,7 @@ import 'package:herculex/features/programs/domain/primary_lift_specialization.da
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
+import 'package:herculex/features/programs/domain/time_saving_policy.dart';
 
 import 'support/test_database.dart';
 
@@ -463,6 +464,7 @@ void main() {
           experience: ExperienceLevel.intermediate,
           workoutDurationMinutes: 45,
           allowTimeSavingSetTechniques: true,
+          timeSavingTechnique: TimeSavingTechnique.myoReps,
         ),
       );
 
@@ -615,13 +617,9 @@ void main() {
     'sticking point (D-12)',
     () async {
       // Pull-up's cnsScore (4) is below the SlotRole.main threshold (>=5), so
-      // (unlike bench/OHP, whose compound barbell main lift also satisfies
-      // the main-slot eligibility gate) a bodyweight pull-up never fills the
-      // day's main slot through this automatic flow - that is a pre-existing,
-      // out-of-scope constraint of SlotRoleEligibility.derive, not something
-      // this task changes. This test instead asserts the assistance slot
-      // (SlotRole.supplemental), which is what D-12's per-sticking-point
-      // branching in `_needsForPrimaryLift` actually controls for pullUp.
+      // the specialized lift's own slot eases to SlotRole.supplemental rather
+      // than leaving the movement. Both supplemental slots must therefore be
+      // vertical pulls: the lift itself, and D-12's assistance branch.
       final programId = await ProgramsRepository(db).createProgramFromSplit(
         name: 'Pull-up block',
         weeks: 12,
@@ -649,17 +647,20 @@ void main() {
 
       final days = await db.select(db.programDays).get();
       for (final day in days) {
-        final assistance =
+        final supplemental =
             await (db.select(db.programDayExercises)..where(
                   (row) =>
                       row.programDayId.equals(day.id) &
                       row.slotRole.equals(SlotRole.supplemental.id),
                 ))
-                .getSingle();
-        final exercise = await (db.select(
-          db.exerciseCatalog,
-        )..where((row) => row.id.equals(assistance.exerciseId))).getSingle();
-        expect(exercise.movementPattern, 'vertical_pull');
+                .get();
+        expect(supplemental, hasLength(2));
+        for (final row in supplemental) {
+          final exercise = await (db.select(
+            db.exerciseCatalog,
+          )..where((t) => t.id.equals(row.exerciseId))).getSingle();
+          expect(exercise.movementPattern, 'vertical_pull');
+        }
       }
     },
   );
@@ -988,6 +989,9 @@ void main() {
           name: 'Horizontal Pull Accessory Filler',
           primaryMuscle: 'Back',
           movementPattern: 'horizontal_pull',
+          // Accessory-only: a compound row would let the main slot ease to
+          // supplemental and take it, which is not the case under test.
+          mechanics: 'isolation',
         );
         final bicepId = await insertExercise(
           slug: 'bicep-filler',
@@ -1072,6 +1076,9 @@ void main() {
           name: 'Horizontal Pull Accessory Filler',
           primaryMuscle: 'Back',
           movementPattern: 'horizontal_pull',
+          // Accessory-only: a compound row would let the main slot ease to
+          // supplemental and take it, which is not the case under test.
+          mechanics: 'isolation',
         );
         final bicepId = await insertExercise(
           slug: 'bicep-filler-2',
@@ -1182,6 +1189,9 @@ void main() {
           name: 'Horizontal Pull Accessory Filler',
           primaryMuscle: 'Back',
           movementPattern: 'horizontal_pull',
+          // Accessory-only: a compound row would let the main slot ease to
+          // supplemental and take it, which is not the case under test.
+          mechanics: 'isolation',
         );
         // The supplemental vertical_pull slot has a normal eligible
         // candidate and resolves normally (filled) every week.
@@ -1403,6 +1413,9 @@ void main() {
           name: 'Horizontal Pull Accessory Filler',
           primaryMuscle: 'Back',
           movementPattern: 'horizontal_pull',
+          // Accessory-only: a compound row would let the main slot ease to
+          // supplemental and take it, which is not the case under test.
+          mechanics: 'isolation',
         );
         final bicepId = await insertExercise(
           slug: 'bicep-filler-3',

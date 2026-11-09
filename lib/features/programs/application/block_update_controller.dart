@@ -78,6 +78,7 @@ class BlockUpdateController {
       daysPerWeek: request.daysPerWeek,
       mode: mode,
       cycleLength: mode == ScheduleMode.cycle ? request.daysPerWeek + 1 : null,
+      distinctRepeatedDays: buildMode != ProgramBuildMode.manual,
     );
 
     // A manual block keeps its own templates, matched by slot name.
@@ -109,9 +110,12 @@ class BlockUpdateController {
         final joints = await _ref
             .read(jointPainRepositoryProvider)
             .currentStatuses();
+        final choices = await _repo.generationChoices(program.id);
         await SmartProgramPlanner(db).populate(
           draftId,
           SmartProgramConfiguration(
+            waveOverrideWeeks: choices.rotationWeeks,
+            trainingFocus: choices.focus,
             goal: TrainingGoal.fromId(program.trainingGoal),
             experience: ExperienceLevel.fromId(program.experienceLevel),
             buildMode: buildMode,

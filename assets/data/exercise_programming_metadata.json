@@ -1961,6 +1961,60 @@
       "scalingOrder": 2,
       "competitionAnchor": null,
       "specializationTags": []
+    },
+    "dumbbell-hip-thrust": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "hinge",
+      "scalingOrder": 1,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "hip-thrust-machine": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "hinge",
+      "scalingOrder": 1,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "barbell-hip-thrust": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "hinge",
+      "scalingOrder": 1,
+      "competitionAnchor": null,
+      "specializationTags": []
     }
   }
 }

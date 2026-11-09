@@ -242,6 +242,7 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
                 ? _muscleFocusWave
                 : MuscleFocusWave.steady,
             waveOverrideWeeks: _waveOverrideWeeks,
+            trainingFocus: _effectiveTrainingFocus,
           ),
         );
       }
@@ -301,6 +302,9 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
       final (brief, provenance) = await ref
           .read(herculexAiBriefServiceProvider)
           .generateBrief(
+            userNote: _trainingStyleNoteCtrl.text.trim().isEmpty
+                ? null
+                : _trainingStyleNoteCtrl.text.trim(),
             profileInputs: {
               'goal': _goal.id,
               'experience': _experience.id,
@@ -314,6 +318,8 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
               'timeSavingTechnique': _timeSavingTechnique.id,
               'includeAutomaticWarmups': _includeAutomaticWarmups,
               'includeGppConditioning': _includeGppConditioning,
+              if (_effectiveTrainingFocus == TrainingFocus.intensity)
+                'programmingPreference': 'low_volume',
               'musclePriorities': _useManualMusclePlan
                   ? _manualPriorities
                   : _dreamPhysiquePriorities,
@@ -367,6 +373,7 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
           // Generate/Regenerate tap.
           _split = brief.splitType;
           _model = brief.periodizationModel;
+          _applyTrainingPreferences(brief.trainingPreferences);
           _clearCustomWeeklyPlacement();
           _templatesBySlot.clear();
           _dayRoles.clear();
@@ -388,6 +395,18 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
     } finally {
       if (mounted) setState(() => _generatingBrief = false);
     }
+  }
+
+  /// Applies how the user said they like to train. Each value is one of the
+  /// planner's own settings, so the user can see and change all of it below.
+  /// A request the planner cannot honour at their level (for example forced
+  /// reps for a novice) is still shown but not applied; [_techniqueLimitNote]
+  /// says so.
+  void _applyTrainingPreferences(TrainingPreferencesBrief? preferences) {
+    if (preferences == null) return;
+    _trainingFocus = preferences.focus;
+    _timeSavingTechnique = preferences.isolationTechnique;
+    if (preferences.usesSetTechnique) _allowTimeSavingSetTechniques = true;
   }
 
   Map<String, String> get _manualPriorities {

@@ -173,6 +173,9 @@ abstract final class SplitTemplates {
   /// [weeklyDayLabels] lets the user decide which split slot falls on each
   /// selected weekday. Labels outside this split are ignored.
   /// [customSlots] supplies the slot names for [SplitType.custom].
+  /// [distinctRepeatedDays] names repeats of a split within a week as separate
+  /// A/B workouts (see [slotsFor]). Generated programs use it; a manual block
+  /// leaves it off so both Push days can share one template.
   static SplitPlan generate({
     required SplitType type,
     required int daysPerWeek,
@@ -181,8 +184,14 @@ abstract final class SplitTemplates {
     List<String>? customSlots,
     List<int>? preferredWeekdays,
     Map<int, String>? weeklyDayLabels,
+    bool distinctRepeatedDays = false,
   }) {
-    final slots = _slotsFor(type, customSlots, daysPerWeek);
+    final slots = slotsFor(
+      type,
+      daysPerWeek: daysPerWeek,
+      customSlots: customSlots,
+      distinctRepeatedDays: distinctRepeatedDays,
+    );
 
     if (mode == ScheduleMode.weekly) {
       final days = daysPerWeek.clamp(1, 7);
@@ -240,13 +249,28 @@ abstract final class SplitTemplates {
     );
   }
 
-  static List<String> _slotsFor(
-    SplitType type,
+  /// The slot names a plan assigns round-robin to its training days.
+  ///
+  /// With [distinctRepeatedDays], Upper/Lower and PPL that repeat within a week
+  /// become `Upper A, Lower A, Upper B, Lower B`, so the second Upper day is a
+  /// different workout that the builder can name.
+  /// Full Body A/B on three days stays A-B-A: there, A is one workout.
+  static List<String> slotsFor(
+    SplitType type, {
+    required int daysPerWeek,
     List<String>? customSlots,
-    int daysPerWeek,
-  ) {
+    bool distinctRepeatedDays = false,
+  }) {
     final supplied = customSlots?.where((s) => s.trim().isNotEmpty).toList();
     if (supplied != null && supplied.isNotEmpty) return supplied;
+    if (distinctRepeatedDays &&
+        (type == SplitType.upperLower || type == SplitType.ppl) &&
+        daysPerWeek > type.slots.length) {
+      return [
+        for (final suffix in const ['A', 'B'])
+          for (final slot in type.slots) '$slot $suffix',
+      ];
+    }
     if (type.slots.isNotEmpty) return type.slots;
     // Custom with nothing supplied: one numbered slot per training day.
     final count = daysPerWeek < 1 ? 1 : daysPerWeek;

@@ -57,6 +57,12 @@ class _ExerciseLineState extends State<_ExerciseLine> {
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
+                      if (item.structure?.structureLabel
+                          case final structureLabel?)
+                        SetStructureLine(
+                          direction: item.structure!.direction,
+                          label: structureLabel,
+                        ),
                     ],
                   ),
                 ),

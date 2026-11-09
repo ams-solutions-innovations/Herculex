@@ -197,6 +197,24 @@ mixin _StepModeAndSplitMixin on _BuilderStateBase {
                     onTap: _generatingBrief ? () {} : _generateHerculexBrief,
                   ),
           ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const ValueKey('training-style-note'),
+            controller: _trainingStyleNoteCtrl,
+            maxLines: 3,
+            maxLength: 400,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              labelText: 'How do you like to train? (optional)',
+              hintText:
+                  'For example: few hard sets, myo-reps on isolations, or a '
+                  'lot of exercise variety.',
+              helperText:
+                  'Herculex AI reads this and picks from the options in '
+                  'this app. You can change everything afterwards.',
+              helperMaxLines: 2,
+            ),
+          ),
           if (_herculexRejectionMessage != null) ...[
             const SizedBox(height: 12),
             AiBriefRejectionBanner(
@@ -446,7 +464,11 @@ mixin _StepModeAndSplitMixin on _BuilderStateBase {
   Future<void> _editWeeklyDay(int weekday) async {
     final options = _split.slots.isEmpty
         ? _plan.slotSummary.map((slot) => slot.label).toList()
-        : _split.slots;
+        : SplitTemplates.slotsFor(
+            _split,
+            daysPerWeek: _daysPerWeek,
+            distinctRepeatedDays: _buildMode != ProgramBuildMode.manual,
+          );
     if (options.isEmpty) return;
     final selected = await showModalBottomSheet<String>(
       context: context,

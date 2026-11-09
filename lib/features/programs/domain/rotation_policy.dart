@@ -180,6 +180,38 @@ class RotationPolicy {
     }
   }
 
+  /// The policy a generated slot actually uses. Exercise rotation is opt-in
+  /// (Blueprint PROGRESSION-PLATEAU-02: change an exercise for a reason, not
+  /// for novelty), so a slot stays on one exercise for the whole block unless:
+  ///
+  /// - [userRotationWeeks] is positive: the user chose that cadence;
+  /// - it is null on Max Effort work: choosing Westside is choosing its planned
+  ///   variation. The builder shows this, and `0` turns it off.
+  ///
+  /// [forSlot] still supplies the re-exposure gap and pool size for each role.
+  static RotationPolicy forProgram({
+    required PeriodizationModel model,
+    required SlotRole role,
+    String? blockPhase,
+    int? userRotationWeeks,
+    bool isMaxEffortMethod = false,
+  }) {
+    final usesMaxEffort =
+        isMaxEffortMethod || model == PeriodizationModel.maxEffort;
+    final base = forSlot(
+      model: usesMaxEffort ? PeriodizationModel.maxEffort : model,
+      role: role,
+      blockPhase: blockPhase,
+    );
+    if (usesMaxEffort && userRotationWeeks == null) return base;
+    return RotationPolicy(
+      everyWeeks: userRotationWeeks ?? 0,
+      minGapWeeks: base.minGapWeeks,
+      minPoolSize: base.minPoolSize,
+      tier: base.tier,
+    );
+  }
+
   static PoolTier poolTierForPhase(String? phase) => switch (phase) {
     'accumulation' => PoolTier.volumeFriendly,
     'transmutation' => PoolTier.competitionAdjacent,

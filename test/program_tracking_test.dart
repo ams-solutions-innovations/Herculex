@@ -188,7 +188,7 @@ void main() {
         db,
       ).watchDayExerciseSummaries(dayId).first;
       expect(dayPreview.single.name, 'Low-Bar Squat Tracking Test');
-      expect(dayPreview.single.targetLabel, '3 × 1–3');
+      expect(dayPreview.single.targetLabel, '1 × 1–3 → 3 × 3–6');
       expect(dayPreview.single.method, 'max_effort');
       expect(dayPreview.single.why, contains('this wave'));
     },

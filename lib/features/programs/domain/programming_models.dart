@@ -167,6 +167,44 @@ enum MuscleFocusWave {
   final String label;
 }
 
+/// How a generated program spends its effort. Separate from periodization,
+/// which decides how load and volume move across weeks.
+enum TrainingFocus {
+  balanced('balanced', 'Balanced'),
+
+  /// Low volume, high effort: compounds get two sets at RPE 9 or higher,
+  /// isolations get three sets.
+  intensity('intensity', 'Intensity'),
+
+  /// A wider exercise selection: accessory and isolation work changes every
+  /// three weeks unless the user chose another cadence. Main lifts stay put.
+  variety('variety', 'Variety');
+
+  const TrainingFocus(this.id, this.label);
+  final String id;
+  final String label;
+
+  static TrainingFocus? tryParse(Object? value) {
+    if (value is! String) return null;
+    for (final focus in values) {
+      if (focus.id == value) return focus;
+    }
+    return null;
+  }
+
+  /// Whether [intensity] can be prescribed. Novices need a technique buffer
+  /// (Blueprint foundation module). Max Effort has its own set structure and
+  /// CrossFit is conditioning-first. Other profiles are always available.
+  static bool isAvailable({
+    required ExperienceLevel experience,
+    required bool isMaxEffortModel,
+    required TrainingStyle style,
+  }) =>
+      experience != ExperienceLevel.novice &&
+      !isMaxEffortModel &&
+      !style.isConditioningFirst;
+}
+
 enum ExerciseAffinity {
   never('never', -1, 'Never'),
   okay('okay', 0, 'Okay'),
@@ -198,13 +236,44 @@ enum SlotTrainingMethod {
   maxEffort('max_effort', 'Max Effort'),
   dynamicEffort('dynamic_effort', 'Dynamic Effort'),
   repetition('repetition', 'Repetition Method'),
-  technique('technique', 'Technique / Tempo');
+  technique('technique', 'Technique / Tempo'),
+  pyramidUp('pyramid_up', 'Pyramid Up'),
+  reversePyramid('reverse_pyramid', 'Reverse Pyramid'),
+
+  /// Set by [TrainingFocus.intensity], never picked per slot: the stored set
+  /// count and effort stay fixed in every week except a planned deload.
+  intensityFocus('intensity_focus', 'Intensity Focus');
 
   const SlotTrainingMethod(this.id, this.label);
   final String id;
   final String label;
 
-  bool get isHighIntensity => this == maxEffort || this == topSetBackoff;
+  bool get isHighIntensity =>
+      this == maxEffort ||
+      this == topSetBackoff ||
+      this == reversePyramid ||
+      this == intensityFocus;
+
+  /// One line for the builder's method picker, stating the set structure so a
+  /// pyramid is visible before the workout, not only during it.
+  String get description => switch (this) {
+    auto => 'Herculex chooses from your goal, experience and day role.',
+    straightSets => 'The same reps and load on every working set.',
+    doubleProgression => 'Add reps across a range, then add load.',
+    topSetBackoff =>
+      'Descending: one heavy top set, then lighter back-off sets.',
+    pyramidUp => 'Ascending: load goes up and reps come down each set.',
+    reversePyramid =>
+      'Descending: heaviest set first, then less load and more reps.',
+    volumeWave => 'Moderate load with volume that varies through the block.',
+    maxEffort =>
+      'Descending: work up to a heavy 1–3, then lighter back-off sets.',
+    dynamicEffort => 'Light loads moved as fast as possible.',
+    repetition => 'Moderate load taken close to failure.',
+    technique => 'Controlled practice with reps left in reserve.',
+    intensityFocus =>
+      'Compounds: 2 sets at RPE 9 or higher. Isolations: 3 sets.',
+  };
 
   static SlotTrainingMethod fromId(String? id) => values.firstWhere(
     (value) => value.id == id,

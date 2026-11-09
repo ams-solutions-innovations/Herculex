@@ -37,10 +37,12 @@ extension _TimeSavingPlans on SmartProgramPlanner {
       ),
       setType: work.last.setType,
       isolationPrimer: compressed.isolationPrimer,
-      why:
-          ' ${prescription.name} fits your '
-          '${configuration.workoutDurationMinutes}-minute session. '
-          '${prescription.note ?? ''}',
+      why: configuration.timeSavingTechnique == TimeSavingTechnique.automatic
+          ? ' ${prescription.name} fits your '
+                '${configuration.workoutDurationMinutes}-minute session. '
+                '${prescription.note ?? ''}'
+          : ' ${prescription.name}, as you prefer for isolation work. '
+                '${prescription.note ?? ''}',
       prescriptionCodecJson: SlotPrescriptionCodec.encode(prescription),
     );
   }

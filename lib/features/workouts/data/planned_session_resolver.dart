@@ -5,7 +5,7 @@ import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/measurements/data/measurements_repository.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
-import 'package:herculex/features/programs/domain/prescription_resolver.dart';
+import 'package:herculex/features/programs/domain/program_set_structure.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
@@ -461,9 +461,17 @@ class PlannedSessionResolver {
               model == PeriodizationModel.linear)
           ? SlotTrainingMethod.straightSets
           : rawMethod;
-      final prescription = _resolvePrescription(
+      final prescription = ProgramSetStructure.resolve(
         method: method,
-        explicit: pde,
+        targets: SlotTargets(
+          sets: pde.targetSets,
+          repsMin: pde.targetRepsMin,
+          repsMax: pde.targetRepsMax,
+          rir: pde.targetRir,
+          rpe: pde.targetRpe,
+          percentOf1Rm: pde.percentOf1Rm,
+          restSeconds: pde.restSeconds,
+        ),
         role: role,
         model: model,
         week: weekPrescription,
@@ -686,100 +694,6 @@ class PlannedSessionResolver {
       orElse: () => SlotTrainingMethod.auto,
     );
   }
-
-  static ResolvedPrescription _resolvePrescription({
-    required SlotTrainingMethod method,
-    required ProgramDayExerciseData explicit,
-    required SlotRole role,
-    required PeriodizationModel model,
-    required WeekPrescription week,
-    required String mechanics,
-    required String modality,
-  }) {
-    final effectiveMethod =
-        (method == SlotTrainingMethod.dynamicEffort &&
-            model == PeriodizationModel.linear)
-        ? SlotTrainingMethod.straightSets
-        : method;
-    final methodTemplate = switch (effectiveMethod) {
-      SlotTrainingMethod.maxEffort => SlotPrescription.builtIns.firstWhere(
-        (p) => p.name == 'Westside ME',
-      ),
-      SlotTrainingMethod.dynamicEffort => SlotPrescription.builtIns.firstWhere(
-        (p) => p.name.startsWith('Dynamic Effort'),
-      ),
-      SlotTrainingMethod.repetition => const SlotPrescription(
-        name: 'Repetition method',
-        segments: [
-          WorkSegment(sets: 3, repsMin: 8, repsMax: 12, intent: Intent.rir1),
-        ],
-      ),
-      SlotTrainingMethod.topSetBackoff => const SlotPrescription(
-        name: 'Top set + back-off',
-        segments: [
-          WorkSegment(sets: 1, repsMin: 4, repsMax: 6, intent: Intent.rir1),
-          WorkSegment(sets: 3, repsMin: 6, repsMax: 8, intent: Intent.rir2),
-        ],
-      ),
-      SlotTrainingMethod.volumeWave => SlotPrescription(
-        name: 'Volume wave',
-        segments: [
-          WorkSegment(
-            sets: explicit.targetSets,
-            repsMin: explicit.targetRepsMin ?? 10,
-            repsMax: explicit.targetRepsMax ?? 10,
-            intent: Intent.rir2,
-          ),
-        ],
-      ),
-      SlotTrainingMethod.technique => const SlotPrescription(
-        name: 'Technique / tempo',
-        segments: [WorkSegment(sets: 3, repsMin: 5, intent: Intent.technical)],
-      ),
-      SlotTrainingMethod.straightSets ||
-      SlotTrainingMethod.doubleProgression => SlotPrescription(
-        name: effectiveMethod == SlotTrainingMethod.doubleProgression
-            ? 'Double progression'
-            : 'Straight sets',
-        segments: [
-          WorkSegment(
-            sets: explicit.targetSets,
-            repsMin: explicit.targetRepsMin ?? 8,
-            repsMax: explicit.targetRepsMax ?? explicit.targetRepsMin ?? 12,
-            intent: _intentFromRir(
-              explicit.targetRir ??
-                  (explicit.targetRpe == null
-                      ? null
-                      : 10 - explicit.targetRpe!),
-            ),
-            percentOf1Rm: explicit.percentOf1Rm,
-            restSeconds: explicit.restSeconds,
-          ),
-        ],
-      ),
-      SlotTrainingMethod.auto => null,
-    };
-    return PrescriptionResolver.resolve(
-      model: effectiveMethod == SlotTrainingMethod.maxEffort
-          ? PeriodizationModel.maxEffort
-          : model,
-      role: role,
-      week: week,
-      template: methodTemplate,
-      mechanics: mechanics,
-      modality: modality,
-    );
-  }
-
-  static Intent _intentFromRir(int? rir) => switch (rir) {
-    0 => Intent.toFailure,
-    1 => Intent.rir1,
-    2 => Intent.rir2,
-    3 => Intent.rir3,
-    4 => Intent.rir4,
-    5 => Intent.technical,
-    _ => Intent.rir2,
-  };
 
   static bool _hasAutomaticWarmups(String? raw) {
     if (raw == null || raw.isEmpty) {

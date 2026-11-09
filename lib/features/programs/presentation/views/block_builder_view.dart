@@ -86,6 +86,10 @@ abstract class _BuilderStateBase extends ConsumerState<BlockBuilderView> {
 
   // Step 1
   final _nameCtrl = TextEditingController();
+
+  /// Herculex AI mode: how the user likes to train, in their own words.
+  /// Sent as the brief's user note and read back as structured preferences.
+  final _trainingStyleNoteCtrl = TextEditingController();
   int _weeks = 8;
   PeriodizationModel _model = PeriodizationModel.linear;
   TrainingStyle _trainingStyle = TrainingStyle.weightlifting;
@@ -118,6 +122,20 @@ abstract class _BuilderStateBase extends ConsumerState<BlockBuilderView> {
   final Map<String, SlotTrainingMethod> _mainMethodByDayLabel = {};
   final Map<String, DayStressRole> _dayRoles = {};
   int? _waveOverrideWeeks;
+  TrainingFocus _trainingFocus = TrainingFocus.balanced;
+
+  bool get _intensityFocusAvailable => TrainingFocus.isAvailable(
+    experience: _experience,
+    isMaxEffortModel: _model == PeriodizationModel.maxEffort,
+    style: _trainingStyle,
+  );
+
+  /// The stored choice survives a detour through an ineligible setting, but
+  /// only counts while it is available.
+  TrainingFocus get _effectiveTrainingFocus =>
+      _trainingFocus == TrainingFocus.intensity && !_intensityFocusAvailable
+      ? TrainingFocus.balanced
+      : _trainingFocus;
 
   // Optional user-owned alternative to the Dream Physique analysis. A weight
   // is normalized in the UI, so users can think in relative percentages
@@ -171,6 +189,7 @@ abstract class _BuilderStateBase extends ConsumerState<BlockBuilderView> {
     preferredWeekdays: _mode == ScheduleMode.weekly && _hasCustomWeeklyPlacement
         ? _weeklyTrainingWeekdays.toList()
         : null,
+    distinctRepeatedDays: _buildMode != ProgramBuildMode.manual,
   );
 
   // ── Abstract stubs: cross-mixin private-method surface ──────────────────
@@ -315,6 +334,7 @@ class _BlockBuilderViewState extends _BuilderStateBase
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _trainingStyleNoteCtrl.dispose();
     _currentSquatCtrl.dispose();
     _targetSquatCtrl.dispose();
     super.dispose();
@@ -408,7 +428,7 @@ class _BlockBuilderViewState extends _BuilderStateBase
       child: HxScreenShell(
         key: ValueKey('block-builder-step-$_step'),
         title: 'New block',
-        padding: EdgeInsets.symmetric(horizontal: _step == 5 ? 12 : 20),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         pinnedBottom: _footer(theme),
         children: [
           switch (_step) {

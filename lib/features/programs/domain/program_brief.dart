@@ -17,6 +17,7 @@ import 'package:herculex/features/profile/data/dream_physique_service.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
+import 'package:herculex/features/programs/domain/time_saving_policy.dart';
 
 /// Keys that must never appear anywhere in a Herculex AI program brief, at
 /// any nesting depth. Their presence would mean the model attempted to
@@ -89,6 +90,71 @@ DayStressRole _strictDayStressRole(Object? value) {
   );
 }
 
+/// The ways of training the app can express. Every value maps to a
+/// deterministic planner setting; the model chooses among them and never
+/// supplies numbers (AIP-02).
+const _isolationTechniques = {
+  'straight_sets': TimeSavingTechnique.automatic,
+  'myo_reps': TimeSavingTechnique.myoReps,
+  'drop_sets': TimeSavingTechnique.dropSets,
+  'two_to_failure': TimeSavingTechnique.twoToFailure,
+  'forced_reps': TimeSavingTechnique.forcedReps,
+};
+
+/// How the user likes to train, read from their own words. Optional: older
+/// stored briefs and requests without a note simply have none.
+class TrainingPreferencesBrief {
+  const TrainingPreferencesBrief({
+    required this.focus,
+    required this.isolationTechniqueId,
+    required this.rationale,
+  });
+
+  final TrainingFocus focus;
+
+  /// One of `straight_sets`, `myo_reps`, `drop_sets`, `two_to_failure`,
+  /// `forced_reps`.
+  final String isolationTechniqueId;
+
+  /// What the model understood, in its own words, so the user can check it.
+  final String rationale;
+
+  TimeSavingTechnique get isolationTechnique =>
+      _isolationTechniques[isolationTechniqueId]!;
+
+  /// False when the user asked for plain sets, so nothing has to be enabled.
+  bool get usesSetTechnique =>
+      isolationTechnique != TimeSavingTechnique.automatic;
+
+  factory TrainingPreferencesBrief.fromJson(Map<String, dynamic> json) {
+    final focus = TrainingFocus.tryParse(json['focus']);
+    if (focus == null) {
+      throw FormatException(
+        'Unknown trainingPreferences.focus in Herculex AI program brief: '
+        '${json['focus']}',
+      );
+    }
+    final technique = json['isolationTechnique'];
+    if (technique is! String || !_isolationTechniques.containsKey(technique)) {
+      throw FormatException(
+        'Unknown trainingPreferences.isolationTechnique in Herculex AI '
+        'program brief: $technique',
+      );
+    }
+    return TrainingPreferencesBrief(
+      focus: focus,
+      isolationTechniqueId: technique,
+      rationale: _requiredString(json, 'rationale'),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'focus': focus.id,
+    'isolationTechnique': isolationTechniqueId,
+    'rationale': rationale,
+  };
+}
+
 int _requiredInt(Map<String, dynamic> json, String key) {
   final value = json[key];
   if (value is num && value.isFinite && value == value.truncateToDouble()) {
@@ -157,6 +223,7 @@ class ProgramBrief {
     required this.dayRoles,
     required this.musclePriorities,
     required this.phaseIntent,
+    this.trainingPreferences,
   });
 
   final SplitType splitType;
@@ -164,6 +231,7 @@ class ProgramBrief {
   final List<DayRoleBrief> dayRoles;
   final List<ProgrammingMusclePriority> musclePriorities;
   final String phaseIntent;
+  final TrainingPreferencesBrief? trainingPreferences;
 
   void validateForProfile(Map<String, dynamic> profile) {
     final days = profile['daysPerWeek'];
@@ -244,12 +312,24 @@ class ProgramBrief {
         })
         .toList(growable: false);
 
+    final rawPreferences = json['trainingPreferences'];
+    if (rawPreferences != null && rawPreferences is! Map) {
+      throw const FormatException(
+        'Invalid trainingPreferences in Herculex AI program brief.',
+      );
+    }
+
     return ProgramBrief(
       splitType: splitType,
       periodizationModel: periodizationModel,
       dayRoles: dayRoles,
       musclePriorities: musclePriorities,
       phaseIntent: _requiredString(json, 'phaseIntent'),
+      trainingPreferences: rawPreferences == null
+          ? null
+          : TrainingPreferencesBrief.fromJson(
+              Map<String, dynamic>.from(rawPreferences as Map),
+            ),
     );
   }
 
@@ -271,5 +351,7 @@ class ProgramBrief {
         },
     ],
     'phaseIntent': phaseIntent,
+    if (trainingPreferences != null)
+      'trainingPreferences': trainingPreferences!.toJson(),
   };
 }

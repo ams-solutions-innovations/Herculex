@@ -34,16 +34,8 @@ extension ProgramsBlockUpdate on ProgramsRepository {
     return [
       for (var i = 0; i < weeks; i++)
         () {
-          final start = DateTime(
-            from.year,
-            from.month,
-            from.day + 7 * i,
-          );
-          final end = DateTime(
-            start.year,
-            start.month,
-            start.day + 7,
-          );
+          final start = DateTime(from.year, from.month, from.day + 7 * i);
+          final end = DateTime(start.year, start.month, start.day + 7);
           final inWeek = rows.where((row) {
             final date = DateTime.parse(row.dateIso);
             return !date.isBefore(start) && date.isBefore(end);
@@ -92,10 +84,23 @@ extension ProgramsBlockUpdate on ProgramsRepository {
       _db.programExerciseSlots,
     )..where((t) => t.programId.equals(toProgramId))).get();
     final newSlotByKey = {for (final slot in newSlots) slot.slotKey: slot};
+    // A block built before A/B day names has `upper-intensity-main-0` where
+    // its rebuild has `upper-a-intensity-main-0`. The movement must match too,
+    // because the B template puts a different lift in the same position.
+    String unsuffixed(String key) => key.replaceFirst(RegExp(r'-[ab]-'), '-');
+    final newSlotsByUnsuffixedKey = {
+      for (final slot in newSlots) unsuffixed(slot.slotKey): slot,
+    };
 
     await _db.transaction(() async {
       for (final slot in oldSlots) {
-        final target = newSlotByKey[slot.slotKey];
+        final renamed = newSlotsByUnsuffixedKey[slot.slotKey];
+        final target =
+            newSlotByKey[slot.slotKey] ??
+            (renamed?.movementPattern == slot.movementPattern &&
+                    renamed?.primaryMuscle == slot.primaryMuscle
+                ? renamed
+                : null);
         if (target == null) continue;
         final choice =
             await (_db.select(_db.rotationAssignments)
@@ -135,6 +140,26 @@ extension ProgramsBlockUpdate on ProgramsRepository {
         );
       }
     });
+  }
+
+  /// The generation choices a rebuilt block must keep. They live on the slots:
+  /// the rotation cadence directly, the focus through its training method.
+  Future<({int? rotationWeeks, TrainingFocus focus})> generationChoices(
+    int programId,
+  ) async {
+    final slots = await (_db.select(
+      _db.programExerciseSlots,
+    )..where((t) => t.programId.equals(programId))).get();
+    return (
+      rotationWeeks: slots.firstOrNull?.waveOverrideWeeks,
+      focus:
+          slots.any(
+            (slot) =>
+                slot.trainingMethod == SlotTrainingMethod.intensityFocus.id,
+          )
+          ? TrainingFocus.intensity
+          : TrainingFocus.balanced,
+    );
   }
 
   /// Ends [programId] at [from]: its untouched future sessions go, every
