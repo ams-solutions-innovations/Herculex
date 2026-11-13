@@ -45,7 +45,7 @@ import 'package:herculex/features/nutrition/presentation/views/nutrient_overview
 import 'package:herculex/features/nutrition/presentation/views/nutrient_settings_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/nutrition_targets_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/weekly_calories_view.dart';
-import 'package:herculex/features/onboarding/presentation/onboarding_view.dart';
+import 'package:herculex/features/onboarding/presentation/views/onboarding_view.dart';
 import 'package:herculex/features/physique/presentation/views/physique_progress_view.dart';
 import 'package:herculex/features/physique/presentation/views/physique_roadmap_view.dart';
 import 'package:herculex/features/profile/domain/profile.dart';

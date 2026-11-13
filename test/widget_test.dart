@@ -21,8 +21,9 @@ void main() {
     // Let the splash → onboarding redirect resolve.
     await tester.pumpAndSettle();
 
-    // On-device only: there is no landing/login screen — onboarding is first.
-    expect(find.text('What is your primary goal?'), findsOneWidget);
+    // On-device only: there is no landing screen — onboarding is first, and it
+    // opens on the welcome page with the sign-in options.
+    expect(find.text('Sign up with email'), findsOneWidget);
 
     // Booting the real app starts `NotificationSyncService`, whose pull is
     // wrapped in `.timeout(const Duration(seconds: 2))`
