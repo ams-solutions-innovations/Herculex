@@ -26,6 +26,12 @@ class CalendarSyncResult {
   });
 }
 
+class CalendarDuplicateGroup {
+  const CalendarDuplicateGroup(this.marker, this.events);
+  final String marker;
+  final List<Event> events;
+}
+
 class CalendarService {
   final AppDatabase _db;
   final DeviceCalendarPlugin _deviceCalendarPlugin;
@@ -212,6 +218,82 @@ class CalendarService {
     throw Exception("No writable calendars found on device.");
   }
 
+  /// Find duplicates only when their Herculex identity marker matches exactly.
+  Future<List<CalendarDuplicateGroup>> findDuplicates({String? calendarId}) =>
+      _serialize(() async {
+        if (!await requestPermissions())
+          throw StateError('Calendar permission not granted');
+        final id = calendarId ?? await findOrCreateHerculexCalendar();
+        final now = DateTime.now();
+        final result = await _deviceCalendarPlugin.retrieveEvents(
+          id,
+          RetrieveEventsParams(
+            startDate: now.subtract(const Duration(days: 365)),
+            endDate: now.add(const Duration(days: 365)),
+          ),
+        );
+        if (!result.isSuccess || result.data == null)
+          throw StateError('Could not read calendar events');
+        final pattern = RegExp(r'\[herculex_(?:workout|session)_id:\d+\]');
+        final groups = <String, List<Event>>{};
+        for (final event in result.data!) {
+          final marker = pattern.firstMatch(event.description ?? '')?.group(0);
+          if (marker != null && event.eventId != null) {
+            groups.putIfAbsent(marker, () => []).add(event);
+          }
+        }
+        return [
+          for (final entry in groups.entries)
+            if (entry.value.length > 1)
+              CalendarDuplicateGroup(entry.key, entry.value),
+        ];
+      });
+
+  /// Re-read before deletion and retain at least one event for every marker.
+  Future<int> deleteSelectedDuplicates(
+    List<CalendarDuplicateGroup> groups,
+    Set<String> selected, {
+    String? calendarId,
+  }) => _serialize(() async {
+    if (!await requestPermissions())
+      throw StateError('Calendar permission not granted');
+    final id = calendarId ?? await findOrCreateHerculexCalendar();
+    final now = DateTime.now();
+    final result = await _deviceCalendarPlugin.retrieveEvents(
+      id,
+      RetrieveEventsParams(
+        startDate: now.subtract(const Duration(days: 365)),
+        endDate: now.add(const Duration(days: 365)),
+      ),
+    );
+    if (!result.isSuccess || result.data == null)
+      throw StateError('Could not read calendar events');
+    var deleted = 0;
+    for (final group in groups) {
+      final current = result.data!
+          .where(
+            (e) =>
+                (e.description ?? '').contains(group.marker) &&
+                e.eventId != null,
+          )
+          .toList();
+      final candidates = current
+          .where((e) => selected.contains(e.eventId))
+          .toList();
+      if (current.length < 2 || candidates.length >= current.length) continue;
+      for (final event in candidates) {
+        final response = await _deviceCalendarPlugin.deleteEvent(
+          id,
+          event.eventId!,
+        );
+        if (!response.isSuccess || response.data != true)
+          throw StateError('Could not delete calendar event');
+        deleted++;
+      }
+    }
+    return deleted;
+  });
+
   /// Full 2-Way Sync between Herculex scheduled workouts and Google / Device Calendar.
   ///
   /// 1. Inbound: Pull changes made in Google Calendar (moved dates or changed times)
@@ -242,7 +324,12 @@ class CalendarService {
       // 1. Retrieve all calendar events in the window
       final eventsResult = await _deviceCalendarPlugin.retrieveEvents(
         targetCalendarId,
-        RetrieveEventsParams(startDate: windowStart, endDate: windowEnd),
+        // Search beyond the workout sync window so a calendar event moved
+        // outside it is still matched instead of creating a second event.
+        RetrieveEventsParams(
+          startDate: now.subtract(const Duration(days: 365)),
+          endDate: now.add(const Duration(days: 365)),
+        ),
       );
 
       if (!eventsResult.isSuccess || eventsResult.data == null) {
@@ -426,6 +513,7 @@ class CalendarService {
           await (_db.select(_db.workoutSessions)..where(
                 (t) =>
                     t.endedAt.isNotNull() &
+                    t.deletedAt.isNull() &
                     t.startedAt.isBiggerOrEqualValue(windowStart) &
                     t.startedAt.isSmallerOrEqualValue(windowEnd),
               ))
@@ -445,8 +533,20 @@ class CalendarService {
         }
       }
 
-      final scheduledSessionIds = updatedScheduledRows
-          .map((r) => r.workout.completedSessionId)
+      // A schedule can have moved outside this sync window while its completed
+      // session remains inside it. It is still linked and must not be emitted
+      // as a second, standalone calendar event.
+      final linkedSchedules =
+          await (_db.select(_db.scheduledWorkouts)..where(
+                (s) =>
+                    s.deletedAt.isNull() &
+                    s.completedSessionId.isIn(
+                      completedSessions.map((s) => s.id),
+                    ),
+              ))
+              .get();
+      final scheduledSessionIds = linkedSchedules
+          .map((row) => row.completedSessionId)
           .whereType<int>()
           .toSet();
 

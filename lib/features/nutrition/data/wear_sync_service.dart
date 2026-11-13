@@ -325,6 +325,16 @@ class WearSyncService {
   /// Until this lands, the host keeps replaying that copy on every launch —
   /// that persistence is the only thing standing between a dropped platform
   /// message and a lost workout.
+  Future<void> markWatchWorkoutEnded(String entityId) async {
+    try {
+      await _channel.invokeMethod('markWatchWorkoutEnded', {
+        'entityId': entityId,
+      });
+    } on PlatformException catch (e) {
+      debugPrint('Could not acknowledge watch workout end: $e');
+    }
+  }
+
   Future<void> markWatchWorkoutApplied() async {
     try {
       await _channel.invokeMethod('markWatchWorkoutApplied');

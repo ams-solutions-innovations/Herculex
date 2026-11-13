@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/data/local/database.dart';
-import 'package:herculex/features/nutrition/presentation/sheets/food_picker_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/quick_scan_food.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:quick_actions/quick_actions.dart';
@@ -35,12 +35,12 @@ class AppShortcutsService {
 
   bool get _supported => ref.read(platformCapabilitiesProvider).hasAppShortcuts;
 
-  void initialize(BuildContext context) {
+  void initialize(BuildContext context, WidgetRef widgetRef) {
     if (_initialized || !_supported) return;
     _initialized = true;
 
     _quickActions.initialize((String shortcutType) async {
-      await handleShortcutAction(context, shortcutType);
+      await handleShortcutAction(context, shortcutType, widgetRef);
     });
   }
 
@@ -80,6 +80,7 @@ class AppShortcutsService {
   Future<void> handleShortcutAction(
     BuildContext context,
     String shortcutType,
+    WidgetRef widgetRef,
   ) async {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!context.mounted) return;
@@ -98,11 +99,8 @@ class AppShortcutsService {
         // 1. Switch to Nutrition tab
         ref.read(mainTabIndexProvider.notifier).state = 1;
 
-        // 2. Open Food Picker Sheet for today's food logging
-        final now = DateTime.now();
-        final date = DateTime(now.year, now.month, now.day);
         if (context.mounted) {
-          await FoodPickerSheet.show(context, date: date, mealKey: 'snack');
+          await scanAndLogFood(context, widgetRef);
         }
       } else if (shortcutType.startsWith('template_')) {
         final templateIdStr = shortcutType.replaceFirst('template_', '');

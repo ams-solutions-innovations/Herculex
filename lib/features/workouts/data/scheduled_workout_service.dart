@@ -172,6 +172,7 @@ class ScheduledWorkoutService {
               ..where(
                 (t) =>
                     t.dateIso.isBiggerThanValue(dayIso) &
+                    _belongsToLiveProgram &
                     t.deletedAt.isNull() &
                     t.status.isIn([
                       ScheduleStatus.planned,
@@ -252,12 +253,21 @@ class ScheduledWorkoutService {
     }
   }
 
+  /// Schedules that belong to an archived (or vanished) program are not part of
+  /// any live plan: archiving keeps the rows so it can be undone, but they must
+  /// not surface as "today's plan" or "next workout".
+  static final Expression<bool> _belongsToLiveProgram = CustomExpression<bool>(
+    'scheduled_workouts.program_id IS NULL OR scheduled_workouts.program_id IN '
+    '(SELECT id FROM programs WHERE archived = 0)',
+  );
+
   Future<List<TodaysScheduledWorkout>> _workoutsForDay(DateTime day) async {
     final schedules =
         await (_db.select(_db.scheduledWorkouts)
               ..where(
                 (t) =>
                     t.dateIso.equals(_dateIso(day)) &
+                    _belongsToLiveProgram &
                     t.deletedAt.isNull() &
                     t.status.isIn([
                       ScheduleStatus.planned,

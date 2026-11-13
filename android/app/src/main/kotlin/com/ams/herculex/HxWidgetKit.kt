@@ -450,7 +450,7 @@ class HxCanvas(val canvas: Canvas, val fonts: HxFonts) {
 
         rect.set(0f, 0f, w, h)
         fill.style = Paint.Style.FILL
-        if (accent == null) {
+        if (accent == null || opacity >= 1f) {
             fill.shader = null
             fill.color = alpha(palette.surface, opacity)
         } else {
@@ -464,15 +464,18 @@ class HxCanvas(val canvas: Canvas, val fonts: HxFonts) {
         }
         canvas.drawRoundRect(rect, radius, radius, fill)
 
-        // Sheen: light from the top-left that clears by the middle.
-        val sheen = if (palette.isDark) 0.10f else 0.40f
-        fill.shader = LinearGradient(
-            x0, y0, x1, y1,
-            intArrayOf(alpha(Color.WHITE, sheen), alpha(Color.WHITE, 0f), alpha(Color.WHITE, sheen * 0.3f)),
-            floatArrayOf(0f, 0.55f, 1f),
-            Shader.TileMode.CLAMP,
-        )
-        canvas.drawRoundRect(rect, radius, radius, fill)
+        if (opacity < 1f) {
+            // Sheen: light from the top-left that clears by the middle.
+            val sheen = if (palette.isDark) 0.10f else 0.40f
+            fill.shader = LinearGradient(
+                x0, y0, x1, y1,
+                intArrayOf(alpha(Color.WHITE, sheen), alpha(Color.WHITE, 0f), alpha(Color.WHITE, sheen * 0.3f)),
+                floatArrayOf(0f, 0.55f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+            canvas.drawRoundRect(rect, radius, radius, fill)
+
+        }
 
         // Edge: lit along the top, settling to the card's own hairline below.
         val edgeTop = if (palette.isDark) 0.28f else 0.75f

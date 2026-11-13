@@ -301,12 +301,19 @@ class HxWidgetRenderer(
     ) {
         val color = macroColor(kind)
         val capH = lineHeight(label)
-        circle(x + 3, top + capH / 2, 3f, color)
-        text(kind.caption, x + 6 + 5, baseline(top, label), label, maxWidth = colW - 11)
+        text(kind.caption, x, baseline(top, label), label, maxWidth = colW)
         val vTop = top + capH + 4
         val base = baseline(vTop, value, value.size * 1.1f)
-        val vw = text(if (m.hasTarget) "${m.current}" else if (!m.stale) "${m.current}g" else "—", x, base, value)
-        if (m.hasTarget) text(" / ${m.target} g", x + vw, base, target, maxWidth = colW - vw)
+        val current = if (m.hasTarget) "${m.current}" else if (!m.stale) "${m.current}g" else "—"
+        val targetText = if (m.hasTarget) " / ${m.target} g" else ""
+        val currentW = width(current, value)
+        val targetW = if (targetText.isEmpty()) 0f else width(targetText, target)
+        val valueGroupW = currentW + targetW
+        val valueX = x + (colW - valueGroupW).coerceAtLeast(0f) / 2f
+        val currentWDrawn = text(current, valueX, base, value, maxWidth = colW)
+        if (targetText.isNotEmpty()) {
+            text(targetText, valueX + currentWDrawn, base, target, maxWidth = colW - currentWDrawn)
+        }
         bar(x, vTop + value.size * 1.1f + 4, colW, 4f, m.fraction, p.surfaceVariant, color)
     }
 

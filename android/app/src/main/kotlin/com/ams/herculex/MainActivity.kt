@@ -99,6 +99,10 @@ class MainActivity : FlutterFragmentActivity() {
                     dispatchPendingWorkout()
                     result.success(null)
                 }
+                "markWatchWorkoutEnded" -> {
+                    PhoneWearListenerService.clearPendingTerminal(applicationContext, call.argument<String>("entityId"))
+                    result.success(null)
+                }
                 "markWatchWorkoutApplied" -> {
                     // Dart has the watch's session in the database now, so the
                     // persisted copy has done its job.
@@ -632,6 +636,18 @@ class MainActivity : FlutterFragmentActivity() {
                     "onWatchWorkoutUpdated",
                     mapOf("session_json" to storedSessionJson)
                 )
+            }
+        }
+
+        PhoneWearListenerService.pendingTerminal(applicationContext)?.let { raw ->
+            runCatching {
+                val terminal = JSONObject(raw)
+                val snapshot = terminal.optString("session_json")
+                if (snapshot.isNotBlank()) methodChannel?.invokeMethod(
+                    "onWatchWorkoutUpdated", mapOf("session_json" to snapshot))
+                methodChannel?.invokeMethod("onWatchWorkoutEnded", mapOf(
+                    "entityId" to terminal.optString("entityId"),
+                    "isDiscard" to terminal.optBoolean("isDiscard")))
             }
         }
 

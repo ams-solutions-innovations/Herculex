@@ -31,7 +31,7 @@ data class HxWidgetLook(
     /** Share of the card surface that is opaque; the rest lets the wallpaper through. */
     val opacity: Float
         get() = when (transparency.coerceIn(MIN_TRANSPARENCY, MAX_TRANSPARENCY)) {
-            1 -> 0.85f
+            1 -> 1.0f
             2 -> 0.65f
             else -> 0.45f
         }

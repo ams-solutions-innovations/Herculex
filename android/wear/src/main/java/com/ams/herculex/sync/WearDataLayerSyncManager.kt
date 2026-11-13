@@ -22,7 +22,7 @@ class WearDataLayerSyncManager(
     private val stateStore = WearStateStore(appContext)
     private val queueStore = WearRealtimeQueueStore(appContext)
 
-    suspend fun pushActiveWorkoutSession(sessionJson: String?, endedEntityId: String? = null) {
+    suspend fun pushActiveWorkoutSession(sessionJson: String?, endedEntityId: String? = null, finalSessionJson: String? = null, discarded: Boolean = false) {
         stateStore.saveString(WearStateStore.KEY_ACTIVE_WORKOUT_SESSION, sessionJson)
         putState(
             // Watch -> phone durable path (distinct from STATE_ACTIVE_WORKOUT,
@@ -32,6 +32,8 @@ class WearDataLayerSyncManager(
                 "session_json" to (sessionJson ?: ""),
                 "has_active_session" to (sessionJson != null),
                 "ended_entity_id" to (endedEntityId ?: ""),
+                "final_session_json" to (finalSessionJson ?: ""),
+                "discarded" to discarded,
             ),
         )
     }

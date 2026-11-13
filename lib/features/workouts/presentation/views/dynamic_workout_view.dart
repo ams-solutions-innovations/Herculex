@@ -17,6 +17,7 @@ import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/gamification/application/gamification_providers.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/presentation/sheets/weekly_adaptation_sheet.dart';
+import 'package:herculex/features/workout_report/presentation/report_context_sheet.dart';
 import 'package:herculex/features/workouts/application/finish_workout_action.dart';
 import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
 import 'package:herculex/features/workouts/application/workout_target_providers.dart';
@@ -115,6 +116,7 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
     final adaptation = ref.read(weeklyAdaptationRepositoryProvider);
     final interstitial = ref.read(dynamicWorkoutInterstitialProvider.notifier);
 
+    await askReasonForSkippedProgramSets(context, ref, session.id);
     await finish.run(session: session);
     interstitial.state = false;
 

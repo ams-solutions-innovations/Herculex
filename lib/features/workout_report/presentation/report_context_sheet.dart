@@ -1,5 +1,44 @@
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/workout_report/data/workout_report_journal.dart';
 import 'package:herculex/features/workout_report/domain/workout_report.dart';
+
+/// Ask only when a prescribed program exercise still has uncompleted work.
+Future<void> askReasonForSkippedProgramSets(
+  BuildContext context,
+  WidgetRef ref,
+  int sessionId,
+) async {
+  final db = ref.read(appDatabaseProvider);
+  final journal = WorkoutReportJournal(db, ref.read(clockProvider));
+  final exercises =
+      await (db.select(db.workoutExercises)..where(
+            (e) =>
+                e.sessionId.equals(sessionId) &
+                e.programExerciseSlotId.isNotNull() &
+                e.deletedAt.isNull(),
+          ))
+          .get();
+  if (exercises.isEmpty || !context.mounted) return;
+  final sets =
+      await (db.select(db.setEntries)..where(
+            (s) =>
+                s.workoutExerciseId.isIn(exercises.map((e) => e.id)) &
+                s.isCompleted.equals(false) &
+                s.isWarmup.equals(false) &
+                s.deletedAt.isNull(),
+          ))
+          .get();
+  if (sets.isEmpty || !context.mounted) return;
+  final reason = await showReportReasonSheet(context);
+  if (reason != null) {
+    await journal.record(sessionId, 'skip_sets', {
+      'setIds': sets.map((s) => s.id).toList(),
+    }, reason: reason.name);
+  }
+}
 
 Future<ReportReason?> showReportReasonSheet(
   BuildContext context,

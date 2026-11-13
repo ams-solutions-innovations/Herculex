@@ -79,6 +79,12 @@ class AppearanceSettingsView extends ConsumerWidget {
               trailing: WidgetThemeModeToggle(),
             ),
             HxSettingsDivider(),
+            HxSettingsTile(
+              icon: Icons.palette_outlined,
+              label: 'Widget Colors',
+              trailing: WidgetColorThemeToggle(),
+            ),
+            HxSettingsDivider(),
             WidgetTransparencyTile(),
             HxSettingsDivider(),
             WidgetShapeTile(),

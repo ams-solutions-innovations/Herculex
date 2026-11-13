@@ -121,80 +121,29 @@ class ThemeModeToggle extends ConsumerWidget {
 class AppColorThemeToggle extends ConsumerWidget {
   const AppColorThemeToggle({super.key});
 
-  static Color _previewColor(AppColorTheme theme) => switch (theme) {
-    AppColorTheme.classicBlue => const Color(0xFF0A84FF),
-    AppColorTheme.siriousBlack => const Color(0xFF27272A),
-    AppColorTheme.vividGreen => const Color(0xFF10B981),
-    AppColorTheme.sunnyYellow => const Color(0xFFF59E0B),
-    AppColorTheme.pinky => const Color(0xFFFF2D55),
-    AppColorTheme.crimsonRed => const Color(0xFFDC2626),
-    AppColorTheme.oceanTeal => const Color(0xFF14B8A6),
-    AppColorTheme.royalViolet => const Color(0xFF7C3AED),
-    AppColorTheme.sunsetOrange => const Color(0xFFF97316),
-  };
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeTheme = ref.watch(appColorThemeProvider);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-      decoration: BoxDecoration(
-        color: context.hx.surfaceVariant,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: context.hx.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<AppColorTheme>(
-          value: activeTheme,
-          isDense: true,
-          icon: Icon(
-            Icons.arrow_drop_down_rounded,
-            color: context.hx.onSurfaceVariant,
-            size: 20,
-          ),
-          dropdownColor: context.hx.surfaceContainer,
-          borderRadius: BorderRadius.circular(16),
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: context.hx.onSurface,
-          ),
-          items: AppColorTheme.values.map((theme) {
-            return DropdownMenuItem(
-              value: theme,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: _previewColor(theme),
-                      shape: BoxShape.circle,
-                      border: theme == AppColorTheme.siriousBlack
-                          ? Border.all(
-                              color: context.hx.outlineVariant,
-                              width: 1,
-                            )
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(theme.label),
-                ],
+    final current = ref.watch(appColorThemeProvider);
+    return TextButton(
+      onPressed: () async {
+        final picked = await showHxPicker<AppColorTheme>(
+          context,
+          title: 'App Colors',
+          selected: current,
+          options: [
+            for (final theme in AppColorTheme.values)
+              HxPickerOption(
+                value: theme,
+                label: theme.label,
+                icon: Icons.palette_outlined,
               ),
-            );
-          }).toList(),
-          onChanged: (newTheme) {
-            if (newTheme != null) {
-              ref.read(appColorThemeProvider.notifier).set(newTheme);
-            }
-          },
-        ),
-      ),
+          ],
+        );
+        if (picked != null) {
+          ref.read(appColorThemeProvider.notifier).set(picked);
+        }
+      },
+      child: Text(current.label),
     );
   }
 }
@@ -211,56 +160,61 @@ class NotificationStyleToggle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-      decoration: BoxDecoration(
-        color: context.hx.surfaceVariant,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: context.hx.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<NotificationStyle>(
-          value: ref.watch(notificationStyleProvider),
-          isDense: true,
-          icon: Icon(
-            Icons.arrow_drop_down_rounded,
-            color: context.hx.onSurfaceVariant,
-            size: 20,
-          ),
-          dropdownColor: context.hx.surfaceContainer,
-          borderRadius: BorderRadius.circular(16),
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: context.hx.onSurface,
-          ),
-          items: [
+    final current = ref.watch(notificationStyleProvider);
+    return TextButton(
+      onPressed: () async {
+        final picked = await showHxPicker<NotificationStyle>(
+          context,
+          title: 'Notification Theme',
+          selected: current,
+          options: [
             for (final style in NotificationStyle.values)
-              DropdownMenuItem(
+              HxPickerOption(
                 value: style,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _icon(style),
-                      size: 14,
-                      color: context.hx.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(style.label),
-                  ],
-                ),
+                label: style.label,
+                icon: _icon(style),
               ),
           ],
-          onChanged: (style) {
-            if (style != null) {
-              ref.read(notificationStyleProvider.notifier).set(style);
-            }
-          },
-        ),
-      ),
+        );
+        if (picked != null) {
+          ref.read(notificationStyleProvider.notifier).set(picked);
+        }
+      },
+      child: Text(current.label),
+    );
+  }
+}
+
+class WidgetColorThemeToggle extends ConsumerWidget {
+  const WidgetColorThemeToggle({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appTheme = ref.watch(appColorThemeProvider);
+    final AppColorTheme current =
+        ref.watch(widgetAppearanceProvider).colorTheme ?? appTheme;
+    return TextButton(
+      onPressed: () async {
+        final picked = await showHxPicker<AppColorTheme>(
+          context,
+          title: 'Widget Colors',
+          selected: current,
+          options: [
+            for (final theme in AppColorTheme.values)
+              HxPickerOption(
+                value: theme,
+                label: theme.label,
+                icon: Icons.palette_outlined,
+              ),
+          ],
+        );
+        if (picked != null) {
+          await ref
+              .read(widgetAppearanceProvider.notifier)
+              .setColorTheme(picked);
+        }
+      },
+      child: Text(current.label),
     );
   }
 }
@@ -361,14 +315,14 @@ class WidgetTransparencyTile extends ConsumerWidget {
     return _StackedSettingsTile(
       icon: Icons.blur_on_rounded,
       label: 'Transparency',
-      value: '$effectiveLevel',
+      value: effectiveLevel == 1 ? 'Solid' : '$effectiveLevel',
       child: Slider(
         value: effectiveLevel.toDouble(),
         min: WidgetAppearance.minTransparency.toDouble(),
         max: WidgetAppearance.maxTransparency.toDouble(),
         divisions:
             WidgetAppearance.maxTransparency - WidgetAppearance.minTransparency,
-        label: '$effectiveLevel',
+        label: effectiveLevel == 1 ? 'Solid' : '$effectiveLevel',
         onChanged: (v) {
           final next = v.round();
           if (next == effectiveLevel) return;
@@ -396,9 +350,8 @@ class WidgetShapeTile extends ConsumerWidget {
 
     return _StackedSettingsTile(
       icon: Icons.rounded_corner_rounded,
-      label: 'Small widget shape',
+      label: 'Widget shape',
       value: shapeLabel,
-      caption: 'Applies to the one-row widgets',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -517,6 +470,12 @@ class AppAppearanceCard extends ConsumerWidget {
           icon: Icons.widgets_outlined,
           label: 'Widget Theme',
           trailing: WidgetThemeModeToggle(),
+        ),
+        const HxSettingsDivider(),
+        const HxSettingsTile(
+          icon: Icons.palette_outlined,
+          label: 'Widget Colors',
+          trailing: WidgetColorThemeToggle(),
         ),
         const HxSettingsDivider(),
         const WidgetTransparencyTile(),

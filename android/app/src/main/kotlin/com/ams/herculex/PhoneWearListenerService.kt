@@ -54,6 +54,7 @@ class PhoneWearListenerService : WearableListenerService() {
         private const val NOTIF_ID   = 99182
         private const val PREFS_NAME = "wear_workout_pending"
         private const val KEY_SESSION_JSON = "session_json"
+        private const val KEY_TERMINAL = "terminal_workout"
         private const val KEY_FASTING_COMMANDS = "fasting_commands"
         private const val KEY_QUICKADD_COMMANDS = "quickadd_commands"
         private const val KEY_MACRO_COMMANDS = "macro_commands"
@@ -84,6 +85,17 @@ class PhoneWearListenerService : WearableListenerService() {
                 .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getString(KEY_SESSION_JSON, null)
                 ?.takeIf { it.isNotBlank() }
+        }
+
+        fun pendingTerminal(context: Context): String? = context.applicationContext
+            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_TERMINAL, null)
+
+        fun clearPendingTerminal(context: Context, entityId: String?) {
+            val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val pending = prefs.getString(KEY_TERMINAL, null) ?: return
+            if (runCatching { JSONObject(pending).optString("entityId") }.getOrNull() == entityId) {
+                prefs.edit().remove(KEY_TERMINAL).apply()
+            }
         }
 
         fun clearPendingWatchWorkout(context: Context) {
@@ -235,10 +247,9 @@ class PhoneWearListenerService : WearableListenerService() {
                         onWatchWorkoutUpdateListener?.invoke(sessionJson)
                     } else {
                         Log.d("PhoneWearListener", "Received watch workout end (durable path)")
-                        clearPendingWatchWorkout(this)
-                        dismissWorkoutNotification()
                         val entityId = dataMap.getString("ended_entity_id")?.takeIf { it.isNotBlank() }
-                        onWatchWorkoutEndListener?.invoke(false, entityId)
+                        receiveTerminal(entityId, dataMap.getBoolean("discarded", false),
+                            dataMap.getString("final_session_json"))
                     }
                 }
 
@@ -297,14 +308,12 @@ class PhoneWearListenerService : WearableListenerService() {
                 onWatchWorkoutUpdateListener?.invoke(sessionJson)
             }
             "/herculex_watch_session_end" -> {
-                clearPendingWatchWorkout(this)
-                dismissWorkoutNotification()
-                onWatchWorkoutEndListener?.invoke(false, extractEntityId(String(messageEvent.data)))
+                val raw = String(messageEvent.data)
+                val finalJson = runCatching { JSONObject(raw).optJSONObject("payload")?.optString("final_session_json") }.getOrNull()
+                receiveTerminal(extractEntityId(raw), false, finalJson)
             }
             "/herculex_watch_session_discard" -> {
-                clearPendingWatchWorkout(this)
-                dismissWorkoutNotification()
-                onWatchWorkoutEndListener?.invoke(true, extractEntityId(String(messageEvent.data)))
+                receiveTerminal(extractEntityId(String(messageEvent.data)), true, null)
             }
             "/request_sync" -> {
                 Log.d("PhoneWearListener", "Received /request_sync message from watch")
@@ -375,6 +384,18 @@ class PhoneWearListenerService : WearableListenerService() {
     /// whichever envelope carries the higher (now trustworthy, per Phase 1)
     /// revision, logging loudly either way instead of silently letting the
     /// last write win.
+    private fun receiveTerminal(entityId: String?, discard: Boolean, finalJson: String?) {
+        if (entityId.isNullOrBlank()) return
+        val terminal = JSONObject().put("entityId", entityId).put("isDiscard", discard)
+        if (!finalJson.isNullOrBlank()) terminal.put("session_json", finalJson)
+        applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(KEY_TERMINAL, terminal.toString()).apply()
+        clearPendingWatchWorkout(this)
+        dismissWorkoutNotification()
+        if (!discard && !finalJson.isNullOrBlank()) onWatchWorkoutUpdateListener?.invoke(finalJson)
+        onWatchWorkoutEndListener?.invoke(discard, entityId)
+    }
+
     private fun savePendingWorkout(sessionJson: String?) {
         if (sessionJson.isNullOrBlank()) return
         val prefs = applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

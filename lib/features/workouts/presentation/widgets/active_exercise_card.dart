@@ -398,7 +398,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         if (!context.mounted) {
                           return;
                         }
-                        final reason = setToRestore.isWarmup
+                        final reason =
+                            setToRestore.isWarmup ||
+                                workoutExercise.programExerciseSlotId == null
                             ? null
                             : await showReportReasonSheet(context);
                         await repo.deleteSet(

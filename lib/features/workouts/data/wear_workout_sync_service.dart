@@ -12,6 +12,7 @@ import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/workout_target_providers.dart';
+import 'package:herculex/features/workouts/application/calendar_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
@@ -497,10 +498,18 @@ class WearWorkoutSyncService {
           // could leave the UI briefly showing no active session at all.
           sessionId = activeSession.id;
         } else {
-          // Either no session yet, or the phone has some other unrelated
-          // active session — end that one and adopt the watch's new workout.
-          if (activeSession != null) {
-            await _workoutsRepository.endSession(activeSession.id);
+          // Ignore delayed starts for completed or unrelated workouts.
+          final previous =
+              await (_db.select(_db.workoutSessions)
+                    ..where((s) => s.sessionUuid.equals(envelope.entityId)))
+                  .getSingleOrNull();
+          if (activeSession != null || previous != null) {
+            _remoteDedupe.commit(envelope);
+            await _wearSyncService.markWatchWorkoutApplied();
+            if (previous != null) {
+              await _wearSyncService.endWorkoutOnWatch(envelope.entityId);
+            }
+            return;
           }
           sessionId = await _workoutsRepository.startSession(
             sessionUuid: envelope.entityId,
@@ -574,6 +583,16 @@ class WearWorkoutSyncService {
           }
           sessionId = activeSession.id;
         } else {
+          final previous =
+              await (_db.select(_db.workoutSessions)
+                    ..where((s) => s.sessionUuid.equals(envelope.entityId)))
+                  .getSingleOrNull();
+          if (previous != null) {
+            _remoteDedupe.commit(envelope);
+            await _wearSyncService.markWatchWorkoutApplied();
+            await _wearSyncService.endWorkoutOnWatch(envelope.entityId);
+            return;
+          }
           // The phone doesn't have a session yet — this update can arrive
           // before (or instead of) an explicit "start" event, e.g. via the
           // durable DataClient fallback after a missed MessageClient send.
@@ -692,27 +711,37 @@ class WearWorkoutSyncService {
     bool isDiscard = false,
   ]) async {
     try {
-      final activeSession = await _workoutsRepository
-          .watchActiveSession()
-          .first;
-      // A null entityId is a defensive fallback (shouldn't happen once both
-      // sides are on schemaVersion 2), not a license to end anything — a
-      // non-null, non-matching entityId is a hard no-op so an end event for
-      // a session the phone already moved on from can't kill the wrong one.
-      if (activeSession != null &&
-          (entityId == null || activeSession.sessionUuid == entityId)) {
-        if (isDiscard) {
-          await _workoutsRepository.deleteSession(activeSession.id);
-        } else {
-          await _workoutsRepository.endSession(activeSession.id);
+      await _enqueueRemoteApply(() async {
+        final activeSession = await _workoutsRepository
+            .watchActiveSession()
+            .first;
+        // A null entityId is a defensive fallback (shouldn't happen once both
+        // sides are on schemaVersion 2), not a license to end anything — a
+        // non-null, non-matching entityId is a hard no-op so an end event for
+        // a session the phone already moved on from can't kill the wrong one.
+        if (activeSession != null &&
+            (entityId == null || activeSession.sessionUuid == entityId)) {
+          if (isDiscard) {
+            await _workoutsRepository.deleteSession(activeSession.id);
+          } else {
+            await _workoutsRepository.endSession(activeSession.id);
+            if (_ref.read(calendarSyncEnabledProvider)) {
+              await _ref
+                  .read(calendarServiceProvider)
+                  .syncTwoWay(
+                    calendarId: _ref.read(selectedCalendarIdProvider),
+                  );
+            }
+          }
         }
-      }
-      _lastSyncedSessionId = null;
-      _lastSyncedEntityId = null;
-      if (entityId != null && entityId.isNotEmpty) {
-        _setSyncStates.removeWhere((key, _) => key.startsWith('$entityId:'));
-        _persistSetSyncStates();
-      }
+        _lastSyncedSessionId = null;
+        _lastSyncedEntityId = null;
+        if (entityId != null && entityId.isNotEmpty) {
+          await _wearSyncService.markWatchWorkoutEnded(entityId);
+          _setSyncStates.removeWhere((key, _) => key.startsWith('$entityId:'));
+          _persistSetSyncStates();
+        }
+      });
     } catch (e, st) {
       debugPrint('Failed to handle watch workout ended: $e\n$st');
     }
@@ -933,6 +962,7 @@ class WearWorkoutSyncService {
         reps: set.reps,
         isCompleted: set.isCompleted,
         completedAt: set.completedAt,
+        setTypeMetaJson: set.setTypeMetaJson,
         versions: WearSetSyncVersions(
           weight: stamp,
           reps: stamp,
@@ -967,9 +997,11 @@ class WearWorkoutSyncService {
       );
     }
     if (existing.isCompleted != set.isCompleted ||
-        existing.completedAt != set.completedAt) {
+        existing.completedAt != set.completedAt ||
+        existing.setTypeMetaJson != set.setTypeMetaJson) {
       existing.isCompleted = set.isCompleted;
       existing.completedAt = set.completedAt;
+      existing.setTypeMetaJson = set.setTypeMetaJson;
       existing.versions = WearSetSyncVersions(
         weight: existing.versions.weight,
         reps: existing.versions.reps,
@@ -1313,6 +1345,19 @@ class WearWorkoutSyncService {
 
             if (existing != null) {
               matchedSetIds.add(existing.id);
+              final priorState =
+                  _setSyncStates[_setSyncStateKey(
+                    sessionEntityId,
+                    existing.id,
+                  )];
+              final acceptMeta =
+                  priorState == null ||
+                  incomingVersions.completion.isNewerThan(
+                    priorState.versions.completion,
+                  );
+              if (!acceptMeta) {
+                setTypeMetaJson = existing.setTypeMetaJson;
+              }
               final merged = _mergeRemoteSet(
                 sessionEntityId: sessionEntityId,
                 setId: existing.id,
@@ -1323,6 +1368,9 @@ class WearWorkoutSyncService {
                 incomingCompletedAt: completedAt,
                 incomingVersions: incomingVersions,
               );
+              _setSyncStates[_setSyncStateKey(sessionEntityId, existing.id)]
+                      ?.setTypeMetaJson =
+                  setTypeMetaJson;
               final completionChanged =
                   existing.isCompleted != merged.isCompleted ||
                   existing.completedAt != merged.completedAt;
@@ -1422,6 +1470,7 @@ class WearWorkoutSyncService {
                 reps: reps,
                 isCompleted: isCompleted,
                 completedAt: completedAt,
+                setTypeMetaJson: setTypeMetaJson,
                 versions: incomingVersions,
               );
             }
@@ -1765,6 +1814,7 @@ class _PhoneSetSyncState {
     required this.reps,
     required this.isCompleted,
     required this.completedAt,
+    this.setTypeMetaJson,
     required this.versions,
   });
 
@@ -1772,6 +1822,7 @@ class _PhoneSetSyncState {
   int reps;
   bool isCompleted;
   DateTime? completedAt;
+  String? setTypeMetaJson;
   WearSetSyncVersions versions;
 
   _PhoneSetSyncState copy() => _PhoneSetSyncState(
@@ -1779,6 +1830,7 @@ class _PhoneSetSyncState {
     reps: reps,
     isCompleted: isCompleted,
     completedAt: completedAt,
+    setTypeMetaJson: setTypeMetaJson,
     versions: versions,
   );
 
@@ -1786,6 +1838,7 @@ class _PhoneSetSyncState {
     'weightKg': weightKg,
     'reps': reps,
     'isCompleted': isCompleted,
+    'setTypeMetaJson': setTypeMetaJson,
     'completedAtEpochMs': completedAt?.millisecondsSinceEpoch,
     'versions': versions.toJson(),
   };
@@ -1806,6 +1859,7 @@ class _PhoneSetSyncState {
       weightKg: weight,
       reps: reps,
       isCompleted: completed,
+      setTypeMetaJson: raw['setTypeMetaJson'] as String?,
       completedAt: completedAtEpochMs == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(completedAtEpochMs),

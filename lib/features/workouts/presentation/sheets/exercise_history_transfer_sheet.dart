@@ -6,6 +6,7 @@ import 'package:herculex/features/workouts/application/exercise_history_provider
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/exercise_history_repository.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
+import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 import 'package:intl/intl.dart';
 
 class ExerciseHistoryTransferSheet extends ConsumerStatefulWidget {
@@ -214,8 +215,13 @@ class _TransferState extends ConsumerState<ExerciseHistoryTransferSheet> {
                 child: const Text('Back'),
               ),
             ] else ...[
-              Text(
-                'Move incorrectly recorded entries from ${widget.source.name} to the correct exercise.',
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: ExerciseArtwork(exercise: widget.source, size: 48),
+                title: Text(widget.source.name),
+                subtitle: const Text(
+                  'Move incorrectly recorded entries to the correct exercise.',
+                ),
               ),
               TextField(
                 decoration: const InputDecoration(
@@ -227,7 +233,7 @@ class _TransferState extends ConsumerState<ExerciseHistoryTransferSheet> {
               if (target != null)
                 ListTile(
                   title: Text(target!.name),
-                  leading: const Icon(Icons.check_circle),
+                  leading: ExerciseArtwork(exercise: target!, size: 48),
                   trailing: IconButton(
                     onPressed: () => setState(() {
                       target = null;
@@ -248,6 +254,7 @@ class _TransferState extends ConsumerState<ExerciseHistoryTransferSheet> {
                         )
                         .take(30))
                   ListTile(
+                    leading: ExerciseArtwork(exercise: e, size: 48),
                     title: Text(e.name),
                     subtitle: Text(
                       repo.compatible(widget.source, e)

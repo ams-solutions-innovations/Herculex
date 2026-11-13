@@ -537,6 +537,67 @@ void main() {
     },
   );
 
+  test('final snapshot is applied before watch workout ends', () async {
+    buildService();
+    final exerciseId = await createExercise('Bench Press');
+    final sessionId = await repo.startSession(
+      sessionUuid: 'finish-with-snapshot',
+    );
+    await emitWorkoutUpdated(
+      workoutEnvelopeJson(
+        entityId: 'finish-with-snapshot',
+        revision: 1,
+        exercises: [validExercise(exerciseId, 'Bench Press')],
+      ),
+    );
+    await emitWorkoutEnded('finish-with-snapshot');
+    await pumpEventQueue(times: 40);
+    expect(await repo.watchActiveSession().first, isNull);
+    final exercises = await repo.watchSessionExercises(sessionId).first;
+    expect(exercises, hasLength(1));
+    expect(
+      (await repo.watchSetsForWorkoutExercise(exercises.single.id).first)
+          .single
+          .reps,
+      8,
+    );
+    expect(
+      dispatchedCalls.any((call) => call.method == 'markWatchWorkoutEnded'),
+      isTrue,
+    );
+  });
+
+  test('a delayed start cannot replace a different active workout', () async {
+    buildService();
+    final activeId = await repo.startSession(sessionUuid: 'current');
+    final exerciseId = await createExercise('Bench Press');
+    await emitWorkoutStarted(
+      workoutEnvelopeJson(
+        entityId: 'old',
+        revision: 1,
+        exercises: [validExercise(exerciseId, 'Bench Press')],
+      ),
+    );
+    await pumpEventQueue();
+    expect((await repo.watchActiveSession().first)?.id, activeId);
+  });
+
+  test('a delayed update cannot recreate a completed workout', () async {
+    buildService();
+    final id = await repo.startSession(sessionUuid: 'completed');
+    await repo.endSession(id);
+    final exerciseId = await createExercise('Bench Press');
+    await emitWorkoutUpdated(
+      workoutEnvelopeJson(
+        entityId: 'completed',
+        revision: 1,
+        exercises: [validExercise(exerciseId, 'Bench Press')],
+      ),
+    );
+    await pumpEventQueue();
+    expect(await repo.watchActiveSession().first, isNull);
+  });
+
   test('a started-event redelivery with the same UUID applies in place instead '
       'of destroying and recreating the session', () async {
     buildService();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 
 /// Corner shape of the small (2x1) home-screen widgets. Everything bigger
 /// stays a squircle whatever this says.
@@ -20,6 +21,7 @@ enum WidgetCornerShape {
 class WidgetAppearance {
   const WidgetAppearance({
     this.themeMode,
+    this.colorTheme,
     this.transparency = defaultTransparency,
     this.shape = WidgetCornerShape.squircle,
   });
@@ -32,6 +34,8 @@ class WidgetAppearance {
   /// mode, as they did before this setting existed.
   final ThemeMode? themeMode;
 
+  final AppColorTheme? colorTheme;
+
   /// 1 (light glass) to 3 (most transparent).
   final int transparency;
 
@@ -42,10 +46,12 @@ class WidgetAppearance {
 
   WidgetAppearance copyWith({
     ThemeMode? themeMode,
+    AppColorTheme? colorTheme,
     int? transparency,
     WidgetCornerShape? shape,
   }) => WidgetAppearance(
     themeMode: themeMode ?? this.themeMode,
+    colorTheme: colorTheme ?? this.colorTheme,
     transparency: transparency ?? this.transparency,
     shape: shape ?? this.shape,
   );
@@ -54,11 +60,12 @@ class WidgetAppearance {
   bool operator ==(Object other) =>
       other is WidgetAppearance &&
       other.themeMode == themeMode &&
+      other.colorTheme == colorTheme &&
       other.transparency == transparency &&
       other.shape == shape;
 
   @override
-  int get hashCode => Object.hash(themeMode, transparency, shape);
+  int get hashCode => Object.hash(themeMode, colorTheme, transparency, shape);
 }
 
 /// Persisted in SharedPreferences. Anything unreadable falls back to the
@@ -67,6 +74,7 @@ class WidgetAppearanceNotifier extends Notifier<WidgetAppearance> {
   // Prefixed so they can't be mistaken for the Kotlin-side `widget_theme_*`
   // keys that live in the same preferences file.
   static const themeModeKey = 'widget_appearance_theme_mode';
+  static const colorThemeKey = 'widget_appearance_color_theme';
   static const transparencyKey = 'widget_appearance_transparency';
   static const shapeKey = 'widget_appearance_shape';
 
@@ -74,7 +82,11 @@ class WidgetAppearanceNotifier extends Notifier<WidgetAppearance> {
   WidgetAppearance build() {
     final prefs = ref.watch(sharedPreferencesProvider);
     final transparency = prefs.getInt(transparencyKey);
+    final colorName = prefs.getString(colorThemeKey);
     return WidgetAppearance(
+      colorTheme: AppColorTheme.values
+          .where((t) => t.name == colorName)
+          .firstOrNull,
       themeMode: switch (prefs.getString(themeModeKey)) {
         'light' => ThemeMode.light,
         'dark' => ThemeMode.dark,
@@ -107,6 +119,13 @@ class WidgetAppearanceNotifier extends Notifier<WidgetAppearance> {
         ThemeMode.system => 'system',
       },
     );
+  }
+
+  Future<void> setColorTheme(AppColorTheme theme) async {
+    state = state.copyWith(colorTheme: theme);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setString(colorThemeKey, theme.name);
   }
 
   Future<void> setTransparency(int level) async {

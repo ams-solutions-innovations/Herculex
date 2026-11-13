@@ -81,8 +81,9 @@ class AppColorThemeNotifier extends StateNotifier<AppColorTheme> {
 /// picks a widget theme mode, the widgets follow the app's own.
 final widgetThemeSyncControllerProvider = Provider<void>((ref) {
   final appMode = ref.watch(themeModeProvider);
-  final theme = ref.watch(appColorThemeProvider);
+  final appTheme = ref.watch(appColorThemeProvider);
   final appearance = ref.watch(widgetAppearanceProvider);
+  final theme = appearance.colorTheme ?? appTheme;
   WidgetSyncService().syncTheme(
     mode: appearance.resolvedMode(appMode),
     dark: HxColors.of(Brightness.dark, theme),

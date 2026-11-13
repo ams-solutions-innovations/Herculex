@@ -123,7 +123,7 @@ void main() {
     expect(find.text('Metric'), findsOneWidget);
     expect(find.text('Widget Theme'), findsOneWidget);
     expect(find.text('Transparency'), findsOneWidget);
-    expect(find.text('Small widget shape'), findsOneWidget);
+    expect(find.text('Widget shape'), findsOneWidget);
   });
 
   testWidgets('NotificationSettingsView renders Notification Theme toggle', (
@@ -163,7 +163,7 @@ void main() {
       expect(find.text('Units'), findsOneWidget);
       expect(find.text('Widget Theme'), findsOneWidget);
       expect(find.text('Transparency'), findsOneWidget);
-      expect(find.text('Small widget shape'), findsOneWidget);
+      expect(find.text('Widget shape'), findsOneWidget);
 
       // Notifications section (Notification Theme appears in both App Appearance & Notifications)
       expect(find.text('Notification Theme'), findsNWidgets(2));

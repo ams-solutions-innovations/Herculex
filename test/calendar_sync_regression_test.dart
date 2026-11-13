@@ -39,6 +39,16 @@ class FakeCalendar implements DeviceCalendarPlugin {
   }
 
   @override
+  Future<Result<bool>> deleteEvent(
+    String? calendarId,
+    String? eventId, {
+    bool? followingInstances,
+  }) async {
+    events.removeWhere((event) => event.eventId == eventId);
+    return Result<bool>()..data = true;
+  }
+
+  @override
   Future<Result<String>?> createOrUpdateEvent(Event? event) async {
     if (event!.eventId == null) {
       event.eventId = 'event-${++creates}';
@@ -89,6 +99,85 @@ void main() {
     );
     expect(calendar.events, isEmpty);
   });
+
+  test(
+    'a calendar event moved beyond the sync window is not duplicated',
+    () async {
+      final moved = DateTime.now().add(const Duration(days: 120));
+      calendar.events.add(
+        Event(
+          'cal',
+          eventId: 'moved',
+          title: 'Workout',
+          description: '[herculex_workout_id:$workoutId]',
+          start: tz.TZDateTime.from(moved, tz.local),
+          end: tz.TZDateTime.from(
+            moved.add(const Duration(minutes: 90)),
+            tz.local,
+          ),
+        ),
+      );
+      expect((await service.syncTwoWay(calendarId: 'cal')).success, isTrue);
+      expect(calendar.events, hasLength(1));
+      expect(calendar.creates, 0);
+    },
+  );
+
+  test('completed workout outside a program appears once', () async {
+    final now = DateTime.now();
+    final sessionId = await db
+        .into(db.workoutSessions)
+        .insert(
+          WorkoutSessionsCompanion.insert(
+            startedAt: now.subtract(const Duration(minutes: 45)),
+            endedAt: drift.Value(now),
+            name: const drift.Value('Free workout'),
+          ),
+        );
+    expect((await service.syncTwoWay(calendarId: 'cal')).success, isTrue);
+    expect((await service.syncTwoWay(calendarId: 'cal')).success, isTrue);
+    final matches = calendar.events.where(
+      (event) => (event.description ?? '').contains(
+        '[herculex_session_id:$sessionId]',
+      ),
+    );
+    expect(matches, hasLength(1));
+  });
+
+  test(
+    'duplicate review only removes selected matching events and keeps one',
+    () async {
+      final start = tz.TZDateTime.now(tz.local);
+      for (final id in ['a', 'b']) {
+        calendar.events.add(
+          Event(
+            'cal',
+            eventId: id,
+            title: 'Workout',
+            description: '[herculex_workout_id:$workoutId]',
+            start: start,
+            end: start.add(const Duration(hours: 1)),
+          ),
+        );
+      }
+      final groups = await service.findDuplicates(calendarId: 'cal');
+      expect(groups, hasLength(1));
+      expect(
+        await service.deleteSelectedDuplicates(groups, {
+          'a',
+          'b',
+        }, calendarId: 'cal'),
+        0,
+      );
+      expect(
+        await service.deleteSelectedDuplicates(groups, {
+          'b',
+        }, calendarId: 'cal'),
+        1,
+      );
+      expect(calendar.events.single.eventId, 'a');
+    },
+  );
 
   test('moving a workout by weeks updates its existing event', () async {
     final oldDate = DateTime.now().subtract(const Duration(days: 20));

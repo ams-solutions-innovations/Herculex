@@ -17,6 +17,7 @@ import 'package:herculex/features/buddy/presentation/buddy_share_sheet.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/presentation/sheets/weekly_adaptation_sheet.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
+import 'package:herculex/features/workout_report/presentation/report_context_sheet.dart';
 import 'package:herculex/features/workouts/application/circuits_providers.dart';
 import 'package:herculex/features/workouts/application/finish_workout_action.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
@@ -828,6 +829,8 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
                         .read(templatesRepositoryProvider)
                         .saveSessionAsTemplate(session.id, finalName);
 
+                    if (!ctx.mounted) return;
+                    await askReasonForSkippedProgramSets(ctx, ref, session.id);
                     await finish.run(
                       session: session,
                       name: finalName,
@@ -863,6 +866,8 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
                     final finalName = name.isEmpty ? defaultWorkoutName : name;
                     final finalEndedAt = currentEndedAt;
 
+                    if (!ctx.mounted) return;
+                    await askReasonForSkippedProgramSets(ctx, ref, session.id);
                     await finish.run(
                       session: session,
                       name: finalName,

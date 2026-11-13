@@ -16,10 +16,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class WorkoutViewModel(application: Application) : AndroidViewModel(application) {
 
     private val syncManager = WearDataLayerSyncManager(application)
+    private val workoutPushMutex = Mutex()
     private val setRevisionAllocator = WearRevisionAllocator(application, "workout")
 
     private val _workouts = MutableStateFlow<List<WorkoutTemplate>>(emptyList())
@@ -236,6 +239,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         return remote.copy(
             weight = if (useRemoteWeight) remote.weight else local.weight,
             reps = if (useRemoteReps) remote.reps else local.reps,
+            setTypeMetaJson = if (useRemoteCompletion) remote.setTypeMetaJson else local.setTypeMetaJson,
             completed = if (useRemoteCompletion) remote.completed else local.completed,
             completedAtEpochMs = if (useRemoteCompletion) {
                 remote.completedAtEpochMs
@@ -608,7 +612,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
         val set = exercise.sets[targetIdx]
         val currentMini = set.getMiniSets()
-        val updatedSet = set.withMiniSets(currentMini + miniReps)
+        val updatedSet = stampLocalSet(set.withMiniSets(currentMini + miniReps), completion = true)
 
         val newSets = exercise.sets.toMutableList().also { it[targetIdx] = updatedSet }
         exercises[exerciseIndex] = exercise.copy(sets = newSets)
@@ -633,7 +637,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         val set = exercise.sets[targetIdx]
         val currentMini = set.getMiniSets()
         if (currentMini.isEmpty()) return
-        val updatedSet = set.withMiniSets(currentMini.dropLast(1))
+        val updatedSet = stampLocalSet(set.withMiniSets(currentMini.dropLast(1)), completion = true)
 
         val newSets = exercise.sets.toMutableList().also { it[targetIdx] = updatedSet }
         exercises[exerciseIndex] = exercise.copy(sets = newSets)
@@ -657,7 +661,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
         val set = exercise.sets[targetIdx]
         val currentExtra = set.getExtraReps()
-        val updatedSet = set.withExtraReps(currentExtra + extraReps)
+        val updatedSet = stampLocalSet(set.withExtraReps(currentExtra + extraReps), completion = true)
 
         val newSets = exercise.sets.toMutableList().also { it[targetIdx] = updatedSet }
         exercises[exerciseIndex] = exercise.copy(sets = newSets)
@@ -682,7 +686,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         val set = exercise.sets[targetIdx]
         val currentExtra = set.getExtraReps()
         if (currentExtra.isEmpty()) return
-        val updatedSet = set.withExtraReps(currentExtra.dropLast(1))
+        val updatedSet = stampLocalSet(set.withExtraReps(currentExtra.dropLast(1)), completion = true)
 
         val newSets = exercise.sets.toMutableList().also { it[targetIdx] = updatedSet }
         exercises[exerciseIndex] = exercise.copy(sets = newSets)
@@ -790,7 +794,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 // unguarded sequential `await`, which both skipped the fast
                 // MessageClient send below entirely and crashed the coroutine
                 // (viewModelScope has no exception handler of its own).
-                runCatching { syncManager.pushActiveWorkoutSession(json) }
+                runCatching { workoutPushMutex.withLock { syncManager.pushActiveWorkoutSession(json) } }
                     .onFailure { android.util.Log.e("WorkoutViewModel", "Durable session push failed", it) }
                 // Fast path: near-instant MessageClient delivery so the phone
                 // reflects set/weight/exercise changes without waiting on
@@ -834,16 +838,19 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private fun broadcastSessionEndToPhone(entityId: String) {
+    private fun broadcastSessionEndToPhone(entityId: String, finalSession: WorkoutSession) {
         try {
+            val finalJson = WorkoutStore.sessionToJson(getApplication(), finalSession)
             viewModelScope.launch {
-                // See the matching comment in broadcastSessionToPhone (ENG-16)
-                // — a failed durable put must not skip the fast message send.
-                runCatching { syncManager.pushActiveWorkoutSession(null, endedEntityId = entityId) }
+                // The terminal state carries the final snapshot; DataClient may
+                // coalesce the preceding active-state update while offline.
+                runCatching { workoutPushMutex.withLock {
+                    syncManager.pushActiveWorkoutSession(null, endedEntityId = entityId, finalSessionJson = finalJson)
+                } }
                     .onFailure { android.util.Log.e("WorkoutViewModel", "Durable session-end push failed", it) }
                 syncManager.sendMessageToAllNodes(
                     WearSyncPaths.MESSAGE_WATCH_SESSION_END,
-                    endEnvelope(entityId),
+                    endEnvelope(entityId, finalJson),
                 )
             }
         } catch (e: Exception) {
@@ -856,7 +863,9 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             viewModelScope.launch {
                 // See the matching comment in broadcastSessionToPhone (ENG-16)
                 // — a failed durable put must not skip the fast message send.
-                runCatching { syncManager.pushActiveWorkoutSession(null, endedEntityId = entityId) }
+                runCatching { workoutPushMutex.withLock {
+                    syncManager.pushActiveWorkoutSession(null, endedEntityId = entityId, discarded = true)
+                } }
                     .onFailure { android.util.Log.e("WorkoutViewModel", "Durable session-discard push failed", it) }
                 syncManager.sendMessageToAllNodes(
                     WearSyncPaths.MESSAGE_WATCH_SESSION_DISCARD,
@@ -885,13 +894,15 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     /// these used to send an empty payload (`""`/`"discard"`), which is why
     /// the phone couldn't tell which session was ending. Payload is empty on
     /// purpose; only the entityId matters here.
-    private fun endEnvelope(entityId: String): String {
+    private fun endEnvelope(entityId: String, finalSessionJson: String? = null): String {
         return WearSyncContract.encodeEnvelope(
             entity = WearSyncContract.ENTITY_ACTIVE_WORKOUT,
             entityId = entityId,
             revision = WearRevisionAllocator(getApplication(), "workout").next(),
             origin = WearSyncContract.ORIGIN_WATCH,
-            payload = org.json.JSONObject(),
+            payload = org.json.JSONObject().apply {
+                if (finalSessionJson != null) put("final_session_json", finalSessionJson)
+            },
         )
     }
 
@@ -940,7 +951,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 if (saveAsTemplate) {
                     broadcastSessionSaveAsTemplateToPhone(endingSessionId)
                 }
-                broadcastSessionEndToPhone(endingSessionId)
+                broadcastSessionEndToPhone(endingSessionId, currentSession!!)
             } else {
                 broadcastSessionDiscardToPhone(endingSessionId)
             }
