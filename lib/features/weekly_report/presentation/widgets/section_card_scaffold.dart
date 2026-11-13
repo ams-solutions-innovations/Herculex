@@ -82,8 +82,15 @@ class SectionCardScaffold extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: accent ?? hx.onSurfaceVariant),
-              const SizedBox(width: HxSpace.x2),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: (accent ?? hx.onSurfaceVariant).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(HxRadius.sm / 1.5),
+                ),
+                child: Icon(icon, size: 18, color: accent ?? hx.onSurfaceVariant),
+              ),
+              const SizedBox(width: HxSpace.x2 + 2),
               Expanded(child: Text(title, style: ReportText.heading(context))),
             ],
           ),
@@ -104,6 +111,9 @@ class ReportTileGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (tiles.isEmpty) return const SizedBox.shrink();
+    if (tiles.length == 1) return tiles.first;
+
     final rows = <Widget>[];
     for (var i = 0; i < tiles.length; i += 2) {
       if (rows.isNotEmpty) rows.add(const SizedBox(height: HxSpace.x2));

@@ -62,6 +62,10 @@ class _Body extends StatelessWidget {
           accent: accent,
         ),
     ];
+    final validCorrelations = section.correlations
+        .where((c) => c.sampleSize > 0)
+        .toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -70,28 +74,151 @@ class _Body extends StatelessWidget {
           const SizedBox(height: HxSpace.x4),
           for (final warning in section.recoveryWarnings)
             Padding(
-              padding: const EdgeInsets.only(bottom: HxSpace.x1),
-              child: Text(warning, style: ReportText.body(context)),
+              padding: const EdgeInsets.only(bottom: HxSpace.x2),
+              child: _RecoveryWarningTile(warning: warning),
             ),
         ],
         if (section.cnsDeloadSuggested) ...[
           const SizedBox(height: HxSpace.x2),
-          Text(
-            'Deload suggested',
-            style: ReportText.body(
-              context,
-            ).copyWith(fontWeight: FontWeight.w600),
-          ),
+          const _DeloadTile(),
         ],
-        if (section.correlations.isNotEmpty) ...[
+        if (validCorrelations.isNotEmpty) ...[
           const SizedBox(height: HxSpace.x4),
-          for (final line in section.correlations)
+          for (final line in validCorrelations)
             Padding(
               padding: const EdgeInsets.only(bottom: HxSpace.x2),
-              child: Text(line.statement, style: ReportText.body(context)),
+              child: _CorrelationInsightTile(
+                statement: line.statement,
+                accent: accent,
+              ),
             ),
         ],
       ],
+    );
+  }
+}
+
+class _RecoveryWarningTile extends StatelessWidget {
+  const _RecoveryWarningTile({required this.warning});
+
+  final String warning;
+
+  @override
+  Widget build(BuildContext context) {
+    final hx = context.hx;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: HxSpace.x3,
+        vertical: HxSpace.x2,
+      ),
+      decoration: BoxDecoration(
+        color: hx.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(HxRadius.sm),
+        border: Border.all(color: hx.warning.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.warning_amber_rounded, size: 16, color: hx.warning),
+          const SizedBox(width: HxSpace.x2),
+          Expanded(
+            child: Text(
+              warning,
+              style: ReportText.body(context).copyWith(
+                fontSize: 14,
+                color: hx.onSurface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeloadTile extends StatelessWidget {
+  const _DeloadTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final hx = context.hx;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: HxSpace.x3,
+        vertical: HxSpace.x2,
+      ),
+      decoration: BoxDecoration(
+        color: hx.domainRecovery.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(HxRadius.sm),
+        border: Border.all(color: hx.domainRecovery.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.spa_outlined, size: 16, color: hx.domainRecovery),
+          const SizedBox(width: HxSpace.x2),
+          Text(
+            'Deload suggested',
+            style: ReportText.body(context).copyWith(
+              fontWeight: FontWeight.w600,
+              color: hx.domainRecovery,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CorrelationInsightTile extends StatelessWidget {
+  const _CorrelationInsightTile({
+    required this.statement,
+    required this.accent,
+  });
+
+  final String statement;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final hx = context.hx;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: HxSpace.x3,
+        vertical: HxSpace.x2 + 2,
+      ),
+      decoration: BoxDecoration(
+        color: hx.surfaceVariant.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(HxRadius.md),
+        border: Border.all(
+          color: accent.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              Icons.auto_graph_rounded,
+              size: 16,
+              color: accent,
+            ),
+          ),
+          const SizedBox(width: HxSpace.x2),
+          Expanded(
+            child: Text(
+              statement,
+              style: ReportText.body(context).copyWith(
+                fontSize: 14,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

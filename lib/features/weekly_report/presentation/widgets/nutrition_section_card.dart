@@ -78,15 +78,41 @@ class _Body extends StatelessWidget {
           const SizedBox(height: HxSpace.x2),
           for (final food in section.topFoods)
             Padding(
-              padding: const EdgeInsets.only(bottom: HxSpace.x1),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(food.name, style: ReportText.body(context)),
-                  ),
-                  const SizedBox(width: HxSpace.x2),
-                  Text('x${food.count}', style: ReportText.label(context)),
-                ],
+              padding: const EdgeInsets.only(bottom: HxSpace.x2),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: HxSpace.x3,
+                  vertical: HxSpace.x2,
+                ),
+                decoration: BoxDecoration(
+                  color: context.hx.surfaceVariant.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(HxRadius.sm),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(food.name, style: ReportText.body(context)),
+                    ),
+                    const SizedBox(width: HxSpace.x2),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: HxSpace.x2,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(HxRadius.pill),
+                      ),
+                      child: Text(
+                        'x${food.count}',
+                        style: ReportText.label(context).copyWith(
+                          color: accent,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],

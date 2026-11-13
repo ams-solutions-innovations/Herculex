@@ -189,45 +189,46 @@ void main() {
     expect(saved!.pain, isNull);
   });
 
-  testWidgets('reason sheet renders without overflow and returns selected reason', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    'reason sheet renders without overflow and returns selected reason',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    ReportReason? picked;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: TextButton(
-              onPressed: () async {
-                picked = await showReportReasonSheet(context);
-              },
-              child: const Text('Open Reason Sheet'),
+      ReportReason? picked;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () async {
+                  picked = await showReportReasonSheet(context);
+                },
+                child: const Text('Open Reason Sheet'),
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.tap(find.text('Open Reason Sheet'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Reason Sheet'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Reason for this change'), findsOneWidget);
-    expect(find.text('Time'), findsOneWidget);
-    expect(find.text('Fatigue'), findsOneWidget);
-    expect(find.text('Pain'), findsOneWidget);
-    expect(find.text('Equipment'), findsOneWidget);
-    expect(find.text('Preference'), findsOneWidget);
-    expect(find.text('Skip'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+      expect(find.text('Reason for this change'), findsOneWidget);
+      expect(find.text('Time'), findsOneWidget);
+      expect(find.text('Fatigue'), findsOneWidget);
+      expect(find.text('Pain'), findsOneWidget);
+      expect(find.text('Equipment'), findsOneWidget);
+      expect(find.text('Preference'), findsOneWidget);
+      expect(find.text('Skip'), findsOneWidget);
+      expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('Preference'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Preference'));
+      await tester.pumpAndSettle();
 
-    expect(picked, ReportReason.preference);
-  });
+      expect(picked, ReportReason.preference);
+    },
+  );
 }

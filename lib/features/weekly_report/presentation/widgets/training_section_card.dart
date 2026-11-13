@@ -63,23 +63,38 @@ class _Body extends StatelessWidget {
           const SizedBox(height: HxSpace.x2),
           for (final mover in section.e1rmMovers)
             Padding(
-              padding: const EdgeInsets.only(bottom: HxSpace.x1),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      mover.exerciseName,
-                      style: ReportText.body(context),
+              padding: const EdgeInsets.only(bottom: HxSpace.x2),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: HxSpace.x3,
+                  vertical: HxSpace.x2,
+                ),
+                decoration: BoxDecoration(
+                  color: context.hx.surfaceVariant.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(HxRadius.sm),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        mover.exerciseName,
+                        style: ReportText.body(context),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: HxSpace.x2),
-                  Text(
-                    '${signedNumber(mover.deltaKg)} kg',
-                    style: ReportText.body(
-                      context,
-                    ).copyWith(fontWeight: FontWeight.w600),
-                  ),
-                ],
+                    const SizedBox(width: HxSpace.x2),
+                    Text(
+                      '${signedNumber(mover.deltaKg)} kg',
+                      style: ReportText.body(
+                        context,
+                      ).copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: mover.deltaKg > 0
+                            ? context.hx.success
+                            : (mover.deltaKg < 0 ? context.hx.danger : null),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],

@@ -88,7 +88,13 @@ class AiNarrativeCard extends StatelessWidget {
               ),
             },
             const SizedBox(height: HxSpace.x4),
-            Text(_note, style: ReportText.label(context)),
+            Row(
+              children: [
+                Icon(Icons.info_outline, size: 14, color: hx.onSurfaceVariant),
+                const SizedBox(width: HxSpace.x1),
+                Expanded(child: Text(_note, style: ReportText.label(context))),
+              ],
+            ),
           ],
         ),
       ),
@@ -130,29 +136,57 @@ class _Ready extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(n.summary, style: ReportText.body(context)),
-        const SizedBox(height: HxSpace.x4),
-        for (final suggestion in n.suggestions)
-          Padding(
-            padding: const EdgeInsets.only(bottom: HxSpace.x3),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: HxSpace.x1),
-                  child: Icon(
-                    Icons.arrow_right_alt,
-                    size: 20,
-                    color: hx.primaryText,
-                  ),
-                ),
-                const SizedBox(width: HxSpace.x2),
-                Expanded(
-                  child: Text(suggestion, style: ReportText.body(context)),
-                ),
-              ],
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(HxSpace.x3 + 2),
+          decoration: BoxDecoration(
+            color: hx.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(HxRadius.md),
+            border: Border.all(
+              color: hx.primary.withValues(alpha: 0.15),
             ),
           ),
+          child: Text(
+            n.summary,
+            style: ReportText.body(context).copyWith(
+              height: 1.55,
+            ),
+          ),
+        ),
+        if (n.suggestions.isNotEmpty) ...[
+          const SizedBox(height: HxSpace.x4),
+          for (final suggestion in n.suggestions)
+            Padding(
+              padding: const EdgeInsets.only(bottom: HxSpace.x2),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: HxSpace.x3,
+                  vertical: HxSpace.x2 + 2,
+                ),
+                decoration: BoxDecoration(
+                  color: hx.surfaceVariant.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(HxRadius.sm),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.arrow_right_alt,
+                        size: 20,
+                        color: hx.primaryText,
+                      ),
+                    ),
+                    const SizedBox(width: HxSpace.x2),
+                    Expanded(
+                      child: Text(suggestion, style: ReportText.body(context)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ],
     );
   }

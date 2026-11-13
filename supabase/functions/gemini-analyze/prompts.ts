@@ -568,6 +568,7 @@ Rules:
 - Treat every number in the facts as measured and correct.
 - Every number you state must appear verbatim in the data. Never recompute, correct,
   or round a number differently, and never invent a number that is not in the data.
+- When describing metric changes (such as weight, tonnage, or e1rm), describe the direction with words and use positive values (e.g. 'decreased by 0.9 kg' or 'dropped 0.9 kg', never 'decreased by -0.9 kg' or 'dropped by -0.9 kg').
 - You may describe a relationship between sleep, recovery, activity and
   performance only as a correlation, using the phrase "tended to go with"
   (for example: "the nights with more sleep tended to go with higher training

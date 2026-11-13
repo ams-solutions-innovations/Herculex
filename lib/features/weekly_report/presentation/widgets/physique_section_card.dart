@@ -20,6 +20,7 @@ class PhysiqueSectionCard extends StatelessWidget {
     return SectionCardScaffold(
       title: 'Physique',
       icon: Icons.accessibility_new_outlined,
+      accent: context.hx.secondary,
       body: s != null && (s.checkInVerdict != null || s.bodyweightKg != null)
           ? _Body(section: s, accent: context.hx.secondary)
           : null,

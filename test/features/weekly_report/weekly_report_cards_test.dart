@@ -213,6 +213,47 @@ void main() {
       expect(find.text('Deload suggested'), findsNothing);
     });
 
+    testWidgets('omits correlation statements when sample size is zero', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        const RecoverySectionCard(
+          section: RecoverySection(
+            avgSleepHours: 6.9,
+            cnsDeloadSuggested: false,
+            recoveryWarnings: const [],
+            correlations: [
+              CorrelationLine(
+                kind: 'sleep_rpe',
+                statement:
+                    'No clear relationship yet between sleep and session RPE (n = 11).',
+                sampleSize: 11,
+              ),
+              CorrelationLine(
+                kind: 'hr_tonnage',
+                statement:
+                    'No clear relationship yet between resting heart rate and session volume (n = 0).',
+                sampleSize: 0,
+              ),
+            ],
+          ),
+        ),
+      );
+      expect(
+        find.text(
+          'No clear relationship yet between sleep and session RPE (n = 11).',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'No clear relationship yet between resting heart rate and session volume (n = 0).',
+        ),
+        findsNothing,
+      );
+    });
+
     testWidgets('null section shows the no-data label', (tester) async {
       await _pump(tester, const RecoverySectionCard(section: null));
       expect(find.text('Recovery'), findsOneWidget);
@@ -245,6 +286,22 @@ void main() {
         expect(find.textContaining('-0.4'), findsOneWidget);
       });
     }
+
+    testWidgets('renders single bodyweight tile cleanly on narrow screen', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pump(
+        tester,
+        const PhysiqueSectionCard(
+          section: PhysiqueSection(bodyweightKg: 84.9, bodyweightDeltaKg: -0.9),
+        ),
+      );
+      expect(find.text('84.9 kg'), findsOneWidget);
+      expect(find.text('-0.9 kg'), findsOneWidget);
+    });
 
     testWidgets('null section shows the no-data label', (tester) async {
       await _pump(tester, const PhysiqueSectionCard(section: null));
