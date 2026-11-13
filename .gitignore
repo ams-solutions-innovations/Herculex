@@ -85,3 +85,6 @@ outputs/bodybuilding-blueprint/
 /web/.web-assets-version
 /tool/web/defines.*.json
 !/tool/web/defines.example.json
+
+# Generated website kit exports (marketing site lives in ../Herculex Web)
+outputs/website-kit/
