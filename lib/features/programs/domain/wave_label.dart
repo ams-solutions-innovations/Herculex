@@ -30,6 +30,81 @@ class WaveLabelInfo {
       'Weeks ${waveStartWeek + 1}–${waveEndWeek + 1}';
 }
 
+/// One block-wide wave: a run of weeks in which no slot swaps its exercise.
+class WaveSegment {
+  const WaveSegment({
+    required this.index,
+    required this.startWeek,
+    required this.endWeek,
+  });
+
+  /// 1-based position among the block's waves.
+  final int index;
+
+  /// 0-based first and last week index (inclusive).
+  final int startWeek;
+  final int endWeek;
+
+  int get weekCount => endWeek - startWeek + 1;
+
+  bool contains(int weekIndex) =>
+      weekIndex >= startWeek && weekIndex <= endWeek;
+
+  /// "Weeks 1–3", or "Week 4" for a single week.
+  String get weeksLabel => startWeek == endWeek
+      ? 'Week ${startWeek + 1}'
+      : 'Weeks ${startWeek + 1}–${endWeek + 1}';
+
+  @override
+  bool operator ==(Object other) =>
+      other is WaveSegment &&
+      other.index == index &&
+      other.startWeek == startWeek &&
+      other.endWeek == endWeek;
+
+  @override
+  int get hashCode => Object.hash(index, startWeek, endWeek);
+
+  @override
+  String toString() => 'WaveSegment($index, $startWeek–$endWeek)';
+}
+
+/// Splits a whole block into exercise waves.
+///
+/// [WaveLabel] follows one anchor slot; this looks at every slot, so a wave
+/// ends as soon as *any* slot rotates. That is the unit the plan view shows,
+/// and it uses the same "contiguous equal exercise" definition as
+/// [WaveLabel] and `replaceProgramExerciseSlot`.
+abstract final class WaveSegments {
+  /// [exerciseIdByWeekBySlot] maps slot id → (0-based week → exercise id).
+  /// Weeks a slot has no entry for are ignored for that slot, so a
+  /// partly-materialized slot does not invent boundaries. With no rotation
+  /// anywhere the result is a single segment covering every week.
+  static List<WaveSegment> compute({
+    required int totalWeeks,
+    required Map<int, Map<int, int?>> exerciseIdByWeekBySlot,
+  }) {
+    if (totalWeeks <= 0) return const [];
+    final starts = <int>[0];
+    for (var week = 1; week < totalWeeks; week++) {
+      final changed = exerciseIdByWeekBySlot.values.any((byWeek) {
+        final previous = byWeek[week - 1];
+        final current = byWeek[week];
+        return previous != null && current != null && previous != current;
+      });
+      if (changed) starts.add(week);
+    }
+    return [
+      for (var i = 0; i < starts.length; i++)
+        WaveSegment(
+          index: i + 1,
+          startWeek: starts[i],
+          endWeek: i + 1 < starts.length ? starts[i + 1] - 1 : totalWeeks - 1,
+        ),
+    ];
+  }
+}
+
 /// Pure, in-memory domain functions for D-05's wave indicator. Neither
 /// function touches drift or Riverpod — callers read the already-fetched
 /// rows and pass plain data structures in.

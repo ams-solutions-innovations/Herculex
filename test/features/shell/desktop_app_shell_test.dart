@@ -10,52 +10,53 @@ import 'package:herculex/features/shell/quick_add_menu.dart';
 import 'package:herculex/features/shell/rail_tools.dart';
 
 void main() {
-  testWidgets('DesktopAppShell displays persistent rail and "+" button on wide web', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1200, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
+  testWidgets(
+    'DesktopAppShell displays persistent rail and "+" button on wide web',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          platformCapabilitiesProvider.overrideWithValue(
-            const PlatformCapabilities.web(),
-          ),
-        ],
-        child: MaterialApp(
-          home: DesktopAppShell(
-            location: AppRoutes.exercises,
-            currentIndex: 0,
-            onSelectTab: (_) {},
-            tools: railTools,
-            currentTool: 0,
-            onSelectTool: (_) {},
-            child: const Text('Exercise Library Content'),
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            platformCapabilitiesProvider.overrideWithValue(
+              const PlatformCapabilities.web(),
+            ),
+          ],
+          child: MaterialApp(
+            home: DesktopAppShell(
+              location: AppRoutes.exercises,
+              currentIndex: 0,
+              onSelectTab: (_) {},
+              tools: railTools,
+              currentTool: 0,
+              onSelectTool: (_) {},
+              child: const Text('Exercise Library Content'),
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    // Content is displayed
-    expect(find.text('Exercise Library Content'), findsOneWidget);
+      // Content is displayed
+      expect(find.text('Exercise Library Content'), findsOneWidget);
 
-    // Persistent rail is present
-    expect(find.byType(HxNavRail), findsOneWidget);
+      // Persistent rail is present
+      expect(find.byType(HxNavRail), findsOneWidget);
 
-    // Quick add "+" button is present even on Exercise Library
-    expect(find.byType(HxQuickAddButton), findsOneWidget);
+      // Quick add "+" button is present even on Exercise Library
+      expect(find.byType(HxQuickAddButton), findsOneWidget);
 
-    // Tapping the "+" button opens QuickAddMenu
-    await tester.tap(find.byType(HxQuickAddButton));
-    await tester.pumpAndSettle();
-    expect(find.byType(QuickAddMenu), findsOneWidget);
-  });
+      // Tapping the "+" button opens QuickAddMenu
+      await tester.tap(find.byType(HxQuickAddButton));
+      await tester.pumpAndSettle();
+      expect(find.byType(QuickAddMenu), findsOneWidget);
+    },
+  );
 
   testWidgets('DesktopAppShell does not display rail on auth routes', (
     tester,

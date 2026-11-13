@@ -472,6 +472,20 @@ mixin _SharedHelpersMixin on _BuilderStateBase {
               ? () {}
               : () {
                   if (_step < _BuilderStateBase._stepCount) {
+                    // Stop schedule mistakes here, where the user can see
+                    // them, instead of at "Create block" four steps later.
+                    if (_step == 2) {
+                      final problem = _scheduleProblem();
+                      if (problem != null) {
+                        AppNotice.show(
+                          context,
+                          problem,
+                          title: 'Check your schedule',
+                          kind: AppNoticeKind.info,
+                        );
+                        return;
+                      }
+                    }
                     if (_step == 1 &&
                         !_useManualMusclePlan &&
                         _dreamPhysiquePriorities.isNotEmpty &&

@@ -237,7 +237,9 @@ class _SessionCard extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            row.day == null ? 'Optional one-time workout' : '${row.phaseLabel} · Week ${(row.week?.weekIndex ?? 0) + 1} of ${(row.program?.weeks ?? 1)}',
+            row.day == null
+                ? 'Optional one-time workout'
+                : '${row.phaseLabel} · Week ${(row.week?.weekIndex ?? 0) + 1} of ${(row.program?.weeks ?? 1)}',
             style: theme.textTheme.bodySmall?.copyWith(
               color: AppColors.secondary,
             ),
@@ -574,7 +576,9 @@ class _SessionCard extends ConsumerWidget {
     int templateId,
   ) async {
     if (row.day == null || row.program == null) {
-      await ref.read(programsRepositoryProvider).setScheduleTemplateOverride(row.id, templateId);
+      await ref
+          .read(programsRepositoryProvider)
+          .setScheduleTemplateOverride(row.id, templateId);
       return;
     }
     await TemplateScopeSheet.apply(

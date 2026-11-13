@@ -20,6 +20,35 @@ class _RecommendedPill extends StatelessWidget {
   );
 }
 
+/// Small tag saying who decided a value: `Auto` (the app) is tonal and quiet,
+/// `You` (a hand edit) is filled so overrides stand out at a glance.
+class _ProvenancePill extends StatelessWidget {
+  const _ProvenancePill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final isUser = label == 'You';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: isUser
+            ? AppColors.primary.withValues(alpha: .18)
+            : AppColors.outlineVariant.withValues(alpha: .18),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: isUser ? AppColors.primary : AppColors.secondary,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
 class _ManualMusclePlanSheet extends StatefulWidget {
   const _ManualMusclePlanSheet({
     required this.labels,

@@ -149,7 +149,9 @@ void main() {
         db.scheduledWorkouts,
       )..where((s) => s.id.equals(schedules.last))).getSingle();
       final resolver = PlannedSessionResolver(db);
-      final original = await resolver.resolveProgramDay(remaining.programDayId!);
+      final original = await resolver.resolveProgramDay(
+        remaining.programDayId!,
+      );
       final current = await resolver.resolveScheduledWorkout(remaining);
       int count(PlannedSessionSnapshot p) => p.exercises.fold(
         0,

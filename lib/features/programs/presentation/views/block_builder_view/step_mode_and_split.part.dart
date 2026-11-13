@@ -258,9 +258,7 @@ mixin _StepModeAndSplitMixin on _BuilderStateBase {
                 onTap: () => setState(() {
                   _split = type;
                   _daysPerWeek = type.defaultDaysPerWeek;
-                  _weeklyDayLabels.clear();
-                  _weeklyTrainingWeekdays.clear();
-                  _hasCustomWeeklyPlacement = false;
+                  _clearCustomWeeklyPlacement();
                   _templatesBySlot.clear();
                 }),
               ),
@@ -373,9 +371,22 @@ mixin _StepModeAndSplitMixin on _BuilderStateBase {
           ),
         ],
         const SizedBox(height: 24),
-        _sectionLabel(theme, 'Preview'),
+        _sectionLabel(
+          theme,
+          plan.mode == ScheduleMode.weekly ? 'Your week' : 'Your cycle',
+        ),
         const SizedBox(height: 6),
         _planPreview(theme, plan),
+        const SizedBox(height: 8),
+        Text(
+          plan.mode == ScheduleMode.weekly
+              ? 'Auto = placed by the app from your split and days. Tap any '
+                    'day to choose what you train, or to make it a rest day.'
+              : 'Auto = placed by the app. Cycles repeat in the order shown.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.secondary,
+          ),
+        ),
         if (_recoveryWarnings(plan).isNotEmpty) ...[
           const SizedBox(height: 12),
           _recoveryWarning(theme, _recoveryWarnings(plan)),
@@ -384,83 +395,15 @@ mixin _StepModeAndSplitMixin on _BuilderStateBase {
     );
   }
 
-  Widget _planPreview(ThemeData theme, SplitPlan plan) {
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-    return GlassContainer(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        children: [
-          if (plan.mode == ScheduleMode.weekly)
-            for (var i = 0; i < 7; i++)
-              _previewRow(
-                theme,
-                weekdays[i],
-                plan.days
-                    .where((d) => d.index == i)
-                    .map((d) => d.label)
-                    .join(', '),
-                onTap: () => _editWeeklyDay(i + 1),
-              )
-          else
-            for (final day in plan.days)
-              _previewRow(
-                theme,
-                'Day ${day.index + 1}',
-                day.isRest ? '' : day.label,
-              ),
-        ],
-      ),
-    );
-  }
-
-  Widget _previewRow(
-    ThemeData theme,
-    String slot,
-    String label, {
-    VoidCallback? onTap,
-  }) {
-    final isRest = label.isEmpty;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 52,
-              child: Text(
-                slot,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: AppColors.secondary,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Text(
-                isRest ? 'Rest' : label,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: isRest ? FontWeight.w400 : FontWeight.w600,
-                  color: isRest ? AppColors.outlineVariant : null,
-                ),
-              ),
-            ),
-            if (onTap != null)
-              Icon(Icons.edit_outlined, size: 17, color: AppColors.primary),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   void _clearCustomWeeklyPlacement() {
     _weeklyDayLabels.clear();
     _weeklyTrainingWeekdays.clear();
+    _userSetWeekdays.clear();
     _hasCustomWeeklyPlacement = false;
   }
 
+  @override
   Future<void> _editWeeklyDay(int weekday) async {
     final options = _split.slots.isEmpty
         ? _plan.slotSummary.map((slot) => slot.label).toList()
@@ -481,7 +424,7 @@ mixin _StepModeAndSplitMixin on _BuilderStateBase {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Choose workout split',
+                'What do you train on ${const ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][weekday - 1]}?',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
@@ -519,69 +462,25 @@ mixin _StepModeAndSplitMixin on _BuilderStateBase {
           _hasCustomWeeklyPlacement = true;
         }
         if (selected == '__rest__') {
+          // A program needs at least one training day; keep the last one.
+          if (_weeklyTrainingWeekdays.length <= 1 &&
+              _weeklyTrainingWeekdays.contains(weekday)) {
+            return;
+          }
           _weeklyTrainingWeekdays.remove(weekday);
           _weeklyDayLabels.remove(weekday);
         } else {
           _weeklyTrainingWeekdays.add(weekday);
           _weeklyDayLabels[weekday] = selected;
         }
+        _userSetWeekdays.add(weekday);
+        // Days per week follows the weekdays the user actually picked, so the
+        // stepper and the schedule can never disagree (the generator would
+        // otherwise silently drop the last day).
+        _daysPerWeek = _weeklyTrainingWeekdays.length;
         _templatesBySlot.clear();
       });
     }
-  }
-
-  List<String> _recoveryWarnings(SplitPlan plan) {
-    if (plan.mode == ScheduleMode.cycle) {
-      final restDays = plan.days.where((day) => day.isRest).length;
-      return restDays == 0
-          ? [
-              'This cycle has no planned rest day. Add recovery before creating it.',
-            ]
-          : const [];
-    }
-    final days = plan.trainingDays..sort((a, b) => a.index.compareTo(b.index));
-    final warnings = <String>[];
-    if (days.length != _daysPerWeek) {
-      warnings.add(
-        'Choose $_daysPerWeek training days; ${days.length} are currently scheduled.',
-      );
-    }
-    if (days.length >= 6) {
-      warnings.add('Six or more training days leave little room for recovery.');
-    }
-    for (var i = 0; i < days.length; i++) {
-      final current = days[i];
-      final next = days[(i + 1) % days.length];
-      final gap = (next.index - current.index) % 7;
-      if (gap == 1 && current.label == next.label) {
-        warnings.add('${current.label} is scheduled on consecutive days.');
-      }
-    }
-    return warnings;
-  }
-
-  Widget _recoveryWarning(ThemeData theme, List<String> warnings) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: .12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.orange.withValues(alpha: .45)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.health_and_safety_outlined, color: Colors.orange),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Recovery check: ${warnings.join(' ')}',
-              style: theme.textTheme.bodySmall,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   // ── Step 2: exercise pools ─────────────────────────────────────────────────

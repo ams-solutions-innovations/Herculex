@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
+import 'package:herculex/features/gamification/application/gamification_providers.dart';
+import 'package:herculex/features/gamification/domain/strength_standards.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/data/smart_program_planner.dart';
@@ -111,11 +113,21 @@ class BlockUpdateController {
             .read(jointPainRepositoryProvider)
             .currentStatuses();
         final choices = await _repo.generationChoices(program.id);
+        int? provenPullUpReps;
+        try {
+          final assessment = await _ref.read(strengthAssessmentProvider.future);
+          provenPullUpReps = assessment.bests[StrengthLift.pullUp]?.best
+              ?.floor();
+        } catch (_) {
+          // No strength data is the same as no proof: the planner then keeps
+          // its old behaviour rather than failing the update.
+        }
         await SmartProgramPlanner(db).populate(
           draftId,
           SmartProgramConfiguration(
             waveOverrideWeeks: choices.rotationWeeks,
             trainingFocus: choices.focus,
+            provenPullUpReps: provenPullUpReps,
             goal: TrainingGoal.fromId(program.trainingGoal),
             experience: ExperienceLevel.fromId(program.experienceLevel),
             buildMode: buildMode,

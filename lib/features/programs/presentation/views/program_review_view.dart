@@ -22,11 +22,13 @@ import 'package:herculex/features/programs/domain/session_segment.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
+import 'package:herculex/features/programs/domain/wave_label.dart';
 import 'package:herculex/features/programs/presentation/sheets/exercise_replacement_sheet.dart';
 import 'package:herculex/features/programs/presentation/views/block_detail_view.dart';
 import 'package:herculex/features/programs/presentation/widgets/ai_day_rationale_card.dart';
 import 'package:herculex/features/programs/presentation/widgets/empty_slot_notice.dart';
 import 'package:herculex/features/programs/presentation/widgets/set_structure_line.dart';
+import 'package:herculex/features/programs/presentation/widgets/wave_picker.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/domain/warmup_resolver.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
@@ -60,6 +62,11 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
   String? _error;
   List<_ReviewDay> _days = const [];
   List<_RotationLine> _rotations = const [];
+
+  /// Block-wide exercise waves. More than one means exercises rotate, and the
+  /// plan is reviewed wave by wave instead of week by week.
+  List<WaveSegment> _waves = const [];
+  bool _showWeekDetail = false;
   List<ProgramGuardrailIssue> _dayRepeats = const [];
   int _totalWeeks = 0;
   List<int> _weekIndices = const [];
@@ -149,7 +156,7 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
           ),
         );
       }
-      final rotations = await _loadRotations(db, weeks);
+      final rotation = await _loadRotations(db, weeks);
       final repeats = ProgramGuardrails.validateDayDistinctness({
         for (final day in rows)
           day.day.slotLabel ?? day.day.name: [
@@ -160,7 +167,8 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
       setState(() {
         _dayRepeats = repeats;
         _days = rows;
-        _rotations = rotations;
+        _rotations = rotation.lines;
+        _waves = rotation.waves;
         _totalWeeks = weeks.length;
         _weekIndices = weeks.map((week) => week.weekIndex).toList();
         _selectedWeekIndex = selectedWeek.weekIndex;
@@ -256,7 +264,7 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
     }
   }
 
-  Future<List<_RotationLine>> _loadRotations(
+  Future<({List<_RotationLine> lines, List<WaveSegment> waves})> _loadRotations(
     AppDatabase db,
     List<ProgramWeekData> weeks,
   ) async {
@@ -265,7 +273,15 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
               ..where((t) => t.programId.equals(widget.programId))
               ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
             .get();
-    if (slots.isEmpty) return const [];
+    if (slots.isEmpty) {
+      return (
+        lines: const <_RotationLine>[],
+        waves: WaveSegments.compute(
+          totalWeeks: weeks.length,
+          exerciseIdByWeekBySlot: const {},
+        ),
+      );
+    }
     final assignments = await (db.select(
       db.rotationAssignments,
     )..where((t) => t.slotId.isIn(slots.map((slot) => slot.id)))).get();
@@ -288,7 +304,18 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
       )[assignment.weekIndex] = assignment;
     }
 
-    return [
+    final waves = WaveSegments.compute(
+      totalWeeks: weeks.length,
+      exerciseIdByWeekBySlot: {
+        for (final entry in assignmentsBySlot.entries)
+          entry.key: {
+            for (final week in entry.value.entries)
+              week.key: week.value.exerciseId,
+          },
+      },
+    );
+
+    final lines = [
       for (final slot in slots)
         () {
           final byWeek = assignmentsBySlot[slot.id] ?? const {};
@@ -328,6 +355,7 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
           );
         }(),
     ].where((line) => line.segments.length > 1).toList(growable: false);
+    return (lines: lines, waves: waves);
   }
 
   Future<void> _chooseReplacement(_ReviewExercise item) async {
@@ -461,7 +489,9 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Review each week before it becomes active. Tap an exercise to choose a similar option and how far that choice should reach.',
+            _waves.length > 1
+                ? 'Your exercises change in waves. Review each wave before it becomes active. Tap an exercise to choose a similar option and how far that choice should reach.'
+                : 'Review your plan before it becomes active. Tap an exercise to choose a similar option and how far that choice should reach.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: AppColors.secondary,
             ),
@@ -475,13 +505,49 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
           else if (_error != null)
             _Notice(text: _error!)
           else ...[
-            if (_weekIndices.length > 1) ...[
-              _WeekPicker(
-                weekIndices: _weekIndices,
+            if (_waves.length > 1) ...[
+              WavePicker(
+                waves: _waves,
                 selectedWeekIndex: _selectedWeekIndex,
-                onChanged: _selectWeek,
+                onSelected: (wave) => _selectWeek(wave.startWeek),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+              Text(
+                'Exercises stay the same within a wave. Sets, reps and loads '
+                'still progress week by week.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.secondary,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            if (_weekIndices.length > 1) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  key: const ValueKey('review-week-detail-toggle'),
+                  onPressed: () =>
+                      setState(() => _showWeekDetail = !_showWeekDetail),
+                  icon: Icon(
+                    _showWeekDetail
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                  ),
+                  label: Text(
+                    _showWeekDetail
+                        ? 'Hide week-by-week detail'
+                        : 'Show week-by-week detail',
+                  ),
+                ),
+              ),
+              if (_showWeekDetail) ...[
+                _WeekPicker(
+                  weekIndices: _weekIndices,
+                  selectedWeekIndex: _selectedWeekIndex,
+                  onChanged: _selectWeek,
+                ),
+                const SizedBox(height: 16),
+              ],
             ],
             for (final repeat in _dayRepeats) ...[
               _Notice(text: repeat.message),
@@ -489,16 +555,18 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
             ],
             for (final day in _days)
               _DayCard(day: day, onReplace: _chooseReplacement),
-            const SizedBox(height: 8),
-            const _Notice(
-              text:
-                  '“This wave” is recommended: it changes only the matching run of weeks. You can include future waves or the whole block when that is what you intend.',
-            ),
-            const SizedBox(height: 8),
-            _PlannedChangesButton(
-              totalWeeks: _totalWeeks,
-              rotations: _rotations,
-            ),
+            if (_waves.length > 1) ...[
+              const SizedBox(height: 8),
+              const _Notice(
+                text:
+                    '“This wave” is recommended: it changes only the matching run of weeks. You can include future waves or the whole block when that is what you intend.',
+              ),
+              const SizedBox(height: 8),
+              _PlannedChangesButton(
+                totalWeeks: _totalWeeks,
+                rotations: _rotations,
+              ),
+            ],
           ],
         ],
       ),

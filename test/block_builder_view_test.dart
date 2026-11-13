@@ -264,7 +264,21 @@ void main() {
     // Verify footer does NOT contain 'Back' button
     expect(find.text('Back'), findsNothing);
 
-    // Tap Continue -> Step 2: Exercise pools
+    // Tap Continue -> Step 2: Split (chosen first; the app marks what it placed)
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Split'), findsOneWidget);
+    expect(find.text('Full Body Linear'), findsOneWidget);
+    expect(find.text('Push / Pull / Legs'), findsOneWidget);
+    expect(find.text('Upper / Lower'), findsOneWidget);
+    expect(find.text('YOUR WEEK'), findsOneWidget);
+    // Every weekday starts as the app's own placement.
+    expect(find.text('Auto'), findsWidgets);
+    expect(find.text('You'), findsNothing);
+
+    // Tap Continue -> Step 3: Exercise pools
     await tester.tap(find.text('Continue'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
@@ -275,7 +289,7 @@ void main() {
     expect(find.text('Review'), findsOneWidget);
     expect(find.text('Configure'), findsOneWidget);
 
-    // Tap Continue -> Step 3: Training parameters
+    // Tap Continue -> Step 4: Training parameters
     await tester.tap(find.text('Continue'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
@@ -285,16 +299,6 @@ void main() {
     expect(find.text('Primary lift specialization'), findsOneWidget);
     expect(find.byType(Slider), findsOneWidget);
     expect(find.text('PERIODIZATION'), findsOneWidget);
-
-    // Tap Continue -> Step 4: Split
-    await tester.tap(find.text('Continue'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    expect(find.text('Split'), findsOneWidget);
-    expect(find.text('Full Body Linear'), findsOneWidget);
-    expect(find.text('Push / Pull / Legs'), findsOneWidget);
-    expect(find.text('Upper / Lower'), findsOneWidget);
 
     // Tap Continue -> Step 5: Workout content & methods
     await tester.tap(find.text('Continue'));
@@ -314,6 +318,62 @@ void main() {
     expect(find.text('Schedule'), findsOneWidget);
     expect(find.text('Start date'), findsOneWidget);
     expect(find.text('Create block'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 10));
+  });
+
+  testWidgets('schedule step marks what the app placed and what you changed, '
+      'and keeps days per week in step with your choice', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          builder: (context, child) => InAppNotificationHost(child: child!),
+          home: BlockBuilderView(autoRecommendExperience: false),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text('Continue')); // -> Step 2 (split)
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Default Upper / Lower: four days, so Mon/Tue/Thu/Fri train and the
+    // other three weekdays are rest. All seven rows are the app's own call.
+    expect(find.text('Auto'), findsNWidgets(7));
+    expect(find.text('You'), findsNothing);
+    expect(find.text('Rest day'), findsNWidgets(3));
+    expect(find.text('4'), findsOneWidget);
+
+    // Make Wednesday a training day.
+    await tester.tap(find.text('Wed'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('What do you train on Wednesday?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ListTile, 'Lower A'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('You'), findsOneWidget);
+    expect(find.text('Auto'), findsNWidgets(6));
+    expect(find.text('Rest day'), findsNWidgets(2));
+    // The stepper follows the weekdays actually chosen, so no day is dropped.
+    expect(find.text('5'), findsOneWidget);
+
+    // Touching the days stepper hands the week back to the app.
+    await tester.tap(find.byIcon(Icons.remove_circle_outline_rounded));
+    await tester.pump();
+    expect(find.text('You'), findsNothing);
+    expect(find.text('Auto'), findsNWidgets(7));
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 10));
@@ -346,6 +406,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(
+        find.text('Continue'),
+      ); // -> Step 4 (training parameters; split is step 2 now)
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -437,6 +502,11 @@ void main() {
       await tester.tap(find.text('Continue')); // -> Step 3
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(
+        find.text('Continue'),
+      ); // -> Step 4 (training parameters; split is step 2 now)
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       await tester.tap(find.byKey(const ValueKey('picker-length')));
       await tester.pumpAndSettle();
@@ -477,6 +547,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(
+        find.text('Continue'),
+      ); // -> Step 4 (training parameters; split is step 2 now)
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -542,6 +617,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(
+        find.text('Continue'),
+      ); // -> Step 4 (training parameters; split is step 2 now)
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -610,6 +690,11 @@ void main() {
       await tester.tap(find.text('Continue')); // -> Step 3
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(
+        find.text('Continue'),
+      ); // -> Step 4 (training parameters; split is step 2 now)
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       await tester.tap(find.byKey(const ValueKey('specialization-switch')));
       await tester.pumpAndSettle();
@@ -658,6 +743,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(
+        find.text('Continue'),
+      ); // -> Step 4 (training parameters; split is step 2 now)
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -709,6 +799,11 @@ void main() {
       await tester.tap(find.text('Continue')); // -> Step 3
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(
+        find.text('Continue'),
+      ); // -> Step 4 (training parameters; split is step 2 now)
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       await tester.tap(find.byKey(const ValueKey('picker-length')));
       await tester.pumpAndSettle();
@@ -747,6 +842,11 @@ void main() {
       await tester.tap(find.text('Continue')); // -> Step 3
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(
+        find.text('Continue'),
+      ); // -> Step 4 (training parameters; split is step 2 now)
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       await tester.tap(find.byKey(const ValueKey('specialization-switch')));
       await tester.pumpAndSettle();
@@ -757,10 +857,7 @@ void main() {
       await tester.tap(find.text('Apply'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Continue')); // -> Step 4
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.text('Continue')); // -> Step 5
+      await tester.tap(find.text('Continue')); // -> Step 5 (methods)
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -795,13 +892,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      await tester.tap(find.text('Continue')); // -> Step 2
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.text('Continue')); // -> Step 3
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.text('Continue')); // -> Step 4
+      await tester.tap(find.text('Continue')); // -> Step 2 (split)
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -809,11 +900,15 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Navigate back to Step 3 via the header back affordance.
-      await tester.tap(find.byTooltip('Back'));
+      await tester.tap(find.text('Continue')); // -> Step 3 (pools)
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 4 (parameters)
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
+      // The specialization lives after the split now, so enabling it is what
+      // moves the already-chosen incompatible split to Full Body.
       await tester.tap(find.byKey(const ValueKey('specialization-switch')));
       await tester.pumpAndSettle();
       await tester.enterText(
@@ -823,10 +918,7 @@ void main() {
       await tester.tap(find.text('Apply'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Continue')); // -> Step 4 (now Full Body)
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.text('Continue')); // -> Step 5
+      await tester.tap(find.text('Continue')); // -> Step 5 (now Full Body)
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -862,6 +954,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(
+        find.text('Continue'),
+      ); // -> Step 4 (training parameters; split is step 2 now)
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -917,6 +1014,11 @@ void main() {
       await tester.tap(find.text('Continue')); // -> Step 3
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(
+        find.text('Continue'),
+      ); // -> Step 4 (training parameters; split is step 2 now)
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       await tester.tap(find.byKey(const ValueKey('specialization-switch')));
       await tester.pumpAndSettle();
@@ -964,6 +1066,11 @@ void main() {
       await tester.tap(find.text('Continue')); // -> Step 3
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(
+        find.text('Continue'),
+      ); // -> Step 4 (training parameters; split is step 2 now)
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Default split is Upper/Lower; default specialization lift is Squat
       // (matches "lower"), so Squat appears on exactly 2 of the 4 days.
@@ -1004,13 +1111,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      await tester.tap(find.text('Continue')); // -> Step 2
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.text('Continue')); // -> Step 3
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.text('Continue')); // -> Step 4
+      await tester.tap(find.text('Continue')); // -> Step 2 (split)
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -1018,7 +1119,10 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      await tester.tap(find.byTooltip('Back')); // -> Step 3
+      await tester.tap(find.text('Continue')); // -> Step 3 (pools)
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 4 (parameters)
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -1110,6 +1214,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(
+        find.text('Continue'),
+      ); // -> Step 4 (training parameters; split is step 2 now)
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -1243,12 +1352,12 @@ void main() {
     ) async {
       await tester.tap(find.text(modeLabel));
       await tester.pump();
-      await _continue(tester); // Step 1 -> Step 2 (exercise pools)
-      await _continue(tester); // Step 2 -> Step 3 (training parameters)
-      await _continue(tester); // Step 3 -> Step 4 (split)
+      await _continue(tester); // Step 1 -> Step 2 (split)
 
       await tester.tap(find.text('A / B / C'));
       await tester.pump();
+      await _continue(tester); // Step 2 -> Step 3 (exercise pools)
+      await _continue(tester); // Step 3 -> Step 4 (training parameters)
       await _continue(tester); // Step 4 -> Step 5 (content & methods)
     }
 
@@ -1262,14 +1371,14 @@ void main() {
     ) async {
       await tester.tap(find.text(modeLabel));
       await tester.pump();
-      await _continue(tester); // Step 1 -> Step 2 (exercise pools)
-      await _continue(tester); // Step 2 -> Step 3 (training parameters)
-
-      await tester.tap(find.text('Max Effort — Westside (Conjugate)'));
-      await tester.pump();
-      await _continue(tester); // Step 3 -> Step 4 (split)
+      await _continue(tester); // Step 1 -> Step 2 (split)
 
       await tester.tap(find.text('Push / Pull / Legs'));
+      await tester.pump();
+      await _continue(tester); // Step 2 -> Step 3 (exercise pools)
+      await _continue(tester); // Step 3 -> Step 4 (training parameters)
+
+      await tester.tap(find.text('Max Effort — Westside (Conjugate)'));
       await tester.pump();
       await _continue(tester); // Step 4 -> Step 5 (content & methods)
     }
@@ -1401,8 +1510,9 @@ void main() {
       WidgetTester tester,
       String currentLoad,
     ) async {
-      await _continue(tester); // Step 1 -> Step 2 (exercise pools)
-      await _continue(tester); // Step 2 -> Step 3 (training parameters)
+      await _continue(tester); // Step 1 -> Step 2 (split)
+      await _continue(tester); // Step 2 -> Step 3 (exercise pools)
+      await _continue(tester); // Step 3 -> Step 4 (training parameters)
 
       await tester.tap(find.byKey(const ValueKey('specialization-switch')));
       await tester.pumpAndSettle();
@@ -1413,7 +1523,6 @@ void main() {
       await tester.tap(find.text('Apply'));
       await tester.pumpAndSettle();
 
-      await _continue(tester); // Step 3 -> Step 4 (split)
       await _continue(tester); // Step 4 -> Step 5 (content & methods)
       await _continue(tester); // Step 5 -> Step 6 (schedule)
     }
@@ -1842,15 +1951,15 @@ void main() {
         await generate(tester);
         expect(find.text('Applied'), findsOneWidget);
 
-        await _continue(tester); // Step 1 -> Step 2
-        await _continue(tester); // Step 2 -> Step 3
-        await _continue(tester); // Step 3 -> Step 4 (split)
+        await _continue(tester); // Step 1 -> Step 2 (split)
 
         expect(find.text('Split'), findsOneWidget);
         await tester.tap(find.text('Push / Pull / Legs'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 50));
 
+        await _continue(tester); // Step 2 -> Step 3
+        await _continue(tester); // Step 3 -> Step 4
         await _continue(tester); // Step 4 -> Step 5
         await _continue(tester); // Step 5 -> Step 6
 

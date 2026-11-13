@@ -592,4 +592,161 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     });
   });
+
+  group('ProgramReviewView exercise waves', () {
+    late AppDatabase db;
+
+    setUp(() async {
+      db = await openTestDatabase();
+    });
+
+    tearDown(() => db.close());
+
+    Future<int> exercise(String name) => db
+        .into(db.exerciseCatalog)
+        .insert(
+          ExerciseCatalogCompanion.insert(
+            name: name,
+            primaryMuscle: 'Back',
+            equipment: 'cable',
+            mechanics: 'compound',
+            force: 'pull',
+            plane: 'vertical',
+          ),
+        );
+
+    /// A six-week block with one slot. With [rotates] the slot swaps from
+    /// "Lat Pulldown" (weeks 1–3) to "Seated Row" (weeks 4–6).
+    Future<int> seed({required bool rotates}) async {
+      final programId = await db
+          .into(db.programs)
+          .insert(ProgramsCompanion.insert(name: 'Wave Program'));
+      final first = await exercise('Lat Pulldown');
+      final second = rotates ? await exercise('Seated Row') : first;
+      final slotId = await db
+          .into(db.programExerciseSlots)
+          .insert(
+            ProgramExerciseSlotsCompanion.insert(
+              programId: programId,
+              slotKey: 'pull-main',
+              daySlotLabel: 'Pull',
+              orderIndex: 0,
+            ),
+          );
+      for (var week = 0; week < 6; week++) {
+        final exerciseId = week < 3 ? first : second;
+        final weekId = await db
+            .into(db.programWeeks)
+            .insert(
+              ProgramWeeksCompanion.insert(
+                programId: programId,
+                weekIndex: week,
+              ),
+            );
+        final dayId = await db
+            .into(db.programDays)
+            .insert(
+              ProgramDaysCompanion.insert(
+                programWeekId: weekId,
+                dayOfWeek: 1,
+                name: 'Pull',
+                slotLabel: const Value('Pull'),
+              ),
+            );
+        await db
+            .into(db.programDayExercises)
+            .insert(
+              ProgramDayExercisesCompanion.insert(
+                programDayId: dayId,
+                exerciseId: exerciseId,
+                orderIndex: 0,
+              ),
+            );
+        await db
+            .into(db.rotationAssignments)
+            .insert(
+              RotationAssignmentsCompanion.insert(
+                slotId: slotId,
+                exerciseId: exerciseId,
+                weekIndex: week,
+                reason: 'test',
+              ),
+            );
+      }
+      return programId;
+    }
+
+    Widget harness(int programId) => ProviderScope(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(db),
+        recentExerciseIdsProvider.overrideWith((ref) async => <int>{}),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: ProgramReviewView(programId: programId),
+      ),
+    );
+
+    Future<void> settle(WidgetTester tester) async {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    testWidgets('rotating exercises are reviewed wave by wave, not week by '
+        'week', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final programId = await seed(rotates: true);
+
+      await tester.pumpWidget(harness(programId));
+      await settle(tester);
+
+      expect(find.byKey(const ValueKey('wave-chip-1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wave-chip-2')), findsOneWidget);
+      expect(find.text('Weeks 1–3'), findsOneWidget);
+      expect(find.text('Weeks 4–6'), findsOneWidget);
+      // The week dropdown is tucked away until asked for.
+      expect(find.byType(DropdownButton<int>), findsNothing);
+      expect(find.text('Lat Pulldown'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('wave-chip-2')));
+      await settle(tester);
+
+      expect(find.text('Seated Row'), findsOneWidget);
+      expect(find.text('Lat Pulldown'), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('review-week-detail-toggle')));
+      await settle(tester);
+      expect(find.byType(DropdownButton<int>), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    });
+
+    testWidgets('a block whose exercises never change has no wave picker', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final programId = await seed(rotates: false);
+
+      await tester.pumpWidget(harness(programId));
+      await settle(tester);
+
+      expect(find.byKey(const ValueKey('wave-chip-1')), findsNothing);
+      expect(find.text('Lat Pulldown'), findsOneWidget);
+      expect(find.textContaining('change in waves'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    });
+  });
 }

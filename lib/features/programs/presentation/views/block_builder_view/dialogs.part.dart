@@ -192,6 +192,7 @@ mixin _DialogsMixin on _BuilderStateBase {
                 isRecommended: _experienceRecommendation?.level == level,
                 onSelected: (selected) {
                   setState(() {
+                    _experienceTouchedByUser = true;
                     _experience = selected;
                     _applySmartDefaults();
                   });

@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_importer.dart';
+import 'package:herculex/features/gamification/domain/strength_standards.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/data/smart_program_planner.dart';
 import 'package:herculex/features/programs/domain/primary_lift_specialization.dart';
@@ -664,6 +665,97 @@ void main() {
       }
     },
   );
+
+  group('proven pull-ups', () {
+    Future<List<String?>> pullDaySlugs({
+      int? provenPullUpReps,
+      ExperienceLevel experience = ExperienceLevel.intermediate,
+    }) async {
+      final programId = await ProgramsRepository(db).createProgramFromSplit(
+        name: 'Pull block',
+        weeks: 8,
+        plan: SplitTemplates.generate(type: SplitType.ppl, daysPerWeek: 3),
+        startDate: DateTime(2026, 9, 7),
+        buildMode: ProgramBuildMode.smart,
+        trainingGoal: TrainingGoal.hypertrophy,
+        experienceLevel: experience,
+      );
+      await SmartProgramPlanner(db).populate(
+        programId,
+        SmartProgramConfiguration(
+          goal: TrainingGoal.hypertrophy,
+          experience: experience,
+          // Weightlifting hides the calisthenics-tagged strict pull-up from
+          // the catalogue, which is how an assisted machine got picked.
+          trainingStyle: TrainingStyle.weightlifting,
+          provenPullUpReps: provenPullUpReps,
+        ),
+      );
+      final rows = await db.select(db.programDayExercises).get();
+      final catalog = await db.select(db.exerciseCatalog).get();
+      final slugById = {for (final e in catalog) e.id: e.slug};
+      return [for (final row in rows) slugById[row.exerciseId]];
+    }
+
+    bool isRegression(String? slug) =>
+        slug != null &&
+        (slug.startsWith('assisted-pull-up-machine-') ||
+            slug.startsWith('band-assisted-pull-up') ||
+            slug.startsWith('negative-pull-up'));
+
+    test('a user who does 8 strict pull-ups never gets an assisted variant, '
+        'whatever the training style', () async {
+      final slugs = await pullDaySlugs(provenPullUpReps: 8);
+
+      expect(slugs.where(isRegression), isEmpty);
+      expect(
+        slugs.any(
+          (slug) => slug != null && StrengthLift.pullUp.slugs.contains(slug),
+        ),
+        isTrue,
+        reason: 'a proven strict pull-up should be programmed',
+      );
+    });
+
+    test('proof outranks a stale "novice" label: strict pull-ups are '
+        'programmed and no regression is handed out', () async {
+      final slugs = await pullDaySlugs(
+        provenPullUpReps: 8,
+        experience: ExperienceLevel.novice,
+      );
+
+      expect(slugs.where(isRegression), isEmpty);
+      expect(
+        slugs.any(
+          (slug) => slug != null && StrengthLift.pullUp.slugs.contains(slug),
+        ),
+        isTrue,
+      );
+    });
+
+    test('below the proof threshold the planner does not use the override', () {
+      const belowThreshold = SmartProgramConfiguration(
+        goal: TrainingGoal.hypertrophy,
+        experience: ExperienceLevel.intermediate,
+        provenPullUpReps: SmartProgramPlanner.kProvenPullUpReps - 1,
+      );
+      const proven = SmartProgramConfiguration(
+        goal: TrainingGoal.hypertrophy,
+        experience: ExperienceLevel.intermediate,
+        provenPullUpReps: SmartProgramPlanner.kProvenPullUpReps,
+      );
+
+      expect(belowThreshold.hasProvenPullUps, isFalse);
+      expect(proven.hasProvenPullUps, isTrue);
+      expect(
+        const SmartProgramConfiguration(
+          goal: TrainingGoal.hypertrophy,
+          experience: ExperienceLevel.intermediate,
+        ).hasProvenPullUps,
+        isFalse,
+      );
+    });
+  });
 
   test(
     'squat specialization on a PPL split only anchors the Legs day',

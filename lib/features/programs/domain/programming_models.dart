@@ -54,19 +54,19 @@ enum ExperienceLevel {
 
   /// Conservative, explainable recommendation. A photo is deliberately not an
   /// input: visible muscularity cannot establish training competence.
+  ///
+  /// [strengthLevel] is the level the user's benchmark lifts already qualify
+  /// for (the app's strength tier, mapped by the caller). It can only lift the
+  /// history-based answer, never lower it: someone who squats and pulls like
+  /// an intermediate is not a novice just because they are new to logging.
+  /// Strength alone never reaches advanced — that needs the history criteria.
   static ExperienceRecommendation recommend({
     required int consistentTrainingMonths,
     required int sessionsLast12Weeks,
     required bool understandsRirRpe,
     required bool hasRunStructuredBlocks,
+    ExperienceLevel? strengthLevel,
   }) {
-    if (consistentTrainingMonths < 6 || sessionsLast12Weeks < 24) {
-      return const ExperienceRecommendation(
-        level: ExperienceLevel.novice,
-        confidence: 0.85,
-        reason: 'Less than six consistent months or 24 recent sessions.',
-      );
-    }
     if (consistentTrainingMonths >= 36 &&
         sessionsLast12Weeks >= 30 &&
         understandsRirRpe &&
@@ -75,6 +75,22 @@ enum ExperienceLevel {
         level: ExperienceLevel.advanced,
         confidence: 0.9,
         reason: 'Three years of consistent training with structured blocks.',
+      );
+    }
+    if (consistentTrainingMonths < 6 || sessionsLast12Weeks < 24) {
+      if (strengthLevel != null && strengthLevel != ExperienceLevel.novice) {
+        return const ExperienceRecommendation(
+          level: ExperienceLevel.intermediate,
+          confidence: 0.75,
+          reason:
+              'Your lifts place you at Intermediate strength, even though '
+              'there is little logged history yet.',
+        );
+      }
+      return const ExperienceRecommendation(
+        level: ExperienceLevel.novice,
+        confidence: 0.85,
+        reason: 'Less than six consistent months or 24 recent sessions.',
       );
     }
     return const ExperienceRecommendation(

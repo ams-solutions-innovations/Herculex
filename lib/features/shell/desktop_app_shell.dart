@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/router/router.dart' show rootNavigatorKey;
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/platform/platform_capabilities.dart';
 import 'package:herculex/design_system/components/hx_layout_scope.dart';
@@ -76,58 +77,103 @@ class _DesktopAppShellState extends ConsumerState<DesktopAppShell> {
     final availableContentWidth =
         windowWidth - (railClearance - HxNavRail.margin);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          Positioned(
-            left: railClearance - HxNavRail.margin,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            child: HxLayoutScope(
-              placement: HxNavPlacement.rail,
-              child: Builder(
-                builder: (context) {
-                  final mq = MediaQuery.of(context);
-                  return MediaQuery(
-                    data: mq.copyWith(
-                      size: Size(availableContentWidth, mq.size.height),
-                    ),
-                    child: widget.child,
-                  );
-                },
-              ),
-            ),
-          ),
-          if (_quickAddOpen)
-            QuickAddMenu(
-              key: _quickAddMenuKey,
-              leftAnchor: railClearance,
-              onClose: () => setState(() => _quickAddOpen = false),
-              onActionSelected: (action) {
-                setState(() => _quickAddOpen = false);
-                action(context, ref);
-              },
-            ),
-          Positioned(
-            left: HxNavRail.margin,
-            top: HxNavRail.margin,
-            bottom: HxNavRail.margin,
-            child: HxNavRail(
-              currentIndex:
-                  widget.currentTool == null ? widget.currentIndex : null,
-              onTap: widget.onSelectTab,
-              tools: widget.tools,
-              currentTool: widget.currentTool,
-              onToolTap: widget.onSelectTool,
-              quickAddOpen: _quickAddOpen,
-              onQuickAddTap: _toggleQuickAdd,
-              leading: widget.leading,
-            ),
-          ),
-        ],
+    // This shell is mounted in `MaterialApp.router(builder:)`, i.e. above the
+    // Navigator and so above every Overlay. The rail's Tooltips (and anything
+    // else that floats) need one, otherwise each rail item throws "No Overlay
+    // widget found" on build and the rail is dead.
+    return _ShellOverlay(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: _buildStack(railClearance, availableContentWidth),
       ),
     );
   }
+
+  Widget _buildStack(double railClearance, double availableContentWidth) {
+    return Stack(
+      children: [
+        Positioned(
+          left: railClearance - HxNavRail.margin,
+          top: 0,
+          right: 0,
+          bottom: 0,
+          child: HxLayoutScope(
+            placement: HxNavPlacement.rail,
+            child: Builder(
+              builder: (context) {
+                final mq = MediaQuery.of(context);
+                return MediaQuery(
+                  data: mq.copyWith(
+                    size: Size(availableContentWidth, mq.size.height),
+                  ),
+                  child: widget.child,
+                );
+              },
+            ),
+          ),
+        ),
+        if (_quickAddOpen)
+          QuickAddMenu(
+            key: _quickAddMenuKey,
+            leftAnchor: railClearance,
+            onClose: () => setState(() => _quickAddOpen = false),
+            onActionSelected: (action) {
+              setState(() => _quickAddOpen = false);
+              // This shell sits above the Navigator, so its own context cannot
+              // open sheets, dialogs or routes; the root navigator's can.
+              action(rootNavigatorKey.currentContext ?? context, ref);
+            },
+          ),
+        Positioned(
+          left: HxNavRail.margin,
+          top: HxNavRail.margin,
+          bottom: HxNavRail.margin,
+          child: HxNavRail(
+            currentIndex: widget.currentTool == null
+                ? widget.currentIndex
+                : null,
+            onTap: widget.onSelectTab,
+            tools: widget.tools,
+            currentTool: widget.currentTool,
+            onToolTap: widget.onSelectTool,
+            quickAddOpen: _quickAddOpen,
+            onQuickAddTap: _toggleQuickAdd,
+            leading: widget.leading,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Gives [child] an [Overlay] of its own. The entry is rebuilt whenever the
+/// parent rebuilds, since an [OverlayEntry] otherwise holds a stale subtree.
+class _ShellOverlay extends StatefulWidget {
+  const _ShellOverlay({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_ShellOverlay> createState() => _ShellOverlayState();
+}
+
+class _ShellOverlayState extends State<_ShellOverlay> {
+  late final OverlayEntry _entry = OverlayEntry(builder: (_) => widget.child);
+
+  @override
+  void didUpdateWidget(_ShellOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _entry.markNeedsBuild();
+  }
+
+  @override
+  void dispose() {
+    _entry
+      ..remove()
+      ..dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Overlay(initialEntries: [_entry]);
 }

@@ -243,6 +243,7 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
                 : MuscleFocusWave.steady,
             waveOverrideWeeks: _waveOverrideWeeks,
             trainingFocus: _effectiveTrainingFocus,
+            provenPullUpReps: _provenPullUpReps,
           ),
         );
       }

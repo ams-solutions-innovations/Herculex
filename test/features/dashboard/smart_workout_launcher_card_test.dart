@@ -62,24 +62,23 @@ void main() {
     );
   }
 
-  testWidgets('displays Today\'s Plan and Today badge when workout is today', (tester) async {
-    final workout = createMockWorkout(
-      title: 'Upper',
-      dateIso: '2026-10-25',
-    );
+  testWidgets('displays Today\'s Plan and Today badge when workout is today', (
+    tester,
+  ) async {
+    final workout = createMockWorkout(title: 'Upper', dateIso: '2026-10-25');
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           clockProvider.overrideWithValue(_TestClock(todayDate)),
-          nextScheduledWorkoutProvider.overrideWith((ref) => Stream.value(workout)),
+          nextScheduledWorkoutProvider.overrideWith(
+            (ref) => Stream.value(workout),
+          ),
         ],
         child: MaterialApp(
           theme: AppTheme.lightTheme,
-          home: const Scaffold(
-            body: SmartWorkoutLauncherCard(),
-          ),
+          home: const Scaffold(body: SmartWorkoutLauncherCard()),
         ),
       ),
     );
@@ -93,57 +92,63 @@ void main() {
     expect(find.text('View'), findsOneWidget);
   });
 
-  testWidgets('displays Next Workout and Tuesday badge when workout is planned on Tuesday', (tester) async {
-    final workout = createMockWorkout(
-      title: 'Upper',
-      dateIso: '2026-10-27', // Tuesday
-    );
+  testWidgets(
+    'displays Next Workout and Tuesday badge when workout is planned on Tuesday',
+    (tester) async {
+      final workout = createMockWorkout(
+        title: 'Upper',
+        dateIso: '2026-10-27', // Tuesday
+      );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          clockProvider.overrideWithValue(_TestClock(todayDate)),
-          nextScheduledWorkoutProvider.overrideWith((ref) => Stream.value(workout)),
-        ],
-        child: MaterialApp(
-          theme: AppTheme.lightTheme,
-          home: const Scaffold(
-            body: SmartWorkoutLauncherCard(),
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            clockProvider.overrideWithValue(_TestClock(todayDate)),
+            nextScheduledWorkoutProvider.overrideWith(
+              (ref) => Stream.value(workout),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const Scaffold(body: SmartWorkoutLauncherCard()),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Next Workout'), findsOneWidget);
-    expect(find.text('Tuesday, Oct 27'), findsOneWidget);
-    expect(find.text('Upper'), findsOneWidget);
-    expect(find.text('6 exercises planned'), findsOneWidget);
-    expect(find.text('Start Upper?'), findsOneWidget);
-  });
+      expect(find.text('Next Workout'), findsOneWidget);
+      expect(find.text('Tuesday, Oct 27'), findsOneWidget);
+      expect(find.text('Upper'), findsOneWidget);
+      expect(find.text('6 exercises planned'), findsOneWidget);
+      expect(find.text('Start Upper?'), findsOneWidget);
+    },
+  );
 
-  testWidgets('displays Next Workout with No upcoming workouts scheduled when null', (tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          clockProvider.overrideWithValue(_TestClock(todayDate)),
-          nextScheduledWorkoutProvider.overrideWith((ref) => Stream.value(null)),
-        ],
-        child: MaterialApp(
-          theme: AppTheme.lightTheme,
-          home: const Scaffold(
-            body: SmartWorkoutLauncherCard(),
+  testWidgets(
+    'displays Next Workout with No upcoming workouts scheduled when null',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            clockProvider.overrideWithValue(_TestClock(todayDate)),
+            nextScheduledWorkoutProvider.overrideWith(
+              (ref) => Stream.value(null),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const Scaffold(body: SmartWorkoutLauncherCard()),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Next Workout'), findsOneWidget);
-    expect(find.text('No upcoming workouts scheduled.'), findsOneWidget);
-  });
+      expect(find.text('Next Workout'), findsOneWidget);
+      expect(find.text('No upcoming workouts scheduled.'), findsOneWidget);
+    },
+  );
 
   testWidgets('on the web the card previews the workout but cannot start it', (
     tester,

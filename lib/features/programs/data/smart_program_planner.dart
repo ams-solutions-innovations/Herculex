@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/gamification/domain/strength_standards.dart';
 import 'package:herculex/features/programs/domain/crossfit_program_planner.dart';
 import 'package:herculex/features/programs/domain/crossfit_scaling_policy.dart';
 import 'package:herculex/features/programs/domain/exercise_programming_eligibility.dart';
@@ -20,6 +21,7 @@ import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/programs/domain/time_saving_policy.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/domain/warmup_resolver.dart';
 import 'package:herculex/features/workouts/domain/workout_duration_estimator.dart';
@@ -53,7 +55,17 @@ class SmartProgramConfiguration {
     this.primaryLiftSpecialization,
     this.excludedMuscles = const {},
     this.trainingFocus = TrainingFocus.balanced,
+    this.provenPullUpReps,
   });
+
+  /// Strict (unassisted) pull-up reps the user has logged or reported, if
+  /// known. At [kProvenPullUpReps] or more the planner treats pull-ups as
+  /// proven: it may use the strict variants whatever the training style, and it
+  /// never hands out an assisted, band or negative variant instead.
+  final int? provenPullUpReps;
+
+  bool get hasProvenPullUps =>
+      (provenPullUpReps ?? 0) >= SmartProgramPlanner.kProvenPullUpReps;
 
   final TrainingGoal goal;
   final ExperienceLevel experience;
@@ -125,6 +137,10 @@ class SmartProgramConfiguration {
 /// here where equipment, preferences and safety rules are enforceable.
 class SmartProgramPlanner {
   SmartProgramPlanner(this._db);
+
+  /// Strict pull-up reps from which a user counts as "can do pull-ups": below
+  /// this an assisted variant is still a sensible starting point.
+  static const kProvenPullUpReps = 5;
 
   final AppDatabase _db;
 
@@ -877,6 +893,7 @@ class SmartProgramPlanner {
         final id = scored.candidate.exerciseId;
         return scored.score +
             _loadingBonus(id, candidates, loadingPreference) +
+            _provenPullUpBonus(catalogById[id]!, configuration) +
             _timeSavingBonus(catalogById[id]!, need.role, configuration);
       }
 
@@ -1336,19 +1353,50 @@ class SmartProgramPlanner {
     _ => 0,
   };
 
+  /// Strict pull-up family, from the strength standards so the planner and the
+  /// tier evaluator agree on what counts.
+  static bool _isStrictPullUp(ExerciseCatalogData exercise) =>
+      StrengthLift.pullUp.slugs.contains(exercise.slug);
+
+  /// Assisted, band-assisted and negative pull-ups: the regressions.
+  static bool _isAssistedPullUp(ExerciseCatalogData exercise) {
+    final slug = exercise.slug;
+    if (slug == null) return false;
+    return isMachineAssistedPullup(slug) ||
+        slug.startsWith('band-assisted-pull-up') ||
+        slug.startsWith('negative-pull-up');
+  }
+
   static bool _isEligibleForAutomaticProgramming(
     ExerciseCatalogData exercise,
     SmartProgramConfiguration configuration,
-  ) => ExerciseProgrammingEligibility.allows(
-    experience: configuration.experience,
-    style: configuration.trainingStyle,
-    difficulty: exercise.programmingDifficulty,
-    commonness: exercise.programmingCommonness,
-    allowedTrainingStylesJson: exercise.allowedTrainingStyles,
-    technicalEligibility: exercise.technicalEligibility,
-    primaryMuscle: exercise.primaryMuscle,
-    excludedMuscles: configuration.excludedMuscles,
-  );
+  ) {
+    final provenPullUps = configuration.hasProvenPullUps;
+    // Someone who already does strict pull-ups is never handed a regression.
+    if (provenPullUps && _isAssistedPullUp(exercise)) return false;
+    return ExerciseProgrammingEligibility.allows(
+      experience: configuration.experience,
+      style: configuration.trainingStyle,
+      difficulty: exercise.programmingDifficulty,
+      commonness: exercise.programmingCommonness,
+      allowedTrainingStylesJson: exercise.allowedTrainingStyles,
+      technicalEligibility: exercise.technicalEligibility,
+      primaryMuscle: exercise.primaryMuscle,
+      excludedMuscles: configuration.excludedMuscles,
+      // The catalogue tags strict pull-ups as intermediate calisthenics/basic
+      // work, which hides them from a weightlifting program and from anyone
+      // labelled novice. Proof of ability outranks both; the joint, technical
+      // and commonness gates still apply.
+      provenAbility: provenPullUps && _isStrictPullUp(exercise),
+    );
+  }
+
+  /// Nudges a proven strict pull-up above the machine pulldowns that would
+  /// otherwise tie with it.
+  static double _provenPullUpBonus(
+    ExerciseCatalogData exercise,
+    SmartProgramConfiguration configuration,
+  ) => configuration.hasProvenPullUps && _isStrictPullUp(exercise) ? 2.4 : 0;
 
   Future<_EquipmentProfile> _equipment(int? requestedGymId) async {
     GymData? gym;

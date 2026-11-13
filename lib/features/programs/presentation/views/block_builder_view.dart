@@ -16,6 +16,10 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/hx_colors.dart';
 import 'package:herculex/design_system/tokens/hx_geometry.dart';
+import 'package:herculex/features/gamification/application/gamification_providers.dart';
+import 'package:herculex/features/gamification/domain/level_progress.dart';
+import 'package:herculex/features/gamification/domain/strength_standards.dart';
+import 'package:herculex/features/gamification/domain/strength_tier_evaluator.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/data/herculex_ai_brief_service.dart';
 import 'package:herculex/features/programs/data/smart_program_planner.dart';
@@ -42,6 +46,7 @@ part 'block_builder_view/standalone_widgets.part.dart';
 part 'block_builder_view/shared_helpers.part.dart';
 part 'block_builder_view/dialogs.part.dart';
 part 'block_builder_view/step_mode_and_split.part.dart';
+part 'block_builder_view/step_schedule_preview.part.dart';
 part 'block_builder_view/step_parameters.part.dart';
 part 'block_builder_view/step_parameters_specialization.part.dart';
 part 'block_builder_view/programming_options.part.dart';
@@ -84,6 +89,15 @@ abstract class _BuilderStateBase extends ConsumerState<BlockBuilderView> {
   ExperienceLevel _experience = ExperienceLevel.novice;
   ExperienceRecommendation? _experienceRecommendation;
 
+  /// Set once the user picks a level themselves, so the async recommender
+  /// (which reads the database) can never overwrite their choice.
+  bool _experienceTouchedByUser = false;
+
+  /// Highest strength the user's benchmark lifts and sessions prove, or null
+  /// when unknown. Feeds the planner so it does not hand an assisted variant
+  /// to someone who already does the strict one.
+  int? _provenPullUpReps;
+
   // Step 1
   final _nameCtrl = TextEditingController();
 
@@ -113,6 +127,10 @@ abstract class _BuilderStateBase extends ConsumerState<BlockBuilderView> {
   final Map<int, String> _weeklyDayLabels = {};
   final Set<int> _weeklyTrainingWeekdays = {};
   bool _hasCustomWeeklyPlacement = false;
+
+  /// Weekdays (1–7) the user has set by hand, as opposed to ones the app
+  /// placed. Drives the "You" / "Auto" badges on the weekly strip.
+  final Set<int> _userSetWeekdays = {};
 
   // Step 3 — template per split slot.
   final Map<int, int?> _templatesBySlot = {};
@@ -275,6 +293,11 @@ abstract class _BuilderStateBase extends ConsumerState<BlockBuilderView> {
 
   // Implemented in step_mode_and_split.part.dart.
   void _clearCustomWeeklyPlacement();
+  String? _scheduleProblem();
+  Widget _planPreview(ThemeData theme, SplitPlan plan);
+  List<String> _recoveryWarnings(SplitPlan plan);
+  Widget _recoveryWarning(ThemeData theme, List<String> warnings);
+  Future<void> _editWeeklyDay(int weekday);
 
   // Implemented in step_pools.part.dart.
   Widget _builderInputCard(
@@ -316,6 +339,7 @@ class _BlockBuilderViewState extends _BuilderStateBase
         _SharedHelpersMixin,
         _DialogsMixin,
         _StepModeAndSplitMixin,
+        _StepSchedulePreviewMixin,
         _StepParametersMixin,
         _StepParametersSpecializationMixin,
         _StepPoolsMixin,
@@ -373,17 +397,35 @@ class _BlockBuilderViewState extends _BuilderStateBase
     final months = all.isEmpty
         ? 0
         : now.difference(all.first.startedAt).inDays ~/ 30;
+    // The strength tier is what the rest of the app already calls the user's
+    // level. Failing to read it must not block the history-based answer.
+    StrengthAssessment? assessment;
+    try {
+      assessment = await ref.read(strengthAssessmentProvider.future);
+    } catch (_) {
+      assessment = null;
+    }
     final recommendation = ExperienceLevel.recommend(
       consistentTrainingMonths: months,
       sessionsLast12Weeks: recent.length,
       understandsRirRpe: rpeRows.isNotEmpty,
       hasRunStructuredBlocks: structured.isNotEmpty,
+      strengthLevel: assessment == null
+          ? null
+          : switch (assessment.tier) {
+              LevelBand.novice => ExperienceLevel.novice,
+              _ => ExperienceLevel.intermediate,
+            },
     );
+    final pullUpReps = assessment?.bests[StrengthLift.pullUp]?.best;
     if (!mounted) return;
     setState(() {
       _experienceRecommendation = recommendation;
-      _experience = recommendation.level;
-      _applySmartDefaults();
+      _provenPullUpReps = pullUpReps?.floor();
+      if (!_experienceTouchedByUser) {
+        _experience = recommendation.level;
+        _applySmartDefaults();
+      }
     });
   }
 
@@ -433,9 +475,11 @@ class _BlockBuilderViewState extends _BuilderStateBase
         children: [
           switch (_step) {
             1 => _stepBuildModeAndPriorities(theme),
-            2 => _stepExercisePools(theme),
-            3 => _stepParameters(theme),
-            4 => _stepSplit(theme),
+            // Split and weekdays come right after the build mode: the user
+            // picks the rhythm first and the app fills in (and marks) the rest.
+            2 => _stepSplit(theme),
+            3 => _stepExercisePools(theme),
+            4 => _stepParameters(theme),
             5 => _stepContentAndMethods(theme),
             _ => _stepSchedule(theme),
           },

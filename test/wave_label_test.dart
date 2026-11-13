@@ -244,4 +244,80 @@ void main() {
       },
     );
   });
+
+  group('WaveSegments.compute', () {
+    test('no rotation anywhere is one wave covering every week', () {
+      final waves = WaveSegments.compute(
+        totalWeeks: 6,
+        exerciseIdByWeekBySlot: const {
+          1: {0: 5, 1: 5, 2: 5, 3: 5, 4: 5, 5: 5},
+          2: {0: 7, 1: 7, 2: 7, 3: 7, 4: 7, 5: 7},
+        },
+      );
+
+      expect(waves, [const WaveSegment(index: 1, startWeek: 0, endWeek: 5)]);
+      expect(waves.single.weeksLabel, 'Weeks 1–6');
+    });
+
+    test('a three-week rotation gives waves of three weeks', () {
+      final waves = WaveSegments.compute(
+        totalWeeks: 9,
+        exerciseIdByWeekBySlot: const {
+          1: {0: 1, 1: 1, 2: 1, 3: 2, 4: 2, 5: 2, 6: 3, 7: 3, 8: 3},
+          // A fixed main lift must not add boundaries of its own.
+          2: {0: 9, 1: 9, 2: 9, 3: 9, 4: 9, 5: 9, 6: 9, 7: 9, 8: 9},
+        },
+      );
+
+      expect(waves.map((w) => (w.startWeek, w.endWeek)), [
+        (0, 2),
+        (3, 5),
+        (6, 8),
+      ]);
+      expect(waves.map((w) => w.index), [1, 2, 3]);
+      expect(waves[1].contains(4), isTrue);
+      expect(waves[1].contains(6), isFalse);
+    });
+
+    test(
+      'a wave ends when ANY slot rotates, so offset slots split further',
+      () {
+        final waves = WaveSegments.compute(
+          totalWeeks: 6,
+          exerciseIdByWeekBySlot: const {
+            1: {0: 1, 1: 1, 2: 2, 3: 2, 4: 2, 5: 2},
+            2: {0: 5, 1: 5, 2: 5, 3: 5, 4: 6, 5: 6},
+          },
+        );
+
+        expect(waves.map((w) => (w.startWeek, w.endWeek)), [
+          (0, 1),
+          (2, 3),
+          (4, 5),
+        ]);
+      },
+    );
+
+    test('weeks a slot has no entry for do not invent boundaries', () {
+      final waves = WaveSegments.compute(
+        totalWeeks: 4,
+        exerciseIdByWeekBySlot: const {
+          1: {0: 1, 3: 1},
+        },
+      );
+
+      expect(waves, hasLength(1));
+    });
+
+    test('a single week reads "Week N" and no weeks gives no waves', () {
+      expect(
+        const WaveSegment(index: 2, startWeek: 3, endWeek: 3).weeksLabel,
+        'Week 4',
+      );
+      expect(
+        WaveSegments.compute(totalWeeks: 0, exerciseIdByWeekBySlot: const {}),
+        isEmpty,
+      );
+    });
+  });
 }

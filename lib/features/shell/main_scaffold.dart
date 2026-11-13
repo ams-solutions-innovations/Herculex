@@ -22,8 +22,6 @@ import 'package:herculex/features/physique/application/physique_providers.dart';
 import 'package:herculex/features/physique/data/physique_legacy_migrator.dart';
 import 'package:herculex/features/profile/presentation/profile_view.dart';
 import 'package:herculex/features/shell/quick_add_menu.dart';
-import 'package:herculex/features/supplements/presentation/supplement_ai_scan_dialog.dart';
-import 'package:herculex/features/supplements/presentation/supplement_edit_sheet.dart';
 import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/presentation/dialogs/exercise_ai_scan_dialog.dart';
@@ -89,7 +87,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref.read(appShortcutsServiceProvider).initialize(context);
+        ref.read(appShortcutsServiceProvider).initialize(context, ref);
         _checkLostImageData();
       }
     });
@@ -116,27 +114,11 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
               ? AiScanContextType.exercise
               : currentTab == 3
               ? AiScanContextType.bodyFat
-              : AiScanContextType.supplement);
+              : AiScanContextType.food);
 
       if (!mounted) return;
 
       switch (type) {
-        case AiScanContextType.supplement:
-          final barcode = pendingContext?.extra?['barcode'] as String?;
-          final result = await SupplementAiScanDialog.show(
-            context,
-            initialImage: file,
-            barcode: barcode,
-          );
-          if (result != null && mounted) {
-            await SupplementEditSheet.show(
-              context,
-              existing: result.toSupplement(barcode: barcode),
-              isNewDraft: true,
-            );
-          }
-          break;
-
         case AiScanContextType.food:
           final mealKey = pendingContext?.mealKey ?? 'snack';
           final date = pendingContext?.dateIso != null
@@ -419,10 +401,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
             index: index,
             children: [
               for (var i = 0; i < _tabs.length; i++)
-                HxContentWidth(
-                  maxWidth: _railTabMaxWidths[i],
-                  child: _tabs[i],
-                ),
+                HxContentWidth(maxWidth: _railTabMaxWidths[i], child: _tabs[i]),
             ],
           ),
           if (showBanner)

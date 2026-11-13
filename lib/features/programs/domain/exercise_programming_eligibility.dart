@@ -24,9 +24,13 @@ class ExerciseProgrammingEligibility {
     String? requiredEquipmentKeysJson,
     String? primaryMuscle,
     Set<String> excludedMuscles = const {},
+    bool provenAbility = false,
   }) {
     final resolvedDifficulty = _difficulty(difficulty);
-    if (_difficultyRank(resolvedDifficulty) > _experienceRank(experience)) {
+    // Demonstrated ability (e.g. strict pull-ups already logged) outranks the
+    // experience label, which can lag behind what the user can actually do.
+    if (!provenAbility &&
+        _difficultyRank(resolvedDifficulty) > _experienceRank(experience)) {
       return false;
     }
 
@@ -89,6 +93,10 @@ class ExerciseProgrammingEligibility {
       }
     }
 
+    // Callers may waive the style tag together with the difficulty gate (e.g.
+    // a proven strict pull-up in a weightlifting program); joint, technical and
+    // commonness gates above still apply.
+    if (provenAbility) return true;
     final styles = _styles(allowedTrainingStylesJson);
     return styles.any(style.allowedCatalogStyles.contains);
   }

@@ -68,16 +68,20 @@ class ScheduledWorkoutRow {
 
   bool get isEmpty => exerciseCount == 0;
 
-  bool get isPlannedDeload => program != null && week != null && Periodization.isPlannedDeload(
-    model: PeriodizationModel.fromId(program!.periodizationModel),
-    totalWeeks: program!.weeks,
-    weekIndex: week!.weekIndex,
-  );
+  bool get isPlannedDeload =>
+      program != null &&
+      week != null &&
+      Periodization.isPlannedDeload(
+        model: PeriodizationModel.fromId(program!.periodizationModel),
+        totalWeeks: program!.weeks,
+        weekIndex: week!.weekIndex,
+      );
 
   String get title {
     final slot = day?.slotLabel?.trim();
     if (slot != null && slot.isNotEmpty) return slot;
-    if (schedule.oneOffPlanJson != null) return (jsonDecode(schedule.oneOffPlanJson!) as Map)['name'] as String;
+    if (schedule.oneOffPlanJson != null)
+      return (jsonDecode(schedule.oneOffPlanJson!) as Map)['name'] as String;
     final name = day?.name.trim() ?? '';
     return name.isEmpty ? 'Training session' : name;
   }
