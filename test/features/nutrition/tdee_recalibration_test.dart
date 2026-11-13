@@ -203,19 +203,22 @@ void main() {
       expect((await rows()).length, 5);
     });
 
-    test('upgrades a same-day coldStart row once qualifying logs arrive', () async {
-      clock.time = _noon(2026, 2, 15);
-      // App opened before logging: writes a coldStart row.
-      final initial = await recalibrator.run();
-      expect(initial!.method, TdeeMethod.coldStart);
+    test(
+      'upgrades a same-day coldStart row once qualifying logs arrive',
+      () async {
+        clock.time = _noon(2026, 2, 15);
+        // App opened before logging: writes a coldStart row.
+        final initial = await recalibrator.run();
+        expect(initial!.method, TdeeMethod.coldStart);
 
-      // User logs 15 days of food and weight on the same day.
-      await logThrough(DateTime(2026, 2, 15));
-      final upgraded = await recalibrator.run();
-      expect(upgraded, isNotNull);
-      expect(upgraded!.method, TdeeMethod.observed);
-      expect(upgraded.confidence, TdeeConfidence.high);
-    });
+        // User logs 15 days of food and weight on the same day.
+        await logThrough(DateTime(2026, 2, 15));
+        final upgraded = await recalibrator.run();
+        expect(upgraded, isNotNull);
+        expect(upgraded!.method, TdeeMethod.observed);
+        expect(upgraded.confidence, TdeeConfidence.high);
+      },
+    );
 
     test('force writes a row even on the same day', () async {
       await recalibrator.run();

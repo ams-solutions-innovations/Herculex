@@ -4,9 +4,9 @@
 #   pwsh tool/web/deploy_web.ps1 [-Branch main]
 #
 # A branch other than the production one creates a preview deployment at
-# <branch>.herculex-app.pages.dev.
+# <branch>.herculex-flutter-app.pages.dev.
 
-param([string]$Branch = 'main', [string]$Project = 'herculex-app')
+param([string]$Branch = 'main', [string]$Project = 'herculex-flutter-app')
 
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..\..')

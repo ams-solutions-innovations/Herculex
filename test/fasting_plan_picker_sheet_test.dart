@@ -95,32 +95,33 @@ void main() {
   });
 
   group('StartFastPanel', () {
-    testWidgets('renders selected plan card, quick buttons, and start time in English', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: StartFastPanel(
-              selectedPlan: FastingPlan.h16,
-              customTargetHours: 16,
-              customStartTime: null,
-              onPlanSelected: (_) {},
-              onCustomHoursChanged: (_) {},
-              onCustomStartTimeChanged: (_) {},
+    testWidgets(
+      'renders selected plan card, quick buttons, and start time in English',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StartFastPanel(
+                selectedPlan: FastingPlan.h16,
+                customTargetHours: 16,
+                customStartTime: null,
+                onPlanSelected: (_) {},
+                onCustomHoursChanged: (_) {},
+                onCustomStartTimeChanged: (_) {},
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('READY TO START FASTING?'), findsOneWidget);
-      expect(find.text('INTERMITTENT'), findsWidgets);
-      expect(find.text('16:8'), findsOneWidget);
-      expect(find.text('Change Plan'), findsOneWidget);
-      expect(find.text('Intermittent'), findsOneWidget);
-      expect(find.text('Prolonged'), findsOneWidget);
-      expect(find.text('Start time:'), findsOneWidget);
-      expect(find.text('Now'), findsOneWidget);
-    });
+        expect(find.text('READY TO START FASTING?'), findsOneWidget);
+        expect(find.text('INTERMITTENT'), findsWidgets);
+        expect(find.text('16:8'), findsOneWidget);
+        expect(find.text('Change Plan'), findsOneWidget);
+        expect(find.text('Intermittent'), findsOneWidget);
+        expect(find.text('Prolonged'), findsOneWidget);
+        expect(find.text('Start time:'), findsOneWidget);
+        expect(find.text('Now'), findsOneWidget);
+      },
+    );
   });
 }

@@ -53,8 +53,9 @@ void main() {
     );
   }
 
-  testWidgets('NutritionView renders multi-column layout on wide screens',
-      (tester) async {
+  testWidgets('NutritionView renders multi-column layout on wide screens', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -71,8 +72,9 @@ void main() {
     expect(find.text('CARB CYCLING'), findsOneWidget);
   });
 
-  testWidgets('NutritionView renders single column vertical flow on mobile',
-      (tester) async {
+  testWidgets('NutritionView renders single column vertical flow on mobile', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);

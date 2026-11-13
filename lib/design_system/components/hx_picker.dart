@@ -12,6 +12,7 @@ class HxPickerOption<T> {
     this.description,
     this.icon,
     this.color,
+    this.swatch,
     this.enabled = true,
   });
 
@@ -22,6 +23,10 @@ class HxPickerOption<T> {
 
   /// Accent for the icon and the selected check; defaults to the theme primary.
   final Color? color;
+
+  /// When set, the row leads with a filled colour dot instead of [icon] —
+  /// for pickers whose options *are* colours.
+  final Color? swatch;
   final bool enabled;
 }
 
@@ -159,7 +164,20 @@ class _HxPickerRow<T> extends StatelessWidget {
         // the theme's own fill too, which read as a second selection.
         focusColor: Colors.transparent,
         hoverColor: Colors.transparent,
-        leading: option.icon == null
+        leading: option.swatch != null
+            ? Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: option.swatch,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: hx.onSurface.withValues(alpha: 0.35),
+                    width: selected ? 2 : 1,
+                  ),
+                ),
+              )
+            : option.icon == null
             ? null
             : Icon(option.icon, color: selected ? accent : hx.onSurfaceVariant),
         title: Text(

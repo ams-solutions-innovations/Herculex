@@ -168,60 +168,64 @@ void main() {
       );
     });
 
-    test('removes user data, custom FK-referenced rows, raw watch tables, and photo files while keeping seeded catalogue', () async {
-      final docsDir = await Directory.systemTemp.createTemp('hx_wipe_test_');
-      addTearDown(() async {
-        if (await docsDir.exists()) {
-          await docsDir.delete(recursive: true);
+    test(
+      'removes user data, custom FK-referenced rows, raw watch tables, and photo files while keeping seeded catalogue',
+      () async {
+        final docsDir = await Directory.systemTemp.createTemp('hx_wipe_test_');
+        addTearDown(() async {
+          if (await docsDir.exists()) {
+            await docsDir.delete(recursive: true);
+          }
+        });
+
+        final baseExercises = await countOf('exercise_catalog');
+        final baseFoods = await countOf('foods');
+        final baseMuscles = await countOf('exercise_muscles');
+        expect(baseExercises, greaterThan(0));
+
+        await seed(docsDir: docsDir);
+        expect(await countOf('exercise_catalog'), baseExercises + 2);
+        expect(await countOf('foods'), baseFoods + 2);
+        expect(
+          File(
+            p.join(docsDir.path, workoutPhotoFolderName, 'sess-1.jpg'),
+          ).existsSync(),
+          isTrue,
+        );
+
+        await wipeAllLocalUserData(db, documentsDirectory: docsDir);
+
+        // The seeded rows survive, the custom ones (even with circuit_exercises FK!) do not.
+        expect(await countOf('exercise_catalog'), baseExercises + 1);
+        expect(await countOf('foods'), baseFoods + 1);
+        expect(await countOf('exercise_catalog WHERE is_custom = 1'), 0);
+        expect(await countOf('exercise_muscles'), baseMuscles + 1);
+
+        for (final t in [
+          'workout_sessions',
+          'workout_circuits',
+          'circuit_exercises',
+          'body_measurements',
+          'cycle_logs',
+          'joint_pain_logs',
+          'health_samples',
+          'buddy_choreography_slots',
+          'achievements',
+          'processed_watch_commands',
+          'physique_goals',
+          'physique_assessments',
+          'physique_roadmap_phases',
+          'physique_photos',
+        ]) {
+          expect(await countOf(t), 0, reason: t);
         }
-      });
 
-      final baseExercises = await countOf('exercise_catalog');
-      final baseFoods = await countOf('foods');
-      final baseMuscles = await countOf('exercise_muscles');
-      expect(baseExercises, greaterThan(0));
-
-      await seed(docsDir: docsDir);
-      expect(await countOf('exercise_catalog'), baseExercises + 2);
-      expect(await countOf('foods'), baseFoods + 2);
-      expect(
-        File(p.join(docsDir.path, workoutPhotoFolderName, 'sess-1.jpg'))
-            .existsSync(),
-        isTrue,
-      );
-
-      await wipeAllLocalUserData(db, documentsDirectory: docsDir);
-
-      // The seeded rows survive, the custom ones (even with circuit_exercises FK!) do not.
-      expect(await countOf('exercise_catalog'), baseExercises + 1);
-      expect(await countOf('foods'), baseFoods + 1);
-      expect(await countOf('exercise_catalog WHERE is_custom = 1'), 0);
-      expect(await countOf('exercise_muscles'), baseMuscles + 1);
-
-      for (final t in [
-        'workout_sessions',
-        'workout_circuits',
-        'circuit_exercises',
-        'body_measurements',
-        'cycle_logs',
-        'joint_pain_logs',
-        'health_samples',
-        'buddy_choreography_slots',
-        'achievements',
-        'processed_watch_commands',
-        'physique_goals',
-        'physique_assessments',
-        'physique_roadmap_phases',
-        'physique_photos',
-      ]) {
-        expect(await countOf(t), 0, reason: t);
-      }
-
-      expect(
-        Directory(p.join(docsDir.path, workoutPhotoFolderName)).existsSync(),
-        isFalse,
-      );
-    });
+        expect(
+          Directory(p.join(docsDir.path, workoutPhotoFolderName)).existsSync(),
+          isFalse,
+        );
+      },
+    );
 
     test('leaves no outbox rows behind for the deletes it just made', () async {
       await seed();
@@ -284,34 +288,40 @@ void main() {
       await service.dispose();
     });
 
-    test('deletes the account, the database, preferences, and emits null profile', () async {
-      await seed();
-      final emittedProfiles = <Profile?>[];
-      final sub = profileRepo.watch().listen(emittedProfiles.add);
-      await Future<void>.delayed(Duration.zero);
+    test(
+      'deletes the account, the database, preferences, and emits null profile',
+      () async {
+        await seed();
+        final emittedProfiles = <Profile?>[];
+        final sub = profileRepo.watch().listen(emittedProfiles.add);
+        await Future<void>.delayed(Duration.zero);
 
-      await deletion.deleteAccountAndWipeDevice();
-      await Future<void>.delayed(Duration.zero);
-      await sub.cancel();
+        await deletion.deleteAccountAndWipeDevice();
+        await Future<void>.delayed(Duration.zero);
+        await sub.cancel();
 
-      expect(service.deleteAccountCalls, 1);
-      expect(await countOf('workout_sessions'), 0);
-      expect(prefs.getKeys(), isEmpty);
-      expect(profileRepo.currentProfile, isNull);
-      expect(emittedProfiles.last, isNull);
-    });
+        expect(service.deleteAccountCalls, 1);
+        expect(await countOf('workout_sessions'), 0);
+        expect(prefs.getKeys(), isEmpty);
+        expect(profileRepo.currentProfile, isNull);
+        expect(emittedProfiles.last, isNull);
+      },
+    );
 
-    test('clearAllLocalDataOnly wipes SQLite, preferences, and profile without deleting cloud account', () async {
-      await seed();
+    test(
+      'clearAllLocalDataOnly wipes SQLite, preferences, and profile without deleting cloud account',
+      () async {
+        await seed();
 
-      await deletion.clearAllLocalDataOnly();
+        await deletion.clearAllLocalDataOnly();
 
-      expect(service.deleteAccountCalls, 0);
-      expect(await countOf('workout_sessions'), 0);
-      expect(await countOf('joint_pain_logs'), 0);
-      expect(prefs.getKeys(), isEmpty);
-      expect(profileRepo.currentProfile, isNull);
-    });
+        expect(service.deleteAccountCalls, 0);
+        expect(await countOf('workout_sessions'), 0);
+        expect(await countOf('joint_pain_logs'), 0);
+        expect(prefs.getKeys(), isEmpty);
+        expect(profileRepo.currentProfile, isNull);
+      },
+    );
 
     test('a backend failure leaves the device untouched', () async {
       await seed();

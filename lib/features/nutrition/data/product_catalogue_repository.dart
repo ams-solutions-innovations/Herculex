@@ -112,7 +112,8 @@ class ProductCatalogueRepository {
           .from('product_catalogue')
           .select(_columns)
           .eq('barcode', barcode)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 8));
       if (row == null) return null;
       return PublicProduct.fromRow(row);
     } catch (_) {

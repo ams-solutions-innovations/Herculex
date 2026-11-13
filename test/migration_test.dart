@@ -16,26 +16,48 @@ import 'support/test_database.dart';
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
 
-  test('v53 preserves scheduled identity and installs portable coaching tables', () async {
-    final schema = await verifier.schemaAt(53);
-    schema.rawDatabase.execute("INSERT INTO programs(id,name,sync_uuid) VALUES(901,'Existing','existing-program')");
-    schema.rawDatabase.execute("INSERT INTO program_weeks(id,program_id,week_index) VALUES(901,901,0)");
-    schema.rawDatabase.execute("INSERT INTO program_days(id,program_week_id,day_of_week,name) VALUES(901,901,1,'Upper')");
-    schema.rawDatabase.execute("INSERT INTO scheduled_workouts(id,date_iso,program_day_id,program_id,sync_uuid) VALUES(901,'2026-11-02',901,901,'existing-occurrence')");
-    final db = AppDatabase.forTesting(schema.newConnection());
-    addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 54);
-    final schedule = await db.select(db.scheduledWorkouts).getSingle();
-    expect(schedule.syncUuid, 'existing-occurrence');
-    expect(schedule.programDayId, 901);
-    expect(schedule.oneOffPlanJson, isNull);
-    for (final table in ['workout_behavior_snapshots', 'training_coaching_proposals', 'training_coaching_overrides', 'exercise_history_transfers']) {
-      final triggers = await db.customSelect("SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name='$table'").get();
-      expect(triggers, hasLength(3));
-    }
-    await db.customStatement("INSERT INTO scheduled_workouts(date_iso,one_off_plan_json,sync_uuid) VALUES('2026-11-03','{}','one-time-occurrence')");
-    expect(await db.select(db.scheduledWorkouts).get(), hasLength(2));
-  });
+  test(
+    'v53 preserves scheduled identity and installs portable coaching tables',
+    () async {
+      final schema = await verifier.schemaAt(53);
+      schema.rawDatabase.execute(
+        "INSERT INTO programs(id,name,sync_uuid) VALUES(901,'Existing','existing-program')",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO program_weeks(id,program_id,week_index) VALUES(901,901,0)",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO program_days(id,program_week_id,day_of_week,name) VALUES(901,901,1,'Upper')",
+      );
+      schema.rawDatabase.execute(
+        "INSERT INTO scheduled_workouts(id,date_iso,program_day_id,program_id,sync_uuid) VALUES(901,'2026-11-02',901,901,'existing-occurrence')",
+      );
+      final db = AppDatabase.forTesting(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, 54);
+      final schedule = await db.select(db.scheduledWorkouts).getSingle();
+      expect(schedule.syncUuid, 'existing-occurrence');
+      expect(schedule.programDayId, 901);
+      expect(schedule.oneOffPlanJson, isNull);
+      for (final table in [
+        'workout_behavior_snapshots',
+        'training_coaching_proposals',
+        'training_coaching_overrides',
+        'exercise_history_transfers',
+      ]) {
+        final triggers = await db
+            .customSelect(
+              "SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name='$table'",
+            )
+            .get();
+        expect(triggers, hasLength(3));
+      }
+      await db.customStatement(
+        "INSERT INTO scheduled_workouts(date_iso,one_off_plan_json,sync_uuid) VALUES('2026-11-03','{}','one-time-occurrence')",
+      );
+      expect(await db.select(db.scheduledWorkouts).get(), hasLength(2));
+    },
+  );
 
   test('v52 upgrades to v53 with a synced user_preferences table', () async {
     final connection = await verifier.startAt(52);

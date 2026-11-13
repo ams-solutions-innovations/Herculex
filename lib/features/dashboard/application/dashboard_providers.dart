@@ -115,11 +115,11 @@ final todaysScheduledWorkoutProvider = FutureProvider<TodaysScheduledWorkout?>((
 });
 
 /// Next scheduled workout for the launcher card (today's plan if available, or nearest upcoming).
-final nextScheduledWorkoutProvider = StreamProvider<TodaysScheduledWorkout?>((ref) {
+final nextScheduledWorkoutProvider = StreamProvider<TodaysScheduledWorkout?>((
+  ref,
+) {
   final day = ref.watch(localDayProvider);
-  return ref
-      .watch(scheduledWorkoutServiceProvider)
-      .watchNextWorkout(day);
+  return ref.watch(scheduledWorkoutServiceProvider).watchNextWorkout(day);
 });
 
 /// Bodyweight history stream for dashboard visualization.
@@ -298,7 +298,11 @@ final _weekScheduledWorkoutsProvider =
       final startOfWeek = DateTime(monday.year, monday.month, monday.day);
 
       final dateIsos = List.generate(7, (i) {
-        final d = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day + i);
+        final d = DateTime(
+          startOfWeek.year,
+          startOfWeek.month,
+          startOfWeek.day + i,
+        );
         return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
       });
 
@@ -319,12 +323,18 @@ final _weekCompletedSessionsProvider =
         anchorDate.day - (anchorDate.weekday - 1),
       );
       final startOfWeek = DateTime(monday.year, monday.month, monday.day);
-      final endOfWeek = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day + 7);
+      final endOfWeek = DateTime(
+        startOfWeek.year,
+        startOfWeek.month,
+        startOfWeek.day + 7,
+      );
 
       return (db.select(db.workoutSessions)..where(
             (t) =>
                 t.startedAt.isBiggerOrEqualValue(startOfWeek) &
-                t.startedAt.isSmallerThanValue(endOfWeek),
+                t.startedAt.isSmallerThanValue(endOfWeek) &
+                t.endedAt.isNotNull() &
+                t.deletedAt.isNull(),
           ))
           .watch();
     });

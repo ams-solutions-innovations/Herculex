@@ -159,7 +159,11 @@ void main() {
           throwsA(
             isA<BodyFatAiException>()
                 .having((e) => e.recoverable, 'recoverable', isFalse)
-                .having((e) => e.message, 'message', contains('privacy notice')),
+                .having(
+                  (e) => e.message,
+                  'message',
+                  contains('privacy notice'),
+                ),
           ),
         );
         expect(fakeBackend.calledEstimate, isFalse);

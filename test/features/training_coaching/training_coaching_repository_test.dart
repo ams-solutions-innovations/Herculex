@@ -26,20 +26,33 @@ void main() {
   });
   tearDown(() => db.close());
 
-  test('concurrent dashboard and finish refreshes do not duplicate proposals', () async {
-    for (var i = 0; i < 4; i++) { await f.train(DateTime(2026, 10, 7 + 7 * i, 12)); }
-    f.clock.set(DateTime(2026, 10, 28, 18));
-    await Future.wait([for (var i = 0; i < 6; i++) repo.refresh()]);
-    expect((await db.select(db.trainingCoachingProposals).get()).length, 1);
-  });
-  test('concurrent finish captures preserve a single immutable baseline', () async {
-    final session = await f.train(DateTime(2026, 10, 28, 12));
-    await db.delete(db.workoutBehaviorSnapshots).go();
-    await Future.wait([for (var i = 0; i < 6; i++) repo.behavior.capture(session)]);
-    final snapshots = await db.select(db.workoutBehaviorSnapshots).get();
-    expect(snapshots.length, 1);
-    expect((jsonDecode(snapshots.single.snapshotJson) as Map)['known'], isTrue);
-  });
+  test(
+    'concurrent dashboard and finish refreshes do not duplicate proposals',
+    () async {
+      for (var i = 0; i < 4; i++) {
+        await f.train(DateTime(2026, 10, 7 + 7 * i, 12));
+      }
+      f.clock.set(DateTime(2026, 10, 28, 18));
+      await Future.wait([for (var i = 0; i < 6; i++) repo.refresh()]);
+      expect((await db.select(db.trainingCoachingProposals).get()).length, 1);
+    },
+  );
+  test(
+    'concurrent finish captures preserve a single immutable baseline',
+    () async {
+      final session = await f.train(DateTime(2026, 10, 28, 12));
+      await db.delete(db.workoutBehaviorSnapshots).go();
+      await Future.wait([
+        for (var i = 0; i < 6; i++) repo.behavior.capture(session),
+      ]);
+      final snapshots = await db.select(db.workoutBehaviorSnapshots).get();
+      expect(snapshots.length, 1);
+      expect(
+        (jsonDecode(snapshots.single.snapshotJson) as Map)['known'],
+        isTrue,
+      );
+    },
+  );
   Future<int> habit() async {
     var source = 0;
     for (var i = 0; i < 4; i++) {

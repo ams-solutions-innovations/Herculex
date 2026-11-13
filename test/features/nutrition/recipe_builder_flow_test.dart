@@ -13,10 +13,7 @@ void main() {
     });
 
     test('FoodPickerSheet.showForRecipe can be configured', () {
-      const sheet = FoodPickerSheet(
-        recipeId: 42,
-        mealKey: 'recipe',
-      );
+      const sheet = FoodPickerSheet(recipeId: 42, mealKey: 'recipe');
       expect(sheet.recipeId, equals(42));
       expect(sheet.mealKey, equals('recipe'));
     });

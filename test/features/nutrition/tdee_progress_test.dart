@@ -141,7 +141,8 @@ void main() {
       tester,
     ) async {
       final oct25 = DateTime(2026, 10, 25);
-      DateTime d(int offset) => DateTime(oct25.year, oct25.month, oct25.day + offset);
+      DateTime d(int offset) =>
+          DateTime(oct25.year, oct25.month, oct25.day + offset);
       final series = CalibrationSeries.build(
         asOf: oct25,
         days: 28,

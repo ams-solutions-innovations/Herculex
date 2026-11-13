@@ -8,7 +8,8 @@
             "program": "lib/main.dart",
             "args": [
                 "--dart-define=SUPABASE_URL=https://ldzgyzigvbwofbswitrv.supabase.co",
-                "--dart-define=SUPABASE_ANON_KEY=sb_publishable_QJOJ4p3vjZRqpYbR7JIh9Q_ouOF2oag"
+                "--dart-define=SUPABASE_ANON_KEY=sb_publishable_QJOJ4p3vjZRqpYbR7JIh9Q_ouOF2oag",
+                "--dart-define=GOOGLE_WEB_CLIENT_ID=345691612929-fhm73skir4iafihfibtfffl1fpc0p3k5.apps.googleusercontent.com"
             ]
         },
         {

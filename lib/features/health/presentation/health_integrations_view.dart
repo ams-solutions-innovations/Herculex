@@ -564,6 +564,11 @@ class _HealthIntegrationsViewState
               ],
             ),
             const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: _reviewCalendarDuplicates,
+              icon: const Icon(Icons.find_in_page_outlined),
+              label: const Text('Review duplicate workouts'),
+            ),
             // Sync now button & info
             Row(
               children: [
@@ -618,6 +623,88 @@ class _HealthIntegrationsViewState
         ],
       ),
     );
+  }
+
+  Future<void> _reviewCalendarDuplicates() async {
+    final service = ref.read(calendarServiceProvider);
+    final calendarId = ref.read(selectedCalendarIdProvider);
+    try {
+      final groups = await service.findDuplicates(calendarId: calendarId);
+      if (!mounted) return;
+      if (groups.isEmpty) {
+        AppNotice.show(context, 'No matching duplicate events found.');
+        return;
+      }
+      final selected = <String>{};
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+              title: const Text('Review duplicate workouts'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Select the duplicate events to remove. Keep at least one event in each group.',
+                      ),
+                      for (final group in groups) ...[
+                        const Divider(),
+                        for (final event in group.events)
+                          CheckboxListTile(
+                            title: Text(event.title ?? 'Workout'),
+                            subtitle: Text(
+                              event.start?.toLocal().toString() ?? group.marker,
+                            ),
+                            value: selected.contains(event.eventId),
+                            onChanged: (value) => setDialogState(() {
+                              if (value == true) {
+                                selected.add(event.eventId!);
+                              } else {
+                                selected.remove(event.eventId);
+                              }
+                            }),
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: selected.isEmpty
+                      ? null
+                      : () => Navigator.pop(dialogContext, true),
+                  child: const Text('Remove selected'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+      if (confirmed != true) return;
+      final count = await service.deleteSelectedDuplicates(
+        groups,
+        selected,
+        calendarId: calendarId,
+      );
+      if (mounted) AppNotice.show(context, '$count duplicate events removed.');
+    } catch (e) {
+      if (mounted) {
+        AppNotice.show(
+          context,
+          'Could not review duplicates: $e',
+          kind: AppNoticeKind.error,
+        );
+      }
+    }
   }
 
   void _showCalendarPickerSheet(BuildContext context) {

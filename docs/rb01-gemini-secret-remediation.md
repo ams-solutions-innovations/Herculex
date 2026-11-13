@@ -2,13 +2,11 @@
 
 Date: 2026-08-13
 
-> ⚠️ **Wrong project (corrected 2026-08-15).** Every `jioesomepkauponjrena`
-> reference below is the **SummitSki** project, not Herculex. Herculex's real
-> backend is **`ldzgyzigvbwofbswitrv`**. The code remediation described here is
-> unaffected, but the deployment close-out landed in the wrong project. The
-> `gemini-analyze` function was redeployed to `ldzgyzigvbwofbswitrv` on
-> 2026-08-15; **`GEMINI_API_KEY` still has to be set there** before AI food
-> analysis works.
+> ⚠️ **Historical project mix-up.** `jioesomepkauponjrena` is the SummitSki
+> project, not Herculex. Herculex's backend is **`ldzgyzigvbwofbswitrv`**.
+> Checked on 2026-11-13: `GEMINI_API_KEY` is listed in the Herculex project's
+> secrets and `gemini-analyze` is active. This confirms configuration is
+> present, not that a live Gemini request succeeds.
 
 ## Status
 
@@ -18,11 +16,11 @@ Flutter no longer ships, accepts, stores, or directly uses a Gemini API key.
 Gemini requests now go through the Supabase Edge Function at
 `supabase/functions/gemini-analyze/index.ts`.
 
-External close-out was completed after code remediation:
+External close-out is on the Herculex project:
 
 - `GEMINI_API_KEY` is present as a Supabase project secret on
-  `jioesomepkauponjrena`.
-- `gemini-analyze` is deployed and active on `jioesomepkauponjrena`.
+  `ldzgyzigvbwofbswitrv` (checked 2026-11-13).
+- `gemini-analyze` is deployed and active on `ldzgyzigvbwofbswitrv`.
 - Supabase reports `verify_jwt = true` for the deployed function.
 
 The value pasted into chat was not written to the repo or to a local secrets

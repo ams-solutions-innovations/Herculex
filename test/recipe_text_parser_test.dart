@@ -14,14 +14,8 @@ void main() {
         RecipeTextParser.parseServings('Pasta for 4 people with 400g pasta'),
         equals(4),
       );
-      expect(
-        RecipeTextParser.parseServings('Pancakes - serves: 3'),
-        equals(3),
-      );
-      expect(
-        RecipeTextParser.parseServings('Oatmeal, 1 serving'),
-        equals(1),
-      );
+      expect(RecipeTextParser.parseServings('Pancakes - serves: 3'), equals(3));
+      expect(RecipeTextParser.parseServings('Oatmeal, 1 serving'), equals(1));
       expect(
         RecipeTextParser.parseServings('Beef stew za 4 porcije'),
         equals(4),
@@ -78,33 +72,39 @@ void main() {
         equals('Lososa popeci na ponvi, riž skuhaj v slani vodi.'),
       );
 
-      expect(RecipeTextParser.parseInstructions('No instructions here'), isNull);
+      expect(
+        RecipeTextParser.parseInstructions('No instructions here'),
+        isNull,
+      );
     });
 
-    test('fallbackParseItems extracts individual food components and quantities', () {
-      final text =
-          '250g chicken breast\n150g white rice\n2 tbsp olive oil\n1 piece banana';
-      final items = RecipeTextParser.fallbackParseItems(text);
+    test(
+      'fallbackParseItems extracts individual food components and quantities',
+      () {
+        final text =
+            '250g chicken breast\n150g white rice\n2 tbsp olive oil\n1 piece banana';
+        final items = RecipeTextParser.fallbackParseItems(text);
 
-      expect(items.length, equals(4));
-      expect(items[0].name.toLowerCase(), contains('chicken breast'));
-      expect(items[0].servingGrams, equals(250.0));
-      expect(items[0].portionUnit, equals('g'));
-      // Unknown macros default to 0 rather than fabricated constants.
-      expect(items[0].kcalPer100g, equals(0.0));
+        expect(items.length, equals(4));
+        expect(items[0].name.toLowerCase(), contains('chicken breast'));
+        expect(items[0].servingGrams, equals(250.0));
+        expect(items[0].portionUnit, equals('g'));
+        // Unknown macros default to 0 rather than fabricated constants.
+        expect(items[0].kcalPer100g, equals(0.0));
 
-      expect(items[1].name.toLowerCase(), contains('white rice'));
-      expect(items[1].servingGrams, equals(150.0));
+        expect(items[1].name.toLowerCase(), contains('white rice'));
+        expect(items[1].servingGrams, equals(150.0));
 
-      expect(items[2].name.toLowerCase(), contains('olive oil'));
-      expect(items[2].portionAmount, equals(2.0));
-      expect(items[2].portionUnit, equals('tbsp'));
-      expect(items[2].servingGrams, equals(30.0));
+        expect(items[2].name.toLowerCase(), contains('olive oil'));
+        expect(items[2].portionAmount, equals(2.0));
+        expect(items[2].portionUnit, equals('tbsp'));
+        expect(items[2].servingGrams, equals(30.0));
 
-      expect(items[3].name.toLowerCase(), contains('banana'));
-      expect(items[3].portionAmount, equals(1.0));
-      expect(items[3].portionUnit, equals('piece'));
-      expect(items[3].servingGrams, equals(50.0));
-    });
+        expect(items[3].name.toLowerCase(), contains('banana'));
+        expect(items[3].portionAmount, equals(1.0));
+        expect(items[3].portionUnit, equals('piece'));
+        expect(items[3].servingGrams, equals(50.0));
+      },
+    );
   });
 }

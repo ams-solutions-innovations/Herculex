@@ -83,9 +83,7 @@ void main() {
           ...fakeBackend.receivedTargetImages!,
         ]) {
           expect(payload['mimeType'], 'image/jpeg');
-          final sentBytes = Uint8List.fromList(
-            (payload['bytes'] as List<int>),
-          );
+          final sentBytes = Uint8List.fromList((payload['bytes'] as List<int>));
           final decoded = img.decodeJpg(sentBytes);
           expect(decoded, isNotNull);
           expect(decoded!.exif.imageIfd.isEmpty, isTrue);

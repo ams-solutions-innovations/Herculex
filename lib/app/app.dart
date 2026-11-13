@@ -26,6 +26,7 @@ import 'package:herculex/features/fasting/data/fasting_schedule_action_queue.dar
 import 'package:herculex/features/fasting/domain/fasting_plan.dart';
 import 'package:herculex/features/fasting/domain/fasting_schedule_occurrence.dart';
 import 'package:herculex/features/gyms/presentation/gym_picker_sheet.dart';
+import 'package:herculex/features/health/application/health_auto_sync.dart';
 import 'package:herculex/features/labs/application/labs_providers.dart';
 import 'package:herculex/features/measurements/presentation/quick_log_weight.dart';
 import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
@@ -1076,6 +1077,8 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     }
     // Weekly report card: re-read the due week when the app is foregrounded.
     ref.watch(weeklyReportResumeProvider);
+    // Health Connect / HealthKit: sync on open, resume and every ~20 min.
+    ref.watch(healthAutoSyncProvider);
 
     // Starts/stops Phase 10 cloud sync off the auth session — see
     // syncServiceProvider in app/providers.dart.

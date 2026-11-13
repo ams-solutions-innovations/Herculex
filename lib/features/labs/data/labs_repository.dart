@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:herculex/features/labs/domain/labs_models.dart';
+import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -210,6 +211,11 @@ class LabsRepository {
       var product = matches.isEmpty
           ? <String, dynamic>{'id': id}
           : Map<String, dynamic>.from(matches.first);
+      if (matches.isNotEmpty) {
+        // The dose that applies on this day (creatine loading vs. normal).
+        final effective = Supplement.fromJson(product).doseAmountFor(at);
+        if (effective != null) product['doseAmount'] = effective;
+      }
       final key = '${prefix}intake_${labsDate(at)}_$id';
       final previousRaw = prefs.getString(key);
       if (previousRaw != null) {
