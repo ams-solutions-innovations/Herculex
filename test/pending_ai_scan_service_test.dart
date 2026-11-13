@@ -15,15 +15,18 @@ void main() {
       service = PendingAiScanService(prefs);
     });
 
-    test('stores and retrieves supplement scan context', () async {
-      final context = PendingAiScanContext(type: AiScanContextType.supplement);
+    test('a stored legacy supplement scan context falls back to food', () async {
+      SharedPreferences.setMockInitialValues({
+        'herculex_pending_ai_scan_context':
+            '{"type":"supplement","createdAt":"${DateTime.now().toIso8601String()}"}',
+      });
+      prefs = await SharedPreferences.getInstance();
+      service = PendingAiScanService(prefs);
 
-      await service.setPendingContext(context);
       final retrieved = service.getPendingContext();
 
       expect(retrieved, isNotNull);
-      expect(retrieved!.type, equals(AiScanContextType.supplement));
-      expect(retrieved.mealKey, isNull);
+      expect(retrieved!.type, equals(AiScanContextType.food));
     });
 
     test('stores and retrieves food scan context with meal and date', () async {

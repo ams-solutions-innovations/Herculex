@@ -92,12 +92,11 @@ void main() {
   });
 
   group('Supplement serialization', () {
-    test('round-trips brand, barcode, dose and nutrients', () {
+    test('round-trips brand, dose and nutrients', () {
       final original = Supplement(
         id: 'x',
         name: 'Creatine',
         brand: 'Bulk',
-        barcode: '5060105890123',
         doseAmount: 5,
         doseUnit: 'g',
         nutrients: const {'magnesium': 50},
@@ -108,7 +107,6 @@ void main() {
       ).single;
 
       expect(decoded.brand, 'Bulk');
-      expect(decoded.barcode, '5060105890123');
       expect(decoded.doseAmount, 5);
       expect(decoded.doseUnit, 'g');
       expect(decoded.nutrients, {'magnesium': 50});

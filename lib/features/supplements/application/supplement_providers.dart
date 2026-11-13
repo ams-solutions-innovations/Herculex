@@ -1,9 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
-import 'package:herculex/features/nutrition/data/product_catalogue_repository.dart';
-import 'package:herculex/features/supplements/data/supplement_catalogue_repository.dart';
 import 'package:herculex/features/supplements/data/supplement_repository.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:herculex/features/supplements/domain/supplement_habit_stats.dart';
@@ -17,18 +14,6 @@ final supplementRepositoryProvider = Provider<SupplementRepository>((ref) {
   repo.clearOldDays();
   return repo;
 });
-
-final supplementCatalogueRepositoryProvider =
-    Provider<SupplementCatalogueRepository>((ref) {
-      return SupplementCatalogueRepository(
-        prefs: ref.watch(sharedPreferencesProvider),
-        supplementRepo: ref.watch(supplementRepositoryProvider),
-        nutritionGetter: () => ref.read(nutritionRepositoryProvider),
-        productCatalogueGetter: () =>
-            ref.read(productCatalogueRepositoryProvider),
-        openFoodFactsGetter: () => ref.read(openFoodFactsClientProvider),
-      );
-    });
 
 // ── Supplement list ───────────────────────────────────────────────────────────
 
@@ -103,6 +88,37 @@ final supplementSelectedDayStateProvider =
         ),
       );
     });
+
+/// The Monday–Sunday week containing the selected date, one point per day, for
+/// the strip at the top of the page. Unlike the 28-day heatmap this follows the
+/// selection, so it keeps working when the user scrolls back months.
+final supplementWeekPointsProvider = Provider<List<SupplementDayPoint>>((ref) {
+  final supplements = ref.watch(supplementsProvider).valueOrNull ?? const [];
+  // Recompute whenever any taken set changes.
+  ref.watch(takenTodayProvider);
+  final selected = ref.watch(supplementSelectedDateProvider);
+  final repo = ref.watch(supplementRepositoryProvider);
+
+  final ids = {for (final s in supplements) s.id};
+  return [
+    for (var i = 0; i < 7; i++)
+      () {
+        final d = DateTime(
+          selected.year,
+          selected.month,
+          selected.day - (selected.weekday - 1) + i,
+        );
+        final taken = repo.loadTakenForDate(d);
+        return SupplementDayPoint(
+          date: d,
+          dateIso: SupplementHabitStats.isoForDate(d),
+          takenIds: taken,
+          takenCount: taken.intersection(ids).length,
+          totalCount: ids.length,
+        );
+      }(),
+  ];
+});
 
 /// Computed habit-tracking statistics (streaks, consistency %, daily chart
 /// points, 28-day heatmap, and per-supplement adherence).

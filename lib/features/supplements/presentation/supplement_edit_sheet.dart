@@ -1,50 +1,43 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
-import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
-import 'package:herculex/features/nutrition/data/product_catalogue_repository.dart';
 import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
 import 'package:herculex/features/supplements/application/supplement_providers.dart';
-import 'package:herculex/features/supplements/data/supplement_catalogue_repository.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
-import 'package:herculex/features/supplements/presentation/supplement_database_sheet.dart';
+import 'package:herculex/features/supplements/domain/supplement_presets.dart';
 import 'package:herculex/features/supplements/presentation/supplement_nutrients_sheet.dart';
-import 'package:herculex/features/supplements/presentation/supplement_scan_flow.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
-/// Bottom sheet to add or edit a single supplement.
+const _accent = Color(0xFF9B59B6);
+
+/// Bottom sheet to configure a single supplement: dose, optional creatine
+/// loading phase, reminder. New supplements arrive pre-filled from a
+/// [SupplementPreset] (or blank for a custom one) as `isNewDraft`.
 class SupplementEditSheet extends ConsumerStatefulWidget {
   final Supplement? existing;
   final bool isNewDraft;
-  final String? initialScanMessage;
 
   const SupplementEditSheet({
     super.key,
     this.existing,
     this.isNewDraft = false,
-    this.initialScanMessage,
   });
 
   static Future<void> show(
     BuildContext context, {
     Supplement? existing,
     bool isNewDraft = false,
-    String? initialScanMessage,
   }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black54,
-      builder: (_) => SupplementEditSheet(
-        existing: existing,
-        isNewDraft: isNewDraft,
-        initialScanMessage: initialScanMessage,
-      ),
+      builder: (_) =>
+          SupplementEditSheet(existing: existing, isNewDraft: isNewDraft),
     );
   }
 
@@ -55,44 +48,47 @@ class SupplementEditSheet extends ConsumerStatefulWidget {
 
 class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
   late final TextEditingController _nameCtrl;
-  late final TextEditingController _brandCtrl;
   late final TextEditingController _doseCtrl;
+  late final TextEditingController _loadingDoseCtrl;
   late String _doseUnit;
   late SupplementSchedule _schedule;
   TimeOfDay? _time;
 
-  String? _barcode;
-  final bool _scanning = false;
-  String? _scanMessage;
+  // Creatine loading phase.
+  late bool _loading;
+  late int _loadingDays;
+  late DateTime _loadingStart;
 
   /// Nutrient ID → amount per dose, edited via the nutrient picker.
   late Map<String, double> _nutrients;
+
+  SupplementPreset? get _preset =>
+      SupplementPreset.byKey(widget.existing?.presetKey);
+
+  bool get _supportsLoading => _preset?.supportsLoading ?? false;
 
   bool get _isEditing =>
       widget.existing != null &&
       !widget.isNewDraft &&
       widget.existing!.id.isNotEmpty;
 
+  static String _fmt(double v) =>
+      v.truncateToDouble() == v ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+
   @override
   void initState() {
     super.initState();
     final s = widget.existing;
+    final preset = _preset;
     _nameCtrl = TextEditingController(text: s?.name ?? '');
-    _brandCtrl = TextEditingController(text: s?.brand ?? '');
     _doseCtrl = TextEditingController(
-      text: s?.doseAmount == null
-          ? ''
-          : s!.doseAmount!.truncateToDouble() == s.doseAmount
-          ? s.doseAmount!.toStringAsFixed(0)
-          : s.doseAmount!.toStringAsFixed(1),
+      text: s?.doseAmount == null ? '' : _fmt(s!.doseAmount!),
     );
     _doseUnit = supplementDoseUnits.contains(s?.doseUnit)
         ? s!.doseUnit!
         : supplementDoseUnits.first;
-    _barcode = s?.barcode;
     _nutrients = {...?s?.nutrients};
     _schedule = s?.schedule ?? SupplementSchedule.none;
-    _scanMessage = widget.initialScanMessage;
     if (s?.timeHHMM != null) {
       final parts = s!.timeHHMM!.split(':');
       if (parts.length == 2) {
@@ -102,83 +98,33 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
         );
       }
     }
+
+    final today = DateUtils.dateOnly(DateTime.now());
+    _loading = s?.hasLoadingPhase ?? false;
+    _loadingDays = s?.loadingDays ?? preset?.loadingDays ?? 7;
+    _loadingStart = s?.loadingStart ?? today;
+    _loadingDoseCtrl = TextEditingController(
+      text: _fmt(s?.loadingDoseAmount ?? preset?.loadingDoseAmount ?? 20),
+    );
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _brandCtrl.dispose();
     _doseCtrl.dispose();
+    _loadingDoseCtrl.dispose();
     super.dispose();
   }
 
-  void _applyLookupResult(SupplementLookupResult resolved) {
-    final s = resolved.supplement;
-    setState(() {
-      if (s.name.isNotEmpty) _nameCtrl.text = s.name;
-      if (s.brand != null && s.brand!.isNotEmpty) {
-        _brandCtrl.text = s.brand!;
-      }
-      if (s.barcode != null && s.barcode!.isNotEmpty) {
-        _barcode = s.barcode;
-      }
-      if (s.doseAmount != null) {
-        _doseCtrl.text = s.doseAmount!.truncateToDouble() == s.doseAmount
-            ? s.doseAmount!.toStringAsFixed(0)
-            : s.doseAmount!.toStringAsFixed(1);
-      }
-      if (s.doseUnit != null && supplementDoseUnits.contains(s.doseUnit)) {
-        _doseUnit = s.doseUnit!;
-      }
-      if (s.nutrients.isNotEmpty) {
-        _nutrients = {..._nutrients, ...s.nutrients};
-      }
-      if (s.schedule != SupplementSchedule.none) {
-        _schedule = s.schedule;
-        if (s.schedule == SupplementSchedule.time && s.timeHHMM != null) {
-          final parts = s.timeHHMM!.split(':');
-          if (parts.length == 2) {
-            _time = TimeOfDay(
-              hour: int.tryParse(parts[0]) ?? 8,
-              minute: int.tryParse(parts[1]) ?? 0,
-            );
-          }
-        }
-      }
-      _scanMessage = s.name.isNotEmpty
-          ? '${resolved.sourceLabel} · "${s.name}"'
-          : resolved.sourceLabel;
-    });
-  }
-
-  /// Unified scan: scans barcode first → checks the supplement database →
-  /// falls back to AI photo analysis only if not found in the database.
-  Future<void> _unifiedScan() async {
-    final resolved = await scanAndResolveSupplement(context, ref);
-    if (resolved == null || !mounted) return;
-    _applyLookupResult(resolved);
-  }
-
-  /// Opens the searchable supplement database sheet.
-  Future<void> _browseDatabase() async {
-    final resolved = await SupplementDatabaseSheet.show(context);
-    if (resolved == null || !mounted) return;
-    _applyLookupResult(resolved);
-  }
-
-  /// `Creatine 5 g · Vitamin D 25 µg` — trimmed to two entries so the row
-  /// stays one line on a phone.
+  /// `Zinc 30 mg · Magnesium 450 mg` — trimmed to two entries so the row stays
+  /// one line on a phone.
   String _nutrientSummary() {
     final byId = {for (final d in trackedNutrients) d.id: d};
     final parts = <String>[];
     for (final e in _nutrients.entries) {
       final def = byId[e.key];
       if (def == null) continue;
-      final v = e.value;
-      final fmt = v.truncateToDouble() == v
-          ? v.toStringAsFixed(0)
-          : v.toStringAsFixed(1);
-      parts.add('${def.label} $fmt ${def.unit}');
+      parts.add('${def.label} ${_fmt(e.value)} ${def.unit}');
     }
     if (parts.length <= 2) return parts.join(' · ');
     return '${parts.take(2).join(' · ')} +${parts.length - 2} more';
@@ -210,23 +156,43 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
     }
   }
 
+  Future<void> _pickLoadingStart() async {
+    FocusScope.of(context).unfocus();
+    final today = DateUtils.dateOnly(DateTime.now());
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _loadingStart,
+      firstDate: today.subtract(const Duration(days: 90)),
+      lastDate: today.add(const Duration(days: 30)),
+    );
+    if (picked != null) {
+      setState(() => _loadingStart = DateUtils.dateOnly(picked));
+    }
+  }
+
   Future<void> _save() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) return;
     Haptics.light();
     final repo = ref.read(supplementRepositoryProvider);
-    final brand = _brandCtrl.text.trim();
     final dose = double.tryParse(_doseCtrl.text.trim());
+    final hasDose = dose != null && dose > 0;
+    final loadingDose = double.tryParse(_loadingDoseCtrl.text.trim());
+    final saveLoading =
+        _supportsLoading && _loading && loadingDose != null && loadingDose > 0;
     final existingId = widget.existing?.id;
     final supplement = Supplement(
       id: (existingId != null && existingId.isNotEmpty)
           ? existingId
           : const Uuid().v4(),
       name: name,
-      brand: brand.isEmpty ? null : brand,
-      barcode: _barcode,
-      doseAmount: dose != null && dose > 0 ? dose : null,
-      doseUnit: dose != null && dose > 0 ? _doseUnit : null,
+      brand: widget.existing?.brand,
+      presetKey: widget.existing?.presetKey,
+      doseAmount: hasDose ? dose : null,
+      doseUnit: hasDose ? _doseUnit : null,
+      loadingDoseAmount: saveLoading ? loadingDose : null,
+      loadingDays: saveLoading ? _loadingDays : null,
+      loadingStartIso: saveLoading ? Supplement.isoDay(_loadingStart) : null,
       nutrients: _nutrients,
       schedule: _schedule,
       timeHHMM: _schedule == SupplementSchedule.time ? _timeHHMM : null,
@@ -239,62 +205,6 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
     } else {
       await repo.addSupplement(supplement);
     }
-
-    // Save to local supplement database catalogue for future barcode/name lookups
-    try {
-      await ref
-          .read(supplementCatalogueRepositoryProvider)
-          .saveToLocalCatalogue(supplement);
-    } catch (_) {}
-
-    // Persist to custom foods database for global search, logging, and Supabase sync
-    try {
-      final nutritionRepo = ref.read(nutritionRepositoryProvider);
-      final doseValue = dose != null && dose > 0 ? dose : 1.0;
-      await nutritionRepo.createCustomFood(
-        name: name,
-        brand: brand.isEmpty ? null : brand,
-        barcode: _barcode,
-        category: 'supplement',
-        kcalPer100g: _nutrients['kcal'] ?? _nutrients['calories'] ?? 0,
-        proteinPer100g: _nutrients['protein'] ?? 0,
-        carbsPer100g: _nutrients['carbs'] ?? 0,
-        fatPer100g: _nutrients['fat'] ?? 0,
-        servingGrams: doseValue,
-        servingLabel: '${doseValue.toStringAsFixed(0)} $_doseUnit',
-        referenceBasis: '1 $_doseUnit',
-        sourceMetadataJson: jsonEncode({
-          'source': 'gemini_supplement',
-          'nutrients': _nutrients,
-          'schedule': _schedule.name,
-        }),
-      );
-    } catch (_) {
-      // Non-fatal if food insert fails or duplicate
-    }
-
-    // If barcode is present, publish to shared public community catalogue
-    if (_barcode != null && _barcode!.trim().isNotEmpty) {
-      try {
-        final catalogRepo = ref.read(productCatalogueRepositoryProvider);
-        final doseValue = dose != null && dose > 0 ? dose : 1.0;
-        await catalogRepo.publish(
-          barcode: _barcode!.trim(),
-          name: name,
-          brand: brand.isEmpty ? null : brand,
-          kcalPer100g: _nutrients['kcal'] ?? _nutrients['calories'] ?? 0,
-          proteinPer100g: _nutrients['protein'] ?? 0,
-          carbsPer100g: _nutrients['carbs'] ?? 0,
-          fatPer100g: _nutrients['fat'] ?? 0,
-          servingGrams: doseValue,
-          servingLabel: '${doseValue.toStringAsFixed(0)} $_doseUnit',
-          referenceBasis: '1 $_doseUnit',
-        );
-      } catch (_) {
-        // Non-fatal community contribution
-      }
-    }
-
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -306,6 +216,27 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
         .deleteSupplement(widget.existing!.id);
     if (mounted) Navigator.of(context).pop();
   }
+
+  InputDecoration _decoration(String label, {String? hint}) {
+    OutlineInputBorder border(Color color, [double width = 1]) =>
+        OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: color, width: width),
+        );
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      filled: true,
+      fillColor: AppColors.surfaceVariant,
+      border: border(AppColors.outlineVariant),
+      enabledBorder: border(AppColors.outlineVariant),
+      focusedBorder: border(AppColors.primary, 1.5),
+    );
+  }
+
+  List<TextInputFormatter> get _numberOnly => [
+    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -319,8 +250,7 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
         bottom: mq.viewInsets.bottom + 12,
       ),
       decoration: BoxDecoration(
-        // Use a guaranteed-opaque surface colour so the sheet is never
-        // see-through regardless of theme configuration.
+        // Guaranteed-opaque surface so the sheet is never see-through.
         color:
             theme.bottomSheetTheme.backgroundColor ??
             theme.colorScheme.surfaceContainerHigh,
@@ -332,7 +262,6 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Handle
             Center(
               child: Container(
                 width: 40,
@@ -357,144 +286,12 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Unified Scan (Barcode → DB → AI) + Browse Supplement Database,
-                    // stacked full width (side by side the scan label wrapped).
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: _scanning ? null : _unifiedScan,
-                          icon: _scanning
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.qr_code_scanner, size: 18),
-                          label: const Text('Scan (Barcode / AI)'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF9B59B6),
-                            foregroundColor: Colors.white,
-                            shape: const StadiumBorder(),
-                            padding: const EdgeInsets.symmetric(vertical: 13),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        OutlinedButton.icon(
-                          onPressed: _browseDatabase,
-                          icon: const Icon(
-                            Icons.library_books_outlined,
-                            size: 18,
-                          ),
-                          label: const Text('Supplement DB'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF9B59B6),
-                            side: BorderSide(
-                              color: const Color(
-                                0xFF9B59B6,
-                              ).withValues(alpha: 0.45),
-                            ),
-                            shape: const StadiumBorder(),
-                            padding: const EdgeInsets.symmetric(vertical: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_barcode != null && _barcode!.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.qr_code,
-                            size: 14,
-                            color: Color(0xFF9B59B6),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Barcode: $_barcode',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: const Color(0xFF9B59B6),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    if (_scanMessage != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        _scanMessage!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.secondary,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-
-                    // Name field
                     TextField(
                       controller: _nameCtrl,
-                      autofocus: false,
                       textCapitalization: TextCapitalization.words,
-                      decoration: InputDecoration(
-                        labelText: 'Name',
-                        hintText: 'e.g. Creatine, Vitamin D…',
-                        filled: true,
-                        fillColor: AppColors.surfaceVariant,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: AppColors.outlineVariant,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: AppColors.outlineVariant,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: AppColors.primary,
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Brand
-                    TextField(
-                      controller: _brandCtrl,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: InputDecoration(
-                        labelText: 'Brand (optional)',
-                        hintText: 'e.g. Optimum Nutrition',
-                        filled: true,
-                        fillColor: AppColors.surfaceVariant,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: AppColors.outlineVariant,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: AppColors.outlineVariant,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: AppColors.primary,
-                            width: 1.5,
-                          ),
-                        ),
+                      decoration: _decoration(
+                        'Name',
+                        hint: 'e.g. Creatine, Vitamin D…',
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -510,35 +307,10 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(
-                                RegExp(r'[0-9.]'),
-                              ),
-                            ],
-                            decoration: InputDecoration(
-                              labelText: 'Dose',
-                              hintText: 'e.g. 5',
-                              filled: true,
-                              fillColor: AppColors.surfaceVariant,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: AppColors.outlineVariant,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: AppColors.outlineVariant,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: AppColors.primary,
-                                  width: 1.5,
-                                ),
-                              ),
+                            inputFormatters: _numberOnly,
+                            decoration: _decoration(
+                              _supportsLoading ? 'Daily dose' : 'Dose',
+                              hint: 'e.g. 5',
                             ),
                           ),
                         ),
@@ -548,32 +320,10 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                           child: DropdownButtonFormField<String>(
                             isExpanded: true,
                             initialValue: _doseUnit,
-                            decoration: InputDecoration(
-                              labelText: 'Unit',
+                            decoration: _decoration('Unit').copyWith(
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12,
                                 vertical: 16,
-                              ),
-                              filled: true,
-                              fillColor: AppColors.surfaceVariant,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: AppColors.outlineVariant,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: AppColors.outlineVariant,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: AppColors.primary,
-                                  width: 1.5,
-                                ),
                               ),
                             ),
                             items: [
@@ -592,6 +342,11 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                         ),
                       ],
                     ),
+
+                    if (_supportsLoading) ...[
+                      const SizedBox(height: 16),
+                      _buildLoadingSection(theme),
+                    ],
                     const SizedBox(height: 12),
 
                     // Per-dose nutrient contributions
@@ -646,111 +401,9 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Schedule selector
-                    Text(
-                      'REMINDER',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.secondary,
-                        letterSpacing: 1.0,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        _ScheduleChip(
-                          label: 'None',
-                          icon: Icons.notifications_off_outlined,
-                          selected: _schedule == SupplementSchedule.none,
-                          onTap: () => setState(
-                            () => _schedule = SupplementSchedule.none,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        _ScheduleChip(
-                          label: 'Set time',
-                          icon: Icons.access_time_outlined,
-                          selected: _schedule == SupplementSchedule.time,
-                          onTap: () => _pickTime(),
-                        ),
-                        const SizedBox(width: 8),
-                        _ScheduleChip(
-                          label: 'Post-workout',
-                          icon: Icons.fitness_center,
-                          selected: _schedule == SupplementSchedule.postWorkout,
-                          onTap: () => setState(
-                            () => _schedule = SupplementSchedule.postWorkout,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Time display / tap to change
-                    if (_schedule == SupplementSchedule.time) ...[
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: _pickTime,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.4),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.access_time,
-                                color: AppColors.primary,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _time != null
-                                    ? _time!.format(context)
-                                    : 'Tap to set time',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    if (_schedule == SupplementSchedule.postWorkout) ...[
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            size: 14,
-                            color: AppColors.secondary,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              'You\'ll be notified when your workout ends.',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.secondary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-
+                    _buildReminderSection(theme),
                     const SizedBox(height: 24),
 
-                    // Action buttons
                     Row(
                       children: [
                         if (_isEditing) ...[
@@ -797,6 +450,201 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
           ],
         ),
       ),
+    );
+  }
+
+  // ── Creatine loading phase ────────────────────────────────────────────────
+
+  Widget _buildLoadingSection(ThemeData theme) {
+    final end = DateTime(
+      _loadingStart.year,
+      _loadingStart.month,
+      _loadingStart.day + _loadingDays - 1,
+    );
+    final dateFmt = DateFormat('d MMM');
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
+      decoration: BoxDecoration(
+        color: _accent.withValues(alpha: _loading ? 0.10 : 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _accent.withValues(alpha: _loading ? 0.45 : 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            value: _loading,
+            activeThumbColor: _accent,
+            title: const Text('Loading phase'),
+            subtitle: Text(
+              'Higher dose for the first days, then the daily dose above.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
+            ),
+            onChanged: (v) {
+              Haptics.selection();
+              setState(() => _loading = v);
+            },
+          ),
+          if (_loading) ...[
+            const SizedBox(height: 4),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _loadingDoseCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: _numberOnly,
+                    onChanged: (_) => setState(() {}),
+                    decoration: _decoration(
+                      'Loading dose',
+                    ).copyWith(suffixText: _doseUnit),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: InkWell(
+                    onTap: _pickLoadingStart,
+                    borderRadius: BorderRadius.circular(16),
+                    child: InputDecorator(
+                      decoration: _decoration('Starts').copyWith(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 16,
+                        ),
+                      ),
+                      child: Text(dateFmt.format(_loadingStart)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final days in const [5, 7, 10, 14])
+                  ChoiceChip(
+                    label: Text('$days days'),
+                    selected: _loadingDays == days,
+                    selectedColor: _accent.withValues(alpha: 0.25),
+                    onSelected: (_) {
+                      Haptics.selection();
+                      setState(() => _loadingDays = days);
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '${_loadingDoseCtrl.text.isEmpty ? '–' : _loadingDoseCtrl.text} '
+              '$_doseUnit/day until ${dateFmt.format(end)}, then '
+              '${_doseCtrl.text.isEmpty ? '–' : _doseCtrl.text} $_doseUnit/day.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ── Reminder ──────────────────────────────────────────────────────────────
+
+  Widget _buildReminderSection(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'REMINDER',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: AppColors.secondary,
+            letterSpacing: 1.0,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _ScheduleChip(
+              label: 'None',
+              icon: Icons.notifications_off_outlined,
+              selected: _schedule == SupplementSchedule.none,
+              onTap: () => setState(() => _schedule = SupplementSchedule.none),
+            ),
+            const SizedBox(width: 8),
+            _ScheduleChip(
+              label: 'Set time',
+              icon: Icons.access_time_outlined,
+              selected: _schedule == SupplementSchedule.time,
+              onTap: _pickTime,
+            ),
+            const SizedBox(width: 8),
+            _ScheduleChip(
+              label: 'Post-workout',
+              icon: Icons.fitness_center,
+              selected: _schedule == SupplementSchedule.postWorkout,
+              onTap: () =>
+                  setState(() => _schedule = SupplementSchedule.postWorkout),
+            ),
+          ],
+        ),
+        if (_schedule == SupplementSchedule.time) ...[
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: _pickTime,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.access_time, color: AppColors.primary, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    _time != null ? _time!.format(context) : 'Tap to set time',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+        if (_schedule == SupplementSchedule.postWorkout) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 14, color: AppColors.secondary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  "You'll be notified when your workout ends.",
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.secondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }

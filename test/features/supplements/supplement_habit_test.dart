@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/features/supplements/data/supplement_catalogue_repository.dart';
 import 'package:herculex/features/supplements/data/supplement_repository.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:herculex/features/supplements/domain/supplement_habit_stats.dart';
+import 'package:herculex/features/supplements/domain/supplement_presets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -103,78 +103,72 @@ void main() {
     });
   });
 
-  group(
-    'SupplementRepository multi-day history & SupplementCatalogueRepository',
-    () {
-      test('retains history up to 365 days and toggles past dates', () async {
-        SharedPreferences.setMockInitialValues({});
-        final prefs = await SharedPreferences.getInstance();
-        final repo = SupplementRepository(prefs);
+  group('SupplementRepository multi-day history', () {
+    test('retains history up to 365 days and toggles past dates', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final repo = SupplementRepository(prefs);
 
-        final yesterday = DateTime.now().subtract(const Duration(days: 1));
-        await repo.markTakenForDate('creatine', true, yesterday);
-        expect(repo.loadTakenForDate(yesterday), contains('creatine'));
+      final yesterday = DateTime.now().subtract(const Duration(days: 1));
+      await repo.markTakenForDate('creatine', true, yesterday);
+      expect(repo.loadTakenForDate(yesterday), contains('creatine'));
 
-        await repo.markTakenForDate('creatine', false, yesterday);
-        expect(repo.loadTakenForDate(yesterday), isEmpty);
+      await repo.markTakenForDate('creatine', false, yesterday);
+      expect(repo.loadTakenForDate(yesterday), isEmpty);
 
-        repo.dispose();
+      repo.dispose();
+    });
+  });
+
+  group('Creatine loading phase', () {
+    final creatine = SupplementPreset.byKey('creatine')!
+        .toSupplement()
+        .copyWith(
+          loadingDoseAmount: 20,
+          loadingDays: 7,
+          loadingStartIso: '2026-11-10',
+        );
+
+    test('uses the loading dose only inside the loading window', () {
+      expect(creatine.isLoadingOn(DateTime(2026, 11, 9)), isFalse);
+      expect(creatine.isLoadingOn(DateTime(2026, 11, 10)), isTrue);
+      expect(creatine.isLoadingOn(DateTime(2026, 11, 16)), isTrue);
+      expect(creatine.isLoadingOn(DateTime(2026, 11, 17)), isFalse);
+
+      expect(creatine.doseLabelFor(DateTime(2026, 11, 12)), '20 g');
+      expect(creatine.doseLabelFor(DateTime(2026, 11, 20)), '5 g');
+      expect(creatine.loadingEnd, DateTime(2026, 11, 16));
+    });
+
+    test('round-trips through JSON and ignores a legacy barcode key', () {
+      final back = Supplement.fromJson({
+        ...creatine.toJson(),
+        'barcode': '0748927023879',
       });
+      expect(back.presetKey, 'creatine');
+      expect(back.hasLoadingPhase, isTrue);
+      expect(back.doseAmountFor(DateTime(2026, 11, 11)), 20);
+    });
 
-      test(
-        'searches built-in supplement database and resolves known barcodes before AI',
-        () async {
-          SharedPreferences.setMockInitialValues({});
-          final prefs = await SharedPreferences.getInstance();
-          final suppRepo = SupplementRepository(prefs);
-          final catalogue = SupplementCatalogueRepository(
-            prefs: prefs,
-            supplementRepo: suppRepo,
-          );
+    test('clearLoading drops the phase', () {
+      final plain = creatine.copyWith(clearLoading: true);
+      expect(plain.hasLoadingPhase, isFalse);
+      expect(plain.doseAmountFor(DateTime(2026, 11, 11)), 5);
+    });
+  });
 
-          // Search by name
-          final creatineResults = catalogue.search('Creatine');
-          expect(creatineResults, isNotEmpty);
-          expect(
-            creatineResults.any((e) => e.name.contains('Creatine')),
-            isTrue,
-          );
+  group('SupplementPreset', () {
+    test('keys and ids are unique and stable', () {
+      final keys = supplementPresets.map((p) => p.key).toList();
+      expect(keys.toSet().length, keys.length);
+      expect(SupplementPreset.byKey('zma')!.supplementId, 'preset_zma');
+    });
 
-          // Search by category
-          final mineralResults = catalogue.search('', category: 'Minerals');
-          expect(mineralResults, isNotEmpty);
-          expect(mineralResults.every((e) => e.category == 'Minerals'), isTrue);
-
-          // Barcode lookup hits built-in Optimum Nutrition Creatine
-          final builtInHit = await catalogue.lookupByBarcode('0748927023879');
-          expect(builtInHit, isNotNull);
-          expect(builtInHit!.supplement.name, 'Micronized Creatine Powder');
-          expect(builtInHit.supplement.brand, 'Optimum Nutrition');
-
-          // Save custom AI-scanned supplement to local catalogue and look it up by barcode
-          const customScanned = Supplement(
-            id: 'custom_1',
-            name: 'Custom Magnesium Glycinate',
-            brand: 'Thorne',
-            barcode: '3830001234561',
-            doseAmount: 400,
-            doseUnit: 'mg',
-            nutrients: {'magnesium': 400},
-          );
-          await catalogue.saveToLocalCatalogue(customScanned);
-
-          final localHit = await catalogue.lookupByBarcode('3830001234561');
-          expect(localHit, isNotNull);
-          expect(localHit!.supplement.name, 'Custom Magnesium Glycinate');
-          expect(localHit.supplement.nutrients['magnesium'], 400);
-
-          // Unknown barcode returns null so the caller triggers AI analysis
-          final miss = await catalogue.lookupByBarcode('9999999999999');
-          expect(miss, isNull);
-
-          suppRepo.dispose();
-        },
+    test('only creatine offers a loading phase', () {
+      expect(
+        supplementPresets.where((p) => p.supportsLoading).map((p) => p.key),
+        ['creatine'],
       );
-    },
-  );
+    });
+  });
 }

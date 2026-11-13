@@ -5,7 +5,6 @@ import 'package:herculex/app/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum AiScanContextType {
-  supplement,
   food,
   nutritionLabel,
   exercise,

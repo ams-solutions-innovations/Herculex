@@ -8,26 +8,17 @@ import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/supplements/application/supplement_providers.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:herculex/features/supplements/domain/supplement_habit_stats.dart';
-import 'package:herculex/features/supplements/presentation/supplement_database_sheet.dart';
 import 'package:herculex/features/supplements/presentation/supplement_edit_sheet.dart';
-import 'package:herculex/features/supplements/presentation/supplement_scan_flow.dart';
+import 'package:herculex/features/supplements/presentation/supplement_picker_sheet.dart';
 import 'package:intl/intl.dart';
 
 const _accent = Color(0xFF9B59B6);
 const _perfectGreen = Color(0xFF2ECC71);
 
-/// Shared by the two half-width actions under the scan button, so the pair
-/// matches and the labels fit beside each other on a phone.
-final _secondaryActionStyle = OutlinedButton.styleFrom(
-  foregroundColor: _accent,
-  side: BorderSide(color: _accent.withValues(alpha: 0.45)),
-  shape: const StadiumBorder(),
-  padding: const EdgeInsets.symmetric(horizontal: HxSpace.x3, vertical: 14),
-);
-
-/// Full supplements page: interactive day checklist, 7-day habit strip,
-/// unified barcode/DB/AI scanner, and comprehensive habit-tracking analytics
-/// (streaks, consistency charts, 28-day heatmap, and per-supplement adherence).
+/// Full supplements page: a day checklist you can scroll back through (arrows,
+/// swipe, week strip or date picker) to log a missed day, a per-supplement
+/// streak, and habit analytics (consistency charts, 28-day heatmap, adherence).
+/// Supplements are added from a fixed list of presets — no scanning.
 class SupplementsView extends ConsumerWidget {
   const SupplementsView({super.key});
 
@@ -65,19 +56,6 @@ class SupplementsView extends ConsumerWidget {
   }
 }
 
-Future<void> _openDatabasePicker(BuildContext context) async {
-  final resolved = await SupplementDatabaseSheet.show(context);
-  if (resolved != null && context.mounted) {
-    await SupplementEditSheet.show(
-      context,
-      existing: resolved.supplement,
-      isNewDraft: true,
-      initialScanMessage:
-          '${resolved.sourceLabel} · "${resolved.supplement.name}"',
-    );
-  }
-}
-
 bool _isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
@@ -104,94 +82,207 @@ class _Body extends ConsumerWidget {
       for (final s in habitStats.itemStats) s.supplement.id: s,
     };
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Day Progress + 7-Day Interactive Strip ────────────────────────
-        _DayHeaderCard(
-          state: state,
-          habitStats: habitStats,
-          selectedDate: selectedDate,
-          today: today,
-        ),
-        const SizedBox(height: HxSpace.x4),
-
-        // ── Unified Scan + Supplement Database + Manual Add Actions ───────
-        FilledButton.icon(
-          onPressed: () => scanAndAddSupplement(context, ref),
-          icon: const Icon(Icons.qr_code_scanner, size: 18),
-          label: const Text('Scan (Code / AI)'),
-          style: FilledButton.styleFrom(
-            backgroundColor: _accent,
-            foregroundColor: Colors.white,
-            shape: const StadiumBorder(),
-            minimumSize: const Size(double.infinity, 50),
-          ),
-        ),
-        const SizedBox(height: HxSpace.x2),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _openDatabasePicker(context),
-                icon: const Icon(Icons.library_books_outlined, size: 18),
-                label: const Text('Supplement DB'),
-                style: _secondaryActionStyle,
-              ),
-            ),
-            const SizedBox(width: HxSpace.x2),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => SupplementEditSheet.show(context),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add Manually'),
-                style: _secondaryActionStyle,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: HxSpace.x4),
-
-        // ── Daily Checklist ───────────────────────────────────────────────
-        if (state.supplements.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: HxSpace.x6),
-            child: Center(
-              child: Text(
-                'Scan a barcode (falls back to AI label analysis if not in the database) or pick a supplement from the database.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(color: muted),
-              ),
-            ),
-          )
-        else ...[
-          for (final s in state.supplements) ...[
-            _Row(
-              supplement: s,
-              isTaken: state.isTaken(s.id),
-              selectedDate: selectedDate,
-              isToday: isToday,
-              itemStat: itemStatsById[s.id],
-            ),
-            const SizedBox(height: HxSpace.x2),
-          ],
-          Padding(
-            padding: const EdgeInsets.only(top: HxSpace.x1),
-            child: Text(
-              'Tap to toggle dose · long-press or tap the pencil icon to edit.',
-              style: theme.textTheme.bodySmall?.copyWith(color: muted),
-            ),
-          ),
-          const SizedBox(height: HxSpace.x6),
-
-          // ── Habit Tracking & Consistency Analytics ──────────────────────
-          _HabitAnalyticsSection(
-            stats: habitStats,
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragEnd: (details) {
+        final v = details.primaryVelocity ?? 0;
+        if (v.abs() < 300) return;
+        // Swipe right = previous day, left = next (never past today).
+        _shiftDay(ref, selectedDate, today, v > 0 ? -1 : 1);
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Day Progress + 7-Day Interactive Strip ────────────────────────
+          _DayHeaderCard(
+            state: state,
+            habitStats: habitStats,
             selectedDate: selectedDate,
             today: today,
           ),
+          const SizedBox(height: HxSpace.x4),
+
+          FilledButton.icon(
+            onPressed: () => SupplementPickerSheet.show(context),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Add supplement'),
+            style: FilledButton.styleFrom(
+              backgroundColor: _accent,
+              foregroundColor: Colors.white,
+              shape: const StadiumBorder(),
+              minimumSize: const Size(double.infinity, 50),
+            ),
+          ),
+          const SizedBox(height: HxSpace.x4),
+
+          // ── Daily Checklist ───────────────────────────────────────────────
+          if (state.supplements.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: HxSpace.x6),
+              child: Center(
+                child: Text(
+                  'Pick creatine, omega-3, multivitamin, ZMA and more from the list — or add your own.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                ),
+              ),
+            )
+          else ...[
+            for (final s in state.supplements) ...[
+              _Row(
+                supplement: s,
+                isTaken: state.isTaken(s.id),
+                selectedDate: selectedDate,
+                isToday: isToday,
+                itemStat: itemStatsById[s.id],
+              ),
+              const SizedBox(height: HxSpace.x2),
+            ],
+            Padding(
+              padding: const EdgeInsets.only(top: HxSpace.x1),
+              child: Text(
+                'Tap to toggle dose · swipe or use the arrows to log a past day · long-press to edit.',
+                style: theme.textTheme.bodySmall?.copyWith(color: muted),
+              ),
+            ),
+            const SizedBox(height: HxSpace.x6),
+
+            // ── Habit Tracking & Consistency Analytics ──────────────────────
+            _HabitAnalyticsSection(
+              stats: habitStats,
+              selectedDate: selectedDate,
+              today: today,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Moves the selected day by [delta], clamped so the future can't be logged.
+void _shiftDay(WidgetRef ref, DateTime selected, DateTime today, int delta) {
+  final next = DateTime(selected.year, selected.month, selected.day + delta);
+  if (next.isAfter(today)) return;
+  Haptics.selection();
+  ref.read(supplementSelectedDateProvider.notifier).state = next;
+}
+
+/// `‹  Today  ›` — arrows step a day, the label opens a date picker, and a
+/// "Back to today" chip jumps back when browsing the past. Same idea as the
+/// food diary.
+class _DateNavigator extends ConsumerWidget {
+  const _DateNavigator({required this.selectedDate, required this.today});
+
+  final DateTime selectedDate;
+  final DateTime today;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isToday = _isSameDay(selectedDate, today);
+    final isYesterday = _isSameDay(
+      selectedDate,
+      DateTime(today.year, today.month, today.day - 1),
+    );
+    final label = isToday
+        ? 'Today'
+        : isYesterday
+        ? 'Yesterday'
+        : DateFormat('EEE, d MMM').format(selectedDate);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _NavArrow(
+          icon: Icons.chevron_left,
+          tooltip: 'Previous day',
+          onPressed: () => _shiftDay(ref, selectedDate, today, -1),
+        ),
+        InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: selectedDate,
+              firstDate: DateTime(2020),
+              lastDate: today,
+            );
+            if (picked != null) {
+              ref.read(supplementSelectedDateProvider.notifier).state =
+                  DateUtils.dateOnly(picked);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: Text(
+              label.toUpperCase(),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: _accent,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+        ),
+        _NavArrow(
+          icon: Icons.chevron_right,
+          tooltip: 'Next day',
+          onPressed: isToday
+              ? null
+              : () => _shiftDay(ref, selectedDate, today, 1),
+        ),
+        if (!isToday) ...[
+          const SizedBox(width: 6),
+          InkWell(
+            onTap: () {
+              Haptics.selection();
+              ref.read(supplementSelectedDateProvider.notifier).state = today;
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: _accent.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                'Back to today',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: _accent,
+                ),
+              ),
+            ),
+          ),
         ],
       ],
+    );
+  }
+}
+
+class _NavArrow extends StatelessWidget {
+  const _NavArrow({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: Icon(icon),
+      tooltip: tooltip,
+      color: _accent,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+      onPressed: onPressed,
     );
   }
 }
@@ -215,12 +306,10 @@ class _DayHeaderCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final done = state.totalCount > 0 && state.progress >= 1.0;
-    final isToday = _isSameDay(selectedDate, today);
 
-    // Last 7 days ending today for the quick strip.
-    final stripPoints = habitStats.heatmapPoints.length >= 7
-        ? habitStats.heatmapPoints.sublist(habitStats.heatmapPoints.length - 7)
-        : habitStats.dailyPoints;
+    // The Monday–Sunday week of the selected day, so the strip follows the
+    // selection however far back the user scrolls.
+    final stripPoints = ref.watch(supplementWeekPointsProvider);
 
     return HxCard(
       accent: _accent,
@@ -233,55 +322,7 @@ class _DayHeaderCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          isToday
-                              ? 'TODAY'
-                              : DateFormat(
-                                  'EEE, d MMM',
-                                ).format(selectedDate).toUpperCase(),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: _accent,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        if (!isToday) ...[
-                          const SizedBox(width: 8),
-                          InkWell(
-                            onTap: () {
-                              Haptics.selection();
-                              ref
-                                      .read(
-                                        supplementSelectedDateProvider.notifier,
-                                      )
-                                      .state =
-                                  today;
-                            },
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _accent.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Text(
-                                'Back to today',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: _accent,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+                    _DateNavigator(selectedDate: selectedDate, today: today),
                     const SizedBox(height: HxSpace.x1),
                     Text(
                       state.totalCount == 0
@@ -365,6 +406,7 @@ class _DayHeaderCard extends ConsumerWidget {
                         point: p,
                         isSelected: _isSameDay(p.date, selectedDate),
                         isToday: _isSameDay(p.date, today),
+                        isFuture: p.date.isAfter(today),
                         onTap: () {
                           Haptics.selection();
                           ref
@@ -389,12 +431,16 @@ class _WeekStripCell extends StatelessWidget {
     required this.point,
     required this.isSelected,
     required this.isToday,
+    required this.isFuture,
     required this.onTap,
   });
 
   final SupplementDayPoint point;
   final bool isSelected;
   final bool isToday;
+
+  /// Days after today can't be logged, so they render dimmed and inert.
+  final bool isFuture;
   final VoidCallback onTap;
 
   @override
@@ -404,69 +450,74 @@ class _WeekStripCell extends StatelessWidget {
     final isPerfect = point.isPerfect;
     final dayLabel = DateFormat('E').format(point.date).substring(0, 2);
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? _accent.withValues(alpha: 0.16)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
+    return Opacity(
+      opacity: isFuture ? 0.35 : 1,
+      child: GestureDetector(
+        onTap: isFuture ? null : onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
             color: isSelected
-                ? _accent
-                : isToday
-                ? _accent.withValues(alpha: 0.35)
+                ? _accent.withValues(alpha: 0.16)
                 : Colors.transparent,
-            width: 1.2,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              dayLabel,
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontSize: 10,
-                color: isSelected ? _accent : AppColors.secondary,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? _accent
+                  : isToday
+                  ? _accent.withValues(alpha: 0.35)
+                  : Colors.transparent,
+              width: 1.2,
             ),
-            const SizedBox(height: 5),
-            SizedBox(
-              width: 24,
-              height: 24,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CircularProgressIndicator(
-                    value: ratio > 0 ? ratio : 0,
-                    strokeWidth: 2.5,
-                    backgroundColor: AppColors.outlineVariant.withValues(
-                      alpha: 0.25,
-                    ),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      isPerfect ? _perfectGreen : _accent,
-                    ),
-                  ),
-                  if (isPerfect)
-                    const Icon(Icons.check, size: 13, color: _perfectGreen)
-                  else
-                    Text(
-                      '${point.date.day}',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontSize: 10,
-                        fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                dayLabel,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontSize: 10,
+                  color: isSelected ? _accent : AppColors.secondary,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 5),
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      value: ratio > 0 ? ratio : 0,
+                      strokeWidth: 2.5,
+                      backgroundColor: AppColors.outlineVariant.withValues(
+                        alpha: 0.25,
+                      ),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isPerfect ? _perfectGreen : _accent,
                       ),
                     ),
-                ],
+                    if (isPerfect)
+                      const Icon(Icons.check, size: 13, color: _perfectGreen)
+                    else
+                      Text(
+                        '${point.date.day}',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontSize: 10,
+                          fontWeight: isToday
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -493,7 +544,7 @@ class _Row extends ConsumerWidget {
   String? get _subtitle {
     final parts = <String?>[
       supplement.brand,
-      supplement.doseLabel,
+      supplement.doseLabelFor(selectedDate),
       switch (supplement.schedule) {
         SupplementSchedule.time => supplement.timeHHMM,
         SupplementSchedule.postWorkout => 'Post-workout',
@@ -568,6 +619,28 @@ class _Row extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (supplement.isLoadingOn(selectedDate)) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _accent.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'LOADING',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.6,
+                              color: _accent,
+                            ),
+                          ),
+                        ),
+                      ],
                       if (streak > 0) ...[
                         const SizedBox(width: 6),
                         Container(

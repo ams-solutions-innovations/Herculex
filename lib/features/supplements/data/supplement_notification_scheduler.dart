@@ -26,6 +26,7 @@ class SupplementNotificationScheduler {
   static const _androidDetails = AndroidNotificationDetails(
     _channelId,
     'Supplement Reminders',
+    icon: '@mipmap/launcher_icon',
     channelDescription: 'Daily supplement intake reminders',
     importance: Importance.high,
     priority: Priority.high,
@@ -137,9 +138,7 @@ class SupplementNotificationScheduler {
         // A repeating time notification ignores the date above and may fire
         // today even when the supplement was already taken. Use a one-shot
         // for tomorrow in that case; app resume will restore the daily repeat.
-        matchDateTimeComponents: isTakenToday
-            ? null
-            : DateTimeComponents.time,
+        matchDateTimeComponents: isTakenToday ? null : DateTimeComponents.time,
       );
 
       idOffset++;

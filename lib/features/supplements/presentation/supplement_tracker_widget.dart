@@ -8,7 +8,7 @@ import 'package:herculex/features/dashboard/presentation/widgets/dashboard_share
 import 'package:herculex/features/supplements/application/supplement_providers.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:herculex/features/supplements/presentation/supplement_edit_sheet.dart';
-import 'package:herculex/features/supplements/presentation/supplement_scan_flow.dart';
+import 'package:herculex/features/supplements/presentation/supplement_picker_sheet.dart';
 
 /// Dashboard widget — a checkbox-based daily supplement tracker.
 ///
@@ -164,7 +164,7 @@ class SupplementTrackerWidget extends ConsumerWidget {
                     minWidth: 32,
                     minHeight: 32,
                   ),
-                  onPressed: () => SupplementEditSheet.show(context),
+                  onPressed: () => SupplementPickerSheet.show(context),
                 ),
               ],
             ),
@@ -198,7 +198,7 @@ class SupplementTrackerWidget extends ConsumerWidget {
           if (state.supplements.isEmpty)
             Flexible(
               child: _EmptyState(
-                onAdd: () => SupplementEditSheet.show(context),
+                onAdd: () => SupplementPickerSheet.show(context),
               ),
             )
           else
@@ -419,7 +419,7 @@ class _EmptyState extends ConsumerWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              'Scan a barcode (with AI fallback) or pick from the database.',
+              'Pick creatine, omega-3, multivitamin, ZMA and more.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: AppColors.secondary,
@@ -427,42 +427,19 @@ class _EmptyState extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: [
-                FilledButton.icon(
-                  onPressed: () => scanAndAddSupplement(context, ref),
-                  icon: const Icon(Icons.qr_code_scanner, size: 15),
-                  label: const Text('Scan'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF9B59B6),
-                    foregroundColor: Colors.white,
-                    shape: const StadiumBorder(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                  ),
+            FilledButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add, size: 15),
+              label: const Text('Add supplement'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF9B59B6),
+                foregroundColor: Colors.white,
+                shape: const StadiumBorder(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
                 ),
-                OutlinedButton.icon(
-                  onPressed: onAdd,
-                  icon: const Icon(Icons.add, size: 15),
-                  label: const Text('Add'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF9B59B6),
-                    side: BorderSide(
-                      color: const Color(0xFF9B59B6).withValues(alpha: 0.4),
-                    ),
-                    shape: const StadiumBorder(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ),
