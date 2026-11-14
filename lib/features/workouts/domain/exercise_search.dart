@@ -130,6 +130,34 @@ const _scoreFuzzyAliasWord = 100;
 const _scoreEquipment = 60;
 const _scorePrimaryMuscle = 40;
 const _scoreSecondaryMuscle = 15;
+const _scorePureMusclePrimary = 2000;
+const _scorePureMuscleSecondary = 1400;
+
+/// Single-token muscle queries (e.g. "chest", "biceps", "back") where a literal
+/// substring in an exercise's name (such as "Chest-Supported Row" or "Back
+/// Squat") would otherwise outrank exercises that actually target that muscle.
+const _pureMuscleTokens = <String>{
+  'chest',
+  'pectoral',
+  'bicep',
+  'tricep',
+  'quad',
+  'hamstring',
+  'glute',
+  'calve',
+  'calf',
+  'shoulder',
+  'delt',
+  'lat',
+  'forearm',
+  'trap',
+  'oblique',
+  'abs',
+  'core',
+  'adductor',
+  'abductor',
+  'back',
+};
 
 /// Charged per name word the query did not account for. This is what surfaces
 /// base movements: for "leg curl", "Seated Leg Curl" (3 words) outranks
@@ -279,6 +307,14 @@ class _IndexedExercise {
     }
 
     if (tokensFoundInName == tokens.length) total += _scoreAllTokensInName;
+    if (tokens.length == 1 && _pureMuscleTokens.contains(tokens.single)) {
+      final token = tokens.single;
+      if (_containsToken(primaryMuscleTokens, token)) {
+        total += _scorePureMusclePrimary;
+      } else if (_containsToken(secondaryMuscleTokens, token)) {
+        total += _scorePureMuscleSecondary;
+      }
+    }
 
     // Only penalise length once the query actually engaged the name; otherwise
     // a pure metadata hit would be punished for the exercise having a long

@@ -211,6 +211,57 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
     }
 
     if (!context.mounted) return;
+    final gearInProgram = {for (final r in doc.rows) ...r.gear};
+    Set<String> enabledGear = gearInProgram;
+    if (gearInProgram.isNotEmpty) {
+      final chosen = await showDialog<Set<String>>(
+        context: context,
+        builder: (ctx) {
+          final picked = {...gearInProgram};
+          return StatefulBuilder(
+            builder: (ctx, setLocal) => AlertDialog(
+              title: const Text('Optional gear'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'This program can use the items below. Untick what you '
+                    "don't have or don't want to use; those exercises are "
+                    'then done without it.',
+                  ),
+                  for (final g in ProgramGear.labels.keys.where(
+                    gearInProgram.contains,
+                  ))
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(ProgramGear.labels[g]!),
+                      value: picked.contains(g),
+                      onChanged: (v) => setLocal(() {
+                        v == true ? picked.add(g) : picked.remove(g);
+                      }),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, picked),
+                  child: const Text('Continue'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+      if (chosen == null) return;
+      enabledGear = chosen;
+    }
+
+    if (!context.mounted) return;
     final now = DateTime.now();
     final startDate = await showDatePicker(
       context: context,
@@ -253,6 +304,7 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
             csv,
             createdByUser: false,
             description: widget.meta.description,
+            enabledGear: enabledGear,
           );
       // Activate before materializing so the Blocks tab lands on the block the
       // user just imported rather than an empty state.

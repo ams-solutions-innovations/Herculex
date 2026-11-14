@@ -11,6 +11,7 @@ import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:herculex/features/workouts/presentation/sheets/exercise_affinity_sheet.dart';
 import 'package:herculex/features/workouts/presentation/views/custom_exercise_builder_view.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
@@ -93,6 +94,7 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
       ),
     );
 
+    final snapshot = ref.watch(exerciseCatalogSnapshotProvider).asData?.value;
     final usageCounts =
         ref.watch(exerciseUsageCountsProvider).asData?.value ??
         const <int, int>{};
@@ -133,7 +135,13 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
               ),
             ),
           ],
-          data: (list) => _buildResults(context, list, usageCounts),
+          data: (list) => _buildResults(
+            context,
+            list,
+            usageCounts,
+            snapshot,
+            effectiveCategory,
+          ),
         ),
       ],
     );
@@ -246,6 +254,8 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
     BuildContext context,
     List<ExerciseCatalogData> list,
     Map<int, int> usageCounts,
+    ExerciseCatalogSnapshot? snapshot,
+    String? effectiveCategory,
   ) {
     final theme = Theme.of(context);
     final hx = context.hx;
@@ -256,7 +266,16 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
     }
 
     if (_query.isEmpty) {
+      final isMuscle = ExerciseCatalogSnapshot.isMuscleCategory(
+        effectiveCategory,
+      );
       filtered.sort((a, b) {
+        if (isMuscle && snapshot != null) {
+          final byFocus = snapshot
+              .muscleFocusRank(a, effectiveCategory)
+              .compareTo(snapshot.muscleFocusRank(b, effectiveCategory));
+          if (byFocus != 0) return byFocus;
+        }
         final countA = usageCounts[a.id] ?? 0;
         final countB = usageCounts[b.id] ?? 0;
         if (countA != countB) {

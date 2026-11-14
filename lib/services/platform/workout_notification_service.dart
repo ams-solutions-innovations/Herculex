@@ -177,7 +177,7 @@ class WorkoutNotificationService {
   Timer? _ticker;
 
   Future<void> init() async {
-    const android = AndroidInitializationSettings('@mipmap/launcher_icon');
+    const android = AndroidInitializationSettings('@drawable/ic_stat_herculex');
     final iOS = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -411,7 +411,7 @@ class WorkoutNotificationService {
       // `showWhen` is on without it, Android instead renders `when` as a
       // static wall-clock timestamp that looks like a broken duration.
       showWhen: false,
-      icon: '@mipmap/launcher_icon',
+      icon: '@drawable/ic_stat_herculex',
       largeIcon: const DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
       category: AndroidNotificationCategory.workout,
       visibility: NotificationVisibility.private,
@@ -495,6 +495,7 @@ class WorkoutNotificationService {
             android: AndroidNotificationDetails(
               _restChannelId,
               'Rest Timer',
+              icon: '@drawable/ic_stat_herculex',
               channelDescription: 'Alerts when a rest period finishes',
               importance: Importance.high,
               priority: Priority.high,
@@ -515,6 +516,7 @@ class WorkoutNotificationService {
             android: AndroidNotificationDetails(
               _restChannelId,
               'Rest Timer',
+              icon: '@drawable/ic_stat_herculex',
               channelDescription: 'Alerts when a rest period finishes',
               importance: Importance.high,
               priority: Priority.high,
@@ -563,6 +565,7 @@ class WorkoutNotificationService {
     const androidDetails = AndroidNotificationDetails(
       _supplementChannelId,
       'Supplement Reminders',
+      icon: '@drawable/ic_stat_herculex',
       channelDescription: 'Reminds you to take post-workout supplements',
       importance: Importance.high,
       priority: Priority.high,

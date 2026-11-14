@@ -3394,6 +3394,41 @@
     "derived": true
   },
   {
+    "slug": "smith-machine-close-grip-bench-press",
+    "name": "Smith Machine Close Grip Bench Press",
+    "aka": [],
+    "bodyPart": "Chest",
+    "category": "strength",
+    "movementPattern": "horizontal_push",
+    "movementPatternRaw": "Horizontal Push (Triceps focus)",
+    "modality": "smith",
+    "equipment": "Smith Machine",
+    "primaryMuscle": "Chest",
+    "primaryMuscles": [
+      "Chest"
+    ],
+    "secondaryMuscles": [
+      "Triceps",
+      "Front Delts"
+    ],
+    "stabilizers": [
+      "Serratus",
+      "Core"
+    ],
+    "cnsScore": 6,
+    "recoveryImpact": 3,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 180,
+    "similar": [
+      "Barbell Bench Press",
+      "JM Press",
+      "Skullcrusher",
+      "Diamond Push-Up"
+    ],
+    "derived": true
+  },
+  {
     "slug": "reverse-grip-bench-press",
     "name": "Reverse Grip Bench Press",
     "aka": [
@@ -3442,6 +3477,49 @@
     "movementPatternRaw": "Incline Push (Horizontal)",
     "modality": "barbell",
     "equipment": "Barbell",
+    "primaryMuscle": "Chest",
+    "primaryMuscles": [
+      "Chest"
+    ],
+    "secondaryMuscles": [
+      "Triceps",
+      "Front Delts"
+    ],
+    "stabilizers": [
+      "Serratus",
+      "Core"
+    ],
+    "cnsScore": 4,
+    "recoveryImpact": 2,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 120,
+    "similar": [
+      "Incline Dumbbell Press",
+      "Machine Incline Press",
+      "Swiss Bar Incline Press"
+    ],
+    "derived": true,
+    "requiredEquipmentKeys": [
+      "barbell",
+      "incline_bench",
+      "bench_rack"
+    ],
+    "maxEffortEligibility": "suitable",
+    "movementSlug": "incline-press-horizontal-push"
+  },
+  {
+    "slug": "smith-machine-incline-press",
+    "name": "Smith Machine Incline Press",
+    "aka": [
+      "Smith Low Incline Press"
+    ],
+    "bodyPart": "Chest",
+    "category": "strength",
+    "movementPattern": "horizontal_push",
+    "movementPatternRaw": "Incline Push (Horizontal)",
+    "modality": "smith",
+    "equipment": "Smith Machine",
     "primaryMuscle": "Chest",
     "primaryMuscles": [
       "Chest"
@@ -3631,6 +3709,41 @@
     "movementPatternRaw": "Horizontal Push (neck focus)",
     "modality": "barbell",
     "equipment": "Barbell",
+    "primaryMuscle": "Chest",
+    "primaryMuscles": [
+      "Chest"
+    ],
+    "secondaryMuscles": [
+      "Triceps",
+      "Front Delts"
+    ],
+    "stabilizers": [
+      "Serratus",
+      "Core"
+    ],
+    "cnsScore": 4,
+    "recoveryImpact": 2,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 120,
+    "similar": [
+      "Barbell Bench Press",
+      "Dumbbell Fly"
+    ],
+    "derived": true
+  },
+  {
+    "slug": "smith-machine-guillotine-incline-press",
+    "name": "Smith Machine Guillotine Incline Press",
+    "aka": [
+      "Smith Guillotine Press"
+    ],
+    "bodyPart": "Chest",
+    "category": "strength",
+    "movementPattern": "horizontal_push",
+    "movementPatternRaw": "Horizontal Push (neck focus)",
+    "modality": "smith",
+    "equipment": "Smith Machine",
     "primaryMuscle": "Chest",
     "primaryMuscles": [
       "Chest"
@@ -4191,6 +4304,43 @@
     ],
     "derived": true,
     "movementSlug": "push-up-horizontal-push"
+  },
+  {
+    "slug": "around-the-world-circuit",
+    "name": "Around the World Circuit",
+    "aka": [
+      "Around the World"
+    ],
+    "bodyPart": "Calisthenics (Beginner/Int)",
+    "category": "calisthenics",
+    "movementPattern": "other",
+    "movementPatternRaw": "Calisthenics circuit (pull-ups, dips, push-ups)",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
+    "primaryMuscle": "Chest",
+    "primaryMuscles": [
+      "Chest",
+      "Lats"
+    ],
+    "secondaryMuscles": [
+      "Triceps",
+      "Biceps",
+      "Front Delts"
+    ],
+    "stabilizers": [
+      "Core"
+    ],
+    "cnsScore": 4,
+    "recoveryImpact": 3,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 60,
+    "similar": [
+      "Pull-Up",
+      "Dip",
+      "Standard Push-Up"
+    ],
+    "derived": false
   },
   {
     "slug": "incline-push-up",
@@ -8102,6 +8252,39 @@
     "derived": true
   },
   {
+    "slug": "smith-machine-behind-the-neck-press",
+    "name": "Smith Machine Behind the Neck Press",
+    "aka": [],
+    "bodyPart": "Shoulders",
+    "category": "strength",
+    "movementPattern": "vertical_push",
+    "movementPatternRaw": "Vertical Push (riskier)",
+    "modality": "smith",
+    "equipment": "Smith Machine",
+    "primaryMuscle": "Shoulders",
+    "primaryMuscles": [
+      "Front Delts"
+    ],
+    "secondaryMuscles": [
+      "Side Delts",
+      "Triceps",
+      "Traps"
+    ],
+    "stabilizers": [
+      "Core"
+    ],
+    "cnsScore": 6,
+    "recoveryImpact": 3,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 180,
+    "similar": [
+      "Overhead Press",
+      "Smith Machine OHP"
+    ],
+    "derived": true
+  },
+  {
     "slug": "bradford-press",
     "name": "Bradford Press",
     "aka": [
@@ -8140,6 +8323,43 @@
     "name": "Smith Machine OHP",
     "aka": [
       "Guided Shoulder Press"
+    ],
+    "bodyPart": "Shoulders",
+    "category": "strength",
+    "movementPattern": "vertical_push",
+    "movementPatternRaw": "Vertical Push (fixed)",
+    "modality": "smith",
+    "equipment": "Smith Machine",
+    "primaryMuscle": "Shoulders",
+    "primaryMuscles": [
+      "Front Delts"
+    ],
+    "secondaryMuscles": [
+      "Side Delts",
+      "Triceps",
+      "Traps"
+    ],
+    "stabilizers": [
+      "Core"
+    ],
+    "cnsScore": 6,
+    "recoveryImpact": 3,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 180,
+    "similar": [
+      "Overhead Press",
+      "Machine Shoulder Press",
+      "Arnold Press"
+    ],
+    "derived": true,
+    "movementSlug": "overhead-press-vertical-push"
+  },
+  {
+    "slug": "seated-smith-machine-ohp",
+    "name": "Seated Smith Machine Overhead Press",
+    "aka": [
+      "Seated Anterior Delt Press"
     ],
     "bodyPart": "Shoulders",
     "category": "strength",
@@ -10490,6 +10710,36 @@
     "movementSlug": "jm-press-isolation"
   },
   {
+    "slug": "smith-machine-jm-press",
+    "name": "Smith Machine JM Press",
+    "aka": [],
+    "bodyPart": "Arms",
+    "category": "strength",
+    "movementPattern": "isolation",
+    "movementPatternRaw": "Elbow Extension (compound-like)",
+    "modality": "smith",
+    "equipment": "Smith Machine",
+    "primaryMuscle": "Triceps",
+    "primaryMuscles": [
+      "Triceps"
+    ],
+    "secondaryMuscles": [],
+    "stabilizers": [
+      "Forearms"
+    ],
+    "cnsScore": 4,
+    "recoveryImpact": 2,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 120,
+    "similar": [
+      "Skullcrusher",
+      "Swiss Bar JM Press"
+    ],
+    "derived": true,
+    "movementSlug": "jm-press-isolation"
+  },
+  {
     "slug": "overhead-cable-tricep",
     "name": "Overhead Cable Tricep",
     "aka": [
@@ -11503,6 +11753,42 @@
     ],
     "derived": true,
     "movementSlug": "plank-core"
+  },
+  {
+    "slug": "dead-hang",
+    "name": "Dead Hang",
+    "aka": [
+      "Bar Hang",
+      "Passive Hang"
+    ],
+    "bodyPart": "Back",
+    "category": "strength",
+    "movementPattern": "other",
+    "movementPatternRaw": "Isometric hang (shoulder decompression)",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
+    "primaryMuscle": "Back",
+    "primaryMuscles": [
+      "Lats",
+      "Forearms"
+    ],
+    "secondaryMuscles": [
+      "Biceps",
+      "Rear Delts"
+    ],
+    "stabilizers": [
+      "Core"
+    ],
+    "cnsScore": 1,
+    "recoveryImpact": 1,
+    "loggingMetric": "time",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 30,
+    "similar": [
+      "Pull-Up",
+      "Scapular Pull-Up"
+    ],
+    "derived": false
   },
   {
     "slug": "side-plank",

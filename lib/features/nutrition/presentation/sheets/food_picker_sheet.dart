@@ -25,6 +25,7 @@ import 'package:herculex/features/nutrition/presentation/dialogs/rambler_food_di
 import 'package:herculex/features/nutrition/presentation/dialogs/rambler_recipe_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/custom_food_form_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/log_entry_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/quick_add_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/views/barcode_scanner_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/recipe_builder_view.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/barcode_resolution_flow.dart';
@@ -457,6 +458,17 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
     if (mounted) _logRecipe(created);
   }
 
+  Future<void> _openQuickAdd() async {
+    final saved = await QuickAddSheet.show(
+      context,
+      date: _effectiveDate,
+      mealKey: _activeMealKey,
+    );
+    if (saved == true && mounted) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
   Future<void> _showMealSelector(
     BuildContext context,
     List<MealSlot> slots,
@@ -571,7 +583,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
               ),
               const SizedBox(height: 8),
 
-              // ── Quick Action Cards: Rambler AI & Scan Barcode ──────────────
+              // ── Quick Action Cards: Rambler AI, Scan Barcode & Quick Add ───
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -585,7 +597,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                         onTap: _openRambler,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: _QuickActionCard(
                         icon: Icons.qr_code_scanner_rounded,
@@ -595,6 +607,18 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                         onTap: _scan,
                       ),
                     ),
+                    if (!_isRecipeMode) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _QuickActionCard(
+                          icon: Icons.bolt_rounded,
+                          title: 'Quick Add',
+                          subtitle: 'kcal & protein',
+                          color: AppColors.macroProtein,
+                          onTap: _openQuickAdd,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

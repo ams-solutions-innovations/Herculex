@@ -28,20 +28,114 @@ import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork
 /// Viewing this screen never creates a `WorkoutSessions` row — the Start
 /// workout CTA is the only action that does, mirroring
 /// `DayDetailSheet._start`'s pop-then-navigate pattern.
-class PlannedWorkoutPreviewView extends ConsumerWidget {
+class PlannedWorkoutPreviewView extends ConsumerStatefulWidget {
   const PlannedWorkoutPreviewView({super.key, required this.scheduleId});
 
   final int scheduleId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final dataAsync = ref.watch(plannedWorkoutPreviewProvider(scheduleId));
+  ConsumerState<PlannedWorkoutPreviewView> createState() =>
+      _PlannedWorkoutPreviewViewState();
+}
+
+class _PlannedWorkoutPreviewViewState
+    extends ConsumerState<PlannedWorkoutPreviewView> {
+  late int _scheduleId = widget.scheduleId;
+  bool _isApplyingEdit = false;
+
+  @override
+  void didUpdateWidget(covariant PlannedWorkoutPreviewView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scheduleId != widget.scheduleId) {
+      _scheduleId = widget.scheduleId;
+    }
+  }
+
+  Future<void> _edit(PlannedWorkoutPreviewData data) async {
+    final scheduleId = _scheduleId;
+    final programId = data.scheduled.schedule.programId;
+    final programDay = data.scheduled.programDay;
+    final dateIso = data.scheduled.schedule.dateIso;
+    final occurrenceIndex = data.scheduled.schedule.occurrenceIndex;
+
+    final templates = ref.read(templatesRepositoryProvider);
+    final copy = await templates.createFromPlannedSession(
+      data.plan,
+      name: data.scheduled.title,
+    );
+    if (!mounted) return;
+    final saved = await TemplateBuilderView.show(
+      context,
+      existing: copy,
+      returnsSelection: true,
+    );
+    if (saved == null || !mounted) {
+      // Backed out of the editor: don't leave an unused copy behind.
+      await templates.deleteTemplate(copy.id);
+      return;
+    }
+
+    var targetScheduleId = scheduleId;
+    setState(() => _isApplyingEdit = true);
+    try {
+      if (programId == null || programDay == null) {
+        await ref
+            .read(programsRepositoryProvider)
+            .setScheduleTemplateOverride(scheduleId, saved.id);
+      } else {
+        final applied = await TemplateScopeSheet.apply(
+          context,
+          ref,
+          scheduleId: scheduleId,
+          programDayId: programDay.id,
+          programId: programId,
+          date: DateTime.parse(dateIso),
+          dayTitle: data.scheduled.title,
+          templateId: saved.id,
+        );
+        if (!applied) {
+          await templates.deleteTemplate(saved.id);
+        } else {
+          // "Every wave" rematerializes future ScheduledWorkouts rows with
+          // new primary keys; rebind to the replacement row before clearing
+          // _isApplyingEdit so the preview never flashes "no longer exists".
+          final rebound = await ref
+              .read(programsRepositoryProvider)
+              .findScheduledWorkoutId(
+                programDayId: programDay.id,
+                dateIso: dateIso,
+                occurrenceIndex: occurrenceIndex,
+              );
+          if (rebound != null) {
+            targetScheduleId = rebound;
+          }
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _scheduleId = targetScheduleId;
+          _isApplyingEdit = false;
+        });
+        ref.invalidate(plannedWorkoutPreviewProvider(_scheduleId));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dataAsync = ref.watch(plannedWorkoutPreviewProvider(_scheduleId));
 
     final data = dataAsync.valueOrNull;
     final canEdit =
+        !_isApplyingEdit &&
         data != null &&
         (data.status == ScheduleStatus.planned ||
             data.status == ScheduleStatus.moved);
+    const loading = Padding(
+      padding: EdgeInsets.all(32),
+      child: Center(child: CircularProgressIndicator()),
+    );
     const missing = Padding(
       padding: EdgeInsets.all(32),
       child: Center(child: Text('This scheduled workout no longer exists.')),
@@ -53,72 +147,23 @@ class PlannedWorkoutPreviewView extends ConsumerWidget {
           HxCircleButton(
             icon: Icons.edit_outlined,
             tooltip: 'Edit',
-            onTap: () => _edit(context, ref, data),
+            onTap: () => _edit(data),
           ),
       ],
       children: [
-        dataAsync.when(
-          data: (data) => data == null
-              ? missing
-              : _PlanBody(data: data, scheduleId: scheduleId),
-          loading: () => const Padding(
-            padding: EdgeInsets.all(32),
-            child: Center(child: CircularProgressIndicator()),
+        if (_isApplyingEdit)
+          data == null ? loading : _PlanBody(data: data, scheduleId: _scheduleId)
+        else
+          dataAsync.when(
+            data: (data) => data == null
+                ? missing
+                : _PlanBody(data: data, scheduleId: _scheduleId),
+            loading: () => loading,
+            error: (_, _) => missing,
           ),
-          error: (_, _) => missing,
-        ),
       ],
     );
   }
-}
-
-/// Edits the workout the same way templates are edited everywhere else.
-///
-/// A day that already runs on a template opens that template. A day built
-/// from the program's own inline prescription has nothing to edit in place,
-/// so its plan is copied into a new template first; the user then chooses
-/// whether the edited version covers just this date or every future one.
-Future<void> _edit(
-  BuildContext context,
-  WidgetRef ref,
-  PlannedWorkoutPreviewData data,
-) async {
-  final scheduleId = data.scheduled.schedule.id;
-  final templates = ref.read(templatesRepositoryProvider);
-  final copy = await templates.createFromPlannedSession(
-    data.plan,
-    name: data.scheduled.title,
-  );
-  if (!context.mounted) return;
-  final saved = await TemplateBuilderView.show(
-    context,
-    existing: copy,
-    returnsSelection: true,
-  );
-  if (saved == null || !context.mounted) {
-    // Backed out of the editor: don't leave an unused copy behind.
-    await templates.deleteTemplate(copy.id);
-    return;
-  }
-  final programId = data.scheduled.schedule.programId;
-  if (programId == null || data.scheduled.programDay == null) {
-    await ref
-        .read(programsRepositoryProvider)
-        .setScheduleTemplateOverride(scheduleId, saved.id);
-  } else {
-    final applied = await TemplateScopeSheet.apply(
-      context,
-      ref,
-      scheduleId: scheduleId,
-      programDayId: data.scheduled.programDay!.id,
-      programId: programId,
-      date: DateTime.parse(data.scheduled.schedule.dateIso),
-      dayTitle: data.scheduled.title,
-      templateId: saved.id,
-    );
-    if (!applied) await templates.deleteTemplate(saved.id);
-  }
-  ref.invalidate(plannedWorkoutPreviewProvider(scheduleId));
 }
 
 class _PlanBody extends StatelessWidget {

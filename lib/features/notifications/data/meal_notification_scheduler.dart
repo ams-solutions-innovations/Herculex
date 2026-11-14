@@ -64,6 +64,7 @@ class MealNotificationScheduler {
       const androidDetails = AndroidNotificationDetails(
         channelId,
         'Meal Reminders',
+        icon: '@drawable/ic_stat_herculex',
         channelDescription: 'Daily meal time reminders',
         importance: Importance.high,
         priority: Priority.high,

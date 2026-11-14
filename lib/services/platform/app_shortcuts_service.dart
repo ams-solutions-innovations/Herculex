@@ -50,12 +50,12 @@ class AppShortcutsService {
       const ShortcutItem(
         type: 'start_empty_workout',
         localizedTitle: 'Start Empty Workout',
-        icon: 'launcher_icon',
+        icon: 'ic_shortcut_start_workout',
       ),
       const ShortcutItem(
         type: 'quick_scan_food',
         localizedTitle: 'Scan Food',
-        icon: 'launcher_icon',
+        icon: 'ic_shortcut_scan_food',
       ),
     ];
 
@@ -65,7 +65,7 @@ class AppShortcutsService {
         ShortcutItem(
           type: 'template_${template.id}',
           localizedTitle: template.name,
-          icon: 'launcher_icon',
+          icon: 'ic_shortcut_workout_template',
         ),
       );
     }

@@ -38,6 +38,7 @@ class DailyLogNotificationScheduler {
     const androidDetails = AndroidNotificationDetails(
       channelId,
       'Daily Log Reminders',
+      icon: '@drawable/ic_stat_herculex',
       channelDescription: 'Daily evening reminder to review and log habits',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,

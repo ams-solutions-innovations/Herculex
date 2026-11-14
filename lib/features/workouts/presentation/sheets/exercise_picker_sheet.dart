@@ -7,6 +7,7 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/workouts/application/circuits_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:herculex/features/workouts/domain/calisthenics_progression.dart';
 import 'package:herculex/features/workouts/presentation/dialogs/exercise_ai_scan_dialog.dart';
 import 'package:herculex/features/workouts/presentation/sheets/calisthenics_level_sheet.dart';
@@ -90,10 +91,15 @@ String exerciseFamilyLabel(List<ExerciseCatalogData> variants) =>
 
 List<ExerciseCatalogData> sortRecentExercisesFirst(
   List<ExerciseCatalogData> exercises,
-  Set<int> recentIds,
-) {
-  if (recentIds.isEmpty) return exercises;
+  Set<int> recentIds, {
+  int Function(ExerciseCatalogData)? rankOf,
+}) {
+  if (recentIds.isEmpty && rankOf == null) return exercises;
   return [...exercises]..sort((a, b) {
+    if (rankOf != null) {
+      final byRank = rankOf(a).compareTo(rankOf(b));
+      if (byRank != 0) return byRank;
+    }
     final aRecent = recentIds.contains(a.id);
     final bRecent = recentIds.contains(b.id);
     if (aRecent != bRecent) return aRecent ? -1 : 1;
@@ -212,6 +218,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
         ),
       ),
     );
+    final snapshot = ref.watch(exerciseCatalogSnapshotProvider).asData?.value;
     final recentIdsAsync = ref.watch(recentExerciseIdsProvider);
     final gyms = ref.watch(gymsProvider).asData?.value ?? const <GymData>[];
     final activeGym = gyms.where((gym) => gym.isDefault).firstOrNull;
@@ -387,13 +394,28 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                               filteredList = filteredList
                                   .where((e) => recentIds.contains(e.id))
                                   .toList();
-                            } else if (recentIds.isNotEmpty && _query.isEmpty) {
-                              // Recency only orders the unfiltered browse list. While a
-                              // query is typed, relevance wins — otherwise any of the 50
-                              // recent exercises outranks an exact name match.
+                            } else if ((recentIds.isNotEmpty ||
+                                    ExerciseCatalogSnapshot.isMuscleCategory(
+                                      _category,
+                                    )) &&
+                                _query.isEmpty) {
+                              // Recency orders within a tier; when browsing a
+                              // muscle facet, primary muscle focus outranks recency
+                              // so secondary exercises don't jump ahead of main
+                              // lifts.
+                              final isMuscle =
+                                  ExerciseCatalogSnapshot.isMuscleCategory(
+                                    _category,
+                                  );
                               filteredList = sortRecentExercisesFirst(
                                 filteredList,
                                 recentIds,
+                                rankOf: isMuscle && snapshot != null
+                                    ? (e) => snapshot.muscleFocusRank(
+                                        e,
+                                        _category,
+                                      )
+                                    : null,
                               );
                             }
 

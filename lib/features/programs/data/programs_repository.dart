@@ -958,6 +958,111 @@ class ProgramsRepository {
         .write(ProgramDaysCompanion(templateId: Value(templateId)));
   }
 
+  /// Returns the exercise-rotation wave containing [programDayId] when the
+  /// program defines multiple rotation waves; returns `null` for rotating
+  /// splits or single-wave blocks.
+  Future<({WaveSegment current, int totalWaves})?> waveForProgramDay(
+    int programDayId,
+  ) async {
+    final day = await (_db.select(
+      _db.programDays,
+    )..where((t) => t.id.equals(programDayId))).getSingleOrNull();
+    if (day == null) return null;
+    final week = await (_db.select(
+      _db.programWeeks,
+    )..where((t) => t.id.equals(day.programWeekId))).getSingleOrNull();
+    if (week == null) return null;
+    final program = await getProgram(week.programId);
+    if (program == null || program.type == 'rotating') return null;
+
+    final weeks = await getProgramWeeks(program.id);
+    if (weeks.length <= 1) return null;
+
+    final slots =
+        await (_db.select(_db.programExerciseSlots)
+              ..where((t) => t.programId.equals(program.id))
+              ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+            .get();
+    if (slots.isEmpty) return null;
+
+    final assignments = await (_db.select(
+      _db.rotationAssignments,
+    )..where((t) => t.slotId.isIn(slots.map((s) => s.id)))).get();
+    if (assignments.isEmpty) return null;
+
+    final exerciseIdByWeekBySlot = <int, Map<int, int?>>{};
+    for (final a in assignments) {
+      exerciseIdByWeekBySlot.putIfAbsent(a.slotId, () => {})[a.weekIndex] =
+          a.exerciseId;
+    }
+    final waves = WaveSegments.compute(
+      totalWeeks: weeks.length,
+      exerciseIdByWeekBySlot: exerciseIdByWeekBySlot,
+    );
+    if (waves.length <= 1) return null;
+
+    for (final segment in waves) {
+      if (segment.contains(week.weekIndex)) {
+        return (current: segment, totalWaves: waves.length);
+      }
+    }
+    return null;
+  }
+
+  /// Links [templateId] across matching sibling days of [programDayId] within
+  /// [programId]. When [startWeek] / [endWeek] are specified, only weeks inside
+  /// that range are updated; otherwise every week is updated.
+  Future<void> setProgramDayTemplateForWeeks({
+    required int programId,
+    required int programDayId,
+    required int? templateId,
+    int? startWeek,
+    int? endWeek,
+  }) async {
+    final anchor = await (_db.select(
+      _db.programDays,
+    )..where((t) => t.id.equals(programDayId))).getSingleOrNull();
+    if (anchor == null) return;
+    final program = await getProgram(programId);
+    if (program == null || program.type == 'rotating') {
+      await setProgramDayTemplate(programDayId, templateId);
+      return;
+    }
+
+    final weeks = await getProgramWeeks(programId);
+    final targetWeekIds = [
+      for (final w in weeks)
+        if ((startWeek == null || w.weekIndex >= startWeek) &&
+            (endWeek == null || w.weekIndex <= endWeek))
+          w.id,
+    ];
+    if (targetWeekIds.isEmpty) {
+      await setProgramDayTemplate(programDayId, templateId);
+      return;
+    }
+
+    final candidateDays = await (_db.select(
+      _db.programDays,
+    )..where((t) => t.programWeekId.isIn(targetWeekIds))).get();
+    Object dayKey(ProgramDayData day) =>
+        (day.cycleDayIndex ?? -day.dayOfWeek, day.orderIndex);
+    final anchorKey = dayKey(anchor);
+    final targetDayIds = {
+      for (final day in candidateDays)
+        if (dayKey(day) == anchorKey) day.id,
+    };
+    if (targetDayIds.isEmpty) {
+      await setProgramDayTemplate(programDayId, templateId);
+      return;
+    }
+
+    await (_db.update(
+      _db.programDays,
+    )..where((t) => t.id.isIn(targetDayIds))).write(
+      ProgramDaysCompanion(templateId: Value(templateId)),
+    );
+  }
+
   /// Swaps the template for one scheduled occurrence only.
   Future<void> setScheduleTemplateOverride(
     int scheduleId,
@@ -1592,6 +1697,32 @@ class ProgramsRepository {
     });
 
     await _reindexDates(programId);
+  }
+
+  /// Returns the current schedule row id for [programDayId] on [dateIso],
+  /// preferring [occurrenceIndex] when provided. Used after
+  /// [rematerializeProgram] recreates future rows with fresh primary keys.
+  Future<int?> findScheduledWorkoutId({
+    required int programDayId,
+    required String dateIso,
+    int? occurrenceIndex,
+  }) async {
+    final rows =
+        await (_db.select(_db.scheduledWorkouts)
+              ..where(
+                (t) =>
+                    t.programDayId.equals(programDayId) &
+                    t.dateIso.equals(dateIso),
+              )
+              ..orderBy([(t) => OrderingTerm(expression: t.id)]))
+            .get();
+    if (rows.isEmpty) return null;
+    if (occurrenceIndex != null) {
+      for (final row in rows) {
+        if (row.occurrenceIndex == occurrenceIndex) return row.id;
+      }
+    }
+    return rows.first.id;
   }
 
   /// Regenerates the schedule after the block was edited, using the start date

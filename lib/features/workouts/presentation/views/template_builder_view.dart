@@ -8,6 +8,7 @@ import 'package:herculex/features/workouts/application/circuits_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/presentation/sheets/exercise_picker_sheet.dart';
+import 'package:herculex/features/workouts/presentation/sheets/smart_substitution_sheet.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 import 'package:herculex/features/workouts/presentation/widgets/set_type_menu.dart';
 
@@ -407,27 +408,33 @@ class _EditBodyState extends ConsumerState<_EditBody> {
             }
             return Column(
               children: [
-                for (final te in rows)
-                  _TemplateExerciseCard(
-                    key: ValueKey(te.id),
-                    te: te,
-                    exercise: catalog.firstWhere(
+                for (final te in rows) ...[
+                  () {
+                    final currentExercise = catalog.firstWhere(
                       (e) => e.id == te.exerciseId,
                       orElse: () => _placeholder(te.exerciseId),
-                    ),
-                    onReplace: () async {
-                      final results = await ExercisePickerSheet.show(context);
-                      final replacement = results?.firstOrNull;
-                      if (replacement != null &&
-                          replacement.circuitId == null) {
-                        await repo.replaceTemplateExercise(
-                          te.id,
-                          replacement.exercise.id,
-                        );
-                      }
-                    },
-                    onRemove: () => repo.removeExerciseFromTemplate(te.id),
-                  ),
+                    );
+                    return _TemplateExerciseCard(
+                      key: ValueKey(te.id),
+                      te: te,
+                      exercise: currentExercise,
+                      onReplace: () async {
+                        final replacement =
+                            await SmartSubstitutionSheet.pickSubstitute(
+                              context,
+                              originalExercise: currentExercise,
+                            );
+                        if (replacement != null) {
+                          await repo.replaceTemplateExercise(
+                            te.id,
+                            replacement.id,
+                          );
+                        }
+                      },
+                      onRemove: () => repo.removeExerciseFromTemplate(te.id),
+                    );
+                  }(),
+                ],
               ],
             );
           },
@@ -752,26 +759,42 @@ class _TemplateExerciseCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              // Sets sits under the bin rather than beside it: beside it the
-              // pair ate the width and wrapped the exercise name.
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    tooltip: 'Replace exercise',
-                    icon: const Icon(Icons.swap_horiz_rounded, size: 20),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onReplace,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Substitute exercise',
+                        icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: onReplace,
+                      ),
+                      IconButton(
+                        tooltip: 'Remove exercise',
+                        icon: Icon(
+                          Icons.delete_outline,
+                          size: 18,
+                          color: AppColors.secondary,
+                        ),
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: onRemove,
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.delete_outline,
-                      size: 20,
-                      color: AppColors.secondary,
-                    ),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onRemove,
-                  ),
+                  const SizedBox(height: 4),
                   _SetsCountChip(
                     label: 'Sets',
                     count: te.targetSets > 0 ? te.targetSets : 3,
@@ -1197,16 +1220,16 @@ class _SetsCountChip extends StatelessWidget {
       padding: const EdgeInsets.only(right: 4),
       child: Material(
         color: AppColors.primaryContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             child: Text(
               '$label: $count',
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.bold,
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w600,
                 color: AppColors.primary,
               ),
             ),

@@ -14,6 +14,7 @@ import 'package:herculex/features/nutrition/application/meal_slots_provider.dart
 import 'package:herculex/features/nutrition/application/nutrient_settings_provider.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/application/tdee_providers.dart';
+import 'package:herculex/features/nutrition/data/nutrition_repository.dart';
 import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/food_insights.dart';
@@ -23,6 +24,7 @@ import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/custom_food_form_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/food_picker_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/log_entry_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/quick_add_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/tdee_estimate_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/views/barcode_scanner_view.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/food_nutrition_gradient.dart';
@@ -359,7 +361,52 @@ class _DayPage extends ConsumerWidget {
                     visibleIds: visibleNutrients,
                   ),
                 ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        final defaultMealKey = configuredSlots.isNotEmpty
+                            ? configuredSlots.first.key
+                            : 'snack';
+                        QuickAddSheet.show(
+                          context,
+                          date: date,
+                          mealKey: defaultMealKey,
+                        );
+                      },
+                      icon: const Icon(Icons.bolt_rounded, size: 16),
+                      label: const Text('Quick Add'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        final defaultMealKey = configuredSlots.isNotEmpty
+                            ? configuredSlots.last.key
+                            : 'snack';
+                        QuickAddSheet.show(
+                          context,
+                          date: date,
+                          mealKey: defaultMealKey,
+                          isFullDay: true,
+                        );
+                      },
+                      icon: const Icon(Icons.today_rounded, size: 16),
+                      label: const Text('Quick Full Day'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               entriesByMealAsync.when(
                 data: (byMeal) {
                   final slots = [
@@ -811,21 +858,56 @@ class _DesktopQuickLogCard extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => BarcodeScannerView.show(context),
-                  icon: const Icon(Icons.qr_code_scanner, size: 16),
-                  label: const Text('Barcode'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => BarcodeScannerView.show(context),
+                    icon: const Icon(Icons.qr_code_scanner, size: 16),
+                    label: const Text('Barcode'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => QuickAddSheet.show(
+                      context,
+                      date: date,
+                      mealKey: defaultMealKey,
+                    ),
+                    icon: const Icon(Icons.bolt_rounded, size: 16),
+                    label: const Text('Quick Add'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => QuickAddSheet.show(
+                      context,
+                      date: date,
+                      mealKey: slots.isNotEmpty ? slots.last.key : 'snack',
+                      isFullDay: true,
+                    ),
+                    icon: const Icon(Icons.today_rounded, size: 16),
+                    label: const Text('Full Day'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
   }
 }
 
@@ -2008,7 +2090,11 @@ final entryDisplayProvider = FutureProvider.autoDispose
 
       final portionText = entry.foodId != null
           ? _foodEntryPortionText(entry)
-          : '${entry.servings.toStringAsFixed(entry.servings.truncateToDouble() == entry.servings ? 0 : 1)} serv';
+          : entry.recipeId != null
+          ? '${entry.servings.toStringAsFixed(entry.servings.truncateToDouble() == entry.servings ? 0 : 1)} serv'
+          : entry.snapshotBasis == NutritionRepository.quickAddDayBasis
+          ? 'Full day estimate'
+          : 'Quick add';
 
       return _EntryDisplay(
         name: name,
@@ -2070,6 +2156,16 @@ class _EntryTile extends ConsumerWidget {
   const _EntryTile({required this.entry});
 
   Future<void> _openEditPortion(BuildContext context, WidgetRef ref) async {
+    if (entry.foodId == null && entry.recipeId == null) {
+      await QuickAddSheet.show(
+        context,
+        date: DateTime.tryParse(entry.dateIso) ?? DateTime.now(),
+        mealKey: entry.meal,
+        isFullDay: entry.snapshotBasis == NutritionRepository.quickAddDayBasis,
+        existingEntry: entry,
+      );
+      return;
+    }
     final repo = ref.read(nutritionRepositoryProvider);
     FoodData? food;
     RecipeData? recipe;

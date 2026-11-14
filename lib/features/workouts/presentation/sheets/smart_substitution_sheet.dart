@@ -15,12 +15,12 @@ import 'package:herculex/features/workouts/presentation/dialogs/swap_scope_dialo
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 
 class SmartSubstitutionSheet extends ConsumerStatefulWidget {
-  final WorkoutExerciseData workoutExercise;
+  final WorkoutExerciseData? workoutExercise;
   final ExerciseCatalogData originalExercise;
 
   const SmartSubstitutionSheet({
     super.key,
-    required this.workoutExercise,
+    this.workoutExercise,
     required this.originalExercise,
   });
 
@@ -35,6 +35,18 @@ class SmartSubstitutionSheet extends ConsumerStatefulWidget {
         workoutExercise: workoutExercise,
         originalExercise: originalExercise,
       ),
+    );
+  }
+
+  /// Opens the biomechanical substitution browser in picker mode (for workout
+  /// templates / previews) and resolves to the chosen replacement exercise.
+  static Future<ExerciseCatalogData?> pickSubstitute(
+    BuildContext context, {
+    required ExerciseCatalogData originalExercise,
+  }) {
+    return HxSheet.show<ExerciseCatalogData>(
+      context,
+      builder: (_) => SmartSubstitutionSheet(originalExercise: originalExercise),
     );
   }
 
@@ -83,7 +95,9 @@ class _SmartSubstitutionSheetState
     final recentHistoryAsync = ref.watch(recentExerciseIdsProvider);
 
     return HxSheet(
-      title: 'Smart Substitution',
+      title: widget.workoutExercise == null
+          ? 'Substitute Exercise'
+          : 'Smart Substitution',
       subtitle:
           'Replace ${widget.originalExercise.name} with a biomechanically similar exercise',
       scrollable: true,
@@ -331,11 +345,16 @@ class _SmartSubstitutionSheetState
 
     return InkWell(
       onTap: () async {
+        final workoutExercise = widget.workoutExercise;
+        if (workoutExercise == null) {
+          Navigator.of(context).pop(candidate);
+          return;
+        }
         final programsRepo = ref.read(programsRepositoryProvider);
         // Resolved before the swap: without a slot the program row is matched
         // on the exercise the session started with.
         final source = await programsRepo.programSourceForWorkoutExercise(
-          widget.workoutExercise.id,
+          workoutExercise.id,
         );
         if (!mounted) return;
         var permanently = false;
@@ -371,7 +390,7 @@ class _SmartSubstitutionSheetState
         await ref
             .read(workoutsRepositoryProvider)
             .substituteExercise(
-              workoutExerciseId: widget.workoutExercise.id,
+              workoutExerciseId: workoutExercise.id,
               newExerciseId: candidate.id,
               // Template-driven days are edited by the repository itself;
               // program days go through the scoped replacement below.

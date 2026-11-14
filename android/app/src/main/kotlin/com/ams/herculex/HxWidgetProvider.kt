@@ -33,9 +33,8 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
      */
     protected val pillLayoutEligible: Boolean get() = defaultSize.first < 250f && defaultSize.second < 100f
 
-    /** All widgets use the capsule shape except the genuinely large 4×2 tiles. */
-    protected val pillShapeEligible: Boolean get() =
-        defaultSize.first < 364f || defaultSize.second < 176f
+    /** Only small 2×1 widgets use the capsule shape; 2×2 and 4×1/4×2 tiles stay squircle. */
+    protected val pillShapeEligible: Boolean get() = pillLayoutEligible
 
     protected abstract fun render(context: Context, renderer: HxWidgetRenderer, w: Float, h: Float): HxRendered
 

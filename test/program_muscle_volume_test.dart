@@ -16,9 +16,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('ProgramVolumeCalculator', () {
-    test('computes weekly sets per muscle group from Natural Superman CSV', () {
+    test('computes weekly sets per muscle group from Bear Mode CSV', () {
       final csv = File(
-        'assets/programs/natural_superman.csv',
+        'assets/programs/bear_mode_conjugate.csv',
       ).readAsStringSync();
       final doc = ProgramCsv.decode(csv);
 
@@ -32,7 +32,7 @@ void main() {
         for (final e in breakdown.averageWeeklyVolumes) e.muscle: e.sets,
       };
 
-      // Natural Superman focuses heavily on Chest, Back, Shoulders, Biceps, Traps, Neck, Abs, Quads
+      // Bear Mode focuses heavily on Chest, Back, Shoulders, Biceps, Traps, Neck, Abs, Quads
       expect(avgVolumes['Chest'], greaterThan(0));
       expect(avgVolumes['Back'], greaterThan(0));
       expect(avgVolumes['Shoulders'], greaterThan(0));
@@ -92,7 +92,7 @@ week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equi
 
       final io = ProgramCsvIo(db);
       final csv = File(
-        'assets/programs/natural_superman.csv',
+        'assets/programs/bear_mode_conjugate.csv',
       ).readAsStringSync();
       final programId = await io.importProgram(csv);
 

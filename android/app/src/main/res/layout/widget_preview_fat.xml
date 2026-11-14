@@ -8,7 +8,7 @@
         android:layout_height="86dp"
         android:layout_gravity="center"
         android:background="@drawable/widget_hx_pill_placeholder"
-        android:paddingHorizontal="16dp">
+        android:paddingHorizontal="14dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -22,63 +22,70 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <View
+                <ImageView
                     android:layout_width="6dp"
                     android:layout_height="6dp"
-                    android:background="@drawable/widget_preview_circle_variant"
-                    android:backgroundTint="@color/widget_hx_fat" />
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/widget_preview_circle_variant"
+                    android:tint="@color/widget_hx_fat" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="5dp"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.06"
+                    android:maxLines="1"
                     android:text="FAT"
                     android:textColor="@color/widget_hx_secondary"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
+                    android:textSize="9.5sp" />
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
+                android:gravity="bottom"
                 android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif"
+                    android:maxLines="1"
                     android:text="55"
                     android:textColor="@color/widget_hx_on_surface"
-                    android:textSize="22sp"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
+                    android:maxLines="1"
                     android:text="/ 65 g"
                     android:textColor="@color/widget_hx_secondary"
-                    android:textSize="11sp" />
-
+                    android:textSize="10.5sp" />
             </LinearLayout>
 
-            <FrameLayout
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="4dp"
                 android:layout_marginTop="6dp"
-                android:background="@drawable/widget_preview_progress_track">
+                android:background="@drawable/widget_preview_progress_track"
+                android:orientation="horizontal"
+                android:weightSum="100">
 
-                <View
-                    android:layout_width="105dp"
+                <ImageView
+                    android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:background="@drawable/widget_preview_primary_pill"
-                    android:backgroundTint="@color/widget_hx_fat" />
-
-            </FrameLayout>
-
+                    android:layout_weight="85"
+                    android:importantForAccessibility="no"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/widget_preview_primary_pill"
+                    android:tint="@color/widget_hx_fat" />
+            </LinearLayout>
         </LinearLayout>
-
     </FrameLayout>
-
 </FrameLayout>

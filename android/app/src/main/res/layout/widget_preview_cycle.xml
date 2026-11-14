@@ -7,7 +7,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/widget_hx_placeholder"
-        android:padding="16dp">
+        android:padding="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -24,46 +24,49 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.06"
+                    android:maxLines="1"
                     android:text="CYCLE TRACKING"
                     android:textColor="@color/widget_hx_secondary"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
+                    android:textSize="9.5sp" />
 
                 <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
+                    android:importantForAccessibility="no"
                     android:src="@drawable/ic_hx_drop"
                     android:tint="@color/widget_hx_recovery" />
-
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:gravity="center_vertical"
+                android:gravity="bottom"
                 android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="2"
                     android:text="Follicular Phase"
                     android:textColor="@color/widget_hx_on_surface"
-                    android:textSize="20sp"
+                    android:textSize="17sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
+                    android:ellipsize="end"
+                    android:maxLines="2"
                     android:text="High energy · Great for PRs"
                     android:textColor="@color/widget_hx_recovery"
-                    android:textSize="12sp" />
-
+                    android:textSize="11sp" />
             </LinearLayout>
-
         </LinearLayout>
-
     </FrameLayout>
-
 </FrameLayout>

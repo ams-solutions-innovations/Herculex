@@ -77,3 +77,83 @@ part of '../planned_session_resolver.dart';
     true,
   );
 }
+
+/// Short coaching hint built from a program row's config: gear left switched
+/// on, tempo, and the down-set rest rule. Null when there is nothing to say.
+String? _enabledGearHint(String? configJson) {
+  if (configJson == null) return null;
+  try {
+    final config = jsonDecode(configJson) as Map<String, dynamic>;
+    final gear = ((config['gear'] as List?) ?? const []).cast<String>();
+    final parts = [
+      if (gear.isNotEmpty)
+        'Gear: ${gear.map((g) => ProgramGear.labels[g] ?? g).join(', ')}.',
+      if (config['tempo'] is String) 'Tempo ${config['tempo']}.',
+      if (config['downSets'] is Map)
+        'Down sets: rest in seconds equals the reps you just did.',
+    ];
+    return parts.isEmpty ? null : parts.join(' ');
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Applies a program row's `variantConfigJson` to its planned sets: down-set
+/// ladders (30, 29, 28 … 1) and per-set time / distance / calorie targets.
+List<PlannedSetSnapshot> _applyRowConfig(
+  List<PlannedSetSnapshot> sets,
+  String? configJson,
+) {
+  if (configJson == null || sets.isEmpty) return sets;
+  Map<String, dynamic> config;
+  try {
+    config = jsonDecode(configJson) as Map<String, dynamic>;
+  } catch (_) {
+    return sets;
+  }
+  var out = sets;
+  final down = config['downSets'];
+  if (down is Map) {
+    final start = (down['startReps'] as num?)?.toInt();
+    final step = ((down['decrement'] as num?)?.toInt() ?? 1).clamp(1, 1000);
+    if (start != null && start > 0) {
+      final template = sets.first;
+      out = [
+        for (var reps = start, i = 1; reps > 0; reps -= step, i++)
+          PlannedSetSnapshot(
+            index: i,
+            repsMin: reps,
+            repsMax: reps,
+            isWarmup: false,
+            setType: 'down_sets',
+            intent: template.intent,
+            rpeX10: template.rpeX10,
+            rir: template.rir,
+            setTypeMetaJson: jsonEncode({
+              'startReps': start,
+              'decrement': step,
+            }),
+          ),
+      ];
+    }
+  }
+  final target = config['target'];
+  if (target is Map && target.isNotEmpty) {
+    final prescription = <String, dynamic>{
+      if (target['durationSeconds'] != null)
+        'targetDurationSeconds': target['durationSeconds'],
+      if (target['distanceM'] != null) 'targetDistanceM': target['distanceM'],
+      if (target['calories'] != null) 'targetCalories': target['calories'],
+    };
+    out = [
+      for (final s in out)
+        s.copyWith(
+          setTypeMetaJson: SetPrescriptionMetadata.encode(
+            s.setTypeMetaJson,
+            prescription,
+          ),
+        ),
+    ];
+  }
+  return out;
+}

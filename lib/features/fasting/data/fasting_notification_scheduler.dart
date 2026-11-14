@@ -28,6 +28,7 @@ class FastingNotificationScheduler {
     const androidDetails = AndroidNotificationDetails(
       channelId,
       'Fasting Reminders',
+      icon: '@drawable/ic_stat_herculex',
       channelDescription: 'Notifications when your fasting goal is reached',
       importance: Importance.high,
       priority: Priority.high,

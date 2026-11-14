@@ -56,15 +56,37 @@
       "periodization": "linear"
     },
     {
-      "id": "natural_superman",
-      "name": "Natural Superman",
-      "file": "assets/programs/natural_superman.csv",
-      "description": "Natural Hypertrophy's iconic Superman & Bear Mode routine (Henry Cavill aesthetic). Built around high-frequency shoulders, upper chest, neck, traps, biceps, and heavy compound supersets/giant sets with an optional active recovery day.",
+      "id": "bear_mode_conjugate",
+      "name": "Bear Mode 12-Week Conjugate",
+      "file": "assets/programs/bear_mode_conjugate.csv",
+      "description": "12-week conjugate Upper / Lower / Full Body / Arm Day for late-intermediate lifters. Two working sets per exercise, grips and press variations rotating every 3 weeks, with a yoke, neck and heavy-ab focus for a thick Bear Mode physique.",
       "weeks": 12,
       "daysPerWeek": 4,
       "level": "intermediate",
       "goal": "hypertrophy",
-      "periodization": "linear"
+      "periodization": "concurrent"
+    },
+    {
+      "id": "powerbuilding_aba",
+      "name": "Powerbuilding A/B/A Conjugate",
+      "file": "assets/programs/powerbuilding_aba.csv",
+      "description": "3-day full-body powerbuilding on an A/B/A - B/A/B rotation. A rotating max-effort single plus 70% back-downs, then two-set antagonist supersets, weak-point isolation and daily shoulder prehab. No dynamic effort, reactive deload.",
+      "weeks": 12,
+      "daysPerWeek": 3,
+      "level": "intermediate",
+      "goal": "strength",
+      "periodization": "concurrent"
+    },
+    {
+      "id": "hybrid_fatloss",
+      "name": "Hybrid 2x Full Body + 2x GPP Fat Loss",
+      "file": "assets/programs/hybrid_fatloss.csv",
+      "description": "Strength retention in a calorie deficit: two low-volume two-set full-body sessions (Mon/Thu) with antagonist supersets and no axial barbell lifts, plus two GPP days (Tue/Fri) for conditioning, neck, calves, abs and joint prehab. Switches to low-impact conditioning in the second half.",
+      "weeks": 12,
+      "daysPerWeek": 4,
+      "level": "intermediate",
+      "goal": "general",
+      "periodization": "concurrent"
     }
   ]
 }

@@ -422,7 +422,7 @@ class _RangeStats {
 
     final logged = <_DayMacroVal>[];
     double sum = 0;
-    for (var i = days - 1; i >= 0; i--) {
+    for (var i = days; i >= 1; i--) {
       final date = today.subtract(Duration(days: i));
       final iso = DateFormat('yyyy-MM-dd').format(date);
       final totals = historyMap[iso];

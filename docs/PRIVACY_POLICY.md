@@ -1,8 +1,8 @@
 # Privacy Policy for Herculex
 
-**Last Updated:** August 17, 2026  
+**Last Updated:** November 14, 2026  
 **Publisher:** AMS Solutions Studio  
-**Application:** Herculex (iOS & Android)
+**Application:** Herculex (iOS, Android & Web — herculex.app)
 
 AMS Solutions Studio ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how Herculex collects, uses, stores, and protects your data in accordance with the **General Data Protection Regulation (GDPR)** and Apple & Google platform standards.
 
@@ -54,21 +54,35 @@ Under GDPR Article 9, data concerning health requires explicit consent and heigh
 * Tapping it expands a small card showing your **current workout only** — exercise name, set number, weight and reps, and elapsed time — with controls to adjust reps/weight and complete the set. That is the same information as the ongoing workout notification, and it is read from your device's local database. **Be aware this means workout details are briefly visible on top of whatever app you are using**, so leave the feature off if you would rather they were not.
 * **Nothing flows the other way.** Herculex does **not** read, record, capture, or transmit anything about the apps underneath the bubble — not their content, not their identity, and not your interactions with them. The permission is used only to draw our own window.
 
+### G. Website (`herculex.app`), Early-Access Waitlist & Cookies
+* **No tracking or advertising cookies:** `herculex.app` does not use advertising pixels, cross-site trackers, or third-party analytics cookies by default. You can inspect or adjust storage preferences at any time via **Cookie Settings** in the footer or on `/cookies`.
+* **Local UI preferences:** Your consent preference (`hx_cookie_consent`) and optional theme preview selection on `/customize` (`hx_theme_preview`) are stored strictly in your browser's `localStorage` and are never transmitted to third parties.
+* **Waitlist signups:** If you join the early-access waitlist on `herculex.app`, we collect only your **email address** and your **preferred platform** (`iOS`, `Android`, or `Web`) based on your explicit consent (GDPR Art. 6(1)(a)) via double opt-in confirmation. We hash your IP address with a server-side secret solely for short-term abuse and rate-limit protection and never store raw IP addresses in the waitlist table.
+* **Waitlist retention & one-click removal:** Unconfirmed waitlist entries expire automatically or can be deleted at any time; confirmed entries include a one-click unsubscribe link in every message and are removed when you unsubscribe or upon request.
+
 ---
 
 ## 3. Third-Party Integrations & Processing
 
-1. **Supabase (Backend & Database)**:
-   * Provides authentication and encrypted PostgreSQL database hosting.
+1. **Supabase (App Backend & Database)**:
+   * Provides authentication and encrypted PostgreSQL database hosting for the Herculex app (`app.herculex.app`, iOS, Android).
    * All database tables enforce strict **Row Level Security (RLS)**, ensuring that only you (via your authenticated token) can access or edit your data.
-2. **Apple HealthKit & Google Health Connect**:
+2. **Cloudflare (Website Hosting, D1 Waitlist Storage, Turnstile Anti-Bot & Cookieless Analytics)**:
+   * Hosts `herculex.app`, executes waitlist API endpoints at the edge, and stores waitlist signup records in an isolated Cloudflare D1 database.
+   * **Cloudflare Turnstile** protects the waitlist form from automated spam without tracking users across websites.
+   * **Cloudflare Web Analytics** (when enabled) measures aggregate page views strictly without cookies or personal identifiers.
+3. **Resend (Waitlist Transactional Email)**:
+   * Delivers waitlist double opt-in confirmation emails and launch notifications from `mail.herculex.app` using only your submitted email address and static message templates.
+4. **Upstash Redis (EU Rate-Limit Protection)**:
+   * Stores short-lived, cryptographically hashed rate-limit counters in an EU region (`eu-central-1`) to protect the waitlist from spam floods. Raw IP addresses are never stored.
+5. **Apple HealthKit & Google Health Connect**:
    * Herculex reads and writes health samples solely in accordance with Apple and Google developer policies.
    * **We never sell, rent, or disclose HealthKit/Health Connect data to advertising platforms, data brokers, or information resellers.**
-3. **AI Meal Recognition (Google Gemini via Supabase Edge Functions)**:
+6. **AI Meal Recognition (Google Gemini via Supabase Edge Functions)**:
    * If you choose to analyze a meal via the AI scanner, the image/query is transmitted ephemerally to the API for nutrient analysis and is not stored or used to train public AI models.
-4. **AI Physique Analysis (Google Gemini via Supabase Edge Functions)**:
+7. **AI Physique Analysis (Google Gemini via Supabase Edge Functions)**:
    * If you choose to analyze a Dream Physique goal or a weekly check-in, the photos are transmitted ephemerally, only after your explicit consent, to the API for physique assessment and are not stored by Herculex or used to train public AI models. Only photo metadata syncs to your account; the image files stay on your device.
-5. **AI Weekly Report (Herculex AI, powered by Google Gemini via Supabase Edge Functions)**:
+8. **AI Weekly Report (Herculex AI, powered by Google Gemini via Supabase Edge Functions)**:
    * Only if you have turned on the opt-in Weekly report, a minimised numeric summary of your week is sent to Herculex AI (powered by Google Gemini) through our Supabase edge function to write a short summary. No raw health samples, photos, notes or identifiers are sent; food names are included but sanitised. The existing daily AI quota applies. The summary is stored in your `weekly_reports` row; the transmitted data is not stored by Herculex or used to train public AI models.
 
 ---

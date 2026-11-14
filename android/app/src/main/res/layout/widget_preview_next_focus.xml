@@ -8,7 +8,7 @@
         android:layout_height="86dp"
         android:layout_gravity="center"
         android:background="@drawable/widget_hx_pill_placeholder"
-        android:paddingHorizontal="16dp">
+        android:paddingHorizontal="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -19,42 +19,45 @@
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.05"
+                    android:maxLines="1"
                     android:text="NEXT FOCUS"
                     android:textColor="@color/widget_hx_secondary"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
+                    android:textSize="9sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="Chest &amp; Triceps"
                     android:textColor="@color/widget_hx_recovery"
-                    android:textSize="18sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
-
             </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/widget_preview_circle_variant"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="3dp"
+                android:background="@drawable/widget_preview_pill_badge"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
                 android:text="3 fresh"
                 android:textColor="@color/widget_hx_recovery"
-                android:textSize="10sp"
+                android:textSize="8.5sp"
                 android:textStyle="bold" />
-
         </LinearLayout>
-
     </FrameLayout>
-
 </FrameLayout>

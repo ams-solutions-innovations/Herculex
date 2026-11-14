@@ -8,8 +8,8 @@
         android:layout_height="86dp"
         android:layout_gravity="center"
         android:background="@drawable/widget_hx_placeholder"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="12dp">
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -17,7 +17,6 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <!-- Protein -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -27,120 +26,136 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.05"
+                    android:maxLines="1"
                     android:text="PROTEIN"
                     android:textColor="@color/widget_hx_secondary"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
+                    android:textSize="9.5sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:text="145 / 180 g"
                     android:textColor="@color/widget_hx_on_surface"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
-                <FrameLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="4dp"
                     android:layout_marginTop="4dp"
-                    android:background="@drawable/widget_preview_progress_track">
+                    android:background="@drawable/widget_preview_progress_track"
+                    android:orientation="horizontal"
+                    android:weightSum="100">
 
-                    <View
-                        android:layout_width="60dp"
+                    <ImageView
+                        android:layout_width="0dp"
                         android:layout_height="match_parent"
-                        android:background="@drawable/widget_preview_primary_pill"
-                        android:backgroundTint="@color/widget_hx_protein" />
-
-                </FrameLayout>
-
+                        android:layout_weight="81"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_preview_primary_pill"
+                        android:tint="@color/widget_hx_protein" />
+                </LinearLayout>
             </LinearLayout>
 
-            <!-- Carbs -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="10dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.05"
+                    android:maxLines="1"
                     android:text="CARBS"
                     android:textColor="@color/widget_hx_secondary"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
+                    android:textSize="9.5sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:text="210 / 250 g"
                     android:textColor="@color/widget_hx_on_surface"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
-                <FrameLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="4dp"
                     android:layout_marginTop="4dp"
-                    android:background="@drawable/widget_preview_progress_track">
+                    android:background="@drawable/widget_preview_progress_track"
+                    android:orientation="horizontal"
+                    android:weightSum="100">
 
-                    <View
-                        android:layout_width="70dp"
+                    <ImageView
+                        android:layout_width="0dp"
                         android:layout_height="match_parent"
-                        android:background="@drawable/widget_preview_primary_pill"
-                        android:backgroundTint="@color/widget_hx_carbs" />
-
-                </FrameLayout>
-
+                        android:layout_weight="84"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_preview_primary_pill"
+                        android:tint="@color/widget_hx_carbs" />
+                </LinearLayout>
             </LinearLayout>
 
-            <!-- Fat -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="10dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.05"
+                    android:maxLines="1"
                     android:text="FAT"
                     android:textColor="@color/widget_hx_secondary"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
+                    android:textSize="9.5sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:text="55 / 65 g"
                     android:textColor="@color/widget_hx_on_surface"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
-                <FrameLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="4dp"
                     android:layout_marginTop="4dp"
-                    android:background="@drawable/widget_preview_progress_track">
+                    android:background="@drawable/widget_preview_progress_track"
+                    android:orientation="horizontal"
+                    android:weightSum="100">
 
-                    <View
-                        android:layout_width="65dp"
+                    <ImageView
+                        android:layout_width="0dp"
                         android:layout_height="match_parent"
-                        android:background="@drawable/widget_preview_primary_pill"
-                        android:backgroundTint="@color/widget_hx_fat" />
-
-                </FrameLayout>
-
+                        android:layout_weight="85"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_preview_primary_pill"
+                        android:tint="@color/widget_hx_fat" />
+                </LinearLayout>
             </LinearLayout>
-
         </LinearLayout>
-
     </FrameLayout>
-
 </FrameLayout>

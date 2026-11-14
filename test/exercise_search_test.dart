@@ -169,6 +169,28 @@ void main() {
     test('an alias resolves to its canonical exercise', () {
       expect(top('deads').first, 'Conventional Deadlift');
     });
+
+    test('single-word muscle queries rank target muscles before modifiers', () {
+      final chestResults = top('chest', count: 15);
+      expect(
+        chestResults,
+        isNot(contains('Chest-Supported Dumbbell Row')),
+      );
+      expect(chestResults, isNot(contains('Chest-to-Bar Pull-Up')));
+      expect(chestResults, contains('Seated Chest Press Machine'));
+
+      final allChest = [
+        for (final hit in index.rank('chest')) namesById[hit.id]!,
+      ];
+      expect(
+        allChest.indexOf('Barbell Bench Press'),
+        lessThan(allChest.indexOf('Chest-Supported Dumbbell Row')),
+      );
+      expect(
+        allChest.indexOf('Dumbbell Pullover'),
+        lessThan(allChest.indexOf('Chest-Supported Dumbbell Row')),
+      );
+    });
   });
 
   group('typo tolerance', () {

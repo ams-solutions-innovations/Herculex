@@ -5,6 +5,8 @@ import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/measurements/data/measurements_repository.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
+import 'package:herculex/features/programs/domain/program_csv.dart'
+    show ProgramGear;
 import 'package:herculex/features/programs/domain/program_set_structure.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
@@ -483,6 +485,8 @@ class PlannedSessionResolver {
           (assignment?.reason == null
               ? prescription.why
               : '${assignment!.reason} ${prescription.why}');
+      final gearHint = _enabledGearHint(pde.variantConfigJson);
+      if (gearHint != null) why = '$why $gearHint';
       final isFirstHeavy = role.isHeavy && !sawHeavyLiftInSession;
       if (role.isHeavy) {
         sawHeavyLiftInSession = true;
@@ -507,11 +511,14 @@ class PlannedSessionResolver {
             'Time-saving work was replaced with controlled straight sets '
             'because the current exercise or training week does not meet its requirements.';
       }
-      final workingSets = method == SlotTrainingMethod.maxEffort
-          ? _maxEffortWorkingSets()
-          : checkedPrescription != null
-          ? _setsFromPrescription(checkedPrescription)
-          : _setsFromPrescription(prescription.prescription);
+      final workingSets = _applyRowConfig(
+        method == SlotTrainingMethod.maxEffort
+            ? _maxEffortWorkingSets()
+            : checkedPrescription != null
+            ? _setsFromPrescription(checkedPrescription)
+            : _setsFromPrescription(prescription.prescription),
+        pde.variantConfigJson,
+      );
       final warmupEligible =
           method == SlotTrainingMethod.maxEffort ||
           _hasAutomaticWarmups(pde.variantConfigJson) ||

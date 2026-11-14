@@ -739,6 +739,78 @@ class NutritionRepository {
         );
   }
 
+  static const String quickAddBasis = 'quick_add';
+  static const String quickAddDayBasis = 'quick_add_day';
+
+  /// Logs a quick-add entry with just calories and protein (either for a meal
+  /// or as a rough full-day estimate when [isFullDay] is true).
+  Future<void> logQuickAdd({
+    required DateTime date,
+    required double kcal,
+    double proteinG = 0,
+    String? mealKey,
+    Meal? meal,
+    String? name,
+    bool isFullDay = false,
+    DateTime? loggedAt,
+  }) async {
+    if (kcal < 0 || kcal.isNaN || kcal.isInfinite) return;
+    final resolvedProtein =
+        (proteinG < 0 || proteinG.isNaN || proteinG.isInfinite) ? 0.0 : proteinG;
+    if (kcal == 0 && resolvedProtein == 0) return;
+
+    final resolvedMeal = mealKey ?? meal?.name ?? Meal.snack.name;
+    final resolvedName = (name != null && name.trim().isNotEmpty)
+        ? name.trim()
+        : (isFullDay ? 'Full Day Estimate' : 'Quick Add');
+
+    await _db
+        .into(_db.foodEntries)
+        .insert(
+          FoodEntriesCompanion.insert(
+            dateIso: dateIso(date),
+            meal: resolvedMeal,
+            servings: const Value(1),
+            loggedAt: Value(loggedAt ?? _clock.now()),
+            snapshotBasis: Value(isFullDay ? quickAddDayBasis : quickAddBasis),
+            snapshotName: Value(resolvedName),
+            snapshotKcal: Value(kcal),
+            snapshotProteinG: Value(resolvedProtein),
+            snapshotCarbsG: const Value(0),
+            snapshotFatG: const Value(0),
+          ),
+        );
+  }
+
+  /// Updates an existing quick-add entry's calories, protein, label, or meal.
+  Future<void> updateQuickAddEntry({
+    required int id,
+    required double kcal,
+    double proteinG = 0,
+    String? mealKey,
+    String? name,
+    bool? isFullDay,
+  }) async {
+    if (kcal < 0 || kcal.isNaN || kcal.isInfinite) return;
+    final resolvedProtein =
+        (proteinG < 0 || proteinG.isNaN || proteinG.isInfinite) ? 0.0 : proteinG;
+    final resolvedName = (name != null && name.trim().isNotEmpty)
+        ? name.trim()
+        : (isFullDay == true ? 'Full Day Estimate' : 'Quick Add');
+
+    await (_db.update(_db.foodEntries)..where((t) => t.id.equals(id))).write(
+      FoodEntriesCompanion(
+        meal: mealKey != null ? Value(mealKey) : const Value.absent(),
+        snapshotBasis: isFullDay != null
+            ? Value(isFullDay ? quickAddDayBasis : quickAddBasis)
+            : const Value.absent(),
+        snapshotName: Value(resolvedName),
+        snapshotKcal: Value(kcal),
+        snapshotProteinG: Value(resolvedProtein),
+      ),
+    );
+  }
+
   Future<void> deleteEntry(int id) async {
     await (_db.delete(_db.foodEntries)..where((t) => t.id.equals(id))).go();
   }
@@ -832,6 +904,9 @@ class NutritionRepository {
       final per = await recipeMacrosPerServing(entry.recipeId!);
       return _scaleTotals(per, entry.servings);
     }
+    if (entry.snapshotBasis != null) {
+      return _totalsForQuickAddSnapshot(entry);
+    }
     return DailyTotals.empty;
   }
 
@@ -912,6 +987,8 @@ class NutritionRepository {
               entry.servings,
             );
           }
+        } else if (entry.snapshotBasis != null) {
+          entryTotals = _totalsForQuickAddSnapshot(entry);
         }
 
         final existing = resultMap[entry.dateIso] ?? DailyTotals.empty;
@@ -1073,6 +1150,16 @@ class NutritionRepository {
           : _decodeMicros(entry.snapshotMicrosJson!),
     );
     return _scaleTotals(per, entry.servings);
+  }
+
+  DailyTotals _totalsForQuickAddSnapshot(FoodEntryData entry) {
+    final factor = entry.servings > 0 ? entry.servings : 1.0;
+    return DailyTotals(
+      kcal: (entry.snapshotKcal ?? 0) * factor,
+      proteinG: (entry.snapshotProteinG ?? 0) * factor,
+      carbsG: (entry.snapshotCarbsG ?? 0) * factor,
+      fatG: (entry.snapshotFatG ?? 0) * factor,
+    );
   }
 
   DailyTotals _scaleTotals(DailyTotals totals, double factor) => DailyTotals(

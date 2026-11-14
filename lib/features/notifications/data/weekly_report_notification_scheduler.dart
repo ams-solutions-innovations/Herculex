@@ -41,6 +41,7 @@ class WeeklyReportNotificationScheduler {
     const androidDetails = AndroidNotificationDetails(
       channelId,
       'Weekly Report',
+      icon: '@drawable/ic_stat_herculex',
       channelDescription: 'Weekly summary reminder on Sunday',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,

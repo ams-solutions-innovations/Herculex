@@ -96,6 +96,7 @@ class FastingScheduleService {
     const androidDetails = AndroidNotificationDetails(
       channelId,
       'Fasting Schedule',
+      icon: '@drawable/ic_stat_herculex',
       channelDescription: 'Reminders to start a scheduled fast',
       importance: Importance.high,
       priority: Priority.high,

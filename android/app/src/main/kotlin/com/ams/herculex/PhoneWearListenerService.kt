@@ -571,7 +571,7 @@ class PhoneWearListenerService : WearableListenerService() {
         val notif = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Workout Started on Watch ⌚")
             .setContentText("Tap to open and view workout on phone")
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_stat_herculex)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_WORKOUT)
             .setContentIntent(pendingIntent)

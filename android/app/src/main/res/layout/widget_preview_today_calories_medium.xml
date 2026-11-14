@@ -7,57 +7,55 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/widget_hx_placeholder"
-        android:padding="16dp">
+        android:padding="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <!-- Left gauge preview -->
             <LinearLayout
-                android:layout_width="120dp"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:gravity="center"
+                android:gravity="center_vertical"
                 android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif"
+                    android:maxLines="1"
                     android:text="650"
-                    android:textColor="@color/widget_hx_on_surface"
-                    android:textSize="28sp"
+                    android:textColor="@color/widget_hx_kcal"
+                    android:textSize="26sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:maxLines="1"
                     android:text="kcal left"
                     android:textColor="@color/widget_hx_secondary"
-                    android:textSize="11sp" />
+                    android:textSize="10.5sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="2dp"
+                    android:maxLines="1"
                     android:text="of 2,500"
                     android:textColor="@color/widget_hx_secondary"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
+                    android:textSize="9.5sp" />
             </LinearLayout>
 
-            <!-- Right macros + buttons -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_marginStart="16dp"
+                android:layout_marginStart="12dp"
                 android:layout_weight="1"
                 android:gravity="center_vertical"
                 android:orientation="vertical">
 
-                <!-- Protein -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -67,91 +65,101 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
                         android:text="Protein"
                         android:textColor="@color/widget_hx_on_surface"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
+                        android:textSize="11sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:maxLines="1"
                         android:text="145 / 180 g"
                         android:textColor="@color/widget_hx_secondary"
-                        android:textSize="11sp" />
-
+                        android:textSize="10sp" />
                 </LinearLayout>
 
-                <FrameLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="4dp"
                     android:layout_marginTop="3dp"
-                    android:background="@drawable/widget_preview_progress_track">
+                    android:background="@drawable/widget_preview_progress_track"
+                    android:orientation="horizontal"
+                    android:weightSum="100">
 
-                    <View
-                        android:layout_width="80dp"
+                    <ImageView
+                        android:layout_width="0dp"
                         android:layout_height="match_parent"
-                        android:background="@drawable/widget_preview_primary_pill"
-                        android:backgroundTint="@color/widget_hx_protein" />
+                        android:layout_weight="81"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_preview_primary_pill"
+                        android:tint="@color/widget_hx_protein" />
+                </LinearLayout>
 
-                </FrameLayout>
-
-                <!-- Carbs -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="7dp"
                     android:orientation="horizontal">
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
                         android:text="Carbs"
                         android:textColor="@color/widget_hx_on_surface"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
+                        android:textSize="11sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:maxLines="1"
                         android:text="210 / 250 g"
                         android:textColor="@color/widget_hx_secondary"
-                        android:textSize="11sp" />
-
+                        android:textSize="10sp" />
                 </LinearLayout>
 
-                <FrameLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="4dp"
                     android:layout_marginTop="3dp"
-                    android:background="@drawable/widget_preview_progress_track">
+                    android:background="@drawable/widget_preview_progress_track"
+                    android:orientation="horizontal"
+                    android:weightSum="100">
 
-                    <View
-                        android:layout_width="95dp"
+                    <ImageView
+                        android:layout_width="0dp"
                         android:layout_height="match_parent"
-                        android:background="@drawable/widget_preview_primary_pill"
-                        android:backgroundTint="@color/widget_hx_carbs" />
+                        android:layout_weight="84"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_preview_primary_pill"
+                        android:tint="@color/widget_hx_carbs" />
+                </LinearLayout>
 
-                </FrameLayout>
-
-                <!-- Buttons -->
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="32dp"
-                    android:layout_marginTop="12dp"
+                    android:layout_height="28dp"
+                    android:layout_marginTop="10dp"
                     android:orientation="horizontal">
 
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:background="@drawable/widget_preview_circle_variant"
+                        android:background="@drawable/widget_preview_pill_badge"
                         android:gravity="center"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="6dp">
 
                         <ImageView
-                            android:layout_width="14dp"
-                            android:layout_height="14dp"
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:importantForAccessibility="no"
                             android:src="@drawable/ic_hx_search"
                             android:tint="@color/widget_hx_on_surface" />
 
@@ -159,25 +167,28 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
                             android:text="Log food"
                             android:textColor="@color/widget_hx_on_surface"
-                            android:textSize="11sp"
+                            android:textSize="10.5sp"
                             android:textStyle="bold" />
-
                     </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
-                        android:layout_marginStart="8dp"
+                        android:layout_marginStart="6dp"
                         android:layout_weight="1"
                         android:background="@drawable/widget_preview_primary_pill"
                         android:gravity="center"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="6dp">
 
                         <ImageView
-                            android:layout_width="14dp"
-                            android:layout_height="14dp"
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:importantForAccessibility="no"
                             android:src="@drawable/ic_hx_scan"
                             android:tint="@color/widget_hx_on_primary" />
 
@@ -185,19 +196,15 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
                             android:text="Scan"
                             android:textColor="@color/widget_hx_on_primary"
-                            android:textSize="11sp"
+                            android:textSize="10.5sp"
                             android:textStyle="bold" />
-
                     </LinearLayout>
-
                 </LinearLayout>
-
             </LinearLayout>
-
         </LinearLayout>
-
     </FrameLayout>
-
 </FrameLayout>

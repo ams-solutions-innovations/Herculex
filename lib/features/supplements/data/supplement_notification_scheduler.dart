@@ -26,7 +26,7 @@ class SupplementNotificationScheduler {
   static const _androidDetails = AndroidNotificationDetails(
     _channelId,
     'Supplement Reminders',
-    icon: '@mipmap/launcher_icon',
+    icon: '@drawable/ic_stat_herculex',
     channelDescription: 'Daily supplement intake reminders',
     importance: Importance.high,
     priority: Priority.high,

@@ -8,7 +8,7 @@
         android:layout_height="86dp"
         android:layout_gravity="center"
         android:background="@drawable/widget_hx_pill_placeholder"
-        android:paddingHorizontal="16dp">
+        android:paddingHorizontal="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -17,67 +17,71 @@
             android:orientation="horizontal">
 
             <FrameLayout
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
                 android:background="@drawable/widget_preview_circle_variant">
 
                 <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
                     android:layout_gravity="center"
+                    android:importantForAccessibility="no"
                     android:src="@drawable/ic_hx_dumbbell"
                     android:tint="@color/widget_hx_primary" />
-
             </FrameLayout>
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.05"
+                    android:maxLines="1"
                     android:text="WORKOUTS"
                     android:textColor="@color/widget_hx_secondary"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
+                    android:textSize="9.5sp" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:gravity="bottom"
                     android:orientation="horizontal">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif"
+                        android:maxLines="1"
                         android:text="4"
                         android:textColor="@color/widget_hx_primary"
-                        android:textSize="22sp"
+                        android:textSize="20sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
+                        android:maxLines="1"
                         android:text="weeks"
                         android:textColor="@color/widget_hx_secondary"
-                        android:textSize="11sp" />
-
+                        android:textSize="10.5sp" />
                 </LinearLayout>
-
             </LinearLayout>
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:importantForAccessibility="no"
                 android:src="@drawable/ic_hx_flame"
                 android:tint="@color/widget_hx_primary" />
-
         </LinearLayout>
-
     </FrameLayout>
-
 </FrameLayout>

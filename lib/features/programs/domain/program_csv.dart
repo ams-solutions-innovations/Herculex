@@ -8,8 +8,52 @@
 /// 0,1,Push,Bench Press,3,8,12,8,standard,,barbell
 /// ```
 ///
+/// Optional advanced columns follow `equipment` (older files without them
+/// still decode):
+///
+/// | column        | meaning                                                  |
+/// |---------------|----------------------------------------------------------|
+/// | `superset`    | same number on consecutive rows of a day ⇒ one superset |
+/// | `restSeconds` | rest after each set of this exercise                     |
+/// | `rir`         | reps in reserve (wins over `rpe` when both are present)  |
+/// | `role`        | main / supplemental / accessory / isolation / conditioning |
+/// | `method`      | straight_sets / double_progression / technique / …       |
+/// | `notes`       | free text shown with the exercise (tempo, cues, partials) |
+/// | `gear`        | optional add-ons, `|`-separated (see [ProgramGear])     |
+/// | `durationSeconds` | time target per set (cardio, planks, holds, carries) |
+/// | `distanceM`   | distance target per set in metres (sled, carries, runs)  |
+/// | `calories`    | calorie target per set (erg machines)                    |
+/// | `setMeta`     | `key=value;key=value` for the set type, e.g. down sets   |
+/// | `tempo`       | e.g. `3-1-1-0` (down-pause-up-top), shown in the workout |
+/// | `warmup`      | `1` = generate ramp-up warm-up sets before this exercise |
+///
+/// A down set (`setType=down_sets`, `setMeta=startReps=30;decrement=1`) counts
+/// the reps down one set at a time: 30, 29, 28 … 1.
+///
 /// Pure string ↔ struct codec — DB resolution (exercise names → ids) lives in
 /// ProgramCsvIo so this stays unit-testable.
+/// Optional add-ons a program row may call for. The user decides at import
+/// time (and can change it later) whether to use each one; a gear type that is
+/// switched off is simply not prescribed, the exercise stays as written.
+abstract final class ProgramGear {
+  static const labels = <String, String>{
+    'chains': 'Chains',
+    'bands': 'Bands',
+    'board': 'Board / box',
+    'straps': 'Lifting straps',
+    'fat_grips': 'Fat grips',
+    'belt': 'Lifting belt',
+  };
+
+  /// Normalizes a raw cell like `Chains|bands` to known keys, in order.
+  static List<String> parse(String? raw) => [
+    if (raw != null)
+      for (final g in raw.split('|'))
+        if (labels.containsKey(g.trim().toLowerCase().replaceAll(' ', '_')))
+          g.trim().toLowerCase().replaceAll(' ', '_'),
+  ];
+}
+
 class ProgramCsvRow {
   final int weekIndex;
   final int dayOfWeek; // 1–7
@@ -22,6 +66,25 @@ class ProgramCsvRow {
   final String setType;
   final double? percentOf1Rm;
   final String? equipmentVariant;
+  final int? supersetGroup;
+  final int? restSeconds;
+  final int? rir;
+  final String? slotRole;
+  final String? trainingMethod;
+  final String? notes;
+
+  /// Optional add-ons ([ProgramGear] keys) this row can be done with.
+  final List<String> gear;
+
+  /// Per-set time / distance / calorie targets for non-rep exercises.
+  final int? durationSeconds;
+  final double? distanceM;
+  final int? calories;
+
+  /// Set-type parameters, e.g. `{startReps: 30, decrement: 1}` for down sets.
+  final Map<String, num> setMeta;
+  final String? tempo;
+  final bool autoWarmups;
 
   const ProgramCsvRow({
     required this.weekIndex,
@@ -35,6 +98,19 @@ class ProgramCsvRow {
     this.setType = 'standard',
     this.percentOf1Rm,
     this.equipmentVariant,
+    this.supersetGroup,
+    this.restSeconds,
+    this.rir,
+    this.slotRole,
+    this.trainingMethod,
+    this.notes,
+    this.gear = const [],
+    this.durationSeconds,
+    this.distanceM,
+    this.calories,
+    this.setMeta = const {},
+    this.tempo,
+    this.autoWarmups = false,
   });
 }
 
@@ -61,7 +137,9 @@ class ProgramCsvFormatException implements Exception {
 
 class ProgramCsv {
   static const _exerciseHeader =
-      'week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equipment';
+      'week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equipment,'
+      'superset,restSeconds,rir,role,method,notes,gear,'
+      'durationSeconds,distanceM,calories,setMeta,tempo,warmup';
 
   static String encode(ProgramCsvDocument doc) {
     final b = StringBuffer()
@@ -84,6 +162,21 @@ class ProgramCsv {
           r.setType,
           r.percentOf1Rm ?? '',
           r.equipmentVariant ?? '',
+          r.supersetGroup ?? '',
+          r.restSeconds ?? '',
+          r.rir ?? '',
+          r.slotRole ?? '',
+          r.trainingMethod ?? '',
+          _escape(r.notes ?? ''),
+          r.gear.join('|'),
+          r.durationSeconds ?? '',
+          r.distanceM ?? '',
+          r.calories ?? '',
+          _escape(
+            r.setMeta.entries.map((e) => '${e.key}=${e.value}').join(';'),
+          ),
+          r.tempo ?? '',
+          r.autoWarmups ? 1 : '',
         ].join(','),
       );
     }
@@ -142,8 +235,34 @@ class ProgramCsv {
           setType: cell(8) ?? 'standard',
           percentOf1Rm: double.tryParse(cell(9) ?? ''),
           equipmentVariant: cell(10),
+          supersetGroup: int.tryParse(cell(11) ?? ''),
+          restSeconds: int.tryParse(cell(12) ?? ''),
+          rir: int.tryParse(cell(13) ?? ''),
+          slotRole: cell(14),
+          trainingMethod: cell(15),
+          notes: cell(16),
+          gear: ProgramGear.parse(cell(17)),
+          durationSeconds: int.tryParse(cell(18) ?? ''),
+          distanceM: double.tryParse(cell(19) ?? ''),
+          calories: int.tryParse(cell(20) ?? ''),
+          setMeta: _parseSetMeta(cell(21)),
+          tempo: cell(22),
+          autoWarmups: const {
+            '1',
+            'true',
+            'yes',
+          }.contains(cell(23)?.toLowerCase()),
         ),
       );
+    }
+
+    for (final r in rows) {
+      if (r.setType == 'down_sets' && !((r.setMeta['startReps'] ?? 0) > 0)) {
+        throw ProgramCsvFormatException(
+          'down_sets needs setMeta=startReps=N (and optional decrement=N): '
+          '${r.exerciseName}',
+        );
+      }
     }
 
     return ProgramCsvDocument(
@@ -154,6 +273,18 @@ class ProgramCsv {
           : 'none',
       rows: rows,
     );
+  }
+
+  static Map<String, num> _parseSetMeta(String? raw) {
+    if (raw == null) return const {};
+    final out = <String, num>{};
+    for (final part in raw.split(';')) {
+      final kv = part.split('=');
+      if (kv.length != 2) continue;
+      final v = num.tryParse(kv[1].trim());
+      if (v != null) out[kv[0].trim()] = v;
+    }
+    return out;
   }
 
   /// Minimal CSV quoting: fields containing commas or quotes get quoted.

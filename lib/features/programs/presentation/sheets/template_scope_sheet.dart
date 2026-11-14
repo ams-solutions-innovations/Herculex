@@ -4,15 +4,16 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/domain/wave_label.dart';
 import 'package:intl/intl.dart';
 
 /// Where a template picked for a scheduled workout applies.
-enum TemplateScope { thisSession, everyFuture }
+enum TemplateScope { thisSession, thisWave, everyFuture }
 
-/// Asks whether a template covers one scheduled occurrence or every future
-/// session of its program day — the difference between a one-off swap and
-/// re-pointing the live link. Shared by the day sheet and the planned
-/// workout preview's Edit action.
+/// Asks whether a template covers one scheduled occurrence, the current
+/// exercise-rotation wave (when present), or every future session of its
+/// program day. Shared by the day sheet and the planned workout preview's Edit
+/// action.
 class TemplateScopeSheet {
   const TemplateScopeSheet._();
 
@@ -20,6 +21,7 @@ class TemplateScopeSheet {
     BuildContext context, {
     required DateTime date,
     required String dayTitle,
+    ({WaveSegment current, int totalWaves})? wave,
   }) {
     return showModalBottomSheet<TemplateScope>(
       context: context,
@@ -27,8 +29,9 @@ class TemplateScopeSheet {
       builder: (sheetContext) => HxSheet(
         scrollable: false,
         title: 'Apply to',
-        subtitle:
-            'Choose whether this edit lasts for one workout or every wave.',
+        subtitle: wave != null
+            ? 'Choose whether this edit lasts for one workout, this wave, or every wave.'
+            : 'Choose whether this edit lasts for one workout or every wave.',
         child: Column(
           children: [
             _ScopeOption(
@@ -38,6 +41,17 @@ class TemplateScopeSheet {
               onTap: () =>
                   Navigator.pop(sheetContext, TemplateScope.thisSession),
             ),
+            if (wave != null) ...[
+              const SizedBox(height: 8),
+              _ScopeOption(
+                icon: Icons.waves_rounded,
+                title: 'This wave (${wave.current.weeksLabel})',
+                subtitle:
+                    'Wave ${wave.current.index} of ${wave.totalWaves} — other waves keep their own rotation.',
+                onTap: () =>
+                    Navigator.pop(sheetContext, TemplateScope.thisWave),
+              ),
+            ],
             const SizedBox(height: 8),
             _ScopeOption(
               icon: Icons.repeat_rounded,
@@ -66,14 +80,31 @@ class TemplateScopeSheet {
   }) async {
     // Resolved before the sheet: the caller may be gone when it closes.
     final repo = ref.read(programsRepositoryProvider);
-    final scope = await show(context, date: date, dayTitle: dayTitle);
+    final wave = await repo.waveForProgramDay(programDayId);
+    if (!context.mounted) return false;
+    final scope = await show(
+      context,
+      date: date,
+      dayTitle: dayTitle,
+      wave: wave,
+    );
     if (scope == null) return false;
 
     Haptics.success();
     if (scope == TemplateScope.thisSession) {
       await repo.setScheduleTemplateOverride(scheduleId, templateId);
     } else {
-      await repo.setProgramDayTemplate(programDayId, templateId);
+      await repo.setProgramDayTemplateForWeeks(
+        programId: programId,
+        programDayId: programDayId,
+        templateId: templateId,
+        startWeek: scope == TemplateScope.thisWave
+            ? wave?.current.startWeek
+            : null,
+        endWeek: scope == TemplateScope.thisWave
+            ? wave?.current.endWeek
+            : null,
+      );
       await repo.setScheduleTemplateOverride(scheduleId, null);
       await repo.rematerializeProgram(programId);
     }

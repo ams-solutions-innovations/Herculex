@@ -126,4 +126,101 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'SmartSubstitutionSheet.pickSubstitute shows Substitute Exercise with biomechanical matches and returns picked exercise',
+    (tester) async {
+      final dumbbellBench = const ExerciseCatalogData(
+        id: 2,
+        name: 'Dumbbell Bench Press',
+        primaryMuscle: 'Chest',
+        equipment: 'dumbbell',
+        mechanics: 'compound',
+        force: 'push',
+        plane: 'horizontal',
+        defaultRestSeconds: 120,
+        isCustom: false,
+        category: 'strength',
+        modality: 'dumbbell',
+        cnsScore: 3,
+        recoveryImpact: 3,
+        loggingMetric: 'weight_reps',
+        supportsWeightedBodyweight: false,
+        isReviewed: true,
+        programmingDifficulty: 'beginner',
+        programmingCommonness: 'basic',
+        allowedTrainingStyles: '[]',
+        technicalEligibility: 'automatic',
+      );
+      final legCurl = const ExerciseCatalogData(
+        id: 3,
+        name: 'Seated Leg Curl',
+        primaryMuscle: 'Hamstrings',
+        equipment: 'machine',
+        mechanics: 'isolation',
+        force: 'pull',
+        plane: 'sagittal',
+        defaultRestSeconds: 90,
+        isCustom: false,
+        category: 'hypertrophy',
+        modality: 'machine',
+        cnsScore: 2,
+        recoveryImpact: 2,
+        loggingMetric: 'weight_reps',
+        supportsWeightedBodyweight: false,
+        isReviewed: true,
+        programmingDifficulty: 'beginner',
+        programmingCommonness: 'basic',
+        allowedTrainingStyles: '[]',
+        technicalEligibility: 'automatic',
+      );
+
+      ExerciseCatalogData? picked;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            recentExerciseIdsProvider.overrideWith((ref) async => <int>{}),
+            exerciseCatalogProvider(const ExerciseCatalogFilter()).overrideWith(
+              (ref) => AsyncValue.data([
+                sampleExercise(),
+                legCurl,
+                dumbbellBench,
+              ]),
+            ),
+          ],
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      picked = await SmartSubstitutionSheet.pickSubstitute(
+                        context,
+                        originalExercise: sampleExercise(),
+                      );
+                    },
+                    child: const Text('Open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Substitute Exercise'), findsOneWidget);
+      expect(find.text('Suggested Biomechanical Matches'), findsOneWidget);
+      expect(find.text('Dumbbell Bench Press'), findsOneWidget);
+      expect(find.text('Add Exercise'), findsNothing);
+
+      await tester.ensureVisible(find.text('Dumbbell Bench Press'));
+      await tester.tap(find.text('Dumbbell Bench Press'));
+      await tester.pumpAndSettle();
+
+      expect(picked?.id, 2);
+    },
+  );
 }

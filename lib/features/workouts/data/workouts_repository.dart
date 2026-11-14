@@ -38,8 +38,25 @@ class _ExerciseFacetMatcher {
   _ExerciseFacetMatcher(String? category)
     : _facet = WorkoutsRepository._normalizeExerciseSearchText(category);
 
+  static bool isMuscleFacet(String? category) =>
+      muscleTargetsFor(category) != null;
+
+  static Set<String>? muscleTargetsFor(String? category) {
+    final facet = WorkoutsRepository._normalizeExerciseSearchText(category);
+    return _muscleFacetGroups[facet];
+  }
+
+  /// Normalized primary & secondary muscle targets for [exercise] + [muscles],
+  /// excluding `stabilizer` rows so background stabilizers (Forearms, Core,
+  /// Abs, Erectors) don't pollute muscle-group filters.
   bool matches(ExerciseCatalogData exercise, List<ExerciseMuscleData> muscles) {
     if (_facet.isEmpty || _facet == 'all' || _facet == 'recent') return true;
+
+    final muscleTargets = _muscleFacetGroups[_facet];
+    if (muscleTargets != null) {
+      return _matchesMuscleTargets(exercise, muscles, muscleTargets);
+    }
+
     final exactValues = <String?>[
       exercise.category,
       exercise.primaryMuscle,
@@ -50,37 +67,75 @@ class _ExerciseFacetMatcher {
       exercise.movementPatternRaw,
       exercise.modality,
       exercise.equipment,
-      for (final muscle in muscles) muscle.muscle,
+      for (final muscle in muscles)
+        if (muscle.role != 'stabilizer') muscle.muscle,
       for (final muscle in muscles) muscle.role,
     ].map(WorkoutsRepository._normalizeExerciseSearchText).toSet();
     if (exactValues.contains(_facet)) return true;
 
     final document = WorkoutsRepository._searchDocument(exercise, muscles);
-    final group = _facetGroups[_facet];
-    if (group != null) {
-      return group.any(
-        (value) => exactValues.contains(value) || document.contains(value),
-      );
-    }
     return WorkoutsRepository._searchTokenGroups(
       _facet,
     ).every((group) => group.any(document.contains));
   }
 
-  static const _facetGroups = <String, Set<String>>{
+  static bool _matchesMuscleTargets(
+    ExerciseCatalogData exercise,
+    List<ExerciseMuscleData> muscles,
+    Set<String> targets,
+  ) {
+    final primary = WorkoutsRepository._normalizeExerciseSearchText(
+      exercise.primaryMuscle,
+    );
+    if (targets.contains(primary)) return true;
+    final coarse = WorkoutsRepository._normalizeExerciseSearchText(
+      ExerciseBiomechanics.coarseMuscle(exercise.primaryMuscle),
+    );
+    if (coarse.isNotEmpty && targets.contains(coarse)) return true;
+    for (final muscle in muscles) {
+      if (muscle.role == 'stabilizer') continue;
+      final normalized = WorkoutsRepository._normalizeExerciseSearchText(
+        muscle.muscle,
+      );
+      if (targets.contains(normalized)) return true;
+    }
+    return false;
+  }
+
+  static const _muscleFacetGroups = <String, Set<String>>{
+    'chest': {'chest'},
+    'back': {'back', 'lat', 'rhomboid', 'trap', 'erector', 'lower back'},
+    'lat': {'lat'},
     'leg': {
+      'leg',
       'quad',
       'hamstring',
       'glute',
       'calve',
+      'calf',
       'tibiali',
+      'tibialis',
       'adductor',
       'abductor',
     },
-    'back': {'back', 'lat', 'rhomboid', 'trap', 'erector'},
+    'quad': {'quad'},
+    'hamstring': {'hamstring'},
+    'glute': {'glute'},
     'shoulder': {'shoulder', 'front delt', 'side delt', 'rear delt'},
-    'arm': {'bicep', 'brachiali', 'tricep', 'forearm'},
-    'core': {'core', 'ab', 'oblique', 'hip flexor'},
+    'rear delt': {'rear delt'},
+    'side delt': {'side delt'},
+    'front delt': {'front delt'},
+    'arm': {'bicep', 'brachiali', 'brachialis', 'tricep', 'forearm'},
+    'bicep': {'bicep', 'brachiali', 'brachialis'},
+    'tricep': {'tricep'},
+    'forearm': {'forearm'},
+    'core': {'core', 'abs', 'ab', 'oblique', 'hip flexor'},
+    'abs': {'abs', 'ab'},
+    'oblique': {'oblique'},
+    'calve': {'calve', 'calf'},
+    'adductor': {'adductor'},
+    'abductor': {'abductor'},
+    'trap': {'trap'},
   };
 }
 
@@ -131,8 +186,56 @@ class ExerciseCatalogSnapshot {
     return ExerciseCatalogSnapshot._(exercises, musclesByExercise, byId, index);
   }
 
-  /// Facet chip filter, then relevance ranking. With no query the list stays
-  /// in the catalog's alphabetical order so the browse experience is stable.
+  /// Whether [category] filters by a target muscle/muscle group.
+  static bool isMuscleCategory(String? category) =>
+      _ExerciseFacetMatcher.isMuscleFacet(category);
+
+  /// Ranks how strongly [exercise] targets [category] (`0` = sole primary,
+  /// `1` = headline primary shared with another muscle, `2` = secondary
+  /// primary muscle, `3` = secondary role, `4` = non-matching fallback).
+  int muscleFocusRank(ExerciseCatalogData exercise, String? category) {
+    final targets = _ExerciseFacetMatcher.muscleTargetsFor(category);
+    if (targets == null) return 0;
+
+    final muscles = musclesByExercise[exercise.id] ?? const [];
+    final primaryHeadline = WorkoutsRepository._normalizeExerciseSearchText(
+      exercise.primaryMuscle,
+    );
+    final coarseHeadline = WorkoutsRepository._normalizeExerciseSearchText(
+      ExerciseBiomechanics.coarseMuscle(exercise.primaryMuscle),
+    );
+    final headlineMatches =
+        targets.contains(primaryHeadline) ||
+        (coarseHeadline.isNotEmpty && targets.contains(coarseHeadline));
+
+    final primaryRows = [
+      for (final m in muscles)
+        if (m.role == 'primary')
+          WorkoutsRepository._normalizeExerciseSearchText(m.muscle),
+    ];
+    final anyPrimaryMatches = primaryRows.any(targets.contains);
+    final allPrimariesMatch =
+        primaryRows.isEmpty || primaryRows.every(targets.contains);
+
+    if (headlineMatches && allPrimariesMatch) return 0;
+    if (headlineMatches) return 1;
+    if (anyPrimaryMatches) return 2;
+
+    for (final m in muscles) {
+      if (m.role == 'stabilizer') continue;
+      final normalized = WorkoutsRepository._normalizeExerciseSearchText(
+        m.muscle,
+      );
+      if (targets.contains(normalized)) return 3;
+    }
+    return 4;
+  }
+
+  /// Facet chip filter, then muscle-focus or relevance ranking.
+  ///
+  /// When [category] is a muscle facet and [query] is empty, results are ordered
+  /// from most focused on the target muscle (`0`) to least (`3`) while keeping
+  /// deterministic catalog order within each tier.
   List<ExerciseCatalogData> select({
     String? query,
     String? category,
@@ -144,7 +247,20 @@ class ExerciseCatalogSnapshot {
         .toList();
 
     final trimmed = query?.trim() ?? '';
-    if (trimmed.isEmpty) return pool;
+    if (trimmed.isEmpty) {
+      if (_ExerciseFacetMatcher.isMuscleFacet(category) && pool.length > 1) {
+        final orderById = {for (var i = 0; i < pool.length; i++) pool[i].id: i};
+        pool.sort((a, b) {
+          final byRank = muscleFocusRank(
+            a,
+            category,
+          ).compareTo(muscleFocusRank(b, category));
+          if (byRank != 0) return byRank;
+          return orderById[a.id]!.compareTo(orderById[b.id]!);
+        });
+      }
+      return pool;
+    }
 
     final allowed = {for (final e in pool) e.id};
     final hits = _index.rank(trimmed, recentIds: recentIds);
